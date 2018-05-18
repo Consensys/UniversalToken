@@ -18,6 +18,8 @@ setup:
 test:
   stage: test
   image: node:9.1-alpine
+  before_script:
+    - apk --no-cache add make
   script:
     - make run-coverage
   artifacts:
@@ -29,6 +31,8 @@ test:
 test-lint:
   stage: test
   image: node:9.1-alpine
+  before_script:
+    - apk --no-cache add make
   script:
     - make test-lint
   tags:
