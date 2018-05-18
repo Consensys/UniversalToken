@@ -1,0 +1,18 @@
+version: '3'
+
+services:
+  ganache:
+    image: trufflesuite/ganache-cli:latest
+    command: --gasLimit 0xfffffffffff ${ACCOUNTS}
+    ports:
+      - 7545:8545
+
+  testrpc-sc:
+    build:
+      dockerfile: ./ganache/Dockerfile
+      context: ..
+    command: --gasLimit 0xfffffffffff ${ACCOUNTS}
+    ports:
+      - 8555:8555
+    volumes:
+      - .:/usr/src/app
