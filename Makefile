@@ -16,15 +16,18 @@ BIN=$(NODE_MODULES)/.bin
 TRUFFLE=$(BIN)/truffle
 SOLIDITY_COVERAGE=$(BIN)/solidity-coverage
 
-# docker-compose files
+# ganache options
 GANACHE=ganache/docker-compose.yml
+ACCOUNTS=ganache/accounts.txt
+
+# remix-ide options
 REMIX_IDE=remix-ide/docker-compose.yml
 
 npm:
 	@npm install
 
 build-ganache:
-	@docker-compose -f $(GANACHE) build
+	@ACCOUNTS="" docker-compose -f $(GANACHE) build
 
 build-remix-ide:
 	@docker-compose -f $(REMIX_IDE) build
@@ -34,10 +37,10 @@ docker-build: build-ganache build-remix-ide
 build: npm docker-build
 
 start-ganache:
-	@docker-compose -f $(GANACHE) up -d
+	@ACCOUNTS=`cat $(ACCOUNTS)` docker-compose -f $(GANACHE) up -d
 
 stop-ganache:
-	@docker-compose -f $(GANACHE) stop
+	@ACCOUNTS="" docker-compose -f $(GANACHE) stop
 
 init: build start-ganache
 
