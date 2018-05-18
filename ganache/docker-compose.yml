@@ -15,4 +15,4 @@ services:
     ports:
       - 8555:8555
     volumes:
-      - .:/usr/src/app
+      - ..:/usr/src/app
