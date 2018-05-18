@@ -66,7 +66,7 @@ test:
 	@$(TRUFFLE) test --network development
 
 run-coverage:
-	@$(SOLIDITY_COVERAGE) test --network development
+	@$(SOLIDITY_COVERAGE)
 
 coverage: run-coverage
 	@xdg-open coverage/index.html
