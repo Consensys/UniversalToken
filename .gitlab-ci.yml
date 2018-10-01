@@ -1,0 +1,31 @@
+image: node:9.1-alpine
+
+cache:
+  untracked: true
+  key: "$CI_BUILD_REF_NAME"
+  paths:
+    - node_modules/
+
+stages:
+  - test
+
+before_script:
+  - apk --no-cache add git openssh g++ gcc libgcc libstdc++ linux-headers make python
+  - npm install
+
+test:
+  stage: test
+  script:
+    - make run-coverage
+  artifacts:
+    paths:
+      - coverage
+  tags:
+    - private-ci
+
+test-lint:
+  stage: test
+  script:
+    - make test-lint
+  tags:
+    - private-ci
