@@ -35,18 +35,18 @@ init: build start-ganache
 develop: start-ganache
 
 stop-develop: stop-ganache
-
+	
 test:
-	@npm run contract:test
+	@yarn run contract:test
 
 run-coverage:
-	@npm run contract:test:coverage
+	@yarn run contract:test:coverage
 
 coverage: run-coverage
 	@xdg-open coverage/index.html
 
 test-lint:
-	@npm run lint:all
+	@yarn run lint:all
 
 lint:
-	@npm run lint:all:fix
+	@yarn run lint:all:fix
