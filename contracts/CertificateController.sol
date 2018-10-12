@@ -70,7 +70,7 @@ contract CertificateController is Controller {
             let size := calldatasize
 
             // Retrieve ECDSA elements from certificate which is a 65 long bytes (encoded on 160 bytes)
-            // Certificate encoding format is: <Head prefix (32 + 32 bytes)>@<r (32 bytes)>@<s (32 bytes)>@<v (1 bytes)>@<zero padding (31 bytes)> 
+            // Certificate encoding format is: [<function selector (4 bytes)>@]<data X bytes>@<expirationTime (32 bytes)>@<r (32 bytes)>@<s (32 bytes)>@<v (1 bytes)>
             r := calldataload(sub(size, 65))
             s := calldataload(sub(size, 33))
             v := byte(0, calldataload(sub(size, 1)))
