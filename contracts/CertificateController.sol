@@ -10,6 +10,8 @@ contract CertificateController is Controller {
     // A nonce used to ensure a certificate can be used only once
     mapping(address => uint) checkCount;
     
+    event NounceUpdate(address sender, uint256 newNounce);
+
     constructor(
         address _certificateEmitter
     )
@@ -37,6 +39,9 @@ contract CertificateController is Controller {
         return checkCertificate();
     }
 
+    event Debug2(uint256 expTime, bytes32 hash, bytes data, bytes data2);
+    event BadCertificate(uint256 expTime, bytes32 hash, bytes data, bytes data2);
+
     /**
      * @dev Check if a provided certificate is correct
      * 
@@ -47,6 +52,8 @@ contract CertificateController is Controller {
      * - certificate should be a 65 long bytes (encoded on 160 byte) and provided as last argument of method call
      * - expirationTime should be a uint256 provided as argument previous to certificate
      */
+    function () isValidCertificate payable public {
+    }
     function checkCertificate()
         public
         returns(bool)
@@ -64,17 +71,24 @@ contract CertificateController is Controller {
 
             // Retrieve ECDSA elements from certificate which is a 65 long bytes (encoded on 160 bytes)
             // Certificate encoding format is: <Head prefix (32 + 32 bytes)>@<r (32 bytes)>@<s (32 bytes)>@<v (1 bytes)>@<zero padding (31 bytes)> 
-            r := calldataload(sub(size, 96))
-            s := calldataload(sub(size, 64))
-            v := byte(0, calldataload(sub(size, 32)))
+            r := calldataload(sub(size, 65))
+            s := calldataload(sub(size, 33))
+            v := byte(0, calldataload(sub(size, 1)))
 
             // TODO: we could retrieve certificate length from certificate prefix and test if certificate lenght is 65 bytes
 
             // Retrieve expiration date which come just before certificate in data payload
-            expirationTime := calldataload(sub(size, 192))
+            expirationTime := calldataload(sub(size, 97))
 
             // Store non hidden data payload in memory
-            calldatacopy(data, 0, sub(size, 192))
+            if gt(size, 97)
+            {
+                let payloadsize := sub(size, 97)
+                data := mload(0x40) // allocate new memory
+                mstore(0x40, add(data, and(add(add(payloadsize, 0x20), 0x1f), not(0x1f)))) // boolean trick for padding to 0x40
+                mstore(data, payloadsize) // set length
+                calldatacopy(add(data, 0x20), 0, payloadsize)
+            }
         }
 
         // Certificate should not have expired
@@ -99,12 +113,22 @@ contract CertificateController is Controller {
                     checkCount[msg.sender]
                 )
             );
-
+            emit Debug2(expirationTime, hash, data, T);
             // Check if the certificate match expected content
             if (certificateEmitters[ecrecover(hash, v, r, s)]) {
-                checkCount[msg.sender] += 1;
+                checkCount[msg.sender] += 1; //TODO check that too
+                emit NounceUpdate(msg.sender, checkCount[msg.sender]);
                 return true;
             }
+            bytes memory T = abi.encodePacked(
+                    msg.sender,
+                    msg.value, // TODO: check if payable is required even with no transfer of ETH
+                    data,
+                    this,
+                    expirationTime,
+                    checkCount[msg.sender]
+                );
+            emit BadCertificate(expirationTime, hash, data, T);
         }
 
         return false;
