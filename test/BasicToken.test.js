@@ -1,4 +1,5 @@
-import assertRevert from './helpers/assertRevert';
+import { assertRevert } from 'openzeppelin-solidity/test/helpers/assertRevert.js';
+
 const BasicToken = artifacts.require('BasicTokenMock');
 
 contract('BasicToken', function ([_, owner, recipient, anotherAccount]) {

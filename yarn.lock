@@ -1007,13 +1007,13 @@ bcrypt-pbkdf@^1.0.0:
   dependencies:
     tweetnacl "^0.14.3"
 
-"bignumber.js@git+https://github.com/debris/bignumber.js#master":
-  version "2.0.7"
-  resolved "git+https://github.com/debris/bignumber.js#c7a38de919ed75e6fb6ba38051986e294b328df9"
-
 "bignumber.js@git+https://github.com/debris/bignumber.js.git#94d7146671b9719e00a09c29b01a691bc85048c2":
   version "2.0.7"
   resolved "git+https://github.com/debris/bignumber.js.git#94d7146671b9719e00a09c29b01a691bc85048c2"
+
+"bignumber.js@git+https://github.com/debris/bignumber.js.git#master":
+  version "2.0.7"
+  resolved "git+https://github.com/debris/bignumber.js.git#c7a38de919ed75e6fb6ba38051986e294b328df9"
 
 binary-extensions@^1.0.0:
   version "1.12.0"
@@ -5526,6 +5526,10 @@ onetime@^2.0.0:
   dependencies:
     mimic-fn "^1.0.0"
 
+"openzeppelin-solidity@git://github.com/OpenZeppelin/openzeppelin-solidity#0e65947efbffc592cffea8c2ae9d3b8e11659854":
+  version "1.12.0"
+  resolved "git://github.com/OpenZeppelin/openzeppelin-solidity#0e65947efbffc592cffea8c2ae9d3b8e11659854"
+
 optimist@^0.6.1:
   version "0.6.1"
   resolved "https://registry.yarnpkg.com/optimist/-/optimist-0.6.1.tgz#da3ea74686fa21a19a111c326e90eb15a0196686"
@@ -6261,9 +6265,9 @@ regjsparser@^0.1.4:
   dependencies:
     jsesc "~0.5.0"
 
-"remixd@git+https://github.com/ethereum/remixd.git":
+"remixd@git://github.com/ethereum/remixd.git":
   version "0.1.8-alpha.5"
-  resolved "git+https://github.com/ethereum/remixd.git#24f3e29b5a3a99c88ce50a735df765d6dcd239f2"
+  resolved "git://github.com/ethereum/remixd.git#24f3e29b5a3a99c88ce50a735df765d6dcd239f2"
   dependencies:
     chokidar "^2.0.2"
     commander "^2.9.0"
