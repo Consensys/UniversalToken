@@ -5526,9 +5526,9 @@ onetime@^2.0.0:
   dependencies:
     mimic-fn "^1.0.0"
 
-"openzeppelin-solidity@git://github.com/OpenZeppelin/openzeppelin-solidity#0e65947efbffc592cffea8c2ae9d3b8e11659854":
-  version "1.12.0"
-  resolved "git://github.com/OpenZeppelin/openzeppelin-solidity#0e65947efbffc592cffea8c2ae9d3b8e11659854"
+"openzeppelin-solidity@git://github.com/OpenZeppelin/openzeppelin-solidity#2d30918149c1d61da3cf52d20f2381574b80cf33":
+  version "2.0.0-rc.3"
+  resolved "git://github.com/OpenZeppelin/openzeppelin-solidity#2d30918149c1d61da3cf52d20f2381574b80cf33"
 
 optimist@^0.6.1:
   version "0.6.1"

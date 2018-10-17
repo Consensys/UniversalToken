@@ -56,7 +56,7 @@
     "ethjs-abi": "^0.2.1",
     "husky": "^1.1.2",
     "lint-staged": "^7.3.0",
-    "openzeppelin-solidity": "git://github.com/OpenZeppelin/openzeppelin-solidity#0e65947efbffc592cffea8c2ae9d3b8e11659854",
+    "openzeppelin-solidity": "git://github.com/OpenZeppelin/openzeppelin-solidity#2d30918149c1d61da3cf52d20f2381574b80cf33",
     "remixd": "git://github.com/ethereum/remixd.git",
     "solidity-coverage": "^0.5.0",
     "solium": "^1.1.7",
