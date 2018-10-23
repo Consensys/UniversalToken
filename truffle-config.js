@@ -4,7 +4,7 @@ require('babel-polyfill');
 
 const HDWalletProvider = require('truffle-hdwallet-provider');
 
-const providerWithMnemonic = (mnemonic, rpcEndpoint) =>
+const providerWithMnemonic = (mnemonic, rpcEndpoint) => () =>
   new HDWalletProvider(mnemonic, rpcEndpoint);
 
 const infuraProvider = network => providerWithMnemonic(
