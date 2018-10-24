@@ -35,7 +35,7 @@ interface ERC820ImplementerInterface {
     /// @param addr Address for which the contract will implement the interface
     /// @param interfaceHash keccak256 hash of the name of the interface
     /// @return ERC820_ACCEPT_MAGIC only if the contract implements `interfaceHash` for the address `addr`.
-    function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) public view returns(bytes32);
+    function canImplementInterfaceForAddress(address addr, bytes32 interfaceHash) external view returns(bytes32);
 }
 
 
@@ -138,6 +138,7 @@ contract ERC820Registry {
     /// @dev This function may modify the state when updating the cache. However, this function must have the `view`
     /// modifier since `getInterfaceImplementer` also calls it. If called from within a transaction, the ERC165 cache
     /// is updated.
+    // TODO: spit function into 2 fcts (view + non-view)
     function implementsERC165Interface(address _contract, bytes4 _interfaceId) public view returns (bool) {
         if (!erc165Cached[_contract][_interfaceId]) {
             updateERC165Cache(_contract, _interfaceId);

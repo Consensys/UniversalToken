@@ -180,7 +180,7 @@ contract ERC777 is IERC777, ERC820Client {
      *  @dev Burn the amount of tokens from the address msg.sender.
      *  @param amount Number of tokens to burn.
      */
-    function burn(uint256 amount) external {
+    function burn(uint256 amount) public {
       _burn(msg.sender, msg.sender, amount, "");
     }
 
@@ -190,7 +190,7 @@ contract ERC777 is IERC777, ERC820Client {
      *  @param amount Number of tokens to burn.
      *  @param operatorData Information attached to the burn by the operator.
      */
-    function operatorBurn(address from, uint256 amount, bytes operatorData) external {
+    function operatorBurn(address from, uint256 amount, bytes operatorData) public {
         address _from = (from == address(0)) ? msg.sender : from;
 
         require(_isOperatorFor(msg.sender, _from));
