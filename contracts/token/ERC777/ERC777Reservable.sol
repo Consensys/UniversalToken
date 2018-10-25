@@ -8,6 +8,7 @@ import { Ownable as ozs_Ownable } from "openzeppelin-solidity/contracts/ownershi
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import "contract-certificate-controller/contracts/Controllable.sol";
+import "contract-certificate-controller/contracts/CertificateController.sol";
 
 import "./ERC777.sol";
 
@@ -48,6 +49,7 @@ contract ERC777Reservable is ozs_Ownable, Controllable, ERC777 {
     bool burnLeftOver
   )
   public
+  Controllable(CertificateController(0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630))
   ERC777(name, symbol, granularity, defaultOperators)
   {
     _minShares = minShares;
