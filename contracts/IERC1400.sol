@@ -1,38 +1,35 @@
 pragma solidity ^0.4.24;
 
-/// @title IERCST Security Token Standard (EIP 1400)
+/// @title IERC1400 Security Token Standard (EIP 1400)
 /// @dev See https://github.com/SecurityTokenStandard/EIP-Spec
 
-import "./IERCPFT.sol";
-
-//TODO: fix interface cannot inherit interface - interface IERCST is IERCPFT
-interface IERCST  {
+interface IERC1400  {
 
     // Document Management
-    function getDocument(bytes32 _name) external view returns (string, bytes32);
-    function setDocument(bytes32 _name, string _uri, bytes32 _documentHash) external;
+    function getDocument(bytes32 name) external view returns (string, bytes32); // 1/8
+    function setDocument(bytes32 name, string uri, bytes32 documentHash) external; // 2/8
 
     // Controller Operation
-    function isControllable() external view returns (bool);
+    function isControllable() external view returns (bool); // 3/8
 
     // Token Issuance
-    function isIssuable() external view returns (bool);
-    function issueByTranche(bytes32 _tranche, address _tokenHolder, uint256 _amount, bytes _data) external;
+    function isIssuable() external view returns (bool); // 4/8
+    function issueByTranche(bytes32 tranche, address tokenHolder, uint256 amount, bytes data) external; // 5/8
     event IssuedByTranche(bytes32 indexed tranche, address indexed operator, address indexed to, uint256 amount, bytes data, bytes operatorData);
 
     // Token Redemption
-    function redeemByTranche(bytes32 _tranche, uint256 _amount, bytes _data) external;
-    function operatorRedeemByTranche(bytes32 _tranche, address _tokenHolder, uint256 _amount, bytes _operatorData) external;
+    function redeemByTranche(bytes32 tranche, uint256 amount, bytes data) external; // 6/8
+    function operatorRedeemByTranche(bytes32 tranche, address tokenHolder, uint256 amount, bytes operatorData) external; // 7/8
     event RedeemedByTranche(bytes32 indexed tranche, address indexed operator, address indexed from, uint256 amount, bytes operatorData);
 
     // Transfer Validity
-    function canSend(address _from, address _to, bytes32 _tranche, uint256 _amount, bytes _data) external view returns (byte, bytes32, bytes32);
+    function canSend(address from, address to, bytes32 tranche, uint256 amount, bytes data) external view returns (byte, bytes32, bytes32); // 8/8
 
 }
 
 
 /*
-Reason codes
+Reason codes - ERC1066
 
 To improve the token holder experience, canSend MUST return a reason byte code
 on success or failure based on the EIP-1066 application-specific status codes specified below.

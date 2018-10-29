@@ -6,6 +6,13 @@ pragma solidity ^0.4.24;
 
 
 interface IERC777TokensRecipient {
+  function canReceive(
+    address from,
+    address to,
+    uint amount,
+    bytes userData
+  ) external view returns(bool);
+
   function tokensReceived(
     address operator,
     address from,

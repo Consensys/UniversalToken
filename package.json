@@ -81,6 +81,6 @@
     ]
   },
   "dependencies": {
-    "contract-certificate-controller": "git+ssh://git@gitlab.com:ConsenSys/client/fr/dauriel/contract-certificate-controller.git#3875817da92a05842d48ae0b9f3f213231e632bd"
+    "contract-certificate-controller": "git+ssh://git@gitlab.com:ConsenSys/client/fr/dauriel/contract-certificate-controller.git#b3d004695606a1780dfd9f50a824b713a7400516"
   }
 }
