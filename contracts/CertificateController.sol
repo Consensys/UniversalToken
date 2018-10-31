@@ -4,26 +4,29 @@ pragma solidity ^0.4.24;
 contract CertificateController {
     
     // Address used by off-chain controller service to sign certificate
-    mapping(address => bool) public certificateEmitters;
+    mapping(address => bool) public certificateSigners;
 
     // A nonce used to ensure a certificate can be used only once
     mapping(address => uint) public checkCount;
     
     event Checked(address sender);
 
-    constructor(
-        address _certificateEmitter
+    constructor 
+    (
+        address _certificateSigner
     )
         public
     {
-        require(_certificateEmitter != address(0), "Valid address required");
-        certificateEmitters[_certificateEmitter] = true;
+        require(_certificateSigner != address(0), "Valid address required");
+        certificateSigners[_certificateSigner] = true;
     }
 
     /**
      * @dev Modifier to protect methods with certificate control
      */
-    modifier isValidCertificate(bytes data) {
+    modifier isValidCertificate(
+        bytes data
+    ) {
         require(checkCertificate(data), "Certificate is invalid");
         _;
     }
@@ -32,7 +35,9 @@ contract CertificateController {
      * @dev Check if a certificate is correct
      * @param data Certificate to control
      */
-    function checkCertificate(bytes data)
+    function checkCertificate(
+        bytes data
+    )
         public
         returns(bool)
     {   
@@ -89,7 +94,7 @@ contract CertificateController {
             bytes32 hash = keccak256(pack);
 
             // Check if certificate match expected transactions parameters
-            if (certificateEmitters[ecrecover(hash, v, r, s)]) {
+            if (certificateSigners[ecrecover(hash, v, r, s)]) {
                 // Increment sender check count
                 checkCount[msg.sender] += 1;
 
