@@ -11,7 +11,7 @@ stages:
 
 before_script:
   - apk --no-cache add git openssh g++ gcc libgcc libstdc++ linux-headers make python
-  - npm install
+  - yarn install
 
 test:
   stage: test
@@ -20,12 +20,12 @@ test:
   artifacts:
     paths:
       - coverage
-  tags:
-    - private-ci
+  only:
+    - master
 
 test-lint:
   stage: test
   script:
     - make test-lint
-  tags:
-    - private-ci
+  only:
+    - master
