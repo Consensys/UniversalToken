@@ -197,8 +197,9 @@ contract ERC1410 is IERC1410, ERC777 {
 
   /**
    * [ERC1410 INTERFACE (7/12)]
-   * For ERC777 and ERC20 backwards compatibility
+   * For ERC777 and ERC20 backwards compatibility.
    * @dev View function to get default tranches to send from.
+   *  For example, a security token may return the bytes32("unrestricted").
    * @param tokenHolder Address for which we want to know the default tranches.
    */
   function getDefaultTranches(address tokenHolder) external view returns (bytes32[]) {
@@ -207,7 +208,7 @@ contract ERC1410 is IERC1410, ERC777 {
 
   /**
    * [ERC1410 INTERFACE (8/12)]
-   *For ERC777 and ERC20 backwards compatibility
+   *For ERC777 and ERC20 backwards compatibility.
    * @dev External function to set default tranches to send from.
    * @param tranches tranches to use by default when not specified.
    */
@@ -217,7 +218,7 @@ contract ERC1410 is IERC1410, ERC777 {
 
   /**
    * [ERC1410 INTERFACE (9/12)]
-   * For ERC777 and ERC20 backwards compatibility
+   * For ERC777 and ERC20 backwards compatibility.
    * @dev External function to get default operators for a given tranche.
    * @param tranche Name of the tranche.
    */
@@ -421,7 +422,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param data Information attached to the send, by the token holder.
    */
   function sendTo(address to, uint256 amount, bytes data) external {
-    _sendByDefaultTranches(msg.sender, msg.sender, to, amount, data, "", true);
+    _sendByDefaultTranches(msg.sender, msg.sender, to, amount, data, "");
   }
 
   /**
@@ -438,7 +439,7 @@ contract ERC1410 is IERC1410, ERC777 {
 
     require(_isOperatorFor(msg.sender, _from));
 
-    _sendByDefaultTranches(msg.sender, _from, to, amount, data, operatorData, true);
+    _sendByDefaultTranches(msg.sender, _from, to, amount, data, operatorData);
   }
 
   /**
@@ -450,7 +451,7 @@ contract ERC1410 is IERC1410, ERC777 {
   function transfer(address to, uint256 value) external returns (bool) {
     require(_erc20compatible);
 
-    _sendByDefaultTranches(msg.sender, msg.sender, to, value, "", "", false);
+    _sendByDefaultTranches(msg.sender, msg.sender, to, value, "", "");
 
     return true;
   }
@@ -483,7 +484,7 @@ contract ERC1410 is IERC1410, ERC777 {
       _allowed[_from][msg.sender] = 0;
     }
 
-    _sendByDefaultTranches(msg.sender, _from, to, value, "", "", false);
+    _sendByDefaultTranches(msg.sender, _from, to, value, "", "");
     return true;
   }
 
@@ -496,10 +497,6 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param amount Number of tokens to send.
    * @param data Information attached to the send, by the token holder.
    * @param operatorData Information attached to the send by the operator.
-   * @param preventLocking `true` if you want this function to throw when tokens are sent to a contract not
-   *  implementing `erc777tokenHolder`.
-   *  ERC777 native Send functions MUST set this parameter to `true`, and backwards compatible ERC20 transfer
-   *  functions SHOULD set this parameter to `false`.
    */
   function _sendByDefaultTranches(
     address operator,
@@ -507,13 +504,14 @@ contract ERC1410 is IERC1410, ERC777 {
     address to,
     uint256 amount,
     bytes data,
-    bytes operatorData,
-    bool preventLocking
+    bytes operatorData
   )
     internal
   {
     uint256 _remainingAmount = amount;
     uint256 _localBalance;
+
+    require(_defaultTranches[from].length != 0);
 
     if(_defaultTranches[from].length != 0) {
       for (uint i = 0; i < _defaultTranches[from].length; i++) {
@@ -529,9 +527,7 @@ contract ERC1410 is IERC1410, ERC777 {
       }
     }
 
-    if(_remainingAmount > 0) {
-      _sendTo(operator, from, to, _remainingAmount, data, operatorData, preventLocking);
-    }
+    require(_remainingAmount == 0);
   }
 
 }

@@ -123,7 +123,7 @@ contract ERC1400 is IERC1400, ERC1410 {
 
   /**
    * [ERC1400 INTERFACE (6/8)]
-   * @dev External to redeems tokens of a specific tranche.
+   * @dev External to redeem tokens of a specific tranche.
    * @param tranche Name of the tranche.
    * @param amount Number of tokens minted.
    * @param data Information attached to the redeem, and intended for the recipient (to).
@@ -134,7 +134,7 @@ contract ERC1400 is IERC1400, ERC1410 {
 
   /**
    * [ERC1400 INTERFACE (7/8)]
-   * @dev External to redeems tokens of a specific tranche.
+   * @dev External to redeem tokens of a specific tranche.
    * @param tranche Name of the tranche.
    * @param tokenHolder Address for which we want to redeem tokens.
    * @param amount Number of tokens minted.
@@ -316,6 +316,82 @@ contract ERC1400 is IERC1400, ERC1410 {
    */
   function renounceIssuance() external onlyOwner {
     _isIssuable = false;
+  }
+
+  /**
+   * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC777 METHOD]
+   * @dev Mint the amout of tokens for the recipient 'to'.
+   * @param to Token recipient.
+   * @param amount Number of tokens minted.
+   * @param data Information attached to the minting, and intended for the recipient (to).
+   */
+  function mint(address to, uint256 amount, bytes data) external onlyMinter returns (bool) {
+    require(_defaultTranches[msg.sender].length != 0);
+    _issueByTranche(_defaultTranches[msg.sender][0], msg.sender, to, amount, data, "");
+
+    return true;
+  }
+
+  /**
+   * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC777 METHOD]
+   * @dev Burn the amount of tokens from the address msg.sender.
+   * @param amount Number of tokens to burn.
+   * @param data Information attached to the burn, by the token holder.
+   */
+  function burn(uint256 amount, bytes data) external {
+    _redeemByDefaultTranches(msg.sender, msg.sender, amount, data);
+  }
+
+  /**
+   * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC777 METHOD]
+   * @dev Burn the amount of tokens on behalf of the address from.
+   * @param from Token holder whose tokens will be burned (or address(0) to set from to msg.sender).
+   * @param amount Number of tokens to burn.
+   * @param operatorData Information attached to the burn by the operator.
+   */
+  function operatorBurn(address from, uint256 amount, bytes operatorData) external {
+    address _from = (from == address(0)) ? msg.sender : from;
+
+    require(_isOperatorFor(msg.sender, _from));
+
+    _redeemByDefaultTranches(msg.sender, _from, amount, operatorData);
+  }
+
+  /**
+  * [NOT MANDATORY FOR ERC1410 STANDARD]
+   * @dev Internal function to redeem tokens from a default tranches
+   * @param operator The address performing the redeem.
+   * @param from Token holder.
+   * @param amount Number of tokens to redeem.
+   * @param data Information attached to the redeem, by the token holder or the operator.
+   */
+  function _redeemByDefaultTranches(
+    address operator,
+    address from,
+    uint256 amount,
+    bytes data
+  )
+    internal
+  {
+    uint256 _remainingAmount = amount;
+    uint256 _localBalance;
+
+    require(_defaultTranches[from].length != 0);
+
+    if(_defaultTranches[from].length != 0) {
+      for (uint i = 0; i < _defaultTranches[from].length; i++) {
+        _localBalance = _balanceOfByTranche[from][_defaultTranches[from][i]];
+        if(_remainingAmount <= _localBalance) {
+          _redeemByTranche(_defaultTranches[from][i], operator, from, _remainingAmount, data);
+          _remainingAmount = 0;
+          break;
+        } else {
+          _redeemByTranche(_defaultTranches[from][i], operator, from, _localBalance, data);
+          _remainingAmount = _remainingAmount - _localBalance;
+        }
+      }
+    }
+    require(_remainingAmount == 0);
   }
 
   /**
