@@ -41,7 +41,16 @@ contract ERC1400 is IERC1400, ERC1410 {
     _isControllable = true;
     _isIssuable = true;
 
-    _setERC820compatibility(true);
+    _setERC777compatibility(true);
+  }
+
+  /**
+   * [NOT MANDATORY FOR ERC1410 STANDARD]
+   * @dev Registers/Unregisters the ERC1410Token interface with its own address via ERC820
+   * @param erc777compatible 'true' to register the ERC777Token interface, 'false' to unregister
+   */
+  function setERC777compatibility(bool erc777compatible) external onlyOwner {
+    _setERC777compatibility(erc777compatible);
   }
 
   /**
@@ -326,6 +335,8 @@ contract ERC1400 is IERC1400, ERC1410 {
    * @param data Information attached to the minting, and intended for the recipient (to).
    */
   function mint(address to, uint256 amount, bytes data) external onlyMinter returns (bool) {
+    require(_erc777compatible);
+
     require(_defaultTranches[msg.sender].length != 0);
     _issueByTranche(_defaultTranches[msg.sender][0], msg.sender, to, amount, data, "");
 
@@ -339,6 +350,8 @@ contract ERC1400 is IERC1400, ERC1410 {
    * @param data Information attached to the burn, by the token holder.
    */
   function burn(uint256 amount, bytes data) external {
+    require(_erc777compatible);
+
     _redeemByDefaultTranches(msg.sender, msg.sender, amount, data);
   }
 
@@ -350,6 +363,8 @@ contract ERC1400 is IERC1400, ERC1410 {
    * @param operatorData Information attached to the burn by the operator.
    */
   function operatorBurn(address from, uint256 amount, bytes operatorData) external {
+    require(_erc777compatible);
+
     address _from = (from == address(0)) ? msg.sender : from;
 
     require(_isOperatorFor(msg.sender, _from));

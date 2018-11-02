@@ -18,8 +18,8 @@ interface IERC1410 {
     function operatorSendByTranches(bytes32[] tranches, address from, address to, uint256[] amounts, bytes data, bytes operatorData) external returns (bytes32[]); // 6/12
 
     // Default Tranche Management
-    function getDefaultTranches(address tokenHolder) external view returns (bytes32[]); // 7/12
-    function setDefaultTranches(bytes32[] tranches) external; // 8/12
+    function getDefaultTranches(address tokenHolder) external view returns (bytes32[]); // 7/12 [OPTIONAL]
+    function setDefaultTranches(bytes32[] tranches) external; // 8/12 [OPTIONAL]
 
     // Operators
     function defaultOperatorsByTranche(bytes32 tranche) external view returns (address[]); // 9/12

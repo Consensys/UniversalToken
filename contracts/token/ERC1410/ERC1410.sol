@@ -22,7 +22,7 @@ contract ERC1410 is IERC1410, ERC777 {
   mapping (bytes32 => uint256) internal _totalSupplyByTranche;
 
   // Mapping from investor to their tranches
-  mapping (address => bytes32[]) internal _tranches;
+  mapping (address => bytes32[]) internal _tranchesOf;
 
   // Mapping from (investor, tranche) to balance of corresponding tranche
   mapping (address => mapping (bytes32 => uint256)) internal _balanceOfByTranche;
@@ -46,6 +46,23 @@ contract ERC1410 is IERC1410, ERC777 {
   // Mapping from (tranche, operator) to defaultOperatorByTranche status [NOT INVESTOR-SPECIFIC]
   mapping (bytes32 => mapping (address => bool)) internal _isDefaultOperatorByTranche;
   /****************************************************************************/
+
+  bool internal _erc777compatible;
+
+  
+  /**
+   * [NOT MANDATORY FOR ERC1410 STANDARD]
+   * @dev Helper function to registers/unregister the ERC777Token interface
+   * @param erc777compatible 'true' to register the ERC777Token interface, 'false' to unregister
+   */
+  function _setERC777compatibility(bool erc777compatible) internal {
+    _erc777compatible = erc777compatible;
+    if(_erc777compatible) {
+      if(_erc820compatible) { setInterfaceImplementation("ERC777Token", this); }
+    } else {
+      if(_erc820compatible) { setInterfaceImplementation("ERC777Token", address(0)); }
+    }
+  }
 
 
   /**
@@ -80,7 +97,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param tokenHolder Address for which the tranches index are returned.
    */
   function tranchesOf(address tokenHolder) external view returns (bytes32[]) {
-    return _tranches[tokenHolder];
+    return _tranchesOf[tokenHolder];
   }
 
   /**
@@ -196,7 +213,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (7/12)]
+   * [ERC1410 INTERFACE (7/12)][OPTIONAL]
    * For ERC777 and ERC20 backwards compatibility.
    * @dev View function to get default tranches to send from.
    *  For example, a security token may return the bytes32("unrestricted").
@@ -207,7 +224,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (8/12)]
+   * [ERC1410 INTERFACE (8/12)][OPTIONAL]
    *For ERC777 and ERC20 backwards compatibility.
    * @dev External function to set default tranches to send from.
    * @param tranches tranches to use by default when not specified.
@@ -364,11 +381,11 @@ contract ERC1410 is IERC1410, ERC777 {
     _totalSupplyByTranche[tranche] = _totalSupplyByTranche[tranche].sub(amount);
 
     if(_balanceOfByTranche[from][tranche] == 0) {
-      for (uint i = 0; i < _tranches[from].length; i++) {
-        if(_tranches[from][i] == tranche) {
-          _tranches[from][i] = _tranches[from][_tranches[from].length - 1];
-          delete _tranches[from][_tranches[from].length - 1];
-          _tranches[from].length--;
+      for (uint i = 0; i < _tranchesOf[from].length; i++) {
+        if(_tranchesOf[from][i] == tranche) {
+          _tranchesOf[from][i] = _tranchesOf[from][_tranchesOf[from].length - 1];
+          delete _tranchesOf[from][_tranchesOf[from].length - 1];
+          _tranchesOf[from].length--;
         }
       }
     }
@@ -391,7 +408,7 @@ contract ERC1410 is IERC1410, ERC777 {
    */
   function _addTokenToTranche(address to, bytes32 tranche, uint256 amount) internal {
     if(_balanceOfByTranche[to][tranche] == 0 && amount != 0) {
-      _tranches[to].push(tranche);
+      _tranchesOf[to].push(tranche);
     }
     _balanceOfByTranche[to][tranche] = _balanceOfByTranche[to][tranche].add(amount);
 
@@ -422,6 +439,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param data Information attached to the send, by the token holder.
    */
   function sendTo(address to, uint256 amount, bytes data) external {
+    require(_erc777compatible);
     _sendByDefaultTranches(msg.sender, msg.sender, to, amount, data, "");
   }
 
@@ -435,6 +453,8 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param operatorData Information attached to the send by the operator.
    */
   function operatorSendTo(address from, address to, uint256 amount, bytes data, bytes operatorData) external {
+    require(_erc777compatible);
+
     address _from = (from == address(0)) ? msg.sender : from;
 
     require(_isOperatorFor(msg.sender, _from));
