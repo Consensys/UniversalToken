@@ -14,7 +14,6 @@
 NODE_MODULES=./node_modules
 BIN=$(NODE_MODULES)/.bin
 TRUFFLE=$(BIN)/truffle
-SOLIDITY_COVERAGE=$(BIN)/solidity-coverage
 
 # ganache options
 GANACHE=ganache/docker-compose.yml
@@ -66,7 +65,7 @@ test:
 	@$(TRUFFLE) test --network development
 
 run-coverage:
-	@$(SOLIDITY_COVERAGE)
+	@npm run coverage
 
 coverage: run-coverage
 	@xdg-open coverage/index.html

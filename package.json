@@ -7,6 +7,7 @@
     "tests"
   ],
   "scripts": {
+    "coverage": "solidity-coverage",
     "lint": "eslint ./migrations ./test ",
     "lint:fix": "eslint ./test ./migrations --fix",
     "lint:sol": "solium -d .",
