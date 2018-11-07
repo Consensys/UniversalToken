@@ -306,7 +306,7 @@ async-eventemitter@^0.2.2:
   dependencies:
     async "^2.4.0"
 
-"async-eventemitter@github:ahultgren/async-eventemitter#fa06e39e56786ba541c180061dbf2c0a5bbf951c":
+async-eventemitter@ahultgren/async-eventemitter#fa06e39e56786ba541c180061dbf2c0a5bbf951c:
   version "0.2.3"
   resolved "https://codeload.github.com/ahultgren/async-eventemitter/tar.gz/fa06e39e56786ba541c180061dbf2c0a5bbf951c"
   dependencies:
@@ -2615,7 +2615,7 @@ eslint-visitor-keys@^1.0.0:
   resolved "https://registry.yarnpkg.com/eslint-visitor-keys/-/eslint-visitor-keys-1.0.0.tgz#3f3180fb2e291017716acb4c9d6d5b5c34a6a81d"
   integrity sha512-qzm/XxIbxm/FHyH341ZrbnMUpe+5Bocte9xkmFMzPMjRaZMcXww+MpBptFvtU+79L362nqiLhekCxCxDPaUMBQ==
 
-eslint@^4.11.0:
+eslint@^4.11.0, eslint@^4.13.1:
   version "4.19.1"
   resolved "https://registry.yarnpkg.com/eslint/-/eslint-4.19.1.tgz#32d1d653e1d90408854bfb296f076ec7e186a300"
   integrity sha512-bT3/1x1EbZB7phzYu7vCr1v3ONuzDtX8WjuM9c0iYxe+cq+pwcKEoQjl7zd3RpC6YOLgnSy3cTN58M2jcoPDIQ==
@@ -7148,6 +7148,15 @@ solium-plugin-security@0.1.1:
   resolved "https://registry.yarnpkg.com/solium-plugin-security/-/solium-plugin-security-0.1.1.tgz#2a87bcf8f8c3abf7d198e292e4ac080284e3f3f6"
   integrity sha512-kpLirBwIq4mhxk0Y/nn5cQ6qdJTI+U1LO3gpoNIcqNaW+sI058moXBe2UiHs+9wvF9IzYD49jcKhFTxcR9u9SQ==
 
+solium-plugin-zeppelin@^0.0.2:
+  version "0.0.2"
+  resolved "https://registry.yarnpkg.com/solium-plugin-zeppelin/-/solium-plugin-zeppelin-0.0.2.tgz#da9ab8f2657a2d65fd07e4436245d045e4bcf59a"
+  integrity sha512-9g94tij352g8Ov21cFGfMFMQS5UL2ggxuu5mXScrSzzbKK2v4kTnkuqJXcnKOfkccVlVe9ShkDSVPOrgs3UFXQ==
+  dependencies:
+    eslint "^4.13.1"
+    solparse "^2.2.2"
+    util-deprecate "^1.0.2"
+
 solium@^1.1.8:
   version "1.1.8"
   resolved "https://registry.yarnpkg.com/solium/-/solium-1.1.8.tgz#35d30a15c572a233ce8a90226d6cfccb762fadb7"
@@ -7166,7 +7175,7 @@ solium@^1.1.8:
     solparse "2.2.5"
     text-table "^0.2.0"
 
-solparse@2.2.5:
+solparse@2.2.5, solparse@^2.2.2:
   version "2.2.5"
   resolved "https://registry.yarnpkg.com/solparse/-/solparse-2.2.5.tgz#72709c867cd6bfc50ec2325f4b81d2b3ea365d99"
   integrity sha512-t7tvtR6KU6QfPYLMv1nlCh9DA8HYIu5tbjHpKu0fhGFZ1NuSp0KKDHfFHv07g6v1xgcuUY3rVqNFjZt5b9+5qA==
@@ -7952,7 +7961,7 @@ utf8@^2.1.1:
   resolved "https://registry.yarnpkg.com/utf8/-/utf8-2.1.2.tgz#1fa0d9270e9be850d9b05027f63519bf46457d96"
   integrity sha1-H6DZJw6b6FDZsFAn9jUZv0ZFfZY=
 
-util-deprecate@~1.0.1:
+util-deprecate@^1.0.2, util-deprecate@~1.0.1:
   version "1.0.2"
   resolved "https://registry.yarnpkg.com/util-deprecate/-/util-deprecate-1.0.2.tgz#450d4dc9fa70de732762fbd2d4a28981419a0ccf"
   integrity sha1-RQ1Nyfpw3nMnYvvS1KKJgUGaDM8=
