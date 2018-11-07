@@ -59,7 +59,8 @@ stop-develop: stop-ganache stop-remix-ide
 open-remix-ide:
 	@xdg-open http://localhost:9999
 
-remix: start-remix-ide open-remix-ide start-remixd
+remix:
+	@npm run remix
 
 test:
 	@$(TRUFFLE) test --network development
