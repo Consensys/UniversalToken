@@ -1,6 +1,9 @@
 {
   "extends": "solium:all",
-  "plugins": ["security", "zeppelin"],
+  "plugins": [
+      "security", 
+      "zeppelin"
+  ],
   "rules": {
     "quotes": ["error", "double"],
     "no-empty-blocks": "off",
