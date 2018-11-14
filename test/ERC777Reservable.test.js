@@ -26,6 +26,7 @@ var Status = {
   'Cancelled': 2,
 };
 
+// Not mocked
 contract('ERC777Reservable', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
   describe('ERC777Reservable functionalities', function () {
 
@@ -125,30 +126,7 @@ contract('ERC777Reservable', function ([owner, operator, defaultOperator, invest
 });
 });
 
-// -- BURN BABY BURN! --
-contract('ERC777ReservableWithBurnLeftOver', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
-  describe('ERC777ReservableWithBurnLeftOver functionalities', function () {
-
-    let burnLeftOver = true;
-    let index = 0;
-
-    beforeEach(async function () {
-      this.token = await ERC777ReservableMock.new('ERC777ReservableToken', 'DAU', 1, [defaultOperator], minShares, maxShares, burnLeftOver, certificateSigner);
-    });
-
-    describe('when the sale is ending and there is leftover', function () {
-      it('Burn the leftover', async function () {
-
-        await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
-        await this.token.validateReservation(owner, index, { from: owner });
-        await this.token.endSale();
-      });
-    });
- 
-});
-});
-
-// --- MOCK ---
+// Mocked 
 contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
   describe('ERC777ReservableMock functionalities', function () {
 
@@ -235,14 +213,8 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
               });
             });
 
-            describe('when the reservation has an unexpected status', function () {
-                 
-              // TODO
-              /*
-                it('reverts', async function () {
-                });
-               */
-                
+            describe('when the reservation has an unexpected status', function () { 
+              // TODO                
             });
           });
 
@@ -286,5 +258,27 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
     });
 
 
+  });
+});
+
+// To burn the left over
+contract('ERC777ReservableWithBurnLeftOver', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
+  describe('ERC777ReservableWithBurnLeftOver functionalities', function () {
+
+    let burnLeftOver = true;
+    let index = 0;
+
+    beforeEach(async function () {
+      this.token = await ERC777ReservableMock.new('ERC777ReservableToken', 'DAU', 1, [defaultOperator], minShares, maxShares, burnLeftOver, certificateSigner);
+    });
+
+    describe('when the sale is ending and there is a leftover', function () {
+      it('Burn the leftover', async function () {
+
+        await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
+        await this.token.validateReservation(owner, index, { from: owner });
+        await this.token.endSale();
+      });
+    });
   });
 });
