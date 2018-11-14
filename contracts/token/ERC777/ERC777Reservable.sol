@@ -28,16 +28,16 @@ contract ERC777Reservable is CertificateController, ERC777 {
     uint256 index;
   }
 
-  uint256 public _minShares;
-  bool public _burnLeftOver;
+  uint256 internal _minShares;
+  bool internal _burnLeftOver;
 
-  bool public _saleEnded;
-  uint256 public _reservedTotal;
-  uint256 public _validatedTotal;
+  bool internal _saleEnded;
+  uint256 internal _reservedTotal;
+  uint256 internal _validatedTotal;
 
-  mapping(address => Reservation[]) public _reservations;
+  mapping(address => Reservation[]) internal _reservations;
 
-  ReservationCoordinates[] public _validatedReservations;
+  ReservationCoordinates[] internal _validatedReservations;
 
   event TokensReserved(address investor, uint256 index, uint256 amount);
   event ReservationValidated(address investor, uint256 index);
@@ -77,6 +77,13 @@ contract ERC777Reservable is CertificateController, ERC777 {
     isValidCertificate(data)
     returns (uint256)
   {
+    return _reserveTokens(amount, validUntil);
+  }
+
+  function _reserveTokens(uint256 amount, uint256 validUntil)
+    internal
+    returns (uint256)
+  {
     require(amount != 0, "0xA0: Amount should not be 0");
 
     uint256 index = _reservations[msg.sender].push(
@@ -101,10 +108,18 @@ contract ERC777Reservable is CertificateController, ERC777 {
     onlySale
     onlyOwner
   {
+    _validateReservation(owner, index);
+  }
+
+  function _validateReservation(address owner, uint8 index)
+    internal
+    onlySale
+    onlyOwner
+  {
     require(_reservations[owner].length > 0 && _reservations[owner][index].status == Status.Created, "0x20: Invalid reservation");
 
     Reservation storage reservation = _reservations[owner][index];
-    require(reservation.validUntil != 0 && reservation.validUntil < block.number, "0x05: Reservation has expired");
+    require(reservation.validUntil != 0 && reservation.validUntil < block.timestamp, "0x05: Reservation has expired");
 
     reservation.status = Status.Validated;
     _validatedReservations.push(
@@ -138,6 +153,11 @@ contract ERC777Reservable is CertificateController, ERC777 {
     _saleEnded = true;
 
     emit SaleEnded();
+  }
+
+  function getReservation(address investor, uint256 index) external view returns(uint8, uint256, uint256) {
+    Reservation storage reservation = _reservations[investor][index];
+    return (uint8(reservation.status), reservation.amount, reservation.validUntil);
   }
 
 }
