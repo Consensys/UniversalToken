@@ -1,4 +1,4 @@
-import { assertRevert } from 'openzeppelin-solidity/test/helpers/assertRevert.js';
+import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
 
 const ERC1400 = artifacts.require('ERC1400');
 
