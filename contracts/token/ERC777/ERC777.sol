@@ -77,7 +77,7 @@ contract ERC777 is IERC777, IERC20, ERC820Client, MinterRole, ozs_Ownable {
     }
 
     _setERC20compatibility(true);
-    // _setERC820compatibility(true); // COMMENT FOR TESTING REASONS ONLY - TO BE REMOVED
+    _setERC820compatibility(true); // COMMENT FOR TESTING REASONS ONLY - TO BE REMOVED
   }
 
   /**
@@ -97,7 +97,9 @@ contract ERC777 is IERC777, IERC20, ERC820Client, MinterRole, ozs_Ownable {
   function _setERC20compatibility(bool erc20compatible) internal {
     _erc20compatible = erc20compatible;
     if(_erc20compatible) {
-      if(_erc820compatible) { setInterfaceImplementation("ERC20Token", this); }
+      if(_erc820compatible) { 
+        setInterfaceImplementation("ERC20Token", this); 
+        }
     } else {
       if(_erc820compatible) { setInterfaceImplementation("ERC20Token", address(0)); }
     }

@@ -1,6 +1,7 @@
 pragma solidity ^0.4.24;
 import "../token/ERC777/ERC777Reservable.sol";
 
+
 contract ERC777ReservableMock is ERC777Reservable {
 
 constructor(

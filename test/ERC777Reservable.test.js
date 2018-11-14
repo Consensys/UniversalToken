@@ -6,7 +6,7 @@ const ERC777ReservableMock = artifacts.require('ERC777ReservableMock');
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTE = '0x';
 
-const data = '0x00000000000000000000000000000000000270000000000000000000000000000000000000000000000000000000000'
+const data = '0x00000000000000000000000000000000000270000000000000000000000000000000000000000000000000000000000';
 
 const initialSupply = 1000000000;
 
@@ -19,9 +19,9 @@ const burnLeftOver = false;
 const certificateSigner = '0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630';
 
 var Status = {
-  "Created": 0, 
-  "Validated": 1, 
-  "Cancelled": 2
+  'Created': 0,
+  'Validated': 1,
+  'Cancelled': 2,
 };
 
 contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
@@ -124,36 +124,30 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
       describe('when the sale is opened', function () {
         describe('when the amount is greater than 0', function () {
           describe('when the reservered total is less than or equal to the total supply', function () {
-
             it('reserve tokens', async function () {
               await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: investor });
-              const reservations = (await this.token.getReservation(investor, 0));      
+              const reservations = (await this.token.getReservation(investor, 0));
             });
 
-            it('emits a "TokensReserved" event', async function() {  
+            it('emits a "TokensReserved" event', async function () {
               const { logs } = (await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: investor }));
               assert.equal(logs[0].event, 'TokensReserved');
             });
-
           });
 
           describe('when the reservered total is greater than the total supply', function () {
-
             it('reverts', async function () {
               const totalSupply = (await this.token.totalSupply());
               const greaterThanTotalSupply = totalSupply.toNumber() + 1;
               await assertRevert(this.token.reserveTokens(greaterThanTotalSupply, validUntil, '', { from: investor }));
             });
-
           });
         });
 
         describe('when the amount is equal to 0', function () {
-
           it('reverts', async function () {
             await assertRevert(this.token.reserveTokens(0, validUntil, '', { from: investor }));
           });
-
         });
       });
 
@@ -165,92 +159,80 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
           await assertRevert(this.token.validateReservation(owner, 0, { from: owner }));
         });
       });
-
     });
 
     describe('validateReservation', function () {
       let index = 0;
 
-        describe('when the sale is opened', function () {
-          describe('when the sender is the owner', function () {
-            describe('when the owner has at least one reservation', function () {
-              describe('when the reservation has an expected status', function () {
-                describe('when the validity of the reservation is greater than 0', function () {
-                  describe('when the validity of the reservation is in the past', function () {
-                    
-                    it('validate the reservation', async function () {
-                      await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
-                      await this.token.validateReservation(owner, index, { from: owner });
-                    });
-
-                    it('emits a "ReservationValidated" event', async function() {  
-                      await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
-                      const { logs } = (await this.token.validateReservation(owner, index, { from: owner }));
-                      assert.equal(logs[0].event, 'ReservationValidated');
-                    });
-                    
+      describe('when the sale is opened', function () {
+        describe('when the sender is the owner', function () {
+          describe('when the owner has at least one reservation', function () {
+            describe('when the reservation has an expected status', function () {
+              describe('when the validity of the reservation is greater than 0', function () {
+                describe('when the validity of the reservation is in the past', function () {
+                  it('validate the reservation', async function () {
+                    await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
+                    await this.token.validateReservation(owner, index, { from: owner });
                   });
 
-                  describe('when the validity of the reservation is in the future', function () {
-                    
-                    it('reverts', async function () {
-                      const posteriorToNow = (await web3.eth.getBlock('latest').timestamp) + 10;
-                      await this.token.reserveTokens(tokensToReserve, posteriorToNow, '', { from: owner });
-                      await assertRevert(this.token.validateReservation(owner, index, { from: owner }));
-                    });
-                    
+                  it('emits a "ReservationValidated" event', async function () {
+                    await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
+                    const { logs } = (await this.token.validateReservation(owner, index, { from: owner }));
+                    assert.equal(logs[0].event, 'ReservationValidated');
                   });
                 });
 
-                describe('when the validity of the reservation is equal to 0', function () {
-                    
+                describe('when the validity of the reservation is in the future', function () {
                   it('reverts', async function () {
-                    await this.token.reserveTokens(tokensToReserve, 0, '', { from: owner });
+                    const posteriorToNow = (await web3.eth.getBlock('latest').timestamp) + 10;
+                    await this.token.reserveTokens(tokensToReserve, posteriorToNow, '', { from: owner });
                     await assertRevert(this.token.validateReservation(owner, index, { from: owner }));
                   });
-                  
                 });
               });
 
-              describe('when the reservation has an unexpected status', function () {
+              describe('when the validity of the reservation is equal to 0', function () {
+                it('reverts', async function () {
+                  await this.token.reserveTokens(tokensToReserve, 0, '', { from: owner });
+                  await assertRevert(this.token.validateReservation(owner, index, { from: owner }));
+                });
+              });
+            });
+
+            describe('when the reservation has an unexpected status', function () {
                  
-                // TODO 
-                /*
+              // TODO
+              /*
                 it('reverts', async function () {
                 });
                 */
                 
-              });
-            });
-
-            describe('when the validation is not preceded by any reservation', function () {
-                    
-              it('reverts', async function () {
-                await assertRevert(this.token.validateReservation(owner, index, { from: owner }));
-              });
-              
             });
           });
 
-           describe('when the sender is not the owner', function () {
-                    
+          describe('when the validation is not preceded by any reservation', function () {
             it('reverts', async function () {
-              await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: investor });
               await assertRevert(this.token.validateReservation(owner, index, { from: owner }));
             });
-            
           });
         });
 
-        describe('when the sale is not opened', function () {     
+        describe('when the sender is not the owner', function () {
           it('reverts', async function () {
-            await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
-            await this.token.validateReservation(owner, 0, { from: owner });
-            await this.token.endSale();
-            await assertRevert(this.token.validateReservation(owner, 0, { from: owner }));
-          }); 
+            await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: investor });
+            await assertRevert(this.token.validateReservation(owner, index, { from: owner }));
+          });
         });
+      });
 
+      describe('when the sale is not opened', function () {
+        it('reverts', async function () {
+          await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
+          await this.token.validateReservation(owner, 0, { from: owner });
+          await this.token.endSale();
+          await assertRevert(this.token.validateReservation(owner, 0, { from: owner }));
+        });
+      });
     });
 
     describe('endSale', function () {
@@ -259,13 +241,12 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
         await this.token.validateReservation(owner, 0, { from: owner });
       });
 
-      it('emits a "SaleEnded" event', async function() { 
+      it('emits a "SaleEnded" event', async function () {
         await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
         await this.token.validateReservation(owner, 0, { from: owner });
         const { logs } = await this.token.endSale();
         assert.equal(logs[2].event, 'SaleEnded');
       });
     });
-
   });
 });

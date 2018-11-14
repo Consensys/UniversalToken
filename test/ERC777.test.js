@@ -372,7 +372,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
           const amount = initialSupply + 1;
 
           it('reverts', async function () {
-            await assertRevert(this.token.burn(amount, "", { from: investor }));
+            await assertRevert(this.token.burn(amount, '', { from: investor }));
           });
         });
 
@@ -380,13 +380,13 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
           const amount = initialSupply;
 
           it('burns the requested amount', async function () {
-            await this.token.burn(amount, "", { from: investor });
+            await this.token.burn(amount, '', { from: investor });
             const senderBalance = await this.token.balanceOf(investor);
             assert.equal(senderBalance, initialSupply - amount);
           });
 
           it('emits a burned event [with ERC20 retrocompatibility]', async function () {
-            const { logs } = await this.token.burn(amount, "", { from: investor });
+            const { logs } = await this.token.burn(amount, '', { from: investor });
 
             assert.equal(logs.length, 2);
             assert.equal(logs[0].event, 'Burned');
@@ -402,7 +402,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
           });
           it('emits a burned event [without ERC20 retrocompatibility]', async function () {
             await this.token.setERC20compatibility(false, { from: owner });
-            const { logs } = await this.token.burn(amount, "", { from: investor });
+            const { logs } = await this.token.burn(amount, '', { from: investor });
 
             assert.equal(logs.length, 1);
             assert.equal(logs[0].event, 'Burned');
@@ -417,7 +417,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
         it('reverts', async function () {
           this.token = await ERC777.new('ERC777Token', 'DAU', 2, []);
           await this.token.mint(investor, initialSupply, '', { from: owner });
-          await assertRevert(this.token.burn(3, "", { from: investor }));
+          await assertRevert(this.token.burn(3, '', { from: investor }));
         });
       });
     });
@@ -506,7 +506,6 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
   });
 
   describe('ERC20 retrocompatibility', function () {
-
     beforeEach(async function () {
       this.token = await ERC777.new('ERC777Token', 'DAU', 1, [defaultOperator]);
     });
@@ -711,7 +710,6 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
                   assert(true);
                 });
               });
-
             });
 
             describe('when the recipient is the zero address', function () {

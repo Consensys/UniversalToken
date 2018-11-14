@@ -28,6 +28,5 @@ contract('ERC1400', function ([owner, operator, defaultOperator, investor, recip
         assert.equal(symbol, 'DAU');
       });
     });
-
   });
 });
