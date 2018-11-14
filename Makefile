@@ -31,7 +31,7 @@ build-ganache:
 build-remix-ide:
 	@docker-compose -f $(REMIX_IDE) build
 
-docker-build: build-ganache build-remix-ide
+docker-build: build-ganache
 
 build: npm docker-build
 
