@@ -19,19 +19,13 @@ TRUFFLE=$(BIN)/truffle
 GANACHE=ganache/docker-compose.yml
 ACCOUNTS=ganache/accounts.txt
 
-# remix-ide options
-REMIX_IDE=remix-ide/docker-compose.yml
-
 npm:
 	@npm install
 
 build-ganache:
 	@ACCOUNTS="" docker-compose -f $(GANACHE) build
 
-build-remix-ide:
-	@docker-compose -f $(REMIX_IDE) build
-
-docker-build: build-ganache build-remix-ide
+docker-build: build-ganache
 
 build: npm docker-build
 
@@ -45,19 +39,13 @@ init: build start-ganache
 
 develop: start-ganache
 
-start-remix-ide:
-	@docker-compose -f $(REMIX_IDE) up -d
-
-stop-remix-ide:
-	@docker-compose -f $(REMIX_IDE) stop
-
 start-remixd:
 	@npm run remixd
 
 stop-develop: stop-ganache stop-remix-ide
 
 open-remix-ide:
-	@xdg-open http://localhost:9999
+	@xdg-open http://localhost:8080
 
 remix:
 	@npm run remix
