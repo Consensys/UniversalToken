@@ -16,7 +16,7 @@
     "lint:all:fix": "npm run lint:fix && npm run lint:sol:fix",
     "console": "truffle console",
     "version": "scripts/version.js",
-    "remixd": "./node_modules/remixd/bin/remixd -s ./contracts"
+    "remix": "xdg-open 'http://localhost:8080' && ./node_modules/remix-ide/bin/remix-ide"
   },
   "repository": {
     "type": "git",
@@ -45,7 +45,6 @@
     "chai": "^4.0.2",
     "chai-as-promised": "^7.0.0",
     "chai-bignumber": "^2.0.0",
-    "coveralls": "^2.13.1",
     "dotenv": "^4.0.0",
     "eslint": "^4.11.0",
     "eslint-config-standard": "^10.2.1",
@@ -54,16 +53,18 @@
     "eslint-plugin-promise": "^3.6.0",
     "eslint-plugin-standard": "^3.0.1",
     "ethereumjs-util": "^5.1.2",
-    "ethjs-abi": "^0.2.1",
-    "husky": "^1.1.2",
-    "lint-staged": "^7.3.0",
-    "openzeppelin-solidity": "git://github.com/OpenZeppelin/openzeppelin-solidity#2d30918149c1d61da3cf52d20f2381574b80cf33",
-    "remixd": "git://github.com/ethereum/remixd.git",
-    "solidity-coverage": "^0.5.0",
-    "solium": "^1.1.7",
-    "solium-plugin-zeppelin": "^0.0.2",
-    "truffle": "^4.1.8",
-    "truffle-hdwallet-provider": "0.0.3"
+    "husky": "^1.1.3",
+    "lint-staged": "^8.0.4",
+    "remix-ide": "^0.7.4",
+    "solidity-coverage": "^0.5.11",
+    "solium": "^1.1.8",
+    "solium-plugin-zeppelin": "^0.0.2"
+  },
+  "dependencies": {
+    "contract-certificate-controller": "git+ssh://git@gitlab.com:ConsenSys/client/fr/dauriel/contract-certificate-controller.git#b3d004695606a1780dfd9f50a824b713a7400516",
+    "openzeppelin-solidity": "git://github.com/OpenZeppelin/openzeppelin-solidity#06e265b38d3e9daeaa7b33f9035c700d6bc0c6a0",
+    "truffle": "^4.1.14",
+    "truffle-hdwallet-provider": "0.0.6"
   },
   "husky": {
     "hooks": {
@@ -80,8 +81,5 @@
       "solium -d . --fix",
       "git add"
     ]
-  },
-  "dependencies": {
-    "contract-certificate-controller": "git+ssh://git@gitlab.com:ConsenSys/client/fr/dauriel/contract-certificate-controller.git#b3d004695606a1780dfd9f50a824b713a7400516"
   }
 }
