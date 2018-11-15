@@ -257,7 +257,24 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
       });
     });
 
+    describe('miscellaneous functions', function () {
+      describe('removeOperator', function () {
+        describe('when sender removes an operator', function () {
+          it('removes the operator', async function () { 
+            await this.token.removeDefaultOperator(defaultOperator);
+          });
+        });
+      });
 
+      describe('isRegularAddress', function () {
+        describe('when the address is not valid', function () {
+          it('reverts', async function () { 
+            await shouldFail.reverting(this.token.isNotARegularAddress(0x0));
+          });
+        });
+      });
+
+    });
   });
 });
 

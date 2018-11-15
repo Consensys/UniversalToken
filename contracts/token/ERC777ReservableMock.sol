@@ -20,4 +20,11 @@ constructor(
   { 
   }
 
+  function removeDefaultOperator(address operator) external {
+    _removeDefaultOperator(operator);
+  }
+
+  function isNotARegularAddress(address addr) external {
+    require(_isRegularAddress(addr));
+  }
 }

@@ -758,6 +758,15 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
           await shouldFail.reverting(this.token.transferFrom(investor, to, amount, { from: operator }));
         });
       });
+
+      describe('when the ERC820 retrocompatibility is not activated', function () {
+        const amount = approvedAmount;
+        it('reverts', async function () {
+          await this.token.setERC820compatibility(false, { from: owner });
+          await shouldFail.reverting(this.token.transferFrom(investor, to, amount, { from: operator }));
+        });
+      });
+      
     });
   });
 });
