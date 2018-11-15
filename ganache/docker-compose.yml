@@ -1,8 +1,0 @@
-version: '3'
-
-services:
-  ganache:
-    image: trufflesuite/ganache-cli:latest
-    command: --gasLimit 0xfffffffffff ${ACCOUNTS}
-    ports:
-      - 7545:8545
