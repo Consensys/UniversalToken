@@ -61,7 +61,7 @@
     "solium-plugin-zeppelin": "^0.0.2"
   },
   "dependencies": {
-    "contract-certificate-controller": "git+ssh://git@gitlab.com:ConsenSys/client/fr/dauriel/contract-certificate-controller.git#b3d004695606a1780dfd9f50a824b713a7400516",
+    "contract-certificate-controller": "https://gitlab.com/ConsenSys/client/fr/dauriel/contract-certificate-controller.git#b3d004695606a1780dfd9f50a824b713a7400516",
     "openzeppelin-solidity": "git://github.com/OpenZeppelin/openzeppelin-solidity#06e265b38d3e9daeaa7b33f9035c700d6bc0c6a0",
     "truffle": "^4.1.14",
     "truffle-hdwallet-provider": "0.0.6"
