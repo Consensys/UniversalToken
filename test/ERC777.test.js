@@ -1,4 +1,4 @@
-import { assertRevert } from 'openzeppelin-solidity/test/helpers/assertRevert.js';
+import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
 
 const ERC777 = artifacts.require('ERC777');
 
@@ -88,7 +88,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
       });
       // describe('when sender authorizes himself', function () {
       //   it('reverts', async function () {
-      //     await assertRevert(this.token.authorizeOperator(investor, { from: investor }));
+      //     await shouldFail.reverting(this.token.authorizeOperator(investor, { from: investor }));
       //   });
       // });
     });
@@ -117,7 +117,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
       });
       // describe('when sender revokes himself', function () {
       //   it('reverts', async function () {
-      //     await assertRevert(this.token.revokeOperator(investor, { from: investor }));
+      //     await shouldFail.reverting(this.token.revokeOperator(investor, { from: investor }));
       //   });
       // });
     });
@@ -160,20 +160,20 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
           });
           describe('when the recipient is the zero address', function () {
             it('reverts', async function () {
-              await assertRevert(this.token.mint(ZERO_ADDRESS, initialSupply, '', { from: owner }));
+              await shouldFail.reverting(this.token.mint(ZERO_ADDRESS, initialSupply, '', { from: owner }));
             });
           });
         });
         describe('when the amount is not a multiple of the granularity', function () {
           it('reverts', async function () {
             this.token = await ERC777.new('ERC777Token', 'DAU', 2, []);
-            await assertRevert(this.token.mint(investor, 3, '', { from: owner }));
+            await shouldFail.reverting(this.token.mint(investor, 3, '', { from: owner }));
           });
         });
       });
       describe('when the caller is not a minter', function () {
         it('reverts', async function () {
-          await assertRevert(this.token.mint(investor, initialSupply, '', { from: unknown }));
+          await shouldFail.reverting(this.token.mint(investor, initialSupply, '', { from: unknown }));
         });
       });
     });
@@ -189,7 +189,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
             const amount = initialSupply + 1;
 
             it('reverts', async function () {
-              await assertRevert(this.token.sendTo(to, amount, '', { from: investor }));
+              await shouldFail.reverting(this.token.sendTo(to, amount, '', { from: investor }));
             });
           });
 
@@ -244,7 +244,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
           const to = ZERO_ADDRESS;
 
           it('reverts', async function () {
-            await assertRevert(this.token.sendTo(to, amount, '', { from: investor }));
+            await shouldFail.reverting(this.token.sendTo(to, amount, '', { from: investor }));
           });
         });
       });
@@ -252,7 +252,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
         it('reverts', async function () {
           this.token = await ERC777.new('ERC777Token', 'DAU', 2, []);
           await this.token.mint(investor, initialSupply, '', { from: owner });
-          await assertRevert(this.token.sendTo(to, 3, '', { from: investor }));
+          await shouldFail.reverting(this.token.sendTo(to, 3, '', { from: investor }));
         });
       });
     });
@@ -272,7 +272,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
               const amount = initialSupply + 1;
 
               it('reverts', async function () {
-                await assertRevert(this.token.operatorSendTo(investor, to, amount, '', '', { from: operator }));
+                await shouldFail.reverting(this.token.operatorSendTo(investor, to, amount, '', '', { from: operator }));
               });
             });
 
@@ -341,7 +341,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
             const to = ZERO_ADDRESS;
 
             it('reverts', async function () {
-              await assertRevert(this.token.operatorSendTo(investor, to, amount, '', '', { from: operator }));
+              await shouldFail.reverting(this.token.operatorSendTo(investor, to, amount, '', '', { from: operator }));
             });
           });
         });
@@ -349,14 +349,14 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
           it('reverts', async function () {
             this.token = await ERC777.new('ERC777Token', 'DAU', 2, []);
             await this.token.mint(investor, initialSupply, '', { from: owner });
-            await assertRevert(this.token.operatorSendTo(investor, to, 3, '', '', { from: operator }));
+            await shouldFail.reverting(this.token.operatorSendTo(investor, to, 3, '', '', { from: operator }));
           });
         });
       });
       describe('when the operator is not approved', function () {
         it('reverts', async function () {
           const amount = initialSupply;
-          await assertRevert(this.token.operatorSendTo(investor, to, amount, '', '', { from: operator }));
+          await shouldFail.reverting(this.token.operatorSendTo(investor, to, amount, '', '', { from: operator }));
         });
       });
     });
@@ -372,7 +372,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
           const amount = initialSupply + 1;
 
           it('reverts', async function () {
-            await assertRevert(this.token.burn(amount, '', { from: investor }));
+            await shouldFail.reverting(this.token.burn(amount, '', { from: investor }));
           });
         });
 
@@ -417,7 +417,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
         it('reverts', async function () {
           this.token = await ERC777.new('ERC777Token', 'DAU', 2, []);
           await this.token.mint(investor, initialSupply, '', { from: owner });
-          await assertRevert(this.token.burn(3, '', { from: investor }));
+          await shouldFail.reverting(this.token.burn(3, '', { from: investor }));
         });
       });
     });
@@ -437,7 +437,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
             const amount = initialSupply + 1;
 
             it('reverts', async function () {
-              await assertRevert(this.token.operatorBurn(investor, amount, '', { from: operator }));
+              await shouldFail.reverting(this.token.operatorBurn(investor, amount, '', { from: operator }));
             });
           });
 
@@ -499,7 +499,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
         it('reverts', async function () {
           this.token = await ERC777.new('ERC777Token', 'DAU', 2, []);
           await this.token.mint(investor, initialSupply, '', { from: owner });
-          await assertRevert(this.token.operatorBurn(investor, 3, '', { from: operator }));
+          await shouldFail.reverting(this.token.operatorBurn(investor, 3, '', { from: operator }));
         });
       });
     });
@@ -521,7 +521,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
       describe('when the ERC20 retrocompatibility is not activated', function () {
         it('reverts', async function () {
           await this.token.setERC20compatibility(false, { from: owner });
-          await assertRevert(this.token.decimals());
+          await shouldFail.reverting(this.token.decimals());
         });
       });
     });
@@ -549,14 +549,14 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
         });
         describe('when the operator to approve is the zero address', function () {
           it('reverts', async function () {
-            await assertRevert(this.token.approve(ZERO_ADDRESS, amount, { from: investor }));
+            await shouldFail.reverting(this.token.approve(ZERO_ADDRESS, amount, { from: investor }));
           });
         });
       });
       describe('when the ERC20 retrocompatibility is not activated', function () {
         it('reverts', async function () {
           await this.token.setERC20compatibility(false, { from: owner });
-          await assertRevert(this.token.approve(operator, amount, { from: investor }));
+          await shouldFail.reverting(this.token.approve(operator, amount, { from: investor }));
         });
       });
     });
@@ -574,7 +574,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
               const amount = initialSupply + 1;
 
               it('reverts', async function () {
-                await assertRevert(this.token.transfer(to, amount, { from: investor }));
+                await shouldFail.reverting(this.token.transfer(to, amount, { from: investor }));
               });
             });
 
@@ -615,7 +615,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
             const to = ZERO_ADDRESS;
 
             it('reverts', async function () {
-              await assertRevert(this.token.transfer(to, amount, { from: investor }));
+              await shouldFail.reverting(this.token.transfer(to, amount, { from: investor }));
             });
           });
         });
@@ -623,7 +623,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
           it('reverts', async function () {
             this.token = await ERC777.new('ERC777Token', 'DAU', 2, []);
             await this.token.mint(investor, initialSupply, '', { from: owner });
-            await assertRevert(this.token.transfer(to, 3, { from: investor }));
+            await shouldFail.reverting(this.token.transfer(to, 3, { from: investor }));
           });
         });
       });
@@ -632,7 +632,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
 
         it('reverts', async function () {
           await this.token.setERC20compatibility(false, { from: owner });
-          await assertRevert(this.token.transfer(to, amount, { from: investor }));
+          await shouldFail.reverting(this.token.transfer(to, amount, { from: investor }));
         });
       });
     });
@@ -656,7 +656,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
                 const amount = approvedAmount + 1;
 
                 it('reverts', async function () {
-                  await assertRevert(this.token.transferFrom(investor, to, amount, { from: operator }));
+                  await shouldFail.reverting(this.token.transferFrom(investor, to, amount, { from: operator }));
                 });
               });
 
@@ -717,7 +717,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
               const to = ZERO_ADDRESS;
 
               it('reverts', async function () {
-                await assertRevert(this.token.transferFrom(investor, to, amount, { from: operator }));
+                await shouldFail.reverting(this.token.transferFrom(investor, to, amount, { from: operator }));
               });
             });
           });
@@ -725,7 +725,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
             it('reverts', async function () {
               this.token = await ERC777.new('ERC777Token', 'DAU', 2, []);
               await this.token.mint(investor, initialSupply, '', { from: owner });
-              await assertRevert(this.token.transferFrom(investor, to, 3, { from: operator }));
+              await shouldFail.reverting(this.token.transferFrom(investor, to, 3, { from: operator }));
             });
           });
         });
@@ -746,7 +746,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
           });
           describe('when the operator is not approved and not authorized', function () {
             it('reverts', async function () {
-              await assertRevert(this.token.transferFrom(investor, to, amount, { from: operator }));
+              await shouldFail.reverting(this.token.transferFrom(investor, to, amount, { from: operator }));
             });
           });
         });
@@ -755,7 +755,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
         const amount = approvedAmount;
         it('reverts', async function () {
           await this.token.setERC20compatibility(false, { from: owner });
-          await assertRevert(this.token.transferFrom(investor, to, amount, { from: operator }));
+          await shouldFail.reverting(this.token.transferFrom(investor, to, amount, { from: operator }));
         });
       });
     });

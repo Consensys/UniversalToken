@@ -1,4 +1,4 @@
-import { assertRevert } from 'openzeppelin-solidity/test/helpers/assertRevert.js';
+import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
 
 // Mock:
 const ERC777ReservableMock = artifacts.require('ERC777ReservableMock');
@@ -139,14 +139,14 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
             it('reverts', async function () {
               const totalSupply = (await this.token.totalSupply());
               const greaterThanTotalSupply = totalSupply.toNumber() + 1;
-              await assertRevert(this.token.reserveTokens(greaterThanTotalSupply, validUntil, '', { from: investor }));
+              await shouldFail.reverting(this.token.reserveTokens(greaterThanTotalSupply, validUntil, '', { from: investor }));
             });
           });
         });
 
         describe('when the amount is equal to 0', function () {
           it('reverts', async function () {
-            await assertRevert(this.token.reserveTokens(0, validUntil, '', { from: investor }));
+            await shouldFail.reverting(this.token.reserveTokens(0, validUntil, '', { from: investor }));
           });
         });
       });
@@ -156,7 +156,7 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
           await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
           await this.token.validateReservation(owner, 0, { from: owner });
           await this.token.endSale();
-          await assertRevert(this.token.validateReservation(owner, 0, { from: owner }));
+          await shouldFail.reverting(this.token.validateReservation(owner, 0, { from: owner }));
         });
       });
     });
@@ -186,7 +186,7 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
                   it('reverts', async function () {
                     const posteriorToNow = (await web3.eth.getBlock('latest').timestamp) + 10;
                     await this.token.reserveTokens(tokensToReserve, posteriorToNow, '', { from: owner });
-                    await assertRevert(this.token.validateReservation(owner, index, { from: owner }));
+                    await shouldFail.reverting(this.token.validateReservation(owner, index, { from: owner }));
                   });
                 });
               });
@@ -194,25 +194,25 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
               describe('when the validity of the reservation is equal to 0', function () {
                 it('reverts', async function () {
                   await this.token.reserveTokens(tokensToReserve, 0, '', { from: owner });
-                  await assertRevert(this.token.validateReservation(owner, index, { from: owner }));
+                  await shouldFail.reverting(this.token.validateReservation(owner, index, { from: owner }));
                 });
               });
             });
 
             describe('when the reservation has an unexpected status', function () {
-                 
+
               // TODO
               /*
                 it('reverts', async function () {
                 });
                 */
-                
+
             });
           });
 
           describe('when the validation is not preceded by any reservation', function () {
             it('reverts', async function () {
-              await assertRevert(this.token.validateReservation(owner, index, { from: owner }));
+              await shouldFail.reverting(this.token.validateReservation(owner, index, { from: owner }));
             });
           });
         });
@@ -220,7 +220,7 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
         describe('when the sender is not the owner', function () {
           it('reverts', async function () {
             await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: investor });
-            await assertRevert(this.token.validateReservation(owner, index, { from: owner }));
+            await shouldFail.reverting(this.token.validateReservation(owner, index, { from: owner }));
           });
         });
       });
@@ -230,7 +230,7 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
           await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
           await this.token.validateReservation(owner, 0, { from: owner });
           await this.token.endSale();
-          await assertRevert(this.token.validateReservation(owner, 0, { from: owner }));
+          await shouldFail.reverting(this.token.validateReservation(owner, 0, { from: owner }));
         });
       });
     });
