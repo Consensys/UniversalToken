@@ -16,7 +16,7 @@
     "lint:all:fix": "npm run lint:fix && npm run lint:sol:fix",
     "console": "truffle console",
     "version": "scripts/version.js",
-    "remix": "xdg-open 'http://localhost:8080' && ./node_modules/remix-ide/bin/remix-ide"
+    "remix": "python -mwebbrowser http://localhost:8080 && ./node_modules/remix-ide/bin/remix-ide"
   },
   "repository": {
     "type": "git",

@@ -3,6 +3,7 @@
 
 # Dependency directory
 node_modules
+package-json.lock
 
 # Generated files
 build

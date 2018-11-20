@@ -1,8 +1,8 @@
 # Installation commands
-.PHONY: npm build-ganache build-remix-ide docker-build build docker-start docker-stop init develop
+.PHONY: yarn docker-start docker-stop init develop
 
 # Commands to use remix
-.PHONY: start-remixd open-remix-ide remix
+.PHONY: remix
 
 # Test commands
 .PHONY: test coverage
@@ -15,64 +15,41 @@ NODE_MODULES=./node_modules
 BIN=$(NODE_MODULES)/.bin
 TRUFFLE=$(BIN)/truffle
 
-# ganache options
-GANACHE=ganache/docker-compose.yml
-ACCOUNTS=ganache/accounts.txt
-
-# remix-ide options
-REMIX_IDE=remix-ide/docker-compose.yml
-
-npm:
-	@npm install
-
-build-ganache:
-	@ACCOUNTS="" docker-compose -f $(GANACHE) build
-
-build-remix-ide:
-	@docker-compose -f $(REMIX_IDE) build
-
-docker-build: build-ganache
-
-build: npm docker-build
+yarn:
+	@yarn install
 
 start-ganache:
-	@ACCOUNTS=`cat $(ACCOUNTS)` docker-compose -f $(GANACHE) up -d
+	docker run -p 7545:8545 --name ganache-cli --rm -d trufflesuite/ganache-cli:latest -d -e 1000 -g 0xfffffffffff
 
 stop-ganache:
-	@ACCOUNTS="" docker-compose -f $(GANACHE) stop
+	docker stop ganache-cli
 
-init: build start-ganache
+init: yarn start-ganache
 
 develop: start-ganache
 
-start-remix-ide:
-	@docker-compose -f $(REMIX_IDE) up -d
-
-stop-remix-ide:
-	@docker-compose -f $(REMIX_IDE) stop
+stop-develop: stop-ganache
 
 start-remixd:
-	@npm run remixd
-
-stop-develop: stop-ganache stop-remix-ide
+	@yarn run remixd
 
 open-remix-ide:
-	@xdg-open http://localhost:9999
+	@xdg-open http://localhost:8080
 
 remix:
-	@npm run remix
+	@yarn run remix
 
 test:
 	@$(TRUFFLE) test --network development
 
 run-coverage:
-	@npm run coverage
+	@yarn run coverage
 
 coverage: run-coverage
 	@xdg-open coverage/index.html
 
 test-lint:
-	@npm run lint:all
+	@yarn run lint:all
 
 lint:
-	@npm run lint:all:fix
+	@yarn run lint:all:fix
