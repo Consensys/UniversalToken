@@ -362,7 +362,6 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
     });
 
     describe('burn', function () {
-      const to = recipient;
       beforeEach(async function () {
         await this.token.mint(investor, initialSupply, '', { from: owner });
       });
@@ -423,7 +422,6 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
     });
 
     describe('operatorBurn', function () {
-      const to = recipient;
       beforeEach(async function () {
         await this.token.mint(investor, initialSupply, '', { from: owner });
       });
