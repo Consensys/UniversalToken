@@ -8,9 +8,10 @@
 pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/access/roles/MinterRole.sol";
+
 import "./IERC1400.sol";
 import "./token/ERC1410/ERC1410.sol";
-import "openzeppelin-solidity/contracts/access/roles/MinterRole.sol";
 
 
 contract ERC1400 is IERC1400, ERC1410, MinterRole {
@@ -34,10 +35,11 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     string name,
     string symbol,
     uint256 granularity,
-    address[] defaultOperators
+    address[] defaultOperators,
+    address certificateSigner
   )
     public
-    ERC777(name, symbol, granularity, defaultOperators)
+    ERC1410(name, symbol, granularity, defaultOperators, certificateSigner)
   {
     _isControllable = true;
     _isIssuable = true;
@@ -90,7 +92,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param uri document content.
    * @param documentHash hash of the document [optional parameter].
    */
-  function setDocument(bytes32 name, string uri, bytes32 documentHash) external {
+  function setDocument(bytes32 name, string uri, bytes32 documentHash) external onlyOwner {
     _documents[name] = Document({
       docURI: uri,
       docHash: documentHash
@@ -125,9 +127,13 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param tranche Name of the tranche.
    * @param tokenHolder Address for which we want to mint/issue tokens.
    * @param amount Number of tokens minted.
-   * @param data Information attached to the minting, and intended for the recipient (to).
+   * @param data Information attached to the minting, and intended for the recipient (to) (conditional ownership certificate).
    */
-  function issueByTranche(bytes32 tranche, address tokenHolder, uint256 amount, bytes data) external onlyMinter {
+  function issueByTranche(bytes32 tranche, address tokenHolder, uint256 amount, bytes data)
+    external
+    onlyMinter
+    isValidCertificate(data)
+  {
     _issueByTranche(tranche, msg.sender, tokenHolder, amount, data, "");
   }
 
@@ -136,10 +142,13 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @dev External to redeem tokens of a specific tranche.
    * @param tranche Name of the tranche.
    * @param amount Number of tokens minted.
-   * @param data Information attached to the redeem, and intended for the recipient (to).
+   * @param data Information attached to the redeem, and intended for the owner (from) (conditional ownership certificate).
    */
-  function redeemByTranche(bytes32 tranche, uint256 amount, bytes data) external {
-    _redeemByTranche(tranche, msg.sender, msg.sender, amount, data);
+  function redeemByTranche(bytes32 tranche, uint256 amount, bytes data)
+    external
+    isValidCertificate(data)
+  {
+    _redeemByTranche(tranche, msg.sender, msg.sender, amount, data, "");
   }
 
   /**
@@ -148,13 +157,17 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param tranche Name of the tranche.
    * @param tokenHolder Address for which we want to redeem tokens.
    * @param amount Number of tokens minted.
-   * @param operatorData Information attached to the redeem by the operator.
+   * @param data Information attached to the redeem, and intended for the owner (from).
+   * @param operatorData Information attached to the redeem by the operator (conditional ownership certificate).
    */
-  function operatorRedeemByTranche(bytes32 tranche, address tokenHolder, uint256 amount, bytes operatorData) external {
+  function operatorRedeemByTranche(bytes32 tranche, address tokenHolder, uint256 amount, bytes data, bytes operatorData)
+    external
+    isValidCertificate(operatorData)
+  {
     address _from = (tokenHolder == address(0)) ? msg.sender : tokenHolder;
     require(_isOperatorForTranche(tranche, msg.sender, _from));
 
-    _redeemByTranche(tranche, msg.sender, _from, amount, operatorData);
+    _redeemByTranche(tranche, msg.sender, _from, amount, data, operatorData);
   }
 
   /** [TODO - TO BE REVIEWED]
@@ -256,6 +269,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param operator The address performing the mint/issuance.
    * @param from Token holder whose tokens will be redeemed.
    * @param amount Number of tokens to redeem.
+   * @param data Information attached to the redeem, and intended for the owner (from).
    * @param operatorData Information attached to the redeem by the operator.
    */
   function _redeemByTranche(
@@ -263,6 +277,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     address operator,
     address from,
     uint256 amount,
+    bytes data,
     bytes operatorData
   )
     internal
@@ -270,9 +285,9 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     require(_balanceOfByTranche[from][fromTranche] >= amount); // ensure enough funds
 
     _removeTokenFromTranche(from, fromTranche, amount);
-    _burn(operator, from, amount, operatorData);
+    _burn(operator, from, amount, data, operatorData);
 
-    emit RedeemedByTranche(fromTranche, operator, from, amount, operatorData);
+    emit RedeemedByTranche(fromTranche, operator, from, amount, data, operatorData);
   }
 
   /**
@@ -348,12 +363,15 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC777 METHOD]
    * @dev Burn the amount of tokens from the address msg.sender.
    * @param amount Number of tokens to burn.
-   * @param data Information attached to the burn, by the token holder.
+   * @param data Information attached to the burn, by the token holder (conditional ownership certificate).
    */
-  function burn(uint256 amount, bytes data) external {
+  function burn(uint256 amount, bytes data)
+    external
+    isValidCertificate(data)
+  {
     require(_erc777compatible);
 
-    _redeemByDefaultTranches(msg.sender, msg.sender, amount, data);
+    _redeemByDefaultTranches(msg.sender, msg.sender, amount, data, "");
   }
 
   /**
@@ -361,16 +379,20 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @dev Burn the amount of tokens on behalf of the address from.
    * @param from Token holder whose tokens will be burned (or address(0) to set from to msg.sender).
    * @param amount Number of tokens to burn.
-   * @param operatorData Information attached to the burn by the operator.
+   * @param data Information attached to the burn, and intended for the owner (from).
+   * @param operatorData Information attached to the burn by the operator (conditional ownership certificate).
    */
-  function operatorBurn(address from, uint256 amount, bytes operatorData) external {
+  function operatorBurn(address from, uint256 amount, bytes data, bytes operatorData)
+    external
+    isValidCertificate(operatorData)
+  {
     require(_erc777compatible);
 
     address _from = (from == address(0)) ? msg.sender : from;
 
     require(_isOperatorFor(msg.sender, _from));
 
-    _redeemByDefaultTranches(msg.sender, _from, amount, operatorData);
+    _redeemByDefaultTranches(msg.sender, _from, amount, data, operatorData);
   }
 
   /**
@@ -380,12 +402,14 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param from Token holder.
    * @param amount Number of tokens to redeem.
    * @param data Information attached to the redeem, by the token holder or the operator.
+   * @param operatorData Information attached to the redeem by the operator.
    */
   function _redeemByDefaultTranches(
     address operator,
     address from,
     uint256 amount,
-    bytes data
+    bytes data,
+    bytes operatorData
   )
     internal
   {
@@ -398,11 +422,11 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
       for (uint i = 0; i < _defaultTranches[from].length; i++) {
         _localBalance = _balanceOfByTranche[from][_defaultTranches[from][i]];
         if(_remainingAmount <= _localBalance) {
-          _redeemByTranche(_defaultTranches[from][i], operator, from, _remainingAmount, data);
+          _redeemByTranche(_defaultTranches[from][i], operator, from, _remainingAmount, data, operatorData);
           _remainingAmount = 0;
           break;
         } else {
-          _redeemByTranche(_defaultTranches[from][i], operator, from, _localBalance, data);
+          _redeemByTranche(_defaultTranches[from][i], operator, from, _localBalance, data, operatorData);
           _remainingAmount = _remainingAmount - _localBalance;
         }
       }

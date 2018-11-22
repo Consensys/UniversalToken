@@ -5,10 +5,10 @@ import "./CertificateControllerMock.sol";
 
 contract ERC777ReservableMock is ERC777Reservable, CertificateControllerMock {
 
-constructor(
-	string name,
-	string symbol,
-	uint256 granularity,
+	constructor(
+		string name,
+		string symbol,
+		uint256 granularity,
     address[] defaultOperators,
     uint256 minShares,
     uint256 maxShares,
@@ -20,11 +20,4 @@ constructor(
   {
   }
 
-  function removeDefaultOperator(address operator) external {
-    _removeDefaultOperator(operator);
-  }
-
-  function isNotARegularAddress(address addr) external {
-    require(_isRegularAddress(addr));
-  }
 }

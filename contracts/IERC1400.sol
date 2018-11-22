@@ -19,8 +19,8 @@ interface IERC1400  {
 
     // Token Redemption
     function redeemByTranche(bytes32 tranche, uint256 amount, bytes data) external; // 6/8
-    function operatorRedeemByTranche(bytes32 tranche, address tokenHolder, uint256 amount, bytes operatorData) external; // 7/8
-    event RedeemedByTranche(bytes32 indexed tranche, address indexed operator, address indexed from, uint256 amount, bytes operatorData);
+    function operatorRedeemByTranche(bytes32 tranche, address tokenHolder, uint256 amount, bytes data, bytes operatorData) external; // 7/8
+    event RedeemedByTranche(bytes32 indexed tranche, address indexed operator, address indexed from, uint256 amount, bytes data, bytes operatorData);
 
     // Transfer Validity
     function canSend(address from, address to, bytes32 tranche, uint256 amount, bytes data) external view returns (byte, bytes32, bytes32); // 8/8

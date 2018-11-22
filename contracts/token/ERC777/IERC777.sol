@@ -24,7 +24,7 @@ interface IERC777 {
   function operatorSendTo(address from, address to, uint256 amount, bytes data, bytes operatorData) external; // 11/13
 
   function burn(uint256 amount, bytes data) external; // 12/13
-  function operatorBurn(address from, uint256 amount, bytes operatorData) external; // 13/13
+  function operatorBurn(address from, uint256 amount, bytes data, bytes operatorData) external; // 13/13
 
   event Sent(
     address indexed operator,
@@ -35,7 +35,7 @@ interface IERC777 {
     bytes operatorData
   );
   event Minted(address indexed operator, address indexed to, uint256 amount, bytes data, bytes operatorData);
-  event Burned(address indexed operator, address indexed from, uint256 amount, bytes operatorData);
+  event Burned(address indexed operator, address indexed from, uint256 amount, bytes data, bytes operatorData);
   event AuthorizedOperator(address indexed operator, address indexed tokenHolder);
   event RevokedOperator(address indexed operator, address indexed tokenHolder);
 }
