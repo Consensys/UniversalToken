@@ -15,15 +15,15 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
 import "./IERC777.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-solidity/contracts/access/roles/MinterRole.sol";
-/* import "openzeppelin-solidity/contracts/ownership/Ownable.sol"; */
 import { Ownable as ozs_Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "../ERC820/ERC820Client.sol";
+import "contract-certificate-controller/contracts/CertificateController.sol";
+
 import "./IERC777TokensSender.sol";
 import "./IERC777TokensRecipient.sol";
 
 
-contract ERC777 is IERC777, IERC20, ERC820Client, MinterRole, ozs_Ownable {
+contract ERC777 is IERC777, IERC20, ozs_Ownable, ERC820Client, CertificateController {
   using SafeMath for uint256;
 
   string internal _name;
@@ -97,8 +97,8 @@ contract ERC777 is IERC777, IERC20, ERC820Client, MinterRole, ozs_Ownable {
   function _setERC20compatibility(bool erc20compatible) internal {
     _erc20compatible = erc20compatible;
     if(_erc20compatible) {
-      if(_erc820compatible) { 
-        setInterfaceImplementation("ERC20Token", this); 
+      if(_erc820compatible) {
+        setInterfaceImplementation("ERC20Token", this);
         }
     } else {
       if(_erc820compatible) { setInterfaceImplementation("ERC20Token", address(0)); }
@@ -470,30 +470,12 @@ contract ERC777 is IERC777, IERC20, ERC820Client, MinterRole, ozs_Ownable {
 
   /**
    * [NOT MANDATORY FOR ERC777 STANDARD]
-   * @dev Mint the amout of tokens for the recipient 'to'.
-   * @param to Token recipient.
-   * @param amount Number of tokens minted.
-   * @param data Information attached to the minting, and intended for the recipient (to).
-   */
-  function mint(address to, uint256 amount, bytes data)
-    external
-    onlyMinter
-    returns (bool)
-  {
-    _mint(msg.sender, to, amount, data, "");
-
-    return true;
-  }
-
-
-  /**
-   * [NOT MANDATORY FOR ERC777 STANDARD]
    * @dev Helper function actually performing the minting of tokens.
    * @param operator Address which triggered the mint.
    * @param to Token recipient.
    * @param amount Number of tokens minted.
    * @param data Information attached to the minting, and intended for the recipient (to).
-   * @param operatorData Information attached to the minting by the operator.
+   * @param operatorData Conditional ownership certificate.
    */
   function _mint(address operator, address to, uint256 amount, bytes data, bytes operatorData)
   internal
@@ -552,6 +534,7 @@ contract ERC777 is IERC777, IERC20, ERC820Client, MinterRole, ozs_Ownable {
    * https://github.com/ethereum/EIPs/issues/20#issuecomment-263524729
    * @param spender The address which will spend the funds.
    * @param value The amount of tokens to be spent.
+   * @return A boolean that indicates if the operation was successful.
    */
   function approve(address spender, uint256 value) external returns (bool) {
     require(_erc20compatible);
@@ -564,9 +547,10 @@ contract ERC777 is IERC777, IERC20, ERC820Client, MinterRole, ozs_Ownable {
 
   /**
    * [NOT MANDATORY FOR ERC777 STANDARD][OVERRIDES ERC20 METHOD]
-   * @dev Transfer token for a specified address
+   * @dev Transfer token for a specified address.
    * @param to The address to transfer to.
    * @param value The amount to be transferred.
+   * @return A boolean that indicates if the operation was successful.
    */
   function transfer(address to, uint256 value) external returns (bool) {
     require(_erc20compatible);
@@ -577,10 +561,11 @@ contract ERC777 is IERC777, IERC20, ERC820Client, MinterRole, ozs_Ownable {
 
   /**
    * [NOT MANDATORY FOR ERC777 STANDARD][OVERRIDES ERC20 METHOD]
-   * @dev Transfer tokens from one address to another
-   * @param from The address which you want to send tokens from
-   * @param to The address which you want to transfer to
-   * @param value The amount of tokens to be transferred
+   * @dev Transfer tokens from one address to another.
+   * @param from The address which you want to send tokens from.
+   * @param to The address which you want to transfer to.
+   * @param value The amount of tokens to be transferred.
+   * @return A boolean that indicates if the operation was successful.
    */
   function transferFrom(
     address from,

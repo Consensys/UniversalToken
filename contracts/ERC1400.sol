@@ -10,9 +10,10 @@ pragma solidity ^0.4.24;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "./IERC1400.sol";
 import "./token/ERC1410/ERC1410.sol";
+import "openzeppelin-solidity/contracts/access/roles/MinterRole.sol";
 
 
-contract ERC1400 is IERC1400, ERC1410 {
+contract ERC1400 is IERC1400, ERC1410, MinterRole {
   using SafeMath for uint256;
 
   struct Document {

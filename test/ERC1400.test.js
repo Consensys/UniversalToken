@@ -12,7 +12,7 @@ contract('ERC1400', function ([owner, operator, defaultOperator, investor, recip
     beforeEach(async function () {
       this.token = await ERC1400.new('ERC1400', 'DAU', 1, [defaultOperator]);
     });
-/*
+    /*
     describe('name', function () {
       it('returns the name of the token', async function () {
         const name = await this.token.name();

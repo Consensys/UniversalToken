@@ -1,6 +1,6 @@
 import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
 
-const ERC777 = artifacts.require('ERC777');
+const ERC777 = artifacts.require('ERC777Mock');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTE = '0x';
@@ -78,48 +78,46 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
       describe('when sender authorizes an operator', function () {
         it('authorizes the operator', async function () {
           assert(!(await this.token.isOperatorFor(operator, investor)));
-          assert(await this.token.isOperatorFor(defaultOperator, investor));
-
           await this.token.authorizeOperator(operator, { from: investor });
-
           assert(await this.token.isOperatorFor(operator, investor));
-          assert(await this.token.isOperatorFor(defaultOperator, investor));
         });
       });
-      // describe('when sender authorizes himself', function () {
-      //   it('reverts', async function () {
-      //     await shouldFail.reverting(this.token.authorizeOperator(investor, { from: investor }));
-      //   });
-      // });
     });
 
     describe('revokeOperator', function () {
       describe('when sender revokes an operator', function () {
-        it('revokes the operator', async function () {
+        it('revokes the operator (when operator is not the default operator)', async function () {
           assert(!(await this.token.isOperatorFor(operator, investor)));
-          assert(await this.token.isOperatorFor(defaultOperator, investor));
-
           await this.token.authorizeOperator(operator, { from: investor });
-
           assert(await this.token.isOperatorFor(operator, investor));
-          assert(await this.token.isOperatorFor(defaultOperator, investor));
 
           await this.token.revokeOperator(operator, { from: investor });
 
           assert(!(await this.token.isOperatorFor(operator, investor)));
+        });
+        it('revokes the operator (when operator is the default operator)', async function () {
           assert(await this.token.isOperatorFor(defaultOperator, investor));
-
           await this.token.revokeOperator(defaultOperator, { from: investor });
-
-          assert(!(await this.token.isOperatorFor(operator, investor)));
           assert(!(await this.token.isOperatorFor(defaultOperator, investor)));
         });
       });
-      // describe('when sender revokes himself', function () {
-      //   it('reverts', async function () {
-      //     await shouldFail.reverting(this.token.revokeOperator(investor, { from: investor }));
-      //   });
-      // });
+    });
+
+    describe('isOperatorFor', function () {
+      it('when operator is tokenHolder', async function () {
+        assert(await this.token.isOperatorFor(investor, investor));
+      });
+      it('when operator is authorized by tokenHolder', async function () {
+        await this.token.authorizeOperator(operator, { from: investor });
+        assert(await this.token.isOperatorFor(operator, investor));
+      });
+      it('when operator is defaultOperator', async function () {
+        assert(await this.token.isOperatorFor(defaultOperator, investor));
+      });
+      it('when is a revoked operator', async function () {
+        await this.token.revokeOperator(defaultOperator, { from: investor });
+        assert(!(await this.token.isOperatorFor(defaultOperator, investor)));
+      });
     });
 
     describe('mint', function () {
@@ -766,7 +764,6 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
           await shouldFail.reverting(this.token.transferFrom(investor, to, amount, { from: operator }));
         });
       });
-      
     });
   });
 });

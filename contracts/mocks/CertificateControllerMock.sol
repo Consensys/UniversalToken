@@ -1,6 +1,7 @@
 pragma solidity ^0.4.24;
 
-contract ControllerMock {
+
+contract CertificateControllerMock {
   modifier isValidCertificate(bytes data) {
     _;
   }

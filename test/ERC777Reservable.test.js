@@ -4,7 +4,6 @@ import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
 const ERC777Reservable = artifacts.require('ERC777Reservable');
 const ERC777ReservableMock = artifacts.require('ERC777ReservableMock');
 
-
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTE = '0x';
 
@@ -29,107 +28,105 @@ var Status = {
 // Not mocked
 contract('ERC777Reservable', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
   describe('ERC777Reservable functionalities', function () {
-
     beforeEach(async function () {
       this.token = await ERC777Reservable.new('ERC777ReservableToken', 'DAU', 1, [defaultOperator], minShares, maxShares, burnLeftOver, certificateSigner);
     });
 
-  describe('name', function () {
-    it('returns the name of the token', async function () {
-      const name = await this.token.name();
+    describe('name', function () {
+      it('returns the name of the token', async function () {
+        const name = await this.token.name();
 
-      assert.equal(name, 'ERC777ReservableToken');
-    });
-  });
-
-  describe('symbol', function () {
-    it('returns the symbol of the token', async function () {
-      const symbol = await this.token.symbol();
-
-      assert.equal(symbol, 'DAU');
-    });
-  });
-
-  describe('granularity', function () {
-    it('returns the granularity of tokens', async function () {
-      const granularity = await this.token.granularity();
-
-      assert.equal(granularity, 1);
-    });
-  });
-
-  describe('balanceOf', function () {
-    describe('when the requested account has no tokens', function () {
-      it('returns zero', async function () {
-        const balance = await this.token.balanceOf(unknown);
-
-        assert.equal(balance, 0);
+        assert.equal(name, 'ERC777ReservableToken');
       });
     });
-  });
 
-  describe('when the requested account has some tokens', function () {
-    it('returns the total amount of tokens', async function () {
-      await this.token.mint(investor, initialSupply, '', { from: owner });
-      const balance = (await this.token.balanceOf(investor));
+    describe('symbol', function () {
+      it('returns the symbol of the token', async function () {
+        const symbol = await this.token.symbol();
 
-      assert.equal(balance, initialSupply);
-    });
-  });
-
-  describe('defaultOperators', function () {
-    it('returns the list of defaultOperators', async function () {
-      const defaultOperators = (await this.token.defaultOperators());
-
-      assert.equal(defaultOperators.length, 1);
-      assert.equal(defaultOperators[0], defaultOperator);
-    });
-  });
-
-  describe('authorizeOperator', function () {
-    describe('when sender authorizes an operator', function () {
-      it('authorizes the operator', async function () {
-        assert(!(await this.token.isOperatorFor(operator, investor)));
-        assert(await this.token.isOperatorFor(defaultOperator, investor));
-
-        await this.token.authorizeOperator(operator, { from: investor });
-
-        assert(await this.token.isOperatorFor(operator, investor));
-        assert(await this.token.isOperatorFor(defaultOperator, investor));
+        assert.equal(symbol, 'DAU');
       });
     });
-  });
 
-  describe('revokeOperator', function () {
-    describe('when sender revokes an operator', function () {
-      it('revokes the operator', async function () {
-        assert(!(await this.token.isOperatorFor(operator, investor)));
-        assert(await this.token.isOperatorFor(defaultOperator, investor));
+    describe('granularity', function () {
+      it('returns the granularity of tokens', async function () {
+        const granularity = await this.token.granularity();
 
-        await this.token.authorizeOperator(operator, { from: investor });
+        assert.equal(granularity, 1);
+      });
+    });
 
-        assert(await this.token.isOperatorFor(operator, investor));
-        assert(await this.token.isOperatorFor(defaultOperator, investor));
+    describe('balanceOf', function () {
+      describe('when the requested account has no tokens', function () {
+        it('returns zero', async function () {
+          const balance = await this.token.balanceOf(unknown);
 
-        await this.token.revokeOperator(operator, { from: investor });
+          assert.equal(balance, 0);
+        });
+      });
+    });
 
-        assert(!(await this.token.isOperatorFor(operator, investor)));
-        assert(await this.token.isOperatorFor(defaultOperator, investor));
+    describe('when the requested account has some tokens', function () {
+      it('returns the total amount of tokens', async function () {
+        await this.token.mint(investor, initialSupply, '', { from: owner });
+        const balance = (await this.token.balanceOf(investor));
 
-        await this.token.revokeOperator(defaultOperator, { from: investor });
+        assert.equal(balance, initialSupply);
+      });
+    });
 
-        assert(!(await this.token.isOperatorFor(operator, investor)));
-        assert(!(await this.token.isOperatorFor(defaultOperator, investor)));
+    describe('defaultOperators', function () {
+      it('returns the list of defaultOperators', async function () {
+        const defaultOperators = (await this.token.defaultOperators());
+
+        assert.equal(defaultOperators.length, 1);
+        assert.equal(defaultOperators[0], defaultOperator);
+      });
+    });
+
+    describe('authorizeOperator', function () {
+      describe('when sender authorizes an operator', function () {
+        it('authorizes the operator', async function () {
+          assert(!(await this.token.isOperatorFor(operator, investor)));
+          assert(await this.token.isOperatorFor(defaultOperator, investor));
+
+          await this.token.authorizeOperator(operator, { from: investor });
+
+          assert(await this.token.isOperatorFor(operator, investor));
+          assert(await this.token.isOperatorFor(defaultOperator, investor));
+        });
+      });
+    });
+
+    describe('revokeOperator', function () {
+      describe('when sender revokes an operator', function () {
+        it('revokes the operator', async function () {
+          assert(!(await this.token.isOperatorFor(operator, investor)));
+          assert(await this.token.isOperatorFor(defaultOperator, investor));
+
+          await this.token.authorizeOperator(operator, { from: investor });
+
+          assert(await this.token.isOperatorFor(operator, investor));
+          assert(await this.token.isOperatorFor(defaultOperator, investor));
+
+          await this.token.revokeOperator(operator, { from: investor });
+
+          assert(!(await this.token.isOperatorFor(operator, investor)));
+          assert(await this.token.isOperatorFor(defaultOperator, investor));
+
+          await this.token.revokeOperator(defaultOperator, { from: investor });
+
+          assert(!(await this.token.isOperatorFor(operator, investor)));
+          assert(!(await this.token.isOperatorFor(defaultOperator, investor)));
+        });
       });
     });
   });
 });
-});
 
-// Mocked 
+// Mocked
 contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
   describe('ERC777ReservableMock functionalities', function () {
-
     beforeEach(async function () {
       this.token = await ERC777ReservableMock.new('ERC777ReservableToken', 'DAU', 1, [defaultOperator], minShares, maxShares, burnLeftOver, certificateSigner);
     });
@@ -213,8 +210,8 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
               });
             });
 
-            describe('when the reservation has an unexpected status', function () { 
-              // TODO                
+            describe('when the reservation has an unexpected status', function () {
+              // TODO
             });
           });
 
@@ -260,7 +257,7 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
     describe('miscellaneous functions', function () {
       describe('removeOperator', function () {
         describe('when sender removes an operator', function () {
-          it('removes the operator', async function () { 
+          it('removes the operator', async function () {
             await this.token.removeDefaultOperator(defaultOperator);
           });
         });
@@ -268,12 +265,11 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
 
       describe('isRegularAddress', function () {
         describe('when the address is not valid', function () {
-          it('reverts', async function () { 
+          it('reverts', async function () {
             await shouldFail.reverting(this.token.isNotARegularAddress(0x0));
           });
         });
       });
-
     });
   });
 });
@@ -281,7 +277,6 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
 // To burn the left over
 contract('ERC777ReservableWithBurnLeftOver', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
   describe('ERC777ReservableWithBurnLeftOver functionalities', function () {
-
     let burnLeftOver = true;
     let index = 0;
 
@@ -291,7 +286,6 @@ contract('ERC777ReservableWithBurnLeftOver', function ([owner, operator, default
 
     describe('when the sale is ending and there is a leftover', function () {
       it('Burn the leftover', async function () {
-
         await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
         await this.token.validateReservation(owner, index, { from: owner });
         await this.token.endSale();

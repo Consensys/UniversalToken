@@ -1,9 +1,9 @@
 pragma solidity ^0.4.24;
-import "../token/ERC777/ERC777Reservable.sol";
-import "../mocks/ControllerMock.sol";
+import "../examples/ERC777Reservable.sol";
+import "./CertificateControllerMock.sol";
 
 
-contract ERC777ReservableMock is ERC777Reservable, ControllerMock {
+contract ERC777ReservableMock is ERC777Reservable, CertificateControllerMock {
 
 constructor(
 	string name,
@@ -17,7 +17,7 @@ constructor(
   )
     public
     ERC777Reservable(name, symbol, granularity, defaultOperators, minShares, maxShares, burnLeftOver, certificateSigner)
-  { 
+  {
   }
 
   function removeDefaultOperator(address operator) external {

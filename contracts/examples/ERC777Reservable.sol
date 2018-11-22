@@ -7,12 +7,10 @@ pragma solidity ^0.4.24;
 /* import { Ownable as ozs_Ownable } from "openzeppelin-solidity/contracts/ownership/Ownable.sol"; */
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 
-import "contract-certificate-controller/contracts/CertificateController.sol";
-
-import "./ERC777.sol";
+import "../token/ERC777/ERC777Mintable.sol";
 
 
-contract ERC777Reservable is CertificateController, ERC777 {
+contract ERC777Reservable is ERC777Mintable {
   using SafeMath for uint256;
 
   enum Status { Created, Validated, Cancelled }
