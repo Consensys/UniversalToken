@@ -1,13 +1,7 @@
 import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
 
 // Mock:
-const ERC777Reservable = artifacts.require('ERC777Reservable');
 const ERC777ReservableMock = artifacts.require('ERC777ReservableMock');
-
-const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
-const ZERO_BYTE = '0x';
-
-const data = '0x00000000000000000000000000000000000270000000000000000000000000000000000000000000000000000000000';
 
 const initialSupply = 1000000000;
 
@@ -19,17 +13,11 @@ const maxShares = initialSupply;
 const burnLeftOver = false;
 const certificateSigner = '0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630';
 
-var Status = {
-  'Created': 0,
-  'Validated': 1,
-  'Cancelled': 2,
-};
-
 // Not mocked
-contract('ERC777Reservable', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
+contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
   describe('ERC777Reservable functionalities', function () {
     beforeEach(async function () {
-      this.token = await ERC777Reservable.new('ERC777ReservableToken', 'DAU', 1, [defaultOperator], minShares, maxShares, burnLeftOver, certificateSigner);
+      this.token = await ERC777ReservableMock.new('ERC777ReservableToken', 'DAU', 1, [defaultOperator], minShares, maxShares, burnLeftOver, certificateSigner);
     });
 
     describe('name', function () {
@@ -122,10 +110,7 @@ contract('ERC777Reservable', function ([owner, operator, defaultOperator, invest
       });
     });
   });
-});
 
-// Mocked
-contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
   describe('ERC777ReservableMock functionalities', function () {
     beforeEach(async function () {
       this.token = await ERC777ReservableMock.new('ERC777ReservableToken', 'DAU', 1, [defaultOperator], minShares, maxShares, burnLeftOver, certificateSigner);
@@ -138,6 +123,7 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
             it('reserve tokens', async function () {
               await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: investor });
               const reservations = (await this.token.getReservation(investor, 0));
+              assert(reservations.length > 0);
             });
 
             it('emits a "TokensReserved" event', async function () {
@@ -251,24 +237,6 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
         await this.token.validateReservation(owner, 0, { from: owner });
         const { logs } = await this.token.endSale();
         assert.equal(logs[2].event, 'SaleEnded');
-      });
-    });
-
-    describe('miscellaneous functions', function () {
-      describe('removeOperator', function () {
-        describe('when sender removes an operator', function () {
-          it('removes the operator', async function () {
-            await this.token.removeDefaultOperator(defaultOperator);
-          });
-        });
-      });
-
-      describe('isRegularAddress', function () {
-        describe('when the address is not valid', function () {
-          it('reverts', async function () {
-            await shouldFail.reverting(this.token.isNotARegularAddress(0x0));
-          });
-        });
       });
     });
   });

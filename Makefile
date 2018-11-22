@@ -34,7 +34,7 @@ start-remixd:
 	@yarn run remixd
 
 open-remix-ide:
-	@xdg-open http://localhost:8080
+	@open http://localhost:8080
 
 remix:
 	@yarn run remix
@@ -46,7 +46,7 @@ run-coverage:
 	@yarn run coverage
 
 coverage: run-coverage
-	@xdg-open coverage/index.html
+	@open coverage/index.html
 
 test-lint:
 	@yarn run lint:all
