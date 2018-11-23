@@ -14,17 +14,12 @@ Platform:
   darwin x64
 
 Trace: 
-  Error: https://registry.yarnpkg.com/contract-certificate-controller: Not found
-      at Request.params.callback [as _callback] (/usr/local/Cellar/yarn/1.12.1/libexec/lib/cli.js:63139:18)
-      at Request.self.callback (/usr/local/Cellar/yarn/1.12.1/libexec/lib/cli.js:124547:22)
-      at Request.emit (events.js:182:13)
-      at Request.<anonymous> (/usr/local/Cellar/yarn/1.12.1/libexec/lib/cli.js:125519:10)
-      at Request.emit (events.js:182:13)
-      at IncomingMessage.<anonymous> (/usr/local/Cellar/yarn/1.12.1/libexec/lib/cli.js:125441:12)
-      at Object.onceWrapper (events.js:273:13)
-      at IncomingMessage.emit (events.js:187:15)
-      at endReadableNT (_stream_readable.js:1094:12)
-      at process.internalTickCallback (internal/process/next_tick.js:72:19)
+  SyntaxError: /Users/gauthierpetetin/Desktop/securities-smart-contracts/package.json: Unexpected string in JSON at position 2378
+      at JSON.parse (<anonymous>)
+      at /usr/local/Cellar/yarn/1.12.1/libexec/lib/cli.js:1166:59
+      at Generator.next (<anonymous>)
+      at step (/usr/local/Cellar/yarn/1.12.1/libexec/lib/cli.js:92:30)
+      at /usr/local/Cellar/yarn/1.12.1/libexec/lib/cli.js:103:13
 
 npm manifest: 
   {
@@ -90,8 +85,9 @@ npm manifest:
       "solium-plugin-zeppelin": "^0.0.2"
     },
     "dependencies": {
-      "contract-certificate-controller": "git@gitlab.com:ConsenSys/client/fr/dauriel/contract-certificate-controller.git#b3d004695606a1780dfd9f50a824b713a7400516",
+      "contract-certificate-controller": "https://gitlab.com/ConsenSys/client/fr/dauriel/contract-certificate-controller.git#b3d004695606a1780dfd9f50a824b713a7400516",
       "openzeppelin-solidity": "git://github.com/OpenZeppelin/openzeppelin-solidity#06e265b38d3e9daeaa7b33f9035c700d6bc0c6a0",
+      "erc820": "git@github.com:jbaylina/ERC820.git#6c13a97a5eba73df2a99c3a089c65f7d2df63775"
       "truffle": "^4.1.14",
       "truffle-hdwallet-provider": "0.0.6"
     },
@@ -425,7 +421,7 @@ Lockfile:
     dependencies:
       async "^2.4.0"
   
-  "async-eventemitter@github:ahultgren/async-eventemitter#fa06e39e56786ba541c180061dbf2c0a5bbf951c":
+  async-eventemitter@ahultgren/async-eventemitter#fa06e39e56786ba541c180061dbf2c0a5bbf951c:
     version "0.2.3"
     resolved "https://codeload.github.com/ahultgren/async-eventemitter/tar.gz/fa06e39e56786ba541c180061dbf2c0a5bbf951c"
     dependencies:
@@ -1902,9 +1898,9 @@ Lockfile:
     resolved "https://registry.yarnpkg.com/content-type/-/content-type-1.0.4.tgz#e138cc75e040c727b1966fe5e5f8c9aee256fe3b"
     integrity sha512-hIP3EEPs8tB9AT1L+NUqtwOAps4mk2Zob89MWXMHjHWg9milF/j4osnnQLXBCBFBk/tvIG/tUc9mOUJiPBhPXA==
   
-  "contract-certificate-controller@git+ssh://git@gitlab.com:ConsenSys/client/fr/dauriel/contract-certificate-controller.git#3875817da92a05842d48ae0b9f3f213231e632bd":
+  "contract-certificate-controller@https://gitlab.com/ConsenSys/client/fr/dauriel/contract-certificate-controller.git#b3d004695606a1780dfd9f50a824b713a7400516":
     version "0.1.0-dev"
-    resolved "git+ssh://git@gitlab.com:ConsenSys/client/fr/dauriel/contract-certificate-controller.git#3875817da92a05842d48ae0b9f3f213231e632bd"
+    resolved "https://gitlab.com/ConsenSys/client/fr/dauriel/contract-certificate-controller.git#b3d004695606a1780dfd9f50a824b713a7400516"
   
   conventional-changelog-angular@^1.6.6:
     version "1.6.6"

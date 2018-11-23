@@ -17,7 +17,16 @@ const certificateSigner = '0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630';
 contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
   describe('ERC777Reservable functionalities', function () {
     beforeEach(async function () {
-      this.token = await ERC777ReservableMock.new('ERC777ReservableToken', 'DAU', 1, [defaultOperator], minShares, maxShares, burnLeftOver, certificateSigner);
+      this.token = await ERC777ReservableMock.new(
+        'ERC777ReservableToken',
+        'DAU',
+        1,
+        [defaultOperator],
+        minShares,
+        maxShares,
+        burnLeftOver,
+        certificateSigner
+      );
     });
 
     describe('name', function () {
@@ -113,7 +122,16 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
 
   describe('ERC777ReservableMock functionalities', function () {
     beforeEach(async function () {
-      this.token = await ERC777ReservableMock.new('ERC777ReservableToken', 'DAU', 1, [defaultOperator], minShares, maxShares, burnLeftOver, certificateSigner);
+      this.token = await ERC777ReservableMock.new(
+        'ERC777ReservableToken',
+        'DAU',
+        1,
+        [defaultOperator],
+        minShares,
+        maxShares,
+        burnLeftOver,
+        certificateSigner
+      );
     });
 
     describe('reserveTokens', function () {
@@ -136,7 +154,9 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
             it('reverts', async function () {
               const totalSupply = (await this.token.totalSupply());
               const greaterThanTotalSupply = totalSupply.toNumber() + 1;
-              await shouldFail.reverting(this.token.reserveTokens(greaterThanTotalSupply, validUntil, '', { from: investor }));
+              await shouldFail.reverting(
+                this.token.reserveTokens(greaterThanTotalSupply, validUntil, '', { from: investor })
+              );
             });
           });
         });
@@ -243,21 +263,31 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
 });
 
 // To burn the left over
-contract('ERC777ReservableWithBurnLeftOver', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
-  describe('ERC777ReservableWithBurnLeftOver functionalities', function () {
-    let burnLeftOver = true;
-    let index = 0;
+contract('ERC777ReservableWithBurnLeftOver',
+  function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
+    describe('ERC777ReservableWithBurnLeftOver functionalities', function () {
+      let burnLeftOver = true;
+      let index = 0;
 
-    beforeEach(async function () {
-      this.token = await ERC777ReservableMock.new('ERC777ReservableToken', 'DAU', 1, [defaultOperator], minShares, maxShares, burnLeftOver, certificateSigner);
-    });
+      beforeEach(async function () {
+        this.token = await ERC777ReservableMock.new(
+          'ERC777ReservableToken',
+          'DAU',
+          1,
+          [defaultOperator],
+          minShares,
+          maxShares,
+          burnLeftOver,
+          certificateSigner
+        );
+      });
 
-    describe('when the sale is ending and there is a leftover', function () {
-      it('Burn the leftover', async function () {
-        await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
-        await this.token.validateReservation(owner, index, { from: owner });
-        await this.token.endSale();
+      describe('when the sale is ending and there is a leftover', function () {
+        it('Burn the leftover', async function () {
+          await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
+          await this.token.validateReservation(owner, index, { from: owner });
+          await this.token.endSale();
+        });
       });
     });
   });
-});

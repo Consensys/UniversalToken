@@ -112,10 +112,12 @@ contract ERC777Reservable is ERC777Mintable {
     onlySale
     onlyOwner
   {
-    require(_reservations[owner].length > 0 && _reservations[owner][index].status == Status.Created, "0x20: Invalid reservation");
+    require(_reservations[owner].length > 0
+      && _reservations[owner][index].status == Status.Created, "0x20: Invalid reservation");
 
     Reservation storage reservation = _reservations[owner][index];
-    require(reservation.validUntil != 0 && reservation.validUntil < block.timestamp, "0x05: Reservation has expired");
+    require(reservation.validUntil != 0
+      && reservation.validUntil < block.timestamp, "0x05: Reservation has expired");
 
     reservation.status = Status.Validated;
     _validatedReservations.push(

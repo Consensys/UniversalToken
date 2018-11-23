@@ -12,10 +12,9 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "contract-certificate-controller/contracts/CertificateController.sol";
+import "erc820/contracts/ERC820Client.sol";
 
 import "./IERC777.sol";
-import "../ERC820/ERC820Client.sol";
-
 import "./IERC777TokensSender.sol";
 import "./IERC777TokensRecipient.sol";
 
@@ -74,7 +73,7 @@ contract ERC777 is IERC777, IERC20, Ownable, ERC820Client, CertificateController
     }
 
     _setERC20compatibility(true);
-    _setERC820compatibility(true); // COMMENT FOR TESTING REASONS ONLY - TO BE REMOVED
+    _setERC820compatibility(false); // COMMENT FOR TESTING REASONS ONLY - TO BE REMOVED
   }
 
   /**
