@@ -72,8 +72,9 @@ contract ERC777 is IERC777, IERC20, Ownable, ERC820Client, CertificateController
       _addDefaultOperator(defaultOperators[i]);
     }
 
+    setInterfaceImplementation("ERC777Token", this);
+
     _setERC20compatibility(true);
-    _setERC820compatibility(false); // COMMENT FOR TESTING REASONS ONLY - TO BE REMOVED
   }
 
   /**
@@ -93,36 +94,9 @@ contract ERC777 is IERC777, IERC20, Ownable, ERC820Client, CertificateController
   function _setERC20compatibility(bool erc20compatible) internal {
     _erc20compatible = erc20compatible;
     if(_erc20compatible) {
-      if(_erc820compatible) {
-        setInterfaceImplementation("ERC20Token", this);
-        }
+      setInterfaceImplementation("ERC20Token", this);
     } else {
-      if(_erc820compatible) { setInterfaceImplementation("ERC20Token", address(0)); }
-    }
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC777 STANDARD]
-   * @dev egisters/Unregisters the ERC20Token interface with its own address via ERC820
-   * @param erc820compatible 'true' to register the ERC820Token interface, 'false' to unregister
-   */
-  function setERC820compatibility(bool erc820compatible) external onlyOwner {
-    _setERC820compatibility(erc820compatible);
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC777 STANDARD]
-   * @dev Helper function to register/Unregister the ERC777Token interface with its own address via ERC820
-   *  and allows/disallows the ERC820 methods
-   * @param erc820compatible 'true' to register the ERC777Token interface, 'false' to unregister
-   */
-  function _setERC820compatibility(bool erc820compatible) internal {
-    _erc820compatible = erc820compatible;
-    if(_erc820compatible) {
-      setInterfaceImplementation("ERC777Token", this);
-      _setERC20compatibility(_erc20compatible);
-    } else {
-      setInterfaceImplementation("ERC777Token", address(0));
+      setInterfaceImplementation("ERC20Token", address(0));
     }
   }
 
@@ -221,7 +195,7 @@ contract ERC777 is IERC777, IERC20, Ownable, ERC820Client, CertificateController
    * @dev Send the amount of tokens from the address msg.sender to the address to.
    * @param to Token recipient.
    * @param amount Number of tokens to send.
-   * @param data Information attached to the send, by the token holder (conditional ownership certificate).
+   * @param data Information attached to the send, by the token holder [contains the conditional ownership certificate].
    */
   function sendTo(address to, uint256 amount, bytes data)
     external
@@ -236,8 +210,8 @@ contract ERC777 is IERC777, IERC20, Ownable, ERC820Client, CertificateController
    * @param from Token holder (or address(0) to set from to msg.sender).
    * @param to Token recipient.
    * @param amount Number of tokens to send.
-   * @param data Information attached to the send, by the token holder.
-   * @param operatorData Information attached to the send by the operator (conditional ownership certificate).
+   * @param data Information attached to the send, and intended for the token holder (from).
+   * @param operatorData Information attached to the send by the operator [contains the conditional ownership certificate].
    */
   function operatorSendTo(address from, address to, uint256 amount, bytes data, bytes operatorData)
     external
@@ -254,7 +228,7 @@ contract ERC777 is IERC777, IERC20, Ownable, ERC820Client, CertificateController
    * [ERC777 INTERFACE (12/13)]
    * @dev Burn the amount of tokens from the address msg.sender.
    * @param amount Number of tokens to burn.
-   * @param data Information attached to the burn, by the token holder (conditional ownership certificate).
+   * @param data Information attached to the burn, by the token holder [contains the conditional ownership certificate].
    */
   function burn(uint256 amount, bytes data)
     external
@@ -268,8 +242,8 @@ contract ERC777 is IERC777, IERC20, Ownable, ERC820Client, CertificateController
    * @dev Burn the amount of tokens on behalf of the address from.
    * @param from Token holder whose tokens will be burned (or address(0) to set from to msg.sender).
    * @param amount Number of tokens to burn.
-   * @param data Information attached to the burn, and intended for the owner (from).
-   * @param operatorData Information attached to the burn by the operator (conditional ownership certificate).
+   * @param data Information attached to the burn, and intended for the token holder (from).
+   * @param operatorData Information attached to the burn by the operator [contains the conditional ownership certificate].
    */
   function operatorBurn(address from, uint256 amount, bytes data, bytes operatorData)
     external
@@ -322,7 +296,7 @@ contract ERC777 is IERC777, IERC20, Ownable, ERC820Client, CertificateController
     * @param from Token holder.
     * @param to Token recipient.
     * @param amount Number of tokens to send.
-    * @param data Information attached to the send, by the token holder.
+    * @param data Information attached to the send, and intended for the token holder (from).
     * @param operatorData Information attached to the send by the operator.
     * @param preventLocking `true` if you want this function to throw when tokens are sent to a contract not
     *  implementing `erc777tokenHolder`.
@@ -363,8 +337,8 @@ contract ERC777 is IERC777, IERC20, Ownable, ERC820Client, CertificateController
    * @param operator The address performing the burn.
    * @param from Token holder whose tokens will be burned.
    * @param amount Number of tokens to burn.
-   * @param data Information attached to the burn, and intended for the owner (from).
-   * @param operatorData Information attached to the burn by the operator.
+   * @param data Information attached to the burn, and intended for the token holder (from).
+   * @param operatorData Information attached to the burn by the operator (if any).
    */
   function _burn(address operator, address from, uint256 amount, bytes data, bytes operatorData)
     internal
@@ -392,8 +366,8 @@ contract ERC777 is IERC777, IERC20, Ownable, ERC820Client, CertificateController
    * @param from Token holder.
    * @param to Token recipient for a send and 0x for a burn.
    * @param amount Number of tokens the token holder balance is decreased by.
-   * @param data Extra information provided by the token holder.
-   * @param operatorData Extra information provided by the address which triggered the balance decrease.
+   * @param data Extra information, intended for the token holder (from).
+   * @param operatorData Extra information attached by the operator (if any).
    */
   function _callSender(
     address operator,
@@ -406,7 +380,7 @@ contract ERC777 is IERC777, IERC20, Ownable, ERC820Client, CertificateController
     internal
   {
     address senderImplementation;
-    if(_erc820compatible) { senderImplementation = interfaceAddr(from, "ERC777TokensSender"); }
+    senderImplementation = interfaceAddr(from, "ERC777TokensSender");
 
     if (senderImplementation != address(0)) {
       IERC777TokensSender(senderImplementation).tokensToSend(operator, from, to, amount, data, operatorData);
@@ -420,8 +394,8 @@ contract ERC777 is IERC777, IERC20, Ownable, ERC820Client, CertificateController
    * @param from Token holder for a send and 0x for a mint.
    * @param to Token recipient.
    * @param amount Number of tokens the recipient balance is increased by.
-   * @param data Extra information provided by the token holder for a send and nothing (empty bytes) for a mint.
-   * @param operatorData Extra information provided by the address which triggered the balance increase.
+   * @param data Extra information, intended for the token holder (from).
+   * @param operatorData Extra information attached by the operator (if any).
    * @param preventLocking `true` if you want this function to throw when tokens are sent to a contract not
    *  implementing `ERC777TokensRecipient`.
    *  ERC777 native Send functions MUST set this parameter to `true`, and backwards compatible ERC20 transfer
@@ -439,7 +413,7 @@ contract ERC777 is IERC777, IERC20, Ownable, ERC820Client, CertificateController
     internal
   {
     address recipientImplementation;
-    if(_erc820compatible) { recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient"); }
+    recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
 
     if (recipientImplementation != address(0)) {
       IERC777TokensRecipient(recipientImplementation).tokensReceived(operator, from, to, amount, data, operatorData);
@@ -484,8 +458,8 @@ contract ERC777 is IERC777, IERC20, Ownable, ERC820Client, CertificateController
    * @param operator Address which triggered the mint.
    * @param to Token recipient.
    * @param amount Number of tokens minted.
-   * @param data Information attached to the minting, and intended for the recipient (to).
-   * @param operatorData Information attached to the send by the operator.
+   * @param data Information attached to the mint, and intended for the recipient (to).
+   * @param operatorData Information attached to the mint by the operator (if any).
    */
   function _mint(address operator, address to, uint256 amount, bytes data, bytes operatorData)
   internal

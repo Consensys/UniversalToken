@@ -46,9 +46,6 @@ contract ERC1410 is IERC1410, ERC777 {
   mapping (bytes32 => mapping (address => bool)) internal _isDefaultOperatorByTranche;
   /****************************************************************************/
 
-  bool internal _erc777compatible;
-
-
   constructor(
     string name,
     string symbol,
@@ -59,36 +56,7 @@ contract ERC1410 is IERC1410, ERC777 {
     public
     ERC777(name, symbol, granularity, defaultOperators, certificateSigner)
   {
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC1410 STANDARD]
-   * @dev Helper function to registers/unregister the ERC777Token interface
-   * @param erc777compatible 'true' to register the ERC777Token interface, 'false' to unregister
-   */
-  function _setERC777compatibility(bool erc777compatible) internal {
-    _erc777compatible = erc777compatible;
-    if(_erc777compatible) {
-      if(_erc820compatible) { setInterfaceImplementation("ERC777Token", this); }
-    } else {
-      if(_erc820compatible) { setInterfaceImplementation("ERC777Token", address(0)); }
-    }
-  }
-
-
-  /**
-   * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
-   * @dev Helper function to register/Unregister the ERC1410Token interface with its own address via ERC820
-   *  and allows/disallows the ERC820 methods
-   * @param erc820compatible 'true' to register the ERC1410Token interface, 'false' to unregister
-   */
-  function _setERC820compatibility(bool erc820compatible) internal {
-    ERC777._setERC820compatibility(erc820compatible);
-    if(_erc820compatible) {
-      setInterfaceImplementation("ERC1410Token", this);
-    } else {
-      setInterfaceImplementation("ERC1410Token", address(0));
-    }
+    setInterfaceImplementation("ERC1410Token", this);
   }
 
 
@@ -117,7 +85,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param tranche Name of the tranche.
    * @param to Token recipient.
    * @param amount Number of tokens to send.
-   * @param data Information attached to the send, by the token holder (conditional ownership certificate).
+   * @param data Information attached to the send, by the token holder [contains the conditional ownership certificate].
    * @return destination tranche.
    */
   function sendByTranche(
@@ -139,7 +107,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param tranches Name of the tranches.
    * @param to Token recipient.
    * @param amounts Number of tokens to send.
-   * @param data Information attached to the send, by the token holder (conditional ownership certificate).
+   * @param data Information attached to the send, by the token holder [contains the conditional ownership certificate].
    * @return destination tranches.
    */
   function sendByTranches(
@@ -169,8 +137,8 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param from Token holder.
    * @param to Token recipient.
    * @param amount Number of tokens to send.
-   * @param data Information attached to the send, by the token holder.
-   * @param operatorData Information attached to the send by the operator (conditional ownership certificate).
+   * @param data Information attached to the send, and intended for the token holder (from) [contains the destination tranche].
+   * @param operatorData Information attached to the send by the operator [contains the conditional ownership certificate].
    * @return destination tranche.
    */
   function operatorSendByTranche(
@@ -198,8 +166,8 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param from Token holder.
    * @param to Token recipient.
    * @param amounts Number of tokens to send.
-   * @param data Information attached to the send, by the token holder.
-   * @param operatorData Information attached to the send by the operator (conditional ownership certificate).
+   * @param data Information attached to the send, and intended for the token holder (from) [contains the destination tranche].
+   * @param operatorData Information attached to the send by the operator [contains the conditional ownership certificate].
    * @return destination tranches.
    */
   function operatorSendByTranches(
@@ -240,7 +208,7 @@ contract ERC1410 is IERC1410, ERC777 {
 
   /**
    * [ERC1410 INTERFACE (8/12)][OPTIONAL]
-   *For ERC777 and ERC20 backwards compatibility.
+   * For ERC777 and ERC20 backwards compatibility.
    * @dev External function to set default tranches to send from.
    * @param tranches tranches to use by default when not specified.
    */
@@ -349,7 +317,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param from Token holder.
    * @param to Token recipient.
    * @param amount Number of tokens to send.
-   * @param data Information attached to the send, by the token holder.
+   * @param data Information attached to the send, and intended for the token holder (from) [can contain the destination tranche].
    * @param operatorData Information attached to the send by the operator.
    * @return destination tranche.
    */
@@ -436,7 +404,7 @@ contract ERC1410 is IERC1410, ERC777 {
   /**
    * @dev Internal function to retrieve the destination tranche from the 'data' field.
    *  Basically, this function only converts the bytes variable into a bytes32 variable.
-   * @param data Information attached to the send, containing the destination tranche.
+   * @param data Information attached to the send [contains the destination tranche].
    */
   function _getDestinationTranche(bytes data) internal pure returns(bytes32) {
     bytes32 toTranche;
@@ -451,13 +419,12 @@ contract ERC1410 is IERC1410, ERC777 {
    * @dev Send the amount of tokens from the address msg.sender to the address to.
    * @param to Token recipient.
    * @param amount Number of tokens to send.
-   * @param data Information attached to the send, by the token holder (conditional ownership certificate).
+   * @param data Information attached to the send, by the token holder [contains the conditional ownership certificate].
    */
   function sendTo(address to, uint256 amount, bytes data)
     external
     isValidCertificate(data)
   {
-    require(_erc777compatible);
     _sendByDefaultTranches(msg.sender, msg.sender, to, amount, data, "");
   }
 
@@ -467,15 +434,13 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param from Token holder (or address(0) to set from to msg.sender).
    * @param to Token recipient.
    * @param amount Number of tokens to send.
-   * @param data Information attached to the send, by the token holder.
-   * @param operatorData Information attached to the send by the operator (conditional ownership certificate).
+   * @param data Information attached to the send, and intended for the token holder (from) [can contain the destination tranche].
+   * @param operatorData Information attached to the send by the operator [contains the conditional ownership certificate].
    */
   function operatorSendTo(address from, address to, uint256 amount, bytes data, bytes operatorData)
     external
     isValidCertificate(operatorData)
   {
-    require(_erc777compatible);
-
     address _from = (from == address(0)) ? msg.sender : from;
 
     require(_isOperatorFor(msg.sender, _from));
@@ -536,7 +501,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param from Token holder.
    * @param to Token recipient.
    * @param amount Number of tokens to send.
-   * @param data Information attached to the send, by the token holder.
+   * @param data Information attached to the send, and intended for the token holder (from) [can contain the destination tranche].
    * @param operatorData Information attached to the send by the operator.
    */
   function _sendByDefaultTranches(

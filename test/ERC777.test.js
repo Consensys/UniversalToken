@@ -1,6 +1,9 @@
 import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
 
 const ERC777 = artifacts.require('ERC777Mock');
+const ERC820Registry = artifacts.require('ERC820Registry');
+const ERC777TokensSender = artifacts.require('ERC777TokensSenderMock');
+const ERC777TokensRecipient = artifacts.require('ERC777TokensRecipientMock');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTE = '0x';
@@ -9,7 +12,33 @@ const CERTIFICATE_SIGNER = '0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630';
 
 const initialSupply = 1000000000;
 
-contract('ERC777', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
+contract('ERC777 without hooks', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
+  // ADDITIONNAL MOCK TESTS
+
+  describe('Additionnal mock tests', function () {
+    beforeEach(async function () {
+      this.token = await ERC777.new('ERC777Token', 'DAU', 1, [defaultOperator], CERTIFICATE_SIGNER);
+    });
+
+    describe('contract creation', function () {
+      it('fails deploying the contract if granularity is lower than 1', async function () {
+        await shouldFail.reverting(ERC777.new('ERC777Token', 'DAU', 0, [defaultOperator], CERTIFICATE_SIGNER));
+      });
+    });
+
+    describe('_isRegularAddress', function () {
+      it('returns true when address is correct', async function () {
+        assert(await this.token.isRegularAddress(owner));
+      });
+      it('returns true when address is non zero', async function () {
+        assert(await this.token.isRegularAddress(owner));
+      });
+      it('returns false when address is ZERO_ADDRESS', async function () {
+        assert(!(await this.token.isRegularAddress(ZERO_ADDRESS)));
+      });
+    });
+  });
+
   // BASIC FUNCTIONNALITIES
 
   describe('ERC777 functionalities', function () {
@@ -162,7 +191,7 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
     describe('removeDefaultOperator', function () {
       describe('when the caller is the contract owner', function () {
         describe('when the operator is already a default operator', function () {
-          it('removes the operator from default operators', async function () {
+          it('removes the operator from default operators (initial default operator)', async function () {
             const defaultOperators1 = await this.token.defaultOperators();
             assert.equal(defaultOperators1.length, 1);
             assert.equal(defaultOperators1[0], defaultOperator);
@@ -170,6 +199,19 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
             const defaultOperators2 = await this.token.defaultOperators();
             assert.equal(defaultOperators2.length, 0);
             assert(!(await this.token.isOperatorFor(defaultOperator, unknown)));
+          });
+          it('removes the operator from default operators (new default operator)', async function () {
+            await this.token.addDefaultOperator(operator, { from: owner });
+            const defaultOperators1 = await this.token.defaultOperators();
+            assert.equal(defaultOperators1.length, 2);
+            assert.equal(defaultOperators1[0], defaultOperator);
+            assert.equal(defaultOperators1[1], operator);
+            assert(await this.token.isOperatorFor(operator, unknown));
+            await this.token.removeDefaultOperator(operator, { from: owner });
+            const defaultOperators2 = await this.token.defaultOperators();
+            assert.equal(defaultOperators2.length, 1);
+            assert.equal(defaultOperators1[0], defaultOperator);
+            assert(!(await this.token.isOperatorFor(operator, unknown)));
           });
         });
         describe('when the operator is not already a default operator', function () {
@@ -269,56 +311,61 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
       });
       describe('when the amount is a multiple of the granularity', function () {
         describe('when the recipient is not the zero address', function () {
+          describe('when the sender has enough balance', function () {
+            const amount = initialSupply;
+            describe('when the recipient is a regular address', function () {
+              it('transfers the requested amount', async function () {
+                await this.token.sendTo(to, amount, '', { from: investor });
+                const senderBalance = await this.token.balanceOf(investor);
+                assert.equal(senderBalance, initialSupply - amount);
+
+                const recipientBalance = await this.token.balanceOf(to);
+                assert.equal(recipientBalance, amount);
+              });
+
+              it('emits a sent event [with ERC20 retrocompatibility]', async function () {
+                const { logs } = await this.token.sendTo(to, amount, '', { from: investor });
+
+                assert.equal(logs.length, 2);
+                assert.equal(logs[0].event, 'Sent');
+                assert.equal(logs[0].args.operator, investor);
+                assert.equal(logs[0].args.from, investor);
+                assert.equal(logs[0].args.to, to);
+                assert(logs[0].args.amount.eq(amount));
+                assert.equal(logs[0].args.data, ZERO_BYTE);
+                assert.equal(logs[0].args.operatorData, ZERO_BYTE);
+
+                assert.equal(logs[1].event, 'Transfer');
+                assert.equal(logs[1].args.from, investor);
+                assert.equal(logs[1].args.to, to);
+                assert(logs[1].args.value.eq(amount));
+              });
+
+              it('emits a sent event [without ERC20 retrocompatibility]', async function () {
+                await this.token.setERC20compatibility(false, { from: owner });
+                const { logs } = await this.token.sendTo(to, amount, '', { from: investor });
+
+                assert.equal(logs.length, 1);
+                assert.equal(logs[0].event, 'Sent');
+                assert.equal(logs[0].args.operator, investor);
+                assert.equal(logs[0].args.from, investor);
+                assert.equal(logs[0].args.to, to);
+                assert(logs[0].args.amount.eq(amount));
+                assert.equal(logs[0].args.data, ZERO_BYTE);
+                assert.equal(logs[0].args.operatorData, ZERO_BYTE);
+              });
+            });
+            describe('when the recipient is not a regular address', function () {
+              it('reverts', async function () {
+                await shouldFail.reverting(this.token.sendTo(this.token.address, amount, '', { from: investor }));
+              });
+            });
+          });
           describe('when the sender does not have enough balance', function () {
             const amount = initialSupply + 1;
 
             it('reverts', async function () {
               await shouldFail.reverting(this.token.sendTo(to, amount, '', { from: investor }));
-            });
-          });
-
-          describe('when the sender has enough balance', function () {
-            const amount = initialSupply;
-
-            it('transfers the requested amount', async function () {
-              await this.token.sendTo(to, amount, '', { from: investor });
-              const senderBalance = await this.token.balanceOf(investor);
-              assert.equal(senderBalance, initialSupply - amount);
-
-              const recipientBalance = await this.token.balanceOf(to);
-              assert.equal(recipientBalance, amount);
-            });
-
-            it('emits a sent event [with ERC20 retrocompatibility]', async function () {
-              const { logs } = await this.token.sendTo(to, amount, '', { from: investor });
-
-              assert.equal(logs.length, 2);
-              assert.equal(logs[0].event, 'Sent');
-              assert.equal(logs[0].args.operator, investor);
-              assert.equal(logs[0].args.from, investor);
-              assert.equal(logs[0].args.to, to);
-              assert(logs[0].args.amount.eq(amount));
-              assert.equal(logs[0].args.data, ZERO_BYTE);
-              assert.equal(logs[0].args.operatorData, ZERO_BYTE);
-
-              assert.equal(logs[1].event, 'Transfer');
-              assert.equal(logs[1].args.from, investor);
-              assert.equal(logs[1].args.to, to);
-              assert(logs[1].args.value.eq(amount));
-            });
-
-            it('emits a sent event [without ERC20 retrocompatibility]', async function () {
-              await this.token.setERC20compatibility(false, { from: owner });
-              const { logs } = await this.token.sendTo(to, amount, '', { from: investor });
-
-              assert.equal(logs.length, 1);
-              assert.equal(logs[0].event, 'Sent');
-              assert.equal(logs[0].args.operator, investor);
-              assert.equal(logs[0].args.from, investor);
-              assert.equal(logs[0].args.to, to);
-              assert(logs[0].args.amount.eq(amount));
-              assert.equal(logs[0].args.data, ZERO_BYTE);
-              assert.equal(logs[0].args.operatorData, ZERO_BYTE);
             });
           });
         });
@@ -580,7 +627,10 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
         });
 
         describe('when the burner is the zero address', function () {
-          // Can never happen with this implementation
+          it('reverts', async function () {
+            const amount = initialSupply;
+            await shouldFail.reverting(this.token.operatorBurnMock(ZERO_ADDRESS, amount, '', '', { from: operator }));
+          });
         });
       });
       describe('when the amount is not a multiple of the granularity', function () {
@@ -647,6 +697,10 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
         it('reverts', async function () {
           await this.token.setERC20compatibility(false, { from: owner });
           await shouldFail.reverting(this.token.approve(operator, amount, { from: investor }));
+        });
+        it('reverts', async function () {
+          await this.token.setERC20compatibility(false, { from: owner });
+          await shouldFail.reverting(this.token.allowance(investor, operator), amount);
         });
       });
     });
@@ -847,6 +901,60 @@ contract('ERC777', function ([owner, operator, defaultOperator, investor, recipi
           await this.token.setERC20compatibility(false, { from: owner });
           await shouldFail.reverting(this.token.transferFrom(investor, to, amount, { from: operator }));
         });
+      });
+    });
+  });
+
+  // xxx
+});
+
+contract('ERC777 with hooks', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
+  // HOOKS
+
+  describe('hooks', function () {
+    const amount = initialSupply;
+    const to = recipient;
+
+    beforeEach(async function () {
+      this.token = await ERC777.new('ERC777Token', 'DAU', 1, [defaultOperator], CERTIFICATE_SIGNER);
+      this.registry = await ERC820Registry.at('0x820b586C8C28125366C998641B09DCbE7d4cBF06');
+
+      this.senderContract = await ERC777TokensSender.new('ERC777TokensSender', { from: investor });
+      await this.registry.setManager(investor, this.senderContract.address, { from: investor });
+      await this.senderContract.setERC820Implementer({ from: investor });
+
+      this.recipientContract = await ERC777TokensRecipient.new('ERC777TokensRecipient', { from: recipient });
+      await this.registry.setManager(recipient, this.recipientContract.address, { from: recipient });
+      await this.recipientContract.setERC820Implementer({ from: recipient });
+
+      await this.token.mint(investor, initialSupply, '', { from: owner });
+    });
+    describe('when the transfer is successfull', function () {
+      it('transfers the requested amount', async function () {
+        await this.token.sendTo(to, amount, '', { from: investor });
+        const senderBalance = await this.token.balanceOf(investor);
+        assert.equal(senderBalance, initialSupply - amount);
+
+        const recipientBalance = await this.token.balanceOf(to);
+        assert.equal(recipientBalance, amount);
+      });
+      it('transfers the requested amount', async function () {
+        await this.token.sendTo(to, amount, '0x1122000000000000000000000000000000000000000000000000000000000000', { from: investor });
+        const senderBalance = await this.token.balanceOf(investor);
+        assert.equal(senderBalance, initialSupply - amount);
+
+        const recipientBalance = await this.token.balanceOf(to);
+        assert.equal(recipientBalance, amount);
+      });
+    });
+    describe('when the transfer fails', function () {
+      it('sender hook reverts', async function () {
+        // Default sender hook failure data for the mock only: 0x1111000000000000000000000000000000000000000000000000000000000000
+        await shouldFail.reverting(this.token.sendTo(to, amount, '0x1111000000000000000000000000000000000000000000000000000000000000', { from: investor }));
+      });
+      it('recipient hook reverts', async function () {
+        // Default recipient hook failure data for the mock only: 0x2222000000000000000000000000000000000000000000000000000000000000
+        await shouldFail.reverting(this.token.sendTo(to, amount, '0x2222000000000000000000000000000000000000000000000000000000000000', { from: investor }));
       });
     });
   });

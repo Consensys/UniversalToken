@@ -9,8 +9,9 @@ interface IERC777TokensRecipient {
   function canReceive(
     address from,
     address to,
+    bytes32 tranche,
     uint amount,
-    bytes userData
+    bytes data
   ) external view returns(bool);
 
   function tokensReceived(
@@ -18,7 +19,7 @@ interface IERC777TokensRecipient {
     address from,
     address to,
     uint amount,
-    bytes userData,
+    bytes data,
     bytes operatorData
   ) external;
 }

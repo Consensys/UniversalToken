@@ -24,4 +24,13 @@ contract ERC777Mock is ERC777Mintable, CertificateControllerMock {
   function removeDefaultOperator(address operator) external onlyOwner {
     _removeDefaultOperator(operator);
   }
+
+  function isRegularAddress(address adr) external view returns(bool) {
+    return _isRegularAddress(adr);
+  }
+
+  function operatorBurnMock(address from, uint256 amount, bytes data, bytes operatorData) external {
+    _burn(msg.sender, from, amount, data, operatorData);
+  }
+
 }

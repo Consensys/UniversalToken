@@ -41,34 +41,9 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     public
     ERC1410(name, symbol, granularity, defaultOperators, certificateSigner)
   {
+    setInterfaceImplementation("ERC1400Token", this);
     _isControllable = true;
     _isIssuable = true;
-
-    _setERC777compatibility(true);
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC1410 STANDARD]
-   * @dev Registers/Unregisters the ERC1410Token interface with its own address via ERC820
-   * @param erc777compatible 'true' to register the ERC777Token interface, 'false' to unregister
-   */
-  function setERC777compatibility(bool erc777compatible) external onlyOwner {
-    _setERC777compatibility(erc777compatible);
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC1410 METHOD]
-   * @dev Helper function to register/Unregister the ERC1410Token interface with its own address via ERC820
-   *  and allows/disallows the ERC820 methods.
-   * @param erc820compatible 'true' to register the ERC1410Token interface, 'false' to unregister.
-   */
-  function _setERC820compatibility(bool erc820compatible) internal {
-    ERC1400._setERC820compatibility(erc820compatible);
-    if(_erc820compatible) {
-      setInterfaceImplementation("ERC1400Token", this);
-    } else {
-      setInterfaceImplementation("ERC1400Token", address(0));
-    }
   }
 
   /**
@@ -127,7 +102,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param tranche Name of the tranche.
    * @param tokenHolder Address for which we want to mint/issue tokens.
    * @param amount Number of tokens minted.
-   * @param data Information attached to the minting, and intended for the recipient (to) (conditional ownership certificate).
+   * @param data Information attached to the minting, and intended for the token holder (to) [contains the conditional ownership certificate].
    */
   function issueByTranche(bytes32 tranche, address tokenHolder, uint256 amount, bytes data)
     external
@@ -142,7 +117,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @dev External to redeem tokens of a specific tranche.
    * @param tranche Name of the tranche.
    * @param amount Number of tokens minted.
-   * @param data Information attached to the redeem, and intended for the owner (from) (conditional ownership certificate).
+   * @param data Information attached to the redeem, and intended for the token holder (from) [contains the conditional ownership certificate].
    */
   function redeemByTranche(bytes32 tranche, uint256 amount, bytes data)
     external
@@ -157,8 +132,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param tranche Name of the tranche.
    * @param tokenHolder Address for which we want to redeem tokens.
    * @param amount Number of tokens minted.
-   * @param data Information attached to the redeem, and intended for the owner (from).
-   * @param operatorData Information attached to the redeem by the operator (conditional ownership certificate).
+   * @param data Information attached to the redeem, and intended for the token holder (from).
+   * @param operatorData Information attached to the redeem by the operator [contains the conditional ownership certificate].
    */
   function operatorRedeemByTranche(bytes32 tranche, address tokenHolder, uint256 amount, bytes data, bytes operatorData)
     external
@@ -177,7 +152,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param to Token recipient.
    * @param tranche Name of the tranche.
    * @param amount Number of tokens to send.
-   * @param data Information attached to the transfer.
+   * @param data Information attached to the transfer, and intended for the token holder (from) [can contain the destination tranche].
    * @return byte ESC (Ethereum Status Code) following the EIP-1066 standard.
    * @return bytes32 additional bytes32 parameter that can be used to define
    *  application specific reason codes with additional details (for example the
@@ -195,10 +170,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     address recipientImplementation;
     address senderImplementation;
 
-    if(_erc820compatible) {
-      recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
-      senderImplementation = interfaceAddr(from, "ERC777TokensSender");
-    }
+    recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
+    senderImplementation = interfaceAddr(from, "ERC777TokensSender");
 
     if(!_isMultiple(amount)) {
       reasonCode = hex"A9";   // 0xA9	Transfer Blocked - Token granularity
@@ -208,14 +181,14 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
       reasonCode = hex"A7";   // 0xA7	Transfer Blocked - Identity restriction
     } else if (
       (recipientImplementation != address(0))
-      && !IERC777TokensRecipient(recipientImplementation).canReceive(from, to, amount, data)
+      && !IERC777TokensRecipient(recipientImplementation).canReceive(from, to, tranche, amount, data)
     ) {
       reasonCode = hex"A6";   // 0xA6	Transfer Blocked - Receiver not eligible
     } else if (to == address(0)) {
         reasonCode = hex"A6";   // 0xA6	Transfer Blocked - Receiver not eligible
     } else if (
       (senderImplementation != address(0))
-      && !IERC777TokensSender(senderImplementation).canSend(from, to, amount, data)
+      && !IERC777TokensSender(senderImplementation).canSend(from, to, tranche, amount, data)
     ) {
       reasonCode = hex"A5";   // 0xA5	Transfer Blocked - Sender not eligible
     } else if (
@@ -242,8 +215,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param operator The address performing the mint/issuance.
    * @param to Token recipient.
    * @param amount Number of tokens to mint/issue.
-   * @param data Information attached to the mint/issuance, by the token holder.
-   * @param operatorData Information attached to the mint/issuance by the operator.
+   * @param data Information attached to the mint/issuance, and intended for the token holder (to) [contains the destination tranche].
+   * @param operatorData Information attached to the mint/issuance by the operator [contains the conditional ownership certificate].
    */
   function _issueByTranche(
     bytes32 toTranche,
@@ -269,8 +242,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param operator The address performing the mint/issuance.
    * @param from Token holder whose tokens will be redeemed.
    * @param amount Number of tokens to redeem.
-   * @param data Information attached to the redeem, and intended for the owner (from).
-   * @param operatorData Information attached to the redeem by the operator.
+   * @param data Information attached to the burn/redeem, and intended for the token holder (from).
+   * @param operatorData Information attached to the burn/redeem by the operator.
    */
   function _redeemByTranche(
     bytes32 fromTranche,
@@ -345,32 +318,14 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC777 METHOD]
-   * @dev Mint the amout of tokens for the recipient 'to'.
-   * @param to Token recipient.
-   * @param amount Number of tokens minted.
-   * @param data Information attached to the minting, and intended for the recipient (to).
-   */
-  function mint(address to, uint256 amount, bytes data) external onlyMinter returns (bool) {
-    require(_erc777compatible);
-
-    require(_defaultTranches[msg.sender].length != 0);
-    _issueByTranche(_defaultTranches[msg.sender][0], msg.sender, to, amount, data, "");
-
-    return true;
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC777 METHOD]
    * @dev Burn the amount of tokens from the address msg.sender.
    * @param amount Number of tokens to burn.
-   * @param data Information attached to the burn, by the token holder (conditional ownership certificate).
+   * @param data Information attached to the burn, by the token holder [contains the conditional ownership certificate].
    */
   function burn(uint256 amount, bytes data)
     external
     isValidCertificate(data)
   {
-    require(_erc777compatible);
-
     _redeemByDefaultTranches(msg.sender, msg.sender, amount, data, "");
   }
 
@@ -379,15 +334,13 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @dev Burn the amount of tokens on behalf of the address from.
    * @param from Token holder whose tokens will be burned (or address(0) to set from to msg.sender).
    * @param amount Number of tokens to burn.
-   * @param data Information attached to the burn, and intended for the owner (from).
-   * @param operatorData Information attached to the burn by the operator (conditional ownership certificate).
+   * @param data Information attached to the burn, and intended for the token holder (from).
+   * @param operatorData Information attached to the burn by the operator [contains the conditional ownership certificate].
    */
   function operatorBurn(address from, uint256 amount, bytes data, bytes operatorData)
     external
     isValidCertificate(operatorData)
   {
-    require(_erc777compatible);
-
     address _from = (from == address(0)) ? msg.sender : from;
 
     require(_isOperatorFor(msg.sender, _from));
@@ -401,8 +354,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param operator The address performing the redeem.
    * @param from Token holder.
    * @param amount Number of tokens to redeem.
-   * @param data Information attached to the redeem, by the token holder or the operator.
-   * @param operatorData Information attached to the redeem by the operator.
+   * @param data Information attached to the burn/redeem, and intended for the token holder (from).
+   * @param operatorData Information attached to the burn/redeem by the operator.
    */
   function _redeemByDefaultTranches(
     address operator,
