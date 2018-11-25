@@ -455,7 +455,6 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param value The amount to be transferred.
    */
   function transfer(address to, uint256 value) external returns (bool) {
-    require(_erc20compatible);
 
     _sendByDefaultTranches(msg.sender, msg.sender, to, value, "", "");
 
@@ -477,8 +476,6 @@ contract ERC1410 is IERC1410, ERC777 {
     external
     returns (bool)
   {
-    require(_erc20compatible);
-
     address _from = (from == address(0)) ? msg.sender : from;
     require( _isOperatorFor(msg.sender, _from)
       || (value <= _allowed[_from][msg.sender])

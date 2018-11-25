@@ -9,6 +9,7 @@ import "openzeppelin-solidity/contracts/access/roles/MinterRole.sol";
  * @dev ERC777 minting logic
  */
 contract ERC777Mintable is ERC777, MinterRole {
+  
   /**
    * [NOT MANDATORY FOR ERC777 STANDARD]
    * @dev Mint the amout of tokens for the recipient 'to'.

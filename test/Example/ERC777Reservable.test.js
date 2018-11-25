@@ -256,7 +256,7 @@ contract('ERC777ReservableMock', function ([owner, operator, defaultOperator, in
         await this.token.reserveTokens(tokensToReserve, validUntil, '', { from: owner });
         await this.token.validateReservation(owner, 0, { from: owner });
         const { logs } = await this.token.endSale();
-        assert.equal(logs[2].event, 'SaleEnded');
+        assert.equal(logs[1].event, 'SaleEnded');
       });
     });
   });
