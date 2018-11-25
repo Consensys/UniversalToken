@@ -36,10 +36,11 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     string symbol,
     uint256 granularity,
     address[] defaultOperators,
-    address certificateSigner
+    address certificateSigner,
+    address trancheRegistry
   )
     public
-    ERC1410(name, symbol, granularity, defaultOperators, certificateSigner)
+    ERC1410(name, symbol, granularity, defaultOperators, certificateSigner, trancheRegistry)
   {
     setInterfaceImplementation("ERC1400Token", this);
     _isControllable = true;
@@ -140,7 +141,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     isValidCertificate(operatorData)
   {
     address _from = (tokenHolder == address(0)) ? msg.sender : tokenHolder;
-    require(_isOperatorForTranche(tranche, msg.sender, _from));
+    require(_isOperatorFor(msg.sender, _from) || _isOperatorForTranche(tranche, msg.sender, _from));
 
     _redeemByTranche(tranche, msg.sender, _from, amount, data, operatorData);
   }
@@ -165,7 +166,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     returns (byte, bytes32, bytes32)
   {
     byte reasonCode;
-    address _from = (from == address(0)) ? msg.sender : from;
+    /* address _from = (from == address(0)) ? msg.sender : from;
 
     address recipientImplementation;
     address senderImplementation;
@@ -193,7 +194,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
       reasonCode = hex"A5";   // 0xA5	Transfer Blocked - Sender not eligible
     } else if (
       ((tranche == "") && (_balances[from] < amount))
-      || ((tranche != "") && (_balanceOfByTranche[from][tranche] < amount))
+      || ((tranche != "") && (_trancheRegistry.balanceOfByTranche(tranche, from) < amount))
     ) {
       reasonCode = hex"A4";   // 0xA4	Transfer Blocked - Sender balance insufficient
     } else if (false) {
@@ -204,9 +205,9 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
       reasonCode = hex"A1";   // 0xA1	Transfer Verified - On-Chain approval for restricted token
     } else {
       reasonCode = hex"A0";   // 0xA0	Transfer Verified - Unrestricted
-    }
+    } */
 
-    return(reasonCode, "", _getDestinationTranche(data));
+    return(reasonCode, "", _trancheRegistry.getDestinationTranche(data));
   }
 
   /**
@@ -231,7 +232,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     require(_isIssuable);
 
     _mint(operator, to, amount, data, operatorData);
-    _addTokenToTranche(to, toTranche, amount);
+    _trancheRegistry.addTokenToTranche(to, toTranche, amount);
 
     emit IssuedByTranche(toTranche, operator, to, amount, data, operatorData);
   }
@@ -255,9 +256,9 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   )
     internal
   {
-    require(_balanceOfByTranche[from][fromTranche] >= amount); // ensure enough funds
+    require(_trancheRegistry.balanceOfByTranche(fromTranche, from) >= amount); // ensure enough funds
 
-    _removeTokenFromTranche(from, fromTranche, amount);
+    _trancheRegistry.removeTokenFromTranche(from, fromTranche, amount);
     _burn(operator, from, amount, data, operatorData);
 
     emit RedeemedByTranche(fromTranche, operator, from, amount, data, operatorData);
@@ -265,16 +266,13 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
   /**
    * [OVERRIDES ERC777 METHOD]
-   * @dev Indicate whether the operator address is an operator of the tokenHolder address.
+   * @dev Internal function to indicate whether the operator address is an operator of the tokenHolder address.
    * @param operator Address which may be an operator of tokenHolder.
    * @param tokenHolder Address of a token holder which may have the operator address as an operator.
    * @return true if operator is an operator of tokenHolder and false otherwise.
    */
   function _isOperatorFor(address operator, address tokenHolder) internal view returns (bool) {
-    return (
-      ERC777._isOperatorFor(operator, tokenHolder)
-      || (_isDefaultOperator[operator] && _isControllable)
-    );
+    return ( ERC777._isOperatorFor(operator, tokenHolder) || (_isDefaultOperator[operator] && _isControllable) );
   }
 
   /**
@@ -286,10 +284,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param tokenHolder Address of a token holder which may have the operator address as an operator for the given tranche.
    */
   function _isOperatorForTranche(bytes32 tranche, address operator, address tokenHolder) internal view returns (bool) {
-    return (
-      ERC1410._isOperatorForTranche(tranche, operator, tokenHolder)
-      || (_isDefaultOperatorByTranche[tranche][operator] && _isControllable)
-    );
+    return _trancheRegistry.isOperatorForTranche(tranche, operator, tokenHolder, _isControllable);
   }
 
   /**
@@ -300,9 +295,10 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    */
   function renounceControl() external onlyOwner {
     require(_defaultOperators.length == 0);
+    bytes32[] memory _totalTranches = _trancheRegistry.totalTranches();
 
     for (uint i = 0; i < _totalTranches.length; i++) {
-      require(_defaultOperatorsByTranche[_totalTranches[i]].length == 0);
+      require((_trancheRegistry.defaultOperatorsByTranche(_totalTranches[i])).length == 0);
     }
     _isControllable = false;
   }
@@ -366,25 +362,18 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   )
     internal
   {
-    uint256 _remainingAmount = amount;
-    uint256 _localBalance;
+    require((_trancheRegistry.getDefaultTranches(from)).length != 0);
 
-    require(_defaultTranches[from].length != 0);
+    bytes32[] memory _tranches;
+    uint256[] memory _amounts;
 
-    if(_defaultTranches[from].length != 0) {
-      for (uint i = 0; i < _defaultTranches[from].length; i++) {
-        _localBalance = _balanceOfByTranche[from][_defaultTranches[from][i]];
-        if(_remainingAmount <= _localBalance) {
-          _redeemByTranche(_defaultTranches[from][i], operator, from, _remainingAmount, data, operatorData);
-          _remainingAmount = 0;
-          break;
-        } else {
-          _redeemByTranche(_defaultTranches[from][i], operator, from, _localBalance, data, operatorData);
-          _remainingAmount = _remainingAmount - _localBalance;
-        }
-      }
+    (_tranches, _amounts) = _trancheRegistry.getDefaultTranchesForAmount(from, amount);
+
+    require(_tranches.length == _amounts.length);
+
+    for (uint i = 0; i < _tranches.length; i++) {
+      _redeemByTranche(_tranches[i], operator, from, _amounts[i], data, operatorData);
     }
-    require(_remainingAmount == 0);
   }
 
   /**
@@ -414,7 +403,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    */
   function addDefaultOperatorByTranche(bytes32 tranche, address operator) external onlyOwner {
     require(_isControllable);
-    _addDefaultOperatorByTranche(tranche, operator);
+    _trancheRegistry.addDefaultOperatorByTranche(tranche, operator);
   }
 
   /**
@@ -424,7 +413,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param operator Address to set as a default operator.
    */
   function removeDefaultOperatorByTranche(bytes32 tranche, address operator) external onlyOwner {
-    _removeDefaultOperatorByTranche(tranche, operator);
+    _trancheRegistry.removeDefaultOperatorByTranche(tranche, operator);
   }
 
 }

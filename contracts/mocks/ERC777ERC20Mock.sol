@@ -1,5 +1,5 @@
 pragma solidity ^0.4.24;
-import "../examples/ERC777ERC20.sol";
+import "../token/ERC20/ERC777ERC20.sol";
 import "./CertificateControllerMock.sol";
 
 
