@@ -6,10 +6,10 @@ pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import "../token/ERC777/ERC777Mintable.sol";
+import "../ERC1400.sol";
 
 
-contract ERC777ERC20 is IERC20, ERC777Mintable {
+contract ERC1400ERC20 is IERC20, ERC1400 {
 
   bool internal _erc20compatible;
 
@@ -21,7 +21,7 @@ contract ERC777ERC20 is IERC20, ERC777Mintable {
     address certificateSigner
   )
     public
-    ERC777(name, symbol, granularity, defaultOperators, certificateSigner)
+    ERC1400(name, symbol, granularity, defaultOperators, certificateSigner)
   {
     _setERC20compatibility(true);
   }
@@ -168,26 +168,25 @@ contract ERC777ERC20 is IERC20, ERC777Mintable {
   }
 
   /**
-   * [NOT MANDATORY FOR ERC777 STANDARD][OVERRIDES ERC20 METHOD]
-   * @dev Transfer token for a specified address.
+   * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
+   * @dev Transfer token for a specified address
    * @param to The address to transfer to.
    * @param value The amount to be transferred.
-   * @return A boolean that indicates if the operation was successful.
    */
   function transfer(address to, uint256 value) external returns (bool) {
     require(_erc20compatible);
 
-    _sendTo(msg.sender, msg.sender, to, value, "", "", false);
+    _sendByDefaultTranches(msg.sender, msg.sender, to, value, "", "");
+
     return true;
   }
 
   /**
-   * [NOT MANDATORY FOR ERC777 STANDARD][OVERRIDES ERC20 METHOD]
-   * @dev Transfer tokens from one address to another.
-   * @param from The address which you want to send tokens from.
-   * @param to The address which you want to transfer to.
-   * @param value The amount of tokens to be transferred.
-   * @return A boolean that indicates if the operation was successful.
+   * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
+   * @dev Transfer tokens from one address to another
+   * @param from The address which you want to send tokens from
+   * @param to The address which you want to transfer to
+   * @param value The amount of tokens to be transferred
    */
   function transferFrom(
     address from,
@@ -200,7 +199,7 @@ contract ERC777ERC20 is IERC20, ERC777Mintable {
     require(_erc20compatible);
 
     address _from = (from == address(0)) ? msg.sender : from;
-    require( _isOperatorFor(msg.sender, _from, false)
+    require( _isOperatorFor(msg.sender, _from, _isControllable)
       || (value <= _allowed[_from][msg.sender])
     );
 
@@ -210,7 +209,7 @@ contract ERC777ERC20 is IERC20, ERC777Mintable {
       _allowed[_from][msg.sender] = 0;
     }
 
-    _sendTo(msg.sender, _from, to, value, "", "", false);
+    _sendByDefaultTranches(msg.sender, _from, to, value, "", "");
     return true;
   }
 

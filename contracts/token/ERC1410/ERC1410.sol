@@ -4,14 +4,14 @@
 */
 pragma solidity ^0.4.24;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-
 import "./IERC1410.sol";
 import "../ERC777/ERC777.sol";
 
 
 contract ERC1410 is IERC1410, ERC777 {
-  using SafeMath for uint256;
+
+  // Indicates whether the token can still be controlled by operators or not anymore
+  bool internal _isControllable;
 
   /******************** Mappings to find tranche ******************************/
   // List of tranches
@@ -154,7 +154,7 @@ contract ERC1410 is IERC1410, ERC777 {
     returns (bytes32) // Return destination tranche
   {
     address _from = (from == address(0)) ? msg.sender : from;
-    require(_isOperatorForTranche(tranche, msg.sender, _from));
+    require(_isOperatorFor(msg.sender, _from, _isControllable) || _isOperatorForTranche(tranche, msg.sender, _from));
 
     return _sendByTranche(tranche, msg.sender, _from, to, amount, data, operatorData);
   }
@@ -187,7 +187,7 @@ contract ERC1410 is IERC1410, ERC777 {
     address _from = (from == address(0)) ? msg.sender : from;
 
     for (uint i = 0; i < tranches.length; i++) {
-      require(_isOperatorForTranche(tranches[i], msg.sender, _from));
+      require(_isOperatorFor(msg.sender, _from, _isControllable) || _isOperatorForTranche(tranches[i], msg.sender, _from));
 
       destinationTranches[i] = _sendByTranche(tranches[i], msg.sender, from, to, amounts[i], data, operatorData);
     }
@@ -270,13 +270,13 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param operator Address which may be an operator of tokenHolder for the given tranche.
    * @param tokenHolder Address of a token holder which may have the operator address as an operator for the given tranche.
    */
-  function _isOperatorForTranche(bytes32 tranche, address operator, address tokenHolder) internal view returns (bool) {
-    return (operator == tokenHolder
-      || _isOperatorFor(operator, tokenHolder)
-      || _trancheAuthorized[tokenHolder][tranche][operator]
-      || (_isDefaultOperatorByTranche[tranche][operator] && !_trancheRevokedDefaultOperator[tokenHolder][tranche][operator])
-    );
-  }
+   function _isOperatorForTranche(bytes32 tranche, address operator, address tokenHolder) internal view returns (bool) {
+     return (_trancheAuthorized[tokenHolder][tranche][operator]
+       || (_isDefaultOperatorByTranche[tranche][operator] && !_trancheRevokedDefaultOperator[tokenHolder][tranche][operator])
+       || (_isDefaultOperatorByTranche[tranche][operator] && _isControllable)
+     );
+   }
+
 
   /**
    * [NOT MANDATORY FOR ERC1410 STANDARD][SHALL BE CALLED ONLY FROM ERC1400]
@@ -443,7 +443,7 @@ contract ERC1410 is IERC1410, ERC777 {
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from));
+    require(_isOperatorFor(msg.sender, _from, _isControllable));
 
     _sendByDefaultTranches(msg.sender, _from, to, amount, data, operatorData);
   }
@@ -477,7 +477,7 @@ contract ERC1410 is IERC1410, ERC777 {
     returns (bool)
   {
     address _from = (from == address(0)) ? msg.sender : from;
-    require( _isOperatorFor(msg.sender, _from)
+    require( _isOperatorFor(msg.sender, _from, _isControllable)
       || (value <= _allowed[_from][msg.sender])
     );
 
@@ -492,7 +492,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-  * [NOT MANDATORY FOR ERC1410 STANDARD]
+   * [NOT MANDATORY FOR ERC1410 STANDARD]
    * @dev Internal function to send tokens from a default tranches
    * @param operator The address performing the send.
    * @param from Token holder.
@@ -511,26 +511,75 @@ contract ERC1410 is IERC1410, ERC777 {
   )
     internal
   {
+    require(_defaultTranches[from].length != 0);
+
+    bytes32[] memory _tranches;
+    uint256[] memory _amounts;
+
+    (_tranches, _amounts) = _getDefaultTranchesForAmount(from, amount);
+
+    require(_tranches.length == _amounts.length);
+
+    for (uint i = 0; i < _tranches.length; i++) {
+      _sendByTranche(_tranches[i], operator, from, to, _amounts[i], data, operatorData);
+      if(_amounts[i] == 0) {break;}
+    }
+  }
+
+  /**
+   * [NOT MANDATORY FOR ERC1410 STANDARD]
+   * @dev Internal function to get default tranches corresponding to an amount.
+   * @param tokenHolder Address for which the default tranches corresponding to amount are returned.
+   * @param amount Number of tokens to search for in tranches.
+   */
+  function _getDefaultTranchesForAmount(address tokenHolder, uint256 amount)
+    internal
+    view
+    returns(bytes32[] _tranches, uint256[] _amounts)
+  {
     uint256 _remainingAmount = amount;
     uint256 _localBalance;
 
-    require(_defaultTranches[from].length != 0);
-
-    if(_defaultTranches[from].length != 0) {
-      for (uint i = 0; i < _defaultTranches[from].length; i++) {
-        _localBalance = _balanceOfByTranche[from][_defaultTranches[from][i]];
+    if(_defaultTranches[tokenHolder].length != 0) {
+      for (uint i = 0; i < _defaultTranches[tokenHolder].length; i++) {
+        _localBalance = _balanceOfByTranche[tokenHolder][_defaultTranches[tokenHolder][i]];
         if(_remainingAmount <= _localBalance) {
-          _sendByTranche(_defaultTranches[from][i], operator, from, to, _remainingAmount, data, operatorData);
+          _tranches[i] = _defaultTranches[tokenHolder][i];
+          _amounts[i] = _remainingAmount;
           _remainingAmount = 0;
           break;
         } else {
-          _sendByTranche(_defaultTranches[from][i], operator, from, to, _localBalance, data, operatorData);
+          _tranches[i] = _defaultTranches[tokenHolder][i];
+          _amounts[i] = _localBalance;
           _remainingAmount = _remainingAmount - _localBalance;
         }
       }
     }
 
     require(_remainingAmount == 0);
+
+    return (_tranches, _amounts);
   }
+
+  /**
+   * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
+   * @dev Empty function to erase ERC777 burn() function since it doesn't handle tranches.
+   */
+  function burn(uint256 amount, bytes data) external {}
+
+  /**
+   * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
+   * @dev Empty function to erase ERC777 operatorBurn() function since it doesn't handle tranches.
+   */
+  function operatorBurn(address from, uint256 amount, bytes data, bytes operatorData) external {}
+
+  /**
+   * [NOT MANDATORY FOR ERC1410 STANDARD]
+   * @dev View function that returns an array of all exisiting tranches.
+   */
+  function totalTranches() external view returns (bytes32[]) {
+    return _totalTranches;
+  }
+
 
 }

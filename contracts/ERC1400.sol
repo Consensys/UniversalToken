@@ -7,7 +7,6 @@
 */
 pragma solidity ^0.4.24;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/access/roles/MinterRole.sol";
 
 import "./IERC1400.sol";
@@ -15,7 +14,6 @@ import "./token/ERC1410/ERC1410.sol";
 
 
 contract ERC1400 is IERC1400, ERC1410, MinterRole {
-  using SafeMath for uint256;
 
   struct Document {
     string docURI;
@@ -24,9 +22,6 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
   // Mapping for token URIs
   mapping(bytes32 => Document) internal _documents;
-
-  // Indicates whether the token can still be controlled by operators or not anymore
-  bool internal _isControllable;
 
   // Indicates whether the token can still be minted/issued by the minter or not anymore
   bool internal _isIssuable;
@@ -140,7 +135,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     isValidCertificate(operatorData)
   {
     address _from = (tokenHolder == address(0)) ? msg.sender : tokenHolder;
-    require(_isOperatorForTranche(tranche, msg.sender, _from));
+    require(_isOperatorFor(msg.sender, _from, _isControllable) || _isOperatorForTranche(tranche, msg.sender, _from));
 
     _redeemByTranche(tranche, msg.sender, _from, amount, data, operatorData);
   }
@@ -264,35 +259,6 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   }
 
   /**
-   * [OVERRIDES ERC777 METHOD]
-   * @dev Indicate whether the operator address is an operator of the tokenHolder address.
-   * @param operator Address which may be an operator of tokenHolder.
-   * @param tokenHolder Address of a token holder which may have the operator address as an operator.
-   * @return true if operator is an operator of tokenHolder and false otherwise.
-   */
-  function _isOperatorFor(address operator, address tokenHolder) internal view returns (bool) {
-    return (
-      ERC777._isOperatorFor(operator, tokenHolder)
-      || (_isDefaultOperator[operator] && _isControllable)
-    );
-  }
-
-  /**
-   * [OVERRIDES ERC1410 METHOD]
-   * @dev Internal function to indicate whether the operator address is an operator
-   *  of the tokenHolder address for the given tranche.
-   * @param tranche Name of the tranche.
-   * @param operator Address which may be an operator of tokenHolder for the given tranche.
-   * @param tokenHolder Address of a token holder which may have the operator address as an operator for the given tranche.
-   */
-  function _isOperatorForTranche(bytes32 tranche, address operator, address tokenHolder) internal view returns (bool) {
-    return (
-      ERC1410._isOperatorForTranche(tranche, operator, tokenHolder)
-      || (_isDefaultOperatorByTranche[tranche][operator] && _isControllable)
-    );
-  }
-
-  /**
    * [NOT MANDATORY FOR ERC1400 STANDARD]
    * @dev External function to definitely renounce the possibility to control tokens
    * on behalf of investors.
@@ -314,6 +280,17 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    */
   function renounceIssuance() external onlyOwner {
     _isIssuable = false;
+  }
+
+  /**
+   * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC777 METHOD]
+   * @dev Indicate whether the operator address is an operator of the tokenHolder address.
+   * @param operator Address which may be an operator of tokenHolder.
+   * @param tokenHolder Address of a token holder which may have the operator address as an operator.
+   * @return true if operator is an operator of tokenHolder and false otherwise.
+   */
+  function isOperatorFor(address operator, address tokenHolder) external view returns (bool) {
+    return _isOperatorFor(operator, tokenHolder, _isControllable);
   }
 
   /**
@@ -343,7 +320,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from));
+    require(_isOperatorFor(msg.sender, _from, _isControllable));
 
     _redeemByDefaultTranches(msg.sender, _from, amount, data, operatorData);
   }
@@ -366,25 +343,20 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   )
     internal
   {
-    uint256 _remainingAmount = amount;
-    uint256 _localBalance;
-
     require(_defaultTranches[from].length != 0);
 
-    if(_defaultTranches[from].length != 0) {
-      for (uint i = 0; i < _defaultTranches[from].length; i++) {
-        _localBalance = _balanceOfByTranche[from][_defaultTranches[from][i]];
-        if(_remainingAmount <= _localBalance) {
-          _redeemByTranche(_defaultTranches[from][i], operator, from, _remainingAmount, data, operatorData);
-          _remainingAmount = 0;
-          break;
-        } else {
-          _redeemByTranche(_defaultTranches[from][i], operator, from, _localBalance, data, operatorData);
-          _remainingAmount = _remainingAmount - _localBalance;
-        }
-      }
+    bytes32[] memory _tranches;
+    uint256[] memory _amounts;
+
+    (_tranches, _amounts) = _getDefaultTranchesForAmount(from, amount);
+
+    require(_tranches.length == _amounts.length);
+
+    for (uint i = 0; i < _tranches.length; i++) {
+      _redeemByTranche(_tranches[i], operator, from, _amounts[i], data, operatorData);
+      if(_amounts[i] == 0) {break;}
     }
-    require(_remainingAmount == 0);
+
   }
 
   /**

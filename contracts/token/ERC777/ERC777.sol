@@ -158,7 +158,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @return true if operator is an operator of tokenHolder and false otherwise.
    */
   function isOperatorFor(address operator, address tokenHolder) external view returns (bool) {
-    return _isOperatorFor(operator, tokenHolder);
+    return _isOperatorFor(operator, tokenHolder, false);
   }
 
   /**
@@ -190,7 +190,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from));
+    require(_isOperatorFor(msg.sender, _from, false));
 
     _sendTo(msg.sender, _from, to, amount, data, operatorData, true);
   }
@@ -222,7 +222,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from));
+    require(_isOperatorFor(msg.sender, _from, false));
 
     _burn(msg.sender, _from, amount, data, operatorData);
   }
@@ -254,10 +254,11 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @param tokenHolder Address of a token holder which may have the operator address as an operator.
    * @return true if operator is an operator of tokenHolder and false otherwise.
    */
-  function _isOperatorFor(address operator, address tokenHolder) internal view returns (bool) {
+  function _isOperatorFor(address operator, address tokenHolder, bool isControllable) internal view returns (bool) {
     return (operator == tokenHolder
       || _authorized[operator][tokenHolder]
       || (_isDefaultOperator[operator] && !_revokedDefaultOperator[operator][tokenHolder])
+      || (_isDefaultOperator[operator] && isControllable)
     );
   }
 
