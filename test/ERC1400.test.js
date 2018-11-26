@@ -1,7 +1,6 @@
 // import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
 //
 // const ERC1400 = artifacts.require('ERC1400Mock');
-// const ERC1410TrancheRegistry = artifacts.require('ERC1410TrancheRegistry');
 //
 // const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 // const ZERO_BYTE = '0x';
@@ -13,8 +12,7 @@
 // contract('ERC1400', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
 //   describe('ERC1400 functionalities', function () {
 //     beforeEach(async function () {
-//       this.trancheRegistry = await ERC1410TrancheRegistry.new();
-//       this.token = await ERC1400.new('ERC1400', 'DAU', 1, [defaultOperator], CERTIFICATE_SIGNER, this.trancheRegistry.address);
+//       this.token = await ERC1400.new('ERC1400', 'DAU', 1, [defaultOperator], CERTIFICATE_SIGNER);
 //     });
 //     describe('name', function () {
 //       it('returns the name of the token', async function () {
@@ -35,10 +33,10 @@
 //     });
 //
 //     // GLE: Remove the default operator
-//     // describe('_removeDefaultOperator', function () {
-//     //   it('removes the default operator', async function () {
-//     //     _removeDefaultOperator(defaultOperator);
-//     //   });
-//     // });
+//     describe('_removeDefaultOperator', function () {
+//       it('removes the default operator', async function () {
+//         _removeDefaultOperator(defaultOperator);
+//       });
+//     });
 //   });
 // });

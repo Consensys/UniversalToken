@@ -3,6 +3,18 @@ import "../ERC1400.sol";
 import "./CertificateControllerMock.sol";
 
 
-contract ERC1400Mock is ERC1410, CertificateControllerMock {
+contract ERC1400Mock is ERC1400, CertificateControllerMock {
+
+  constructor(
+    string name,
+    string symbol,
+    uint256 granularity,
+    address[] defaultOperators,
+    address certificateSigner
+  )
+    public
+    ERC1400(name, symbol, granularity, defaultOperators, certificateSigner)
+  {
+  }
 
 }
