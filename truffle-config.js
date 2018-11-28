@@ -26,6 +26,7 @@ module.exports = {
     ropsten: {
       provider: ropstenProvider,
       network_id: 3, // eslint-disable-line camelcase
+      gasPrice: 5000000000,
     },
     coverage: {
       host: 'localhost',
@@ -48,9 +49,9 @@ module.exports = {
     },
   },
   solc: {
-   optimizer: {
-     enabled: true,
-     runs: 400,
-   },
- },
+    optimizer: {
+      enabled: true,
+      runs: 400,
+    },
+  },
 };
