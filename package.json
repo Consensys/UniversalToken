@@ -63,7 +63,8 @@
     "solcpiler": "1.0.0-beta.9",
     "solidity-coverage": "^0.5.11",
     "solium": "^1.1.8",
-    "solium-plugin-zeppelin": "^0.0.2"
+    "solium-plugin-zeppelin": "^0.0.2",
+    "fs-extra": "^7.0.1"
   },
   "dependencies": {
     "contract-certificate-controller": "git+https://gitlab.com/ConsenSys/client/fr/dauriel/contract-certificate-controller#f75a8ba09839b4c4b6f8d68a0a9087fc44930b5e",
