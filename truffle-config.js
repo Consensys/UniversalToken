@@ -9,7 +9,7 @@ const providerWithMnemonic = (mnemonic, rpcEndpoint) => () =>
 
 const infuraProvider = network => providerWithMnemonic(
   process.env.MNEMONIC || '',
-  `https://${network}.infura.io/${process.env.INFURA_API_KEY}`
+  `https://${network}.infura.io/v3/${process.env.INFURA_API_KEY}`
 );
 
 const ropstenProvider = process.env.SOLIDITY_COVERAGE

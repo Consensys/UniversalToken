@@ -1,11 +1,3 @@
-
-// Other option which doesn't work because solc is note deterministic
-// inside of node_modules
-// const ERC820 = require('erc820/index.js');
-// const res = ERC820.generateDeployTx();
-// const deployerAddress = res.sender;
-// const rawTx = res.rawTx;
-
 const deployerAddress = '0xE6C244a1C10Aa0085b0cf92f04cdaD947C2988b8';
 
 /* eslint max-len: ["error", { "ignoreStrings": true }] */
@@ -27,3 +19,10 @@ module.exports = async function (deployer, network, accounts) {
     }
   });
 };
+
+// Other option which doesn't work because solc is note deterministic
+// inside of node_modules
+// const ERC820 = require('erc820/index.js');
+// const res = ERC820.generateDeployTx();
+// const deployerAddress = res.sender;
+// const rawTx = res.rawTx;
