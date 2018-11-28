@@ -1,4 +1,3 @@
 INFURA_API_KEY=fake_infura_api_key
 SOLIDITY_COVERAGE=fake_solidity_coverage
 MNEMONIC=fake_mnemonic
-NETWORK=development
