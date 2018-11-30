@@ -101,7 +101,7 @@ contract('ERC777 without hooks', function ([owner, operator, defaultOperator, in
     });
 
     describe('defaultOperators', function () {
-      describe('when the token is not controllable [default situation for ERC777]', function () {
+      describe('when the token is not controllable [ERC777-version]', function () {
         it('returns the list of defaultOperators', async function () {
           const defaultOperators = await this.token.defaultOperators();
 
@@ -109,9 +109,9 @@ contract('ERC777 without hooks', function ([owner, operator, defaultOperator, in
           assert.equal(defaultOperators[0], defaultOperator);
         });
       });
-      describe('when the token is controllable', function () {
+      describe('when the token is not controllable [ERC1400-version]', function () {
         it('returns an empty list', async function () {
-          const defaultOperators = await this.token.defaultOperatorsMock(true);
+          const defaultOperators = await this.token.defaultOperatorsMock(false);
 
           assert.equal(defaultOperators.length, 0);
         });

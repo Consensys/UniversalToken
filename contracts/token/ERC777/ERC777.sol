@@ -120,15 +120,16 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @return List of addresses of all the default operators.
    */
   function defaultOperators() external view returns (address[]) {
-    return _getDefaultOperators(false);
+    return _getDefaultOperators(true);
   }
 
   /**
    * @dev Get the list of default operators as defined by the token contract.
+   * @param isControllable 'true' if token can have default operators, 'false' if not.
    * @return List of addresses of all the default operators.
    */
   function _getDefaultOperators(bool isControllable) internal view returns (address[]) {
-    if (!isControllable) {
+    if (isControllable) {
       return _defaultOperators;
     } else {
       return new address[](0);
