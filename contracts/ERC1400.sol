@@ -1,9 +1,6 @@
 /*
 * This code has not been reviewed.
 * Do not use or deploy this code before reviewing it personally first.
-*
-* TODO
-* - Do we need to modify the access to documents
 */
 pragma solidity ^0.4.24;
 
@@ -265,11 +262,6 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * Once set to false, '_isControllable' can never be set to TRUE again.
    */
   function renounceControl() external onlyOwner {
-    require(_defaultOperators.length == 0);
-
-    for (uint i = 0; i < _totalTranches.length; i++) {
-      require(_defaultOperatorsByTranche[_totalTranches[i]].length == 0);
-    }
     _isControllable = false;
   }
 

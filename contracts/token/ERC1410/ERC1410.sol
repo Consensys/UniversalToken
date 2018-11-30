@@ -223,7 +223,11 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param tranche Name of the tranche.
    */
   function defaultOperatorsByTranche(bytes32 tranche) external view returns (address[]) {
-    return _defaultOperatorsByTranche[tranche];
+    if (_isControllable) {
+      return _defaultOperatorsByTranche[tranche];
+    } else {
+      return new address[](0);
+    }
   }
 
   /**
@@ -412,6 +416,15 @@ contract ERC1410 is IERC1410, ERC777 {
       toTranche |= bytes32(data[i] & 0xFF) >> (i * 8); // Keeps the 8 first bits of data[i] and shifts them from (i * 8 places)
     }
     return toTranche;
+  }
+
+  /**
+   * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
+   * @dev Get the list of default operators as defined by the token contract.
+   * @return List of addresses of all the default operators.
+   */
+  function defaultOperators() external view returns (address[]) {
+    return _getDefaultOperators(_isControllable);
   }
 
   /**
