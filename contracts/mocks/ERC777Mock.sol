@@ -33,4 +33,8 @@ contract ERC777Mock is ERC777Mintable, CertificateControllerMock {
     _burn(msg.sender, from, amount, data, operatorData);
   }
 
+  function defaultOperatorsMock(bool isControllable) external view returns (address[]) {
+    return _getDefaultOperators(isControllable);
+  }
+
 }

@@ -1,9 +1,6 @@
 /*
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
- *
- * Optimizations:
- * - Authorize / revoke operators --> add a nested if condition
  */
 pragma solidity ^0.4.24;
 
@@ -123,7 +120,19 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @return List of addresses of all the default operators.
    */
   function defaultOperators() external view returns (address[]) {
-    return _defaultOperators;
+    return _getDefaultOperators(false);
+  }
+
+  /**
+   * @dev Get the list of default operators as defined by the token contract.
+   * @return List of addresses of all the default operators.
+   */
+  function _getDefaultOperators(bool isControllable) internal view returns (address[]) {
+    if (!isControllable) {
+      return _defaultOperators;
+    } else {
+      return new address[](0);
+    }
   }
 
   /**
