@@ -157,7 +157,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     returns (byte, bytes32, bytes32)
   {
     byte reasonCode;
-    address _from = (from == address(0)) ? msg.sender : from;
+    /* address _from = (from == address(0)) ? msg.sender : from;
 
     address recipientImplementation;
     address senderImplementation;
@@ -196,7 +196,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
       reasonCode = hex"A1";   // 0xA1	Transfer Verified - On-Chain approval for restricted token
     } else {
       reasonCode = hex"A0";   // 0xA0	Transfer Verified - Unrestricted
-    }
+    } */
 
     return(reasonCode, "", _getDestinationTranche(data));
   }
