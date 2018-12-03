@@ -189,7 +189,7 @@ contract ERC1410 is IERC1410, ERC777 {
     for (uint i = 0; i < tranches.length; i++) {
       require(_isOperatorFor(msg.sender, _from, _isControllable) || _isOperatorForTranche(tranches[i], msg.sender, _from));
 
-      destinationTranches[i] = _sendByTranche(tranches[i], msg.sender, from, to, amounts[i], data, operatorData);
+      destinationTranches[i] = _sendByTranche(tranches[i], msg.sender, _from, to, amounts[i], data, operatorData);
     }
 
     return destinationTranches;
