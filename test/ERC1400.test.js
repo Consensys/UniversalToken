@@ -17,6 +17,65 @@ var totalSupply;
 var balance;
 var balanceByTranche;
 
+const assertSendEvent = (
+    _logs,
+    _fromTranche,
+    _operator,
+    _from,
+    _to,
+    _amount,
+    _data,
+    _operatorData
+  ) => {
+    assert.equal(_logs[0].event, 'Sent');
+    assert.equal(_logs[0].args.operator, _operator);
+    assert.equal(_logs[0].args.from, _from);
+    assert.equal(_logs[0].args.to, _to);
+    assert(_logs[0].args.amount.eq(_amount));
+    assert.equal(_logs[0].args.data, _data);
+    assert.equal(_logs[0].args.operatorData, _operatorData);
+
+    assert.equal(_logs[1].event, 'SentByTranche');
+    assert.equal(_logs[1].args.fromTranche, _fromTranche);
+    assert.equal(_logs[1].args.operator, _operator);
+    assert.equal(_logs[1].args.from, _from);
+    assert.equal(_logs[1].args.to, _to);
+    assert(_logs[1].args.amount.eq(_amount));
+    assert.equal(_logs[1].args.data, _data);
+    assert.equal(_logs[1].args.operatorData, _operatorData);
+  };
+
+const assertBalances = async (
+    _contract,
+    _tokenHolder,
+    _tranches,
+    _amounts,
+    _totalBalance
+) => {
+  var balanceByTranche1;
+  var balanceByTranche2;
+  var balanceByTranche3;
+  balance = await _contract.balanceOf(_tokenHolder);
+  balanceByTranche1 = await _contract.balanceOfByTranche(_tranches[0], _tokenHolder);
+  balanceByTranche2 = await _contract.balanceOfByTranche(_tranches[1], _tokenHolder);
+  balanceByTranche3 = await _contract.balanceOfByTranche(_tranches[2], _tokenHolder);
+  assert.equal(balance, _totalBalance);
+  assert.equal(balanceByTranche1, _amounts[0]);
+  assert.equal(balanceByTranche2, _amounts[1]);
+  assert.equal(balanceByTranche3, _amounts[2]);
+};
+
+const authorizeOperatorForTranches = async (
+  _contract,
+  _operator,
+  _investor,
+  _tranches
+) => {
+  for (var i = 0; i < _tranches.length; i++) {
+    await _contract.authorizeOperatorByTranche(_tranches[i], _operator, { from: _investor });
+  }
+};
+
 contract('ERC1400', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
   describe('ERC1400 functionalities', function () {
     beforeEach(async function () {
@@ -580,22 +639,7 @@ contract('ERC1400', function ([owner, operator, defaultOperator, investor, recip
 
         assert.equal(logs.length, 2);
 
-        assert.equal(logs[0].event, 'Sent');
-        assert.equal(logs[0].args.operator, investor);
-        assert.equal(logs[0].args.from, investor);
-        assert.equal(logs[0].args.to, recipient);
-        assert(logs[0].args.amount.eq(sendAmount));
-        assert.equal(logs[0].args.data, ZERO_BYTE);
-        assert.equal(logs[0].args.operatorData, ZERO_BYTE);
-
-        assert.equal(logs[1].event, 'SentByTranche');
-        assert.equal(logs[1].args.fromTranche, tranche1);
-        assert.equal(logs[1].args.operator, investor);
-        assert.equal(logs[1].args.from, investor);
-        assert.equal(logs[1].args.to, recipient);
-        assert(logs[1].args.amount.eq(sendAmount));
-        assert.equal(logs[1].args.data, ZERO_BYTE);
-        assert.equal(logs[1].args.operatorData, ZERO_BYTE);
+        assertSendEvent(logs, tranche1, investor, investor, recipient, sendAmount, ZERO_BYTE, ZERO_BYTE);
       });
     });
     describe('when the sender does not have enough balance for this tranche', function () {
@@ -649,22 +693,7 @@ contract('ERC1400', function ([owner, operator, defaultOperator, investor, recip
 
           assert.equal(logs.length, 2);
 
-          assert.equal(logs[0].event, 'Sent');
-          assert.equal(logs[0].args.operator, operator);
-          assert.equal(logs[0].args.from, investor);
-          assert.equal(logs[0].args.to, recipient);
-          assert(logs[0].args.amount.eq(sendAmount));
-          assert.equal(logs[0].args.data, ZERO_BYTE);
-          assert.equal(logs[0].args.operatorData, ZERO_BYTE);
-
-          assert.equal(logs[1].event, 'SentByTranche');
-          assert.equal(logs[1].args.fromTranche, tranche1);
-          assert.equal(logs[1].args.operator, operator);
-          assert.equal(logs[1].args.from, investor);
-          assert.equal(logs[1].args.to, recipient);
-          assert(logs[1].args.amount.eq(sendAmount));
-          assert.equal(logs[1].args.data, ZERO_BYTE);
-          assert.equal(logs[1].args.operatorData, ZERO_BYTE);
+          assertSendEvent(logs, tranche1, operator, investor, recipient, sendAmount, ZERO_BYTE, ZERO_BYTE);
         });
       });
       describe('when the sender does not have enough balance for this tranche', function () {
@@ -703,6 +732,157 @@ contract('ERC1400', function ([owner, operator, defaultOperator, investor, recip
     describe('when the sender is not an operator', function () {
       it('reverts', async function () {
         await shouldFail.reverting(this.token.operatorSendByTranche(tranche1, investor, recipient, sendAmount, "", "", { from: operator }));
+      });
+    });
+
+  });
+
+
+  // SENDBYTRANCHES - MULTIPLE TRANCHES
+
+  describe('sendByTranches - multiple tranches', function () {
+    const issuanceAmount = 1000;
+    const sendAmount1 = 300;
+    const sendAmount2 = 243;
+    const sendAmount3 = 671;
+    const sendAmounts = [sendAmount1, sendAmount2, sendAmount3];
+    const tranches = [tranche1, tranche2, tranche3];
+    var balanceByTranche1;
+    var balanceByTranche2;
+    var balanceByTranche3;
+
+    beforeEach(async function () {
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [defaultOperator], CERTIFICATE_SIGNER);
+      await this.token.issueByTranche(tranche1, investor, issuanceAmount, "", { from: owner });
+      await this.token.issueByTranche(tranche2, investor, issuanceAmount, "", { from: owner });
+      await this.token.issueByTranche(tranche3, investor, issuanceAmount, "", { from: owner });
+    });
+
+    describe('when the number of amounts matches the number of tranches', function () {
+      describe('when the sender has enough balance for those tranches', function () {
+        it('sends the requested amounts', async function () {
+          await assertBalances(this.token, investor, tranches, [issuanceAmount, issuanceAmount, issuanceAmount], 3*issuanceAmount);
+          await assertBalances(this.token, recipient, tranches, [0, 0, 0], 0);
+
+          await this.token.sendByTranches(tranches, recipient, sendAmounts, "", { from: investor });
+
+          await assertBalances(this.token, investor, tranches, [
+            issuanceAmount-sendAmount1,
+            issuanceAmount-sendAmount2,
+            issuanceAmount-sendAmount3],
+            3*issuanceAmount-(sendAmount1+sendAmount2+sendAmount3)
+          );
+          await assertBalances(this.token, recipient, tranches, [sendAmount1, sendAmount2, sendAmount3], sendAmount1+sendAmount2+sendAmount3);
+        });
+        it('emits sentByTranches events', async function () {
+          const { logs } = await this.token.sendByTranches(tranches, recipient, sendAmounts, "", { from: investor });
+
+          assert.equal(logs.length, 2*sendAmounts.length);
+
+          assertSendEvent([logs[0], logs[1]], tranches[0], investor, investor, recipient, sendAmounts[0], ZERO_BYTE, ZERO_BYTE);
+          assertSendEvent([logs[2], logs[3]], tranches[1], investor, investor, recipient, sendAmounts[1], ZERO_BYTE, ZERO_BYTE);
+          assertSendEvent([logs[4], logs[5]], tranches[2], investor, investor, recipient, sendAmounts[2], ZERO_BYTE, ZERO_BYTE);
+        });
+      });
+      describe('when the sender does not have enough balance for those tranches', function () {
+        it('reverts', async function () {
+          await shouldFail.reverting(this.token.sendByTranches(tranches, recipient, [sendAmount1, issuanceAmount + 1, sendAmount3], "", { from: investor }));
+        });
+      });
+    });
+    describe('when the number of amounts does not match the number of tranches', function () {
+      it('reverts', async function () {
+        await shouldFail.reverting(this.token.sendByTranches(tranches, recipient, [sendAmount1, sendAmount2], "", { from: investor }));
+      });
+    });
+
+  });
+
+  // OPERATORSENDBYTRANCHES - MULTIPLE TRANCHES
+
+  describe('operatorSendByTranches - multiple tranches', function () {
+    const issuanceAmount = 1000;
+    const sendAmount1 = 300;
+    const sendAmount2 = 243;
+    const sendAmount3 = 671;
+    const sendAmounts = [sendAmount1, sendAmount2, sendAmount3];
+    const tranches = [tranche1, tranche2, tranche3];
+    var balanceByTranche1;
+    var balanceByTranche2;
+    var balanceByTranche3;
+
+    beforeEach(async function () {
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [defaultOperator], CERTIFICATE_SIGNER);
+      await this.token.issueByTranche(tranches[0], investor, issuanceAmount, "", { from: owner });
+      await this.token.issueByTranche(tranches[1], investor, issuanceAmount, "", { from: owner });
+      await this.token.issueByTranche(tranches[2], investor, issuanceAmount, "", { from: owner });
+    });
+
+    describe('when the number of amounts matches the number of tranches', function () {
+      describe('when the sender is an operator for all tranches', function () {
+        describe('when the sender has enough balance for those tranches', function () {
+          it('sends the requested amounts', async function () {
+            await assertBalances(this.token, investor, tranches, [issuanceAmount, issuanceAmount, issuanceAmount], 3*issuanceAmount);
+            await assertBalances(this.token, recipient, tranches, [0, 0, 0], 0);
+
+            await authorizeOperatorForTranches(this.token, operator, investor, tranches);
+            await this.token.operatorSendByTranches(tranches, investor, recipient, sendAmounts, "", "", { from: operator });
+
+            await assertBalances(this.token, investor, tranches, [
+              issuanceAmount-sendAmount1,
+              issuanceAmount-sendAmount2,
+              issuanceAmount-sendAmount3],
+              3*issuanceAmount-(sendAmount1+sendAmount2+sendAmount3)
+            );
+            await assertBalances(this.token, recipient, tranches, sendAmounts, sendAmount1+sendAmount2+sendAmount3);
+          });
+          it('emits sentByTranches events', async function () {
+            await authorizeOperatorForTranches(this.token, operator, investor, tranches);
+            const { logs } = await this.token.operatorSendByTranches(tranches, investor, recipient, sendAmounts, "", "", { from: operator });
+
+            assert.equal(logs.length, 2*sendAmounts.length);
+
+            assertSendEvent([logs[0], logs[1]], tranches[0], operator, investor, recipient, sendAmounts[0], ZERO_BYTE, ZERO_BYTE);
+            assertSendEvent([logs[2], logs[3]], tranches[1], operator, investor, recipient, sendAmounts[1], ZERO_BYTE, ZERO_BYTE);
+            assertSendEvent([logs[4], logs[5]], tranches[2], operator, investor, recipient, sendAmounts[2], ZERO_BYTE, ZERO_BYTE);
+          });
+        });
+        describe('when the sender does not have enough balance for those tranches', function () {
+          it('reverts', async function () {
+            await authorizeOperatorForTranches(this.token, operator, investor, tranches);
+            await shouldFail.reverting(this.token.operatorSendByTranches(tranches, investor, recipient, [sendAmount1, issuanceAmount + 1, sendAmount3], "", "", { from: operator }));
+          });
+        });
+      });
+      describe('when the sender is a global operator', function () {
+        it('sends the requested amounts', async function () {
+          await assertBalances(this.token, investor, tranches, [issuanceAmount, issuanceAmount, issuanceAmount], 3*issuanceAmount);
+          await assertBalances(this.token, recipient, tranches, [0, 0, 0], 0);
+
+          await this.token.authorizeOperator(operator, { from: investor });
+          await this.token.operatorSendByTranches(tranches, investor, recipient, sendAmounts, "", "", { from: operator });
+
+          await assertBalances(this.token, investor, tranches, [
+            issuanceAmount-sendAmount1,
+            issuanceAmount-sendAmount2,
+            issuanceAmount-sendAmount3],
+            3*issuanceAmount-(sendAmount1+sendAmount2+sendAmount3)
+          );
+          await assertBalances(this.token, recipient, tranches, [sendAmount1, sendAmount2, sendAmount3], sendAmount1+sendAmount2+sendAmount3);
+        });
+      });
+      describe('when the sender is not an operator for all tranches', function () {
+        it('reverts', async function () {
+          await this.token.authorizeOperatorByTranche(tranche1, operator, { from: investor });
+          await this.token.authorizeOperatorByTranche(tranche2, operator, { from: investor });
+          await shouldFail.reverting(this.token.operatorSendByTranches(tranches, investor, recipient, sendAmounts, "", "", { from: operator }));
+        });
+      });
+    });
+    describe('when the number of amounts does not match the number of tranches', function () {
+      it('reverts', async function () {
+        await authorizeOperatorForTranches(this.token, operator, investor, tranches);
+        await shouldFail.reverting(this.token.operatorSendByTranches(tranches, investor, recipient, [sendAmount1, sendAmount2], "", "", { from: operator }));
       });
     });
 
