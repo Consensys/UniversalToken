@@ -462,49 +462,6 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
-   * @dev Transfer token for a specified address
-   * @param to The address to transfer to.
-   * @param value The amount to be transferred.
-   */
-  function transfer(address to, uint256 value) external returns (bool) {
-
-    _sendByDefaultTranches(msg.sender, msg.sender, to, value, "", "");
-
-    return true;
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
-   * @dev Transfer tokens from one address to another
-   * @param from The address which you want to send tokens from
-   * @param to The address which you want to transfer to
-   * @param value The amount of tokens to be transferred
-   */
-  function transferFrom(
-    address from,
-    address to,
-    uint256 value
-  )
-    external
-    returns (bool)
-  {
-    address _from = (from == address(0)) ? msg.sender : from;
-    require( _isOperatorFor(msg.sender, _from, _isControllable)
-      || (value <= _allowed[_from][msg.sender])
-    );
-
-    if(_allowed[_from][msg.sender] >= value) {
-      _allowed[_from][msg.sender] = _allowed[_from][msg.sender].sub(value);
-    } else {
-      _allowed[_from][msg.sender] = 0;
-    }
-
-    _sendByDefaultTranches(msg.sender, _from, to, value, "", "");
-    return true;
-  }
-
-  /**
    * [NOT MANDATORY FOR ERC1410 STANDARD]
    * @dev Internal function to send tokens from a default tranches
    * @param operator The address performing the send.
