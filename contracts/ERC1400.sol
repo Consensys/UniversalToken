@@ -337,18 +337,22 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   {
     require(_defaultTranches[from].length != 0);
 
-    bytes32[] memory _tranches;
-    uint256[] memory _amounts;
+    uint256 _remainingAmount = amount;
+    uint256 _localBalance;
 
-    (_tranches, _amounts) = _getDefaultTranchesForAmount(from, amount);
-
-    require(_tranches.length == _amounts.length);
-
-    for (uint i = 0; i < _tranches.length; i++) {
-      _redeemByTranche(_tranches[i], operator, from, _amounts[i], data, operatorData);
-      if(_amounts[i] == 0) {break;}
+    for (uint i = 0; i < _defaultTranches[from].length; i++) {
+      _localBalance = _balanceOfByTranche[from][_defaultTranches[from][i]];
+      if(_remainingAmount <= _localBalance) {
+        _redeemByTranche(_defaultTranches[from][i], operator, from, _remainingAmount, data, operatorData);
+        _remainingAmount = 0;
+        break;
+      } else {
+        _redeemByTranche(_defaultTranches[from][i], operator, from, _localBalance, data, operatorData);
+        _remainingAmount = _remainingAmount - _localBalance;
+      }
     }
 
+    require(_remainingAmount == 0);
   }
 
   /**
