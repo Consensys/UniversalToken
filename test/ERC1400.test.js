@@ -265,11 +265,21 @@ contract('ERC1400', function ([owner, operator, defaultOperator, investor, recip
     });
     describe('when sender is the contract owner', function () {
       describe('when token is controllable', function () {
-        it('adds the default operator', async function () {
-          assert(await this.token.isControllable());
-          assert(!(await this.token.isOperatorForTranche(tranche1, operator, investor)));
-          await this.token.addDefaultOperatorByTranche(tranche1, operator, { from: owner });
-          assert(await this.token.isOperatorForTranche(tranche1, operator, investor));
+        describe('when operator has not already been added', function () {
+          it('adds the default operator', async function () {
+            assert(await this.token.isControllable());
+            assert(!(await this.token.isOperatorForTranche(tranche1, operator, investor)));
+            await this.token.addDefaultOperatorByTranche(tranche1, operator, { from: owner });
+            assert(await this.token.isOperatorForTranche(tranche1, operator, investor));
+          });
+        });
+        describe('when operator has already been added', function () {
+          it('reverts', async function () {
+            await this.token.addDefaultOperatorByTranche(tranche1, operator, { from: owner });
+            assert(await this.token.isOperatorForTranche(tranche1, operator, investor));
+
+            await shouldFail.reverting(this.token.addDefaultOperatorByTranche(tranche1, operator, { from: owner }));
+          });
         });
       });
       describe('when token is not controllable', function () {
@@ -295,13 +305,24 @@ contract('ERC1400', function ([owner, operator, defaultOperator, investor, recip
     beforeEach(async function () {
       this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [defaultOperator], CERTIFICATE_SIGNER);
     });
-    describe('when operator is default operator', function () {
+    describe('when operator is the only default operator', function () {
       it('removes the default operator', async function () {
         assert(!(await this.token.isOperatorForTranche(tranche1, operator, investor)));
         await this.token.addDefaultOperatorByTranche(tranche1, operator, { from: owner });
         assert(await this.token.isOperatorForTranche(tranche1, operator, investor));
         await this.token.removeDefaultOperatorByTranche(tranche1, operator, { from: owner });
         assert(!(await this.token.isOperatorForTranche(tranche1, operator, investor)));
+      });
+    });
+    describe('when operator is one of the default operators', function () {
+      it('removes the default operator', async function () {
+        assert(!(await this.token.isOperatorForTranche(tranche1, operator, investor)));
+        await this.token.addDefaultOperatorByTranche(tranche1, operator, { from: owner });
+        assert(await this.token.isOperatorForTranche(tranche1, operator, investor));
+        await this.token.addDefaultOperatorByTranche(tranche1, unknown, { from: owner });
+        assert(await this.token.isOperatorForTranche(tranche1, unknown, investor));
+        await this.token.removeDefaultOperatorByTranche(tranche1, unknown, { from: owner });
+        assert(!(await this.token.isOperatorForTranche(tranche1, unknown, investor)));
       });
     });
     describe('when operator is not default operator', function () {
@@ -501,6 +522,13 @@ contract('ERC1400', function ([owner, operator, defaultOperator, investor, recip
           await assertTotalSupply(this.token, issuanceAmount);
           await assertBalanceOf(this.token, investor, tranche1, issuanceAmount);
         });
+        it('issues twice the requested amount', async function () {
+          await this.token.issueByTranche(tranche1, investor, issuanceAmount, VALID_CERTIFICATE, { from: owner });
+          await this.token.issueByTranche(tranche1, investor, issuanceAmount, VALID_CERTIFICATE, { from: owner });
+
+          await assertTotalSupply(this.token, 2*issuanceAmount);
+          await assertBalanceOf(this.token, investor, tranche1, 2*issuanceAmount);
+        });
         it('emits a issuedByTranche event', async function () {
           const { logs } = await this.token.issueByTranche(tranche1, investor, issuanceAmount, VALID_CERTIFICATE, { from: owner });
 
@@ -524,7 +552,9 @@ contract('ERC1400', function ([owner, operator, defaultOperator, investor, recip
       });
       describe('when token is not issuable', function () {
         it('reverts', async function () {
+          assert(await this.token.isIssuable());
           await this.token.renounceIssuance({ from: owner });
+          assert(!(await this.token.isIssuable()));
           await shouldFail.reverting(this.token.issueByTranche(tranche1, investor, issuanceAmount, VALID_CERTIFICATE, { from: owner }));
         });
       });
@@ -1210,6 +1240,29 @@ contract('ERC1400', function ([owner, operator, defaultOperator, investor, recip
       });
     });
   });
+
+  // CANSEND
+
+  describe('canSend', function () {
+    beforeEach(async function () {
+      this.token = await ERC1400.new('ERC1410Token', 'DAU', 1, [defaultOperator], CERTIFICATE_SIGNER);
+    });
+    describe('when tokens can be sent', function () {
+      it('returns Ethereum status code', async function () {
+        const amount = 100;
+        const data = tranche2;
+        const response = await this.token.canSend(investor, recipient, tranche1, amount, data);
+        const escCode = response[0];
+        const additionalCode = response[1];
+        const destinationTranche = response[2];
+        assert.equal(destinationTranche, tranche2);
+      });
+    });
+    describe('when tokens can not be sent', function () {
+      assert(true);
+    });
+  });
+
 
   // ERC1410 - BURN
 
