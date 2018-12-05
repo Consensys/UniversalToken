@@ -7,11 +7,12 @@ pragma solidity ^0.4.24;
 
 interface IERC777TokensSender {
   function canSend(
+    bytes32 tranche,
     address from,
     address to,
-    bytes32 tranche,
     uint amount,
-    bytes data
+    bytes data,
+    bytes operatorData
   ) external view returns(bool);
 
   function tokensToSend(

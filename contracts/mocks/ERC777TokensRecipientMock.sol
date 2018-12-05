@@ -14,16 +14,18 @@ contract ERC777TokensRecipientMock is IERC777TokensRecipient, ERC820ImplementerM
   }
 
   function canReceive(
+    bytes32 tranche,
     address from,
     address to,
-    bytes32 tranche,
     uint amount,
-    bytes data
+    bytes data,
+    bytes operatorData
   )
     external
     view
     returns(bool)
   {
+    require(tranche != hex"00" || from != address(0) || to != address(0) || amount != 0 || data.length != 0 || operatorData.length != 0);
     return true;
   }
 
@@ -35,6 +37,7 @@ contract ERC777TokensRecipientMock is IERC777TokensRecipient, ERC820ImplementerM
     bytes data,
     bytes operatorData
   ) external {
+    require(operator != address(0) || from != address(0) || to != address(0) || amount != 0 || data.length != 0 || operatorData.length != 0);
     require(_canReceive(from, to, amount, data));
   }
 
@@ -43,7 +46,9 @@ contract ERC777TokensRecipientMock is IERC777TokensRecipient, ERC820ImplementerM
     address to,
     uint amount,
     bytes data
-  ) internal returns(bool) {
+  ) internal pure returns(bool) {
+    require(from != address(0) || to != address(0) || amount != 0);
+
     bytes32 receiveRevert = 0x2222000000000000000000000000000000000000000000000000000000000000; // Default recipient hook failure data for the mock only
     bytes32 data32;
     assembly {

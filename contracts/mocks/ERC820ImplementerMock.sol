@@ -29,6 +29,7 @@ contract ERC820ImplementerMock {
   }
 
   function canImplementInterfaceForAddress(bytes32 interfaceHash, address addr) external view returns(bytes32) {
+    require(interfaceHash != hex"00" || addr != address(0));
     return ERC820_ACCEPT_MAGIC;
   }
 
