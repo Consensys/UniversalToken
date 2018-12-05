@@ -12,7 +12,7 @@ contract CertificateController {
   event Checked(address sender);
 
   constructor(address _certificateSigner) public {
-    require(_certificateSigner != address(0), "Valid address required");
+    require(_certificateSigner != address(0), "Constructor Blocked - Valid address required");
     certificateSigners[_certificateSigner] = true;
   }
 
@@ -20,7 +20,7 @@ contract CertificateController {
    * @dev Modifier to protect methods with certificate control
    */
   modifier isValidCertificate(bytes data) {
-    require(_checkCertificate(data, msg.value, 0x00000000), "A3: Certificate is invalid");
+    require(_checkCertificate(data, msg.value, 0x00000000), "A3: Transfer Blocked - Sender lockup period not ended");
     _;
   }
 
