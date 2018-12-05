@@ -1250,12 +1250,12 @@ contract('ERC1400', function ([owner, operator, defaultOperator, investor, recip
     describe('when tokens can be sent', function () {
       it('returns Ethereum status code', async function () {
         const amount = 100;
-        const data = tranche2;
-        const response = await this.token.canSend(investor, recipient, tranche1, amount, data);
+        const data = tranche1;
+        const response = await this.token.canSend(tranche1, recipient, amount, data, { from: investor });
         const escCode = response[0];
         const additionalCode = response[1];
         const destinationTranche = response[2];
-        assert.equal(destinationTranche, tranche2);
+        assert.equal(destinationTranche, tranche1);
       });
     });
     describe('when tokens can not be sent', function () {

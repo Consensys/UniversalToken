@@ -45,7 +45,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @return Requested document + document hash
    */
   function getDocument(bytes32 name) external view returns (string, bytes32) {
-    require(bytes(_documents[name].docURI).length != 0);
+    require(bytes(_documents[name].docURI).length != 0, "Action Blocked - Empty document");
     return (
       _documents[name].docURI,
       _documents[name].docHash
@@ -132,17 +132,17 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     isValidCertificate(operatorData)
   {
     address _from = (tokenHolder == address(0)) ? msg.sender : tokenHolder;
-    require(_isOperatorFor(msg.sender, _from, _isControllable) || _isOperatorForTranche(tranche, msg.sender, _from));
+    require(_isOperatorFor(msg.sender, _from, _isControllable)
+      || _isOperatorForTranche(tranche, msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
     _redeemByTranche(tranche, msg.sender, _from, amount, data, operatorData);
   }
 
-  /** [TODO - TO BE REVIEWED]
+  /**
    * [ERC1400 INTERFACE (8/8)]
    * @dev External function to know the reason on success or failure based on the EIP-1066 application-specific status codes.
-   * @param from Token holder whose tokens will be transferred.
-   * @param to Token recipient.
    * @param tranche Name of the tranche.
+   * @param to Token recipient.
    * @param amount Number of tokens to send.
    * @param data Information attached to the transfer, and intended for the token holder (from) [can contain the destination tranche].
    * @return byte ESC (Ethereum Status Code) following the EIP-1066 standard.
@@ -151,54 +151,56 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    *  transfer restriction rule responsible for making the send operation invalid).
    * @return bytes32 destination tranche.
    */
-  function canSend(address from, address to, bytes32 tranche, uint256 amount, bytes data)
+  function canSend(bytes32 tranche, address to, uint256 amount, bytes data)
     external
     view
     returns (byte, bytes32, bytes32)
   {
     byte reasonCode;
-    /* address _from = (from == address(0)) ? msg.sender : from;
 
-    address recipientImplementation;
-    address senderImplementation;
+    if(_checkCertificate(data, 0, 0xfb913d14)) { // 4 first bytes of keccak256(sendByTranche(bytes32,address,uint256,bytes))
 
-    recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
-    senderImplementation = interfaceAddr(from, "ERC777TokensSender");
+      if((_balances[msg.sender] >= amount) && (_balanceOfByTranche[msg.sender][tranche] >= amount)) {
 
-    if(!_isMultiple(amount)) {
-      reasonCode = hex"A9";   // 0xA9	Transfer Blocked - Token granularity
-    } else if (false) {
-      reasonCode = hex"A8";   // 0xA8	Transfer Blocked - Token restriction
-    } else if (false) {
-      reasonCode = hex"A7";   // 0xA7	Transfer Blocked - Identity restriction
-    } else if (
-      (recipientImplementation != address(0))
-      && !IERC777TokensRecipient(recipientImplementation).canReceive(from, to, tranche, amount, data)
-    ) {
-      reasonCode = hex"A6";   // 0xA6	Transfer Blocked - Receiver not eligible
-    } else if (to == address(0)) {
-        reasonCode = hex"A6";   // 0xA6	Transfer Blocked - Receiver not eligible
-    } else if (
-      (senderImplementation != address(0))
-      && !IERC777TokensSender(senderImplementation).canSend(from, to, tranche, amount, data)
-    ) {
-      reasonCode = hex"A5";   // 0xA5	Transfer Blocked - Sender not eligible
-    } else if (
-      ((tranche == "") && (_balances[from] < amount))
-      || ((tranche != "") && (_balanceOfByTranche[from][tranche] < amount))
-    ) {
-      reasonCode = hex"A4";   // 0xA4	Transfer Blocked - Sender balance insufficient
-    } else if (false) {
-      reasonCode = hex"A3";   // 0xA3	Transfer Blocked - Sender lockup period not ended
-    } else if (false) {
-      reasonCode = hex"A2";   // 0xA2	Transfer Verified - Off-Chain approval for restricted token
-    } else if (true) {
-      reasonCode = hex"A1";   // 0xA1	Transfer Verified - On-Chain approval for restricted token
+        if(to != address(0)) {
+
+          address senderImplementation;
+          address recipientImplementation;
+          senderImplementation = interfaceAddr(msg.sender, "ERC777TokensSender");
+          recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
+
+          if((senderImplementation != address(0))
+            && !IERC777TokensSender(senderImplementation).canSend(tranche, msg.sender, to, amount, data, "")) {
+
+              reasonCode = hex"A5"; // Transfer Blocked - Sender not eligible
+
+          } else if((senderImplementation != address(0))
+            && !IERC777TokensSender(senderImplementation).canSend(tranche, msg.sender, to, amount, data, "")) {
+
+              reasonCode = hex"A6"; // Transfer Blocked - Receiver not eligible
+
+          } else {
+            if(_isMultiple(amount)) {
+              reasonCode = hex"A2"; // Transfer Verified - Off-Chain approval for restricted token
+
+            } else {
+              reasonCode = hex"A9"; // Transfer Blocked - Token granularity
+            }
+          }
+
+        } else {
+          reasonCode = hex"A6"; // Transfer Blocked - Receiver not eligible
+        }
+
+      } else {
+        reasonCode = hex"A4"; // Transfer Blocked - Sender balance insufficient
+      }
+
     } else {
-      reasonCode = hex"A0";   // 0xA0	Transfer Verified - Unrestricted
-    } */
+      reasonCode = hex"A3"; // Transfer Blocked - Sender lockup period not ended
+    }
 
-    return(reasonCode, "", _getDestinationTranche(data));
+    return(reasonCode, "", tranche);
   }
 
   /**
@@ -220,7 +222,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   )
     internal
   {
-    require(_isIssuable);
+    require(_isIssuable, "A8, Transfer Blocked - Token restriction");
 
     _mint(operator, to, amount, data, operatorData);
     _addTokenToTranche(to, toTranche, amount);
@@ -247,7 +249,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   )
     internal
   {
-    require(_balanceOfByTranche[from][fromTranche] >= amount); // ensure enough funds
+    require(_balanceOfByTranche[from][fromTranche] >= amount, "A4: Transfer Blocked - Sender balance insufficient");
 
     _removeTokenFromTranche(from, fromTranche, amount);
     _burn(operator, from, amount, data, operatorData);
@@ -312,7 +314,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from, _isControllable));
+    require(_isOperatorFor(msg.sender, _from, _isControllable), "A7: Transfer Blocked - Identity restriction");
 
     _redeemByDefaultTranches(msg.sender, _from, amount, data, operatorData);
   }
@@ -335,7 +337,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   )
     internal
   {
-    require(_defaultTranches[from].length != 0);
+    require(_defaultTranches[from].length != 0, "A8: Transfer Blocked - Token restriction");
 
     uint256 _remainingAmount = amount;
     uint256 _localBalance;
@@ -352,7 +354,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
       }
     }
 
-    require(_remainingAmount == 0);
+    require(_remainingAmount == 0, "A8: Transfer Blocked - Token restriction");
   }
 
   /**
@@ -361,7 +363,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param operator Address to set as a default operator.
    */
   function addDefaultOperator(address operator) external onlyOwner {
-    require(_isControllable);
+    require(_isControllable, "A8: Transfer Blocked - Token restriction");
     _addDefaultOperator(operator);
   }
 
@@ -381,7 +383,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param operator Address to set as a default operator.
    */
   function addDefaultOperatorByTranche(bytes32 tranche, address operator) external onlyOwner {
-    require(_isControllable);
+    require(_isControllable, "A8: Transfer Blocked - Token restriction");
     _addDefaultOperatorByTranche(tranche, operator);
   }
 
