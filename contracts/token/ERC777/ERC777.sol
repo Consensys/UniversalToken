@@ -58,7 +58,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
     _name = name;
     _symbol = symbol;
     _totalSupply = 0;
-    require(granularity >= 1);
+    require(granularity >= 1, "Constructor Blocked - Token granularity can not be lower than 1");
     _granularity = granularity;
 
     for (uint i = 0; i < defaultOperators.length; i++) {
@@ -87,7 +87,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   }
 
   /**
-   * [ERC777 INTERFACE (3/13)][OVERRIDES ERC20 METHOD] - Required since '_totalSupply' is private in ERC20
+   * [ERC777 INTERFACE (3/13)]
    * @dev Get the total number of minted tokens.
    * @return Total supply of tokens currently in circulation.
    */
@@ -96,7 +96,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   }
 
   /**
-   * [ERC777 INTERFACE (4/13)] [OVERRIDES ERC20 METHOD] - Required since '_balances' is private in ERC20
+   * [ERC777 INTERFACE (4/13)]
    * @dev Get the balance of the account with address tokenHolder.
    * @param tokenHolder Address for which the balance is returned.
    * @return Amount of token held by tokenHolder in the token contract.
@@ -200,7 +200,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from, false));
+    require(_isOperatorFor(msg.sender, _from, false), "A7: Transfer Blocked - Identity restriction");
 
     _sendTo(msg.sender, _from, to, amount, data, operatorData, true);
   }
@@ -232,7 +232,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from, false));
+    require(_isOperatorFor(msg.sender, _from, false), "A7: Transfer Blocked - Identity restriction");
 
     _burn(msg.sender, _from, amount, data, operatorData);
   }
@@ -296,9 +296,9 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   )
     internal
   {
-    require(_isMultiple(amount));
-    require(to != address(0));          // forbid sending to address(0) (=burning)
-    require(_balances[from] >= amount); // ensure enough funds
+    require(_isMultiple(amount), "A9: Transfer Blocked - Token granularity");
+    require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");
+    require(_balances[from] >= amount, "A4: Transfer Blocked - Sender balance insufficient");
 
     _callSender(operator, from, to, amount, data, operatorData);
 
@@ -321,9 +321,9 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   function _burn(address operator, address from, uint256 amount, bytes data, bytes operatorData)
     internal
   {
-    require(_isMultiple(amount));
-    require(from != address(0));
-    require(_balances[from] >= amount);
+    require(_isMultiple(amount), "A9: Transfer Blocked - Token granularity");
+    require(from != address(0), "A5: Transfer Blocked - Sender not eligible");
+    require(_balances[from] >= amount, "A4: Transfer Blocked - Sender balance insufficient");
 
     _callSender(operator, from, address(0), amount, data, operatorData);
 
@@ -392,7 +392,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
     if (recipientImplementation != address(0)) {
       IERC777TokensRecipient(recipientImplementation).tokensReceived(operator, from, to, amount, data, operatorData);
     } else if (preventLocking) {
-      require(_isRegularAddress(to));
+      require(_isRegularAddress(to), "A6: Transfer Blocked - Receiver not eligible");
     }
   }
 
@@ -402,7 +402,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @param operator Address to set as a default operator.
    */
   function _addDefaultOperator(address operator) internal {
-    require(!_isDefaultOperator[operator]);
+    require(!_isDefaultOperator[operator], "Action Blocked - Already a default operator");
     _defaultOperators.push(operator);
     _isDefaultOperator[operator] = true;
   }
@@ -413,7 +413,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @param operator Address to set as a default operator.
    */
   function _removeDefaultOperator(address operator) internal {
-    require(_isDefaultOperator[operator]);
+    require(_isDefaultOperator[operator], "Action Blocked - Not a default operator");
 
     for (uint i = 0; i<_defaultOperators.length; i++){
       if(_defaultOperators[i] == operator) {
@@ -438,8 +438,8 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   function _mint(address operator, address to, uint256 amount, bytes data, bytes operatorData)
   internal
   {
-    require(_isMultiple(amount));
-    require(to != address(0));      // forbid sending to 0x0 (=burning)
+    require(_isMultiple(amount), "A9: Transfer Blocked - Token granularity");
+    require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");      // forbid sending to 0x0 (=burning)
 
     _totalSupply = _totalSupply.add(amount);
     _balances[to] = _balances[to].add(amount);

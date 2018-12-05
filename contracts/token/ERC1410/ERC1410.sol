@@ -120,7 +120,7 @@ contract ERC1410 is IERC1410, ERC777 {
     isValidCertificate(data)
     returns (bytes32[])
   {
-    require(tranches.length == amounts.length);
+    require(tranches.length == amounts.length, "A8: Transfer Blocked - Token restriction");
     bytes32[] memory destinationTranches = new bytes32[](tranches.length);
 
     for (uint i = 0; i < tranches.length; i++) {
@@ -154,7 +154,8 @@ contract ERC1410 is IERC1410, ERC777 {
     returns (bytes32) // Return destination tranche
   {
     address _from = (from == address(0)) ? msg.sender : from;
-    require(_isOperatorFor(msg.sender, _from, _isControllable) || _isOperatorForTranche(tranche, msg.sender, _from));
+    require(_isOperatorFor(msg.sender, _from, _isControllable)
+      || _isOperatorForTranche(tranche, msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
     return _sendByTranche(tranche, msg.sender, _from, to, amount, data, operatorData);
   }
@@ -182,12 +183,13 @@ contract ERC1410 is IERC1410, ERC777 {
     isValidCertificate(operatorData)
     returns (bytes32[]) // Return destination tranches
   {
-    require(tranches.length == amounts.length);
+    require(tranches.length == amounts.length, "A8: Transfer Blocked - Token restriction");
     bytes32[] memory destinationTranches = new bytes32[](tranches.length);
     address _from = (from == address(0)) ? msg.sender : from;
 
     for (uint i = 0; i < tranches.length; i++) {
-      require(_isOperatorFor(msg.sender, _from, _isControllable) || _isOperatorForTranche(tranches[i], msg.sender, _from));
+      require(_isOperatorFor(msg.sender, _from, _isControllable)
+        || _isOperatorForTranche(tranches[i], msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
       destinationTranches[i] = _sendByTranche(tranches[i], msg.sender, _from, to, amounts[i], data, operatorData);
     }
@@ -289,7 +291,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param operator Address to set as a default operator.
    */
   function _addDefaultOperatorByTranche(bytes32 tranche, address operator) internal {
-    require(!_isDefaultOperatorByTranche[tranche][operator]);
+    require(!_isDefaultOperatorByTranche[tranche][operator], "Action Blocked - Already a default operator");
     _defaultOperatorsByTranche[tranche].push(operator);
     _isDefaultOperatorByTranche[tranche][operator] = true;
   }
@@ -301,7 +303,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param operator Address to set as a default operator.
    */
   function _removeDefaultOperatorByTranche(bytes32 tranche, address operator) internal {
-    require(_isDefaultOperatorByTranche[tranche][operator]);
+    require(_isDefaultOperatorByTranche[tranche][operator], "Action Blocked - Not a default operator");
 
     for (uint i = 0; i<_defaultOperatorsByTranche[tranche].length; i++){
       if(_defaultOperatorsByTranche[tranche][i] == operator) {
@@ -337,7 +339,7 @@ contract ERC1410 is IERC1410, ERC777 {
     internal
     returns (bytes32)
   {
-    require(_balanceOfByTranche[from][fromTranche] >= amount); // ensure enough funds
+    require(_balanceOfByTranche[from][fromTranche] >= amount, "A4: Transfer Blocked - Sender balance insufficient"); // ensure enough funds
 
     bytes32 toTranche = fromTranche;
     if(operatorData.length != 0 && data.length != 0) {
@@ -456,7 +458,7 @@ contract ERC1410 is IERC1410, ERC777 {
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from, _isControllable));
+    require(_isOperatorFor(msg.sender, _from, _isControllable), "A7: Transfer Blocked - Identity restriction");
 
     _sendByDefaultTranches(msg.sender, _from, to, amount, data, operatorData);
   }
@@ -481,7 +483,7 @@ contract ERC1410 is IERC1410, ERC777 {
   )
     internal
   {
-    require(_defaultTranches[from].length != 0);
+    require(_defaultTranches[from].length != 0, "A8: Transfer Blocked - Token restriction");
 
     uint256 _remainingAmount = amount;
     uint256 _localBalance;
@@ -498,20 +500,24 @@ contract ERC1410 is IERC1410, ERC777 {
       }
     }
 
-    require(_remainingAmount == 0);
+    require(_remainingAmount == 0, "A8: Transfer Blocked - Token restriction");
   }
 
   /**
    * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
    * @dev Empty function to erase ERC777 burn() function since it doesn't handle tranches.
    */
-  function burn(uint256 amount, bytes data) external {}
+  function burn(uint256 amount, bytes data) external {
+    if(amount != 0 || data.length != 0) {} // Line to avoid compilation warnings for unused variables.
+  }
 
   /**
    * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
    * @dev Empty function to erase ERC777 operatorBurn() function since it doesn't handle tranches.
    */
-  function operatorBurn(address from, uint256 amount, bytes data, bytes operatorData) external {}
+  function operatorBurn(address from, uint256 amount, bytes data, bytes operatorData) external {
+    if(from != address(0) || amount != 0 || data.length != 0 || operatorData.length != 0) {} // Line to avoid compilation warnings for unused variables.
+  }
 
   /**
    * [NOT MANDATORY FOR ERC1410 STANDARD]

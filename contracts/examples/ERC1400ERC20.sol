@@ -123,7 +123,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @return The number of decimals of the token. For Backwards compatibility, decimals are forced to 18 in ERC777.
    */
   function decimals() external view returns(uint8) {
-    require(_erc20compatible);
+    require(_erc20compatible, "Action Blocked - Token restriction");
     return uint8(18);
   }
 
@@ -142,7 +142,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
   view
   returns (uint256)
   {
-    require(_erc20compatible);
+    require(_erc20compatible, "Action Blocked - Token restriction");
 
     return _allowed[owner][spender];
   }
@@ -159,9 +159,9 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @return A boolean that indicates if the operation was successful.
    */
   function approve(address spender, uint256 value) external returns (bool) {
-    require(_erc20compatible);
+    require(_erc20compatible, "A8: Transfer Blocked - Token restriction");
 
-    require(spender != address(0));
+    require(spender != address(0), "A5: Transfer Blocked - Sender not eligible");
     _allowed[msg.sender][spender] = value;
     emit Approval(msg.sender, spender, value);
     return true;
@@ -174,7 +174,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @param value The amount to be transferred.
    */
   function transfer(address to, uint256 value) external returns (bool) {
-    require(_erc20compatible);
+    require(_erc20compatible, "A8: Transfer Blocked - Token restriction");
 
     _sendByDefaultTranches(msg.sender, msg.sender, to, value, "", "");
 
@@ -196,12 +196,11 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
     external
     returns (bool)
   {
-    require(_erc20compatible);
+    require(_erc20compatible, "A8: Transfer Blocked - Token restriction");
 
     address _from = (from == address(0)) ? msg.sender : from;
     require( _isOperatorFor(msg.sender, _from, _isControllable)
-      || (value <= _allowed[_from][msg.sender])
-    );
+      || (value <= _allowed[_from][msg.sender]), "A7: Transfer Blocked - Identity restriction");
 
     if(_allowed[_from][msg.sender] >= value) {
       _allowed[_from][msg.sender] = _allowed[_from][msg.sender].sub(value);
