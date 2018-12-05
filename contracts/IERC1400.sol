@@ -23,8 +23,7 @@ interface IERC1400  {
     event RedeemedByTranche(bytes32 indexed tranche, address indexed operator, address indexed from, uint256 amount, bytes data, bytes operatorData);
 
     // Transfer Validity
-    function canSend(address from, address to, bytes32 tranche, uint256 amount, bytes data) external view returns (byte, bytes32, bytes32); // 8/8
-
+    function canSend(bytes32 tranche, address to, uint256 amount, bytes data) external view returns (byte, bytes32, bytes32); // 8/8
 }
 
 
