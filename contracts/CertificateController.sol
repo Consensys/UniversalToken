@@ -20,7 +20,15 @@ contract CertificateController {
    * @dev Modifier to protect methods with certificate control
    */
   modifier isValidCertificate(bytes data) {
-    require(_checkCertificate(data, msg.value, 0x00000000), "A3: Transfer Blocked - Sender lockup period not ended");
+
+    bool _isValid = _checkCertificate(data, msg.value, 0x00000000);
+
+    if(_isValid) {
+      checkCount[msg.sender] += 1; // Increment sender check count
+
+      emit Checked(msg.sender);
+    }
+    require(_isValid, "A3: Transfer Blocked - Sender lockup period not ended");
     _;
   }
 
@@ -34,6 +42,7 @@ contract CertificateController {
     bytes4 functionID
   )
     internal
+    view
     returns(bool)
   {
     uint256 counter = checkCount[msg.sender];
@@ -103,12 +112,6 @@ contract CertificateController {
 
       // Check if certificate match expected transactions parameters
       if (certificateSigners[ecrecover(hash, v, r, s)]) {
-        if(functionID == 0x00000000) {
-          // Increment sender check count
-          checkCount[msg.sender] += 1;
-
-          emit Checked(msg.sender);
-        }
         return true;
       }
     }
