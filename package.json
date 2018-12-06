@@ -71,7 +71,7 @@
     "solcpiler": "1.0.0-beta.9"
   },
   "dependencies": {
-    "contract-certificate-controller": "git+https://gitlab.com/ConsenSys/client/fr/dauriel/contract-certificate-controller#df76a552fef42fa6dc626a315020b31dfad0a172",
+    "contract-certificate-controller": "git+https://gitlab.com/ConsenSys/client/fr/dauriel/contract-certificate-controller#7c6b96c8b817bb25210b85fe0d43eb22fce02cf5",
     "openzeppelin-solidity": "git+https://github.com/OpenZeppelin/openzeppelin-solidity#06e265b38d3e9daeaa7b33f9035c700d6bc0c6a0",
     "erc820": "git+https://github.com/jbaylina/ERC820#6c13a97a5eba73df2a99c3a089c65f7d2df63775",
     "truffle": "^4.1.14",
