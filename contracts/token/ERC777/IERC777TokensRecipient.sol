@@ -4,8 +4,12 @@
  */
 pragma solidity ^0.4.24;
 
-
+/**
+ * @title IERC777TokensRecipient
+ * @dev ERC777TokensRecipient interface
+ */
 interface IERC777TokensRecipient {
+
   function canReceive(
     bytes32 tranche,
     address from,
@@ -23,4 +27,5 @@ interface IERC777TokensRecipient {
     bytes data,
     bytes operatorData
   ) external;
+  
 }

@@ -1,14 +1,15 @@
 /*
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
- *
- * Potential issues:
- * - Presence of 'data' field in burn and operatorBurn
  */
 pragma solidity ^0.4.24;
 
-
+/**
+ * @title IERC777 token standard
+ * @dev ERC777 interface
+ */
 interface IERC777 {
+
   function name() external view returns (string); // 1/13
   function symbol() external view returns (string); // 2/13
   function totalSupply() external view returns (uint256); // 3/13
@@ -38,4 +39,5 @@ interface IERC777 {
   event Burned(address indexed operator, address indexed from, uint256 amount, bytes data, bytes operatorData);
   event AuthorizedOperator(address indexed operator, address indexed tokenHolder);
   event RevokedOperator(address indexed operator, address indexed tokenHolder);
+  
 }

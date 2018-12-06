@@ -1,10 +1,13 @@
+/*
+ * This code has not been reviewed.
+ * Do not use or deploy this code before reviewing it personally first.
+ */
 pragma solidity ^0.4.24;
 
-/// @title ERC-1410 Partially Fungible Token Standard
-/// @dev See https://github.com/SecurityTokenStandard/EIP-Spec
-
-
-//TODO: fix interface cannot inherit interface - interface IERC1410 is IERC777
+/**
+ * @title IERC1410 partially fungible token standard
+ * @dev ERC1410 interface
+ */
 interface IERC1410 {
 
     // Token Information
@@ -18,8 +21,8 @@ interface IERC1410 {
     function operatorSendByTranches(bytes32[] tranches, address from, address to, uint256[] amounts, bytes data, bytes operatorData) external returns (bytes32[]); // 6/12
 
     // Default Tranche Management
-    function getDefaultTranches(address tokenHolder) external view returns (bytes32[]); // 7/12 [OPTIONAL]
-    function setDefaultTranches(bytes32[] tranches) external; // 8/12 [OPTIONAL]
+    function getDefaultTranches(address tokenHolder) external view returns (bytes32[]); // 7/12
+    function setDefaultTranches(bytes32[] tranches) external; // 8/12
 
     // Operators
     function defaultOperatorsByTranche(bytes32 tranche) external view returns (address[]); // 9/12
@@ -37,7 +40,6 @@ interface IERC1410 {
         bytes data,
         bytes operatorData
     );
-
     event ChangedTranche(
         bytes32 indexed fromTranche,
         bytes32 indexed toTranche,
@@ -45,9 +47,6 @@ interface IERC1410 {
     );
 
     // Operator Events
-    /* event AuthorizedOperator(address indexed operator, address indexed tokenHolder); --> ERC777 */
-    /* event RevokedOperator(address indexed operator, address indexed tokenHolder); --> ERC777 */
-
     event AuthorizedOperatorByTranche(bytes32 indexed tranche, address indexed operator, address indexed tokenHolder);
     event RevokedOperatorByTranche(bytes32 indexed tranche, address indexed operator, address indexed tokenHolder);
 

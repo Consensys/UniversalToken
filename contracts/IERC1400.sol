@@ -1,8 +1,13 @@
+/*
+ * This code has not been reviewed.
+ * Do not use or deploy this code before reviewing it personally first.
+ */
 pragma solidity ^0.4.24;
 
-/// @title IERC1400 Security Token Standard (EIP 1400)
-/// @dev See https://github.com/SecurityTokenStandard/EIP-Spec
-
+/**
+ * @title ERC1400 security token standard
+ * @dev ERC1400 logic
+ */
 interface IERC1400  {
 
     // Document Management
@@ -24,26 +29,26 @@ interface IERC1400  {
 
     // Transfer Validity
     function canSend(bytes32 tranche, address to, uint256 amount, bytes data) external view returns (byte, bytes32, bytes32); // 8/8
+
 }
 
-
-/*
-Reason codes - ERC1066
-
-To improve the token holder experience, canSend MUST return a reason byte code
-on success or failure based on the EIP-1066 application-specific status codes specified below.
-An implementation can also return arbitrary data as a bytes32 to provide additional
-information not captured by the reason code.
-
-Code	Reason
-0xA0	Transfer Verified - Unrestricted
-0xA1	Transfer Verified - On-Chain approval for restricted token
-0xA2	Transfer Verified - Off-Chain approval for restricted token
-0xA3	Transfer Blocked - Sender lockup period not ended
-0xA4	Transfer Blocked - Sender balance insufficient
-0xA5	Transfer Blocked - Sender not eligible
-0xA6	Transfer Blocked - Receiver not eligible
-0xA7	Transfer Blocked - Identity restriction
-0xA8	Transfer Blocked - Token restriction
-0xA9	Transfer Blocked - Token granularity
-*/
+/**
+ * Reason codes - ERC1066
+ *
+ * To improve the token holder experience, canSend MUST return a reason byte code
+ * on success or failure based on the EIP-1066 application-specific status codes specified below.
+ * An implementation can also return arbitrary data as a bytes32 to provide additional
+ * information not captured by the reason code.
+ *
+ * Code	Reason
+ * 0xA0	Transfer Verified - Unrestricted
+ * 0xA1	Transfer Verified - On-Chain approval for restricted token
+ * 0xA2	Transfer Verified - Off-Chain approval for restricted token
+ * 0xA3	Transfer Blocked - Sender lockup period not ended
+ * 0xA4	Transfer Blocked - Sender balance insufficient
+ * 0xA5	Transfer Blocked - Sender not eligible
+ * 0xA6	Transfer Blocked - Receiver not eligible
+ * 0xA7	Transfer Blocked - Identity restriction
+ * 0xA8	Transfer Blocked - Token restriction
+ * 0xA9	Transfer Blocked - Token granularity
+ */

@@ -13,6 +13,9 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
 
   bool internal _erc20compatible;
 
+  // Mapping from (investor, spender) to allowed amount [NOT MANDATORY FOR ERC1400 STANDARD]
+  mapping (address => mapping (address => uint256)) internal _allowed;
+
   constructor(
     string name,
     string symbol,
