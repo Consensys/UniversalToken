@@ -21,14 +21,11 @@ contract CertificateController {
    */
   modifier isValidCertificate(bytes data) {
 
-    bool _isValid = _checkCertificate(data, msg.value, 0x00000000);
+    require(_checkCertificate(data, msg.value, 0x00000000), "A3: Transfer Blocked - Sender lockup period not ended");
 
-    if(_isValid) {
-      checkCount[msg.sender] += 1; // Increment sender check count
+    checkCount[msg.sender] += 1; // Increment sender check count
 
-      emit Checked(msg.sender);
-    }
-    require(_isValid, "A3: Transfer Blocked - Sender lockup period not ended");
+    emit Checked(msg.sender);
     _;
   }
 
