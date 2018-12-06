@@ -27,6 +27,14 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   bool internal _isIssuable;
 
   /**
+   * @dev Modifier to verify if token is issuable.
+   */
+  modifier issuableToken() {
+    require(_isIssuable, "A8, Transfer Blocked - Token restriction");
+    _;
+  }
+
+  /**
    * [ERC1400 CONSTRUCTOR]
    * @dev Initialize ERC1400 + register
    * the contract implementation in ERC820Registry.
@@ -117,6 +125,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   function issueByTranche(bytes32 tranche, address tokenHolder, uint256 amount, bytes data)
     external
     onlyMinter
+    issuableToken
     isValidCertificate(data)
   {
     _issueByTranche(tranche, msg.sender, tokenHolder, amount, data, "");
@@ -244,8 +253,6 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   )
     internal
   {
-    require(_isIssuable, "A8, Transfer Blocked - Token restriction");
-
     _mint(operator, to, amount, data, operatorData);
     _addTokenToTranche(to, toTranche, amount);
 
@@ -306,8 +313,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @dev Add a default operator for the token.
    * @param operator Address to set as a default operator.
    */
-  function addDefaultOperator(address operator) external onlyOwner {
-    require(_isControllable, "A8: Transfer Blocked - Token restriction");
+  function addDefaultOperator(address operator) external onlyOwner controllableToken {
     _addDefaultOperator(operator);
   }
 
@@ -326,8 +332,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param tranche Name of the tranche.
    * @param operator Address to set as a default operator.
    */
-  function addDefaultOperatorByTranche(bytes32 tranche, address operator) external onlyOwner {
-    require(_isControllable, "A8: Transfer Blocked - Token restriction");
+  function addDefaultOperatorByTranche(bytes32 tranche, address operator) external onlyOwner controllableToken {
     _addDefaultOperatorByTranche(tranche, operator);
   }
 

@@ -48,6 +48,14 @@ contract ERC1410 is IERC1410, ERC777 {
   /****************************************************************************/
 
   /**
+   * @dev Modifier to verify if token is controllable.
+   */
+  modifier controllableToken() {
+    require(_isControllable, "A8: Transfer Blocked - Token restriction");
+    _;
+  }
+
+  /**
    * [ERC1410 CONSTRUCTOR]
    * @dev Initialize ERC1410 parameters + register
    * the contract implementation in ERC820Registry.
