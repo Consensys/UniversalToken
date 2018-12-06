@@ -25,7 +25,7 @@ contract ERC777TokensRecipientMock is IERC777TokensRecipient, ERC820ImplementerM
     view
     returns(bool)
   {
-    require(tranche != hex"00" || from != address(0) || to != address(0) || amount != 0 || data.length != 0 || operatorData.length != 0);
+    if(tranche != hex"00" || from != address(0) || to != address(0) || amount != 0 || data.length != 0 || operatorData.length != 0){} // Line to avoid compilation warnings for unused variables.
     return true;
   }
 
@@ -37,8 +37,8 @@ contract ERC777TokensRecipientMock is IERC777TokensRecipient, ERC820ImplementerM
     bytes data,
     bytes operatorData
   ) external {
-    require(operator != address(0) || from != address(0) || to != address(0) || amount != 0 || data.length != 0 || operatorData.length != 0);
-    require(_canReceive(from, to, amount, data));
+    if(operator != address(0) || from != address(0) || to != address(0) || amount != 0 || data.length != 0 || operatorData.length != 0){} // Line to avoid compilation warnings for unused variables.
+    require(_canReceive(from, to, amount, data), "A6: Transfer Blocked - Receiver not eligible");
   }
 
   function _canReceive(
@@ -47,7 +47,7 @@ contract ERC777TokensRecipientMock is IERC777TokensRecipient, ERC820ImplementerM
     uint amount,
     bytes data
   ) internal pure returns(bool) {
-    require(from != address(0) || to != address(0) || amount != 0);
+    if(from != address(0) || to != address(0) || amount != 0){} // Line to avoid compilation warnings for unused variables.
 
     bytes32 receiveRevert = 0x2222000000000000000000000000000000000000000000000000000000000000; // Default recipient hook failure data for the mock only
     bytes32 data32;
