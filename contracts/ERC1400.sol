@@ -174,8 +174,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
               reasonCode = hex"A5"; // Transfer Blocked - Sender not eligible
 
-          } else if((senderImplementation != address(0))
-            && !IERC777TokensSender(senderImplementation).canSend(tranche, msg.sender, to, amount, data, "")) {
+          } else if((recipientImplementation != address(0))
+            && !IERC777TokensRecipient(recipientImplementation).canReceive(tranche, msg.sender, to, amount, data, "")) {
 
               reasonCode = hex"A6"; // Transfer Blocked - Receiver not eligible
 

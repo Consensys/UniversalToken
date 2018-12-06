@@ -2,13 +2,22 @@ import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
 
 const ERC1400 = artifacts.require('ERC1400Mock');
 const ERC1410 = artifacts.require('ERC1410Mock');
+const ERC820Registry = artifacts.require('ERC820Registry');
+const ERC777TokensSender = artifacts.require('ERC777TokensSenderMock');
+const ERC777TokensRecipient = artifacts.require('ERC777TokensRecipientMock');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTE = '0x';
 
+const EMPTY_BYTE32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
+
 const CERTIFICATE_SIGNER = '0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630';
 
 const VALID_CERTIFICATE = '0x1000000000000000000000000000000000000000000000000000000000000000';
+const INVALID_CERTIFICATE = '0x0000000000000000000000000000000000000000000000000000000000000000';
+
+const INVALID_CERTIFICATE_SENDER = '0x1100000000000000000000000000000000000000000000000000000000000000';
+const INVALID_CERTIFICATE_RECIPIENT = '0x2200000000000000000000000000000000000000000000000000000000000000';
 
 const initialSupply = 1000000000;
 
@@ -16,6 +25,16 @@ const tranche1 = '0x507265497373756564000000000000000000000000000000000000000000
 const tranche2 = '0x4973737565640000000000000000000000000000000000000000000000000000'; // Issued in hex
 const tranche3 = '0x4c6f636b65640000000000000000000000000000000000000000000000000000'; // dAuriel3 in hex
 const tranches = [tranche1, tranche2, tranche3];
+
+const ESC_A1 = '0xa1'; // Transfer Verified - On-Chain approval for restricted token
+const ESC_A2 = '0xa2'; // Transfer Verified - Off-Chain approval for restricted token
+const ESC_A3 = '0xa3'; // Transfer Blocked - Sender lockup period not ended
+const ESC_A4 = '0xa4'; // Transfer Blocked - Sender balance insufficient
+const ESC_A5 = '0xa5'; // Transfer Blocked - Sender not eligible
+const ESC_A6 = '0xa6'; // Transfer Blocked - Receiver not eligible
+const ESC_A7 = '0xa7'; // Transfer Blocked - Identity restriction
+const ESC_A8 = '0xa8'; // Transfer Blocked - Token restriction
+const ESC_A9 = '0xa9'; // Transfer Blocked - Token granularity
 
 const issuanceAmount = 1000;
 
@@ -138,6 +157,17 @@ const assertTotalSupply = async (_contract, _amount) => {
   assert.equal(totalSupply, _amount);
 };
 
+const assertEscResponse = async (
+    _response,
+    _escCode,
+    _additionalCode,
+    _destinationTranche
+) => {
+  assert.equal(_response[0], _escCode);
+  assert.equal(_response[1], _additionalCode);
+  assert.equal(_response[2], _destinationTranche);
+};
+
 const authorizeOperatorForTranches = async (
   _contract,
   _operator,
@@ -162,7 +192,7 @@ const issueOnMultipleTranches = async (
 };
 
 contract('ERC1400', function ([owner, operator, defaultOperator, investor, recipient, unknown]) {
-  describe('ERC1400 functionalities', function () {
+  describe('parameters', function () {
     beforeEach(async function () {
       this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [defaultOperator], CERTIFICATE_SIGNER);
     });
@@ -184,7 +214,91 @@ contract('ERC1400', function ([owner, operator, defaultOperator, investor, recip
 
   });
 
-  // xxx
+  // CANSEND
+
+  describe('canSend', function () {
+    var localGranularity = 10;
+    const amount = 10*localGranularity;
+    var escCode;
+    var additionalCode;
+    var destinationTranche;
+
+    before(async function () {
+      this.registry = await ERC820Registry.at('0x820b586C8C28125366C998641B09DCbE7d4cBF06');
+
+      this.senderContract = await ERC777TokensSender.new('ERC777TokensSender', { from: investor });
+      await this.registry.setManager(investor, this.senderContract.address, { from: investor });
+      await this.senderContract.setERC820Implementer({ from: investor });
+
+      this.recipientContract = await ERC777TokensRecipient.new('ERC777TokensRecipient', { from: recipient });
+      await this.registry.setManager(recipient, this.recipientContract.address, { from: recipient });
+      await this.recipientContract.setERC820Implementer({ from: recipient });
+    });
+
+    beforeEach(async function () {
+      this.token = await ERC1400.new('ERC1410Token', 'DAU', localGranularity, [defaultOperator], CERTIFICATE_SIGNER);
+      await this.token.issueByTranche(tranche1, investor, issuanceAmount, VALID_CERTIFICATE, { from: owner });
+    });
+
+    describe('when certificate is valid', function () {
+      describe('when balance is sufficient', function () {
+        describe('when receiver is not the zero address', function () {
+          describe('when sender is eligible', function () {
+            describe('when receiver is eligible', function () {
+              describe('when the amount is a multiple of the granularity', function () {
+                it('returns Ethereum status code A2', async function () {
+                  const response = await this.token.canSend(tranche1, recipient, amount, VALID_CERTIFICATE, { from: investor });
+                  await assertEscResponse(response, ESC_A2, EMPTY_BYTE32, tranche1);
+                });
+              });
+              describe('when the amount is not a multiple of the granularity', function () {
+                it('returns Ethereum status code A9', async function () {
+                  const response = await this.token.canSend(tranche1, recipient, 1, VALID_CERTIFICATE, { from: investor });
+                  await assertEscResponse(response, ESC_A9, EMPTY_BYTE32, tranche1);
+                });
+              });
+            });
+            describe('when receiver is not eligible', function () {
+              it('returns Ethereum status code A6', async function () {
+                const response = await this.token.canSend(tranche1, recipient, amount, INVALID_CERTIFICATE_RECIPIENT, { from: investor });
+                await assertEscResponse(response, ESC_A6, EMPTY_BYTE32, tranche1);
+              });
+            });
+          });
+          describe('when sender is not eligible', function () {
+            it('returns Ethereum status code A5', async function () {
+              const response = await this.token.canSend(tranche1, recipient, amount, INVALID_CERTIFICATE_SENDER, { from: investor });
+              await assertEscResponse(response, ESC_A5, EMPTY_BYTE32, tranche1);
+            });
+          });
+        });
+        describe('when receiver is the zero address', function () {
+          it('returns Ethereum status code A6', async function () {
+            const response = await this.token.canSend(tranche1, ZERO_ADDRESS, amount, VALID_CERTIFICATE, { from: investor });
+            await assertEscResponse(response, ESC_A6, EMPTY_BYTE32, tranche1);
+          });
+        });
+      });
+      describe('when balance is not sufficient', function () {
+        it('returns Ethereum status code A4 (insuficient global balance)', async function () {
+          const response = await this.token.canSend(tranche1, recipient, issuanceAmount+localGranularity, VALID_CERTIFICATE, { from: investor });
+          await assertEscResponse(response, ESC_A4, EMPTY_BYTE32, tranche1);
+        });
+        it('returns Ethereum status code A4 (insuficient tranche balance)', async function () {
+          await this.token.issueByTranche(tranche2, investor, localGranularity, VALID_CERTIFICATE, { from: owner });
+          const response = await this.token.canSend(tranche2, recipient, amount, VALID_CERTIFICATE, { from: investor });
+          await assertEscResponse(response, ESC_A4, EMPTY_BYTE32, tranche2);
+        });
+      });
+    });
+    describe('when certificate is not valid', function () {
+      it('returns Ethereum status code A3', async function () {
+        const response = await this.token.canSend(tranche1, recipient, amount, INVALID_CERTIFICATE, { from: investor });
+        await assertEscResponse(response, ESC_A3, EMPTY_BYTE32, tranche1);
+      });
+    });
+  });
+
 
   // SETDEFAULTTRANCHES
 
@@ -1257,29 +1371,6 @@ contract('ERC1400', function ([owner, operator, defaultOperator, investor, recip
       });
     });
   });
-
-  // CANSEND
-
-  describe('canSend', function () {
-    beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1410Token', 'DAU', 1, [defaultOperator], CERTIFICATE_SIGNER);
-    });
-    describe('when tokens can be sent', function () {
-      it('returns Ethereum status code', async function () {
-        const amount = 100;
-        const data = tranche1;
-        const response = await this.token.canSend(tranche1, recipient, amount, data, { from: investor });
-        const escCode = response[0];
-        const additionalCode = response[1];
-        const destinationTranche = response[2];
-        assert.equal(destinationTranche, tranche1);
-      });
-    });
-    describe('when tokens can not be sent', function () {
-      assert(true);
-    });
-  });
-
 
   // ERC1410 - BURN
 

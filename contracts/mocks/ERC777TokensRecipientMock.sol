@@ -25,8 +25,9 @@ contract ERC777TokensRecipientMock is IERC777TokensRecipient, ERC820ImplementerM
     view
     returns(bool)
   {
-    if(tranche != hex"00" || from != address(0) || to != address(0) || amount != 0 || data.length != 0 || operatorData.length != 0){} // Line to avoid compilation warnings for unused variables.
-    return true;
+    if(tranche != hex"00" || operatorData.length != 0){} // Line to avoid compilation warnings for unused variables.
+
+    return(_canReceive(from, to, amount, data));
   }
 
   function tokensReceived(
@@ -49,7 +50,7 @@ contract ERC777TokensRecipientMock is IERC777TokensRecipient, ERC820ImplementerM
   ) internal pure returns(bool) {
     if(from != address(0) || to != address(0) || amount != 0){} // Line to avoid compilation warnings for unused variables.
 
-    bytes32 receiveRevert = 0x2222000000000000000000000000000000000000000000000000000000000000; // Default recipient hook failure data for the mock only
+    bytes32 receiveRevert = 0x2200000000000000000000000000000000000000000000000000000000000000; // Default recipient hook failure data for the mock only
     bytes32 data32;
     assembly {
         data32 := mload(add(data, 32))

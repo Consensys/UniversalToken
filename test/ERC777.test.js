@@ -12,8 +12,8 @@ const ZERO_BYTE = '0x';
 
 const VALID_CERTIFICATE = '0x1000000000000000000000000000000000000000000000000000000000000000';
 
-const INVALID_CERTIFICATE_SENDER = '0x1111000000000000000000000000000000000000000000000000000000000000';
-const INVALID_CERTIFICATE_RECIPIENT = '0x2222000000000000000000000000000000000000000000000000000000000000';
+const INVALID_CERTIFICATE_SENDER = '0x1100000000000000000000000000000000000000000000000000000000000000';
+const INVALID_CERTIFICATE_RECIPIENT = '0x2200000000000000000000000000000000000000000000000000000000000000';
 
 const CERTIFICATE_SIGNER = '0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630';
 
@@ -48,7 +48,7 @@ contract('ERC777 without hooks', function ([owner, operator, defaultOperator, in
 
   // BASIC FUNCTIONNALITIES
 
-  describe('ERC777 functionalities', function () {
+  describe('parameters', function () {
     beforeEach(async function () {
       this.token = await ERC777.new('ERC777Token', 'DAU', 1, [defaultOperator], CERTIFICATE_SIGNER);
     });
@@ -650,11 +650,11 @@ contract('ERC777 with hooks', function ([owner, operator, defaultOperator, inves
     });
     describe('when the transfer fails', function () {
       it('sender hook reverts', async function () {
-        // Default sender hook failure data for the mock only: 0x1111000000000000000000000000000000000000000000000000000000000000
+        // Default sender hook failure data for the mock only: 0x1100000000000000000000000000000000000000000000000000000000000000
         await shouldFail.reverting(this.token.sendTo(to, amount, INVALID_CERTIFICATE_SENDER, { from: investor }));
       });
       it('recipient hook reverts', async function () {
-        // Default recipient hook failure data for the mock only: 0x2222000000000000000000000000000000000000000000000000000000000000
+        // Default recipient hook failure data for the mock only: 0x2200000000000000000000000000000000000000000000000000000000000000
         await shouldFail.reverting(this.token.sendTo(to, amount, INVALID_CERTIFICATE_RECIPIENT, { from: investor }));
       });
     });

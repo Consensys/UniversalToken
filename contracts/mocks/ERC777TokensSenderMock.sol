@@ -25,8 +25,9 @@ contract ERC777TokensSenderMock is IERC777TokensSender, ERC820ImplementerMock {
     view
     returns(bool)
   {
-    if(tranche != hex"00" || from != address(0) || to != address(0) || amount != 0 || data.length != 0 || operatorData.length != 0){} // Line to avoid compilation warnings for unused variables.
-    return true;
+    if(tranche != hex"00" || operatorData.length != 0){} // Line to avoid compilation warnings for unused variables.
+
+    return(_canSend(from, to, amount, data));
   }
 
   function tokensToSend(
@@ -49,7 +50,7 @@ contract ERC777TokensSenderMock is IERC777TokensSender, ERC820ImplementerMock {
   ) internal pure returns(bool) {
     if(from != address(0) || to != address(0) || amount != 0){} // Line to avoid compilation warnings for unused variables.
 
-    bytes32 sendRevert = 0x1111000000000000000000000000000000000000000000000000000000000000; // Default sender hook failure data for the mock only
+    bytes32 sendRevert = 0x1100000000000000000000000000000000000000000000000000000000000000; // Default sender hook failure data for the mock only
     bytes32 data32;
     assembly {
         data32 := mload(add(data, 32))
