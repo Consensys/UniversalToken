@@ -5,5 +5,5 @@ module.exports = {
        'mocks',
        'examples',
     ],
-    copyPackages: ['openzeppelin-solidity'],
+    copyPackages: ['openzeppelin-solidity', 'contract-certificate-controller'],
 }
