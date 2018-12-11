@@ -8,6 +8,7 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import "../token/ERC777/ERC777Mintable.sol";
 
+
 /**
  * @title ERC777ERC20
  * @dev ERC777 with ERC20 retrocompatibility

@@ -9,6 +9,7 @@ import "openzeppelin-solidity/contracts/access/roles/MinterRole.sol";
 import "./IERC1400.sol";
 import "./token/ERC1410/ERC1410.sol";
 
+
 /**
  * @title ERC1400
  * @dev ERC1400 logic

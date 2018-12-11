@@ -8,6 +8,7 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import "../ERC1400.sol";
 
+
 /**
  * @title ERC1400ERC20
  * @dev ERC1400 with ERC20 retrocompatibility
