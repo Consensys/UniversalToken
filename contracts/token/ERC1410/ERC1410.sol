@@ -520,16 +520,14 @@ contract ERC1410 is IERC1410, ERC777 {
    * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
    * @dev Empty function to erase ERC777 burn() function since it doesn't handle tranches.
    */
-  function burn(uint256 amount, bytes data) external {
-    if(amount != 0 || data.length != 0) {} // Line to avoid compilation warnings for unused variables.
+  function burn(uint256 /*amount*/, bytes /*data*/) external { // Comments to avoid compilation warnings for unused variables.
   }
 
   /**
    * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
    * @dev Empty function to erase ERC777 operatorBurn() function since it doesn't handle tranches.
    */
-  function operatorBurn(address from, uint256 amount, bytes data, bytes operatorData) external {
-    if(from != address(0) || amount != 0 || data.length != 0 || operatorData.length != 0) {} // Line to avoid compilation warnings for unused variables.
+  function operatorBurn(address /*from*/, uint256 /*amount*/, bytes /*data*/, bytes /*operatorData*/) external { // Comments to avoid compilation warnings for unused variables.
   }
 
   /**

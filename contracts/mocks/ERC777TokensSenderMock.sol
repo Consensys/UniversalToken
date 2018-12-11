@@ -14,42 +14,45 @@ contract ERC777TokensSenderMock is IERC777TokensSender, ERC820ImplementerMock {
   }
 
   function canSend(
-    bytes32 tranche,
+    bytes32 /*tranche*/,
     address from,
     address to,
     uint amount,
     bytes data,
-    bytes operatorData
-  )
+    bytes /*operatorData*/
+  ) // Comments to avoid compilation warnings for unused variables.
     external
     view
     returns(bool)
   {
-    if(tranche != hex"00" || operatorData.length != 0){} // Line to avoid compilation warnings for unused variables.
+    /* if(tranche != hex"00" || operatorData.length != 0){} // Line to avoid compilation warnings for unused variables. */
 
     return(_canSend(from, to, amount, data));
   }
 
   function tokensToSend(
-    address operator,
+    address /*operator*/,
     address from,
     address to,
     uint amount,
     bytes data,
-    bytes operatorData
-  ) external {
-    if(operator != address(0) || from != address(0) || to != address(0) || amount != 0 || data.length != 0 || operatorData.length != 0){} // Line to avoid compilation warnings for unused variables.
+    bytes /*operatorData*/
+  ) // Comments to avoid compilation warnings for unused variables.
+    external
+  {
     require(_canSend(from, to, amount, data), "A5:	Transfer Blocked - Sender not eligible");
   }
 
   function _canSend(
-    address from,
-    address to,
-    uint amount,
+    address /*from*/,
+    address /*to*/,
+    uint /*amount*/,
     bytes data
-  ) internal pure returns(bool) {
-    if(from != address(0) || to != address(0) || amount != 0){} // Line to avoid compilation warnings for unused variables.
-
+  ) // Comments to avoid compilation warnings for unused variables.
+    internal
+    pure
+    returns(bool)
+  {
     bytes32 sendRevert = 0x1100000000000000000000000000000000000000000000000000000000000000; // Default sender hook failure data for the mock only
     bytes32 data32;
     assembly {
