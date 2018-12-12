@@ -402,15 +402,17 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param amount Number of tokens to send.
    */
   function _addTokenToTranche(address to, bytes32 tranche, uint256 amount) internal {
-    if(_balanceOfByTranche[to][tranche] == 0 && amount != 0) {
-      _tranchesOf[to].push(tranche);
-    }
-    _balanceOfByTranche[to][tranche] = _balanceOfByTranche[to][tranche].add(amount);
+    if(amount != 0) {
+      if(_balanceOfByTranche[to][tranche] == 0) {
+        _tranchesOf[to].push(tranche);
+      }
+      _balanceOfByTranche[to][tranche] = _balanceOfByTranche[to][tranche].add(amount);
 
-    if(_totalSupplyByTranche[tranche] == 0 && amount != 0) {
-      _totalTranches.push(tranche);
+      if(_totalSupplyByTranche[tranche] == 0) {
+        _totalTranches.push(tranche);
+      }
+      _totalSupplyByTranche[tranche] = _totalSupplyByTranche[tranche].add(amount);
     }
-    _totalSupplyByTranche[tranche] = _totalSupplyByTranche[tranche].add(amount);
   }
 
   /**
@@ -458,7 +460,7 @@ contract ERC1410 is IERC1410, ERC777 {
   function _removeDefaultOperatorByTranche(bytes32 tranche, address operator) internal {
     require(_isDefaultOperatorByTranche[tranche][operator], "Action Blocked - Not a default operator");
 
-    for (uint i = 0; i<_defaultOperatorsByTranche[tranche].length; i++){
+    for (uint i = 0; i < _defaultOperatorsByTranche[tranche].length; i++){
       if(_defaultOperatorsByTranche[tranche][i] == operator) {
         _defaultOperatorsByTranche[tranche][i] = _defaultOperatorsByTranche[tranche][_defaultOperatorsByTranche[tranche].length - 1];
         delete _defaultOperatorsByTranche[tranche][_defaultOperatorsByTranche[tranche].length-1];
