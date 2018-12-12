@@ -418,12 +418,10 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param data Information attached to the send [Contains the destination tranche].
    * @return Destination tranche.
    */
-  function _getDestinationTranche(bytes data) internal pure returns(bytes32) {
-    bytes32 toTranche;
-    for (uint i = 0; i < 32; i++) {
-      toTranche |= bytes32(data[i] & 0xFF) >> (i * 8); // Keeps the 8 first bits of data[i] and shifts them from (i * 8 places)
+  function _getDestinationTranche(bytes data) internal pure returns(bytes32 toTranche) {
+    assembly {
+      toTranche := mload(add(data, 32))
     }
-    return toTranche;
   }
 
   /********************* ERC1410 OPTIONAL FUNCTIONS ***************************/
