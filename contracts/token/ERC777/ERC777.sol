@@ -470,5 +470,4 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
     }
     _isDefaultOperator[operator] = false;
   }
-
 }

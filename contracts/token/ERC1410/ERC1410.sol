@@ -29,7 +29,7 @@ contract ERC1410 is IERC1410, ERC777 {
   // Mapping from (investor, tranche) to balance of corresponding tranche.
   mapping (address => mapping (bytes32 => uint256)) internal _balanceOfByTranche;
 
-  // Mapping from investor to their default tranches (for ERC777 and ERC20 backwards compatibility).
+  // Mapping from investor to their default tranches (for ERC777 and ERC20 compatibility).
   mapping (address => bytes32[]) internal _defaultTranches;
   /****************************************************************************/
 
@@ -369,6 +369,7 @@ contract ERC1410 is IERC1410, ERC777 {
     _balanceOfByTranche[from][tranche] = _balanceOfByTranche[from][tranche].sub(amount);
     _totalSupplyByTranche[tranche] = _totalSupplyByTranche[tranche].sub(amount);
 
+    // If the balance of the TokenHolder's tranche is zero, finds and deletes the tranche.
     if(_balanceOfByTranche[from][tranche] == 0) {
       for (uint i = 0; i < _tranchesOf[from].length; i++) {
         if(_tranchesOf[from][i] == tranche) {
@@ -378,6 +379,8 @@ contract ERC1410 is IERC1410, ERC777 {
         }
       }
     }
+
+    // If the total supply is zero, finds and deletes the tranche.
     if(_totalSupplyByTranche[tranche] == 0) {
       for (i = 0; i < _totalTranches.length; i++) {
         if(_totalTranches[i] == tranche) {
