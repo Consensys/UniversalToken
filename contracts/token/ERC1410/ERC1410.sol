@@ -376,6 +376,7 @@ contract ERC1410 is IERC1410, ERC777 {
           _tranchesOf[from][i] = _tranchesOf[from][_tranchesOf[from].length - 1];
           delete _tranchesOf[from][_tranchesOf[from].length - 1];
           _tranchesOf[from].length--;
+          break;
         }
       }
     }
@@ -387,6 +388,7 @@ contract ERC1410 is IERC1410, ERC777 {
           _totalTranches[i] = _totalTranches[_totalTranches.length - 1];
           delete _totalTranches[_totalTranches.length - 1];
           _totalTranches.length--;
+          break;
         }
       }
     }
