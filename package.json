@@ -38,6 +38,9 @@
     "ERC1400"
   ],
   "author": "Gauthier Petetin <gauthier.petetin@consensys.net>",
+  "contributors": [
+    "Julien Marchand <julien.marchand4@gmail.com>"
+  ],
   "license": "MIT",
   "bugs": {
     "url": "https://gitlab.com/ConsenSys/mesh/boilerplates/solidity/boilerplate-solidity/issues"
