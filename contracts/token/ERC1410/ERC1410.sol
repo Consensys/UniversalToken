@@ -569,5 +569,4 @@ contract ERC1410 is IERC1410, ERC777 {
 
     require(_remainingAmount == 0, "A8: Transfer Blocked - Token restriction");
   }
-
 }
