@@ -17,7 +17,7 @@ contract ERC777ERC20 is IERC20, ERC777Mintable {
 
   bool internal _erc20compatible;
 
-  // Mapping from (investor, spender) to allowed amount.
+  // Mapping from (tokenHolder, spender) to allowed amount.
   mapping (address => mapping (address => uint256)) internal _allowed;
 
   /**

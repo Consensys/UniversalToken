@@ -26,20 +26,20 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   uint256 internal _granularity;
   uint256 internal _totalSupply;
 
-  // Mapping from investor to balance.
+  // Mapping from tokenHolder to balance.
   mapping(address => uint256) internal _balances;
 
   /******************** Mappings related to operator **************************/
-  // Mapping from (operator, investor) to authorized status. [INVESTOR-SPECIFIC]
-  mapping(address => mapping(address => bool)) internal _authorized;
+  // Mapping from (operator, tokenHolder) to authorized status. [TOKEN-HOLDER-SPECIFIC]
+  mapping(address => mapping(address => bool)) internal _authorizedOperator;
 
-  // Mapping from (operator, investor) to revoked status. [INVESTOR-SPECIFIC]
+  // Mapping from (operator, tokenHolder) to revoked status. [TOKEN-HOLDER-SPECIFIC]
   mapping(address => mapping(address => bool)) internal _revokedDefaultOperator;
 
-  // Array of default operators. [GLOBAL - NOT INVESTOR-SPECIFIC]
+  // Array of default operators. [GLOBAL - NOT TOKEN-HOLDER-SPECIFIC]
   address[] internal _defaultOperators;
 
-  // Mapping from operator to defaultOperator status. [GLOBAL - NOT INVESTOR-SPECIFIC]
+  // Mapping from operator to defaultOperator status. [GLOBAL - NOT TOKEN-HOLDER-SPECIFIC]
   mapping(address => bool) internal _isDefaultOperator;
   /****************************************************************************/
 
@@ -143,7 +143,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    */
   function authorizeOperator(address operator) external {
     _revokedDefaultOperator[operator][msg.sender] = false;
-    _authorized[operator][msg.sender] = true;
+    _authorizedOperator[operator][msg.sender] = true;
     emit AuthorizedOperator(operator, msg.sender);
   }
 
@@ -155,7 +155,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    */
   function revokeOperator(address operator) external {
     _revokedDefaultOperator[operator][msg.sender] = true;
-    _authorized[operator][msg.sender] = false;
+    _authorizedOperator[operator][msg.sender] = false;
     emit RevokedOperator(operator, msg.sender);
   }
 
@@ -270,7 +270,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    */
   function _isOperatorFor(address operator, address tokenHolder, bool isControllable) internal view returns (bool) {
     return (operator == tokenHolder
-      || _authorized[operator][tokenHolder]
+      || _authorizedOperator[operator][tokenHolder]
       || (_isDefaultOperator[operator] && !_revokedDefaultOperator[operator][tokenHolder])
       || (_isDefaultOperator[operator] && isControllable)
     );

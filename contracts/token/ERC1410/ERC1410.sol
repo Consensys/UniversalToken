@@ -23,27 +23,27 @@ contract ERC1410 is IERC1410, ERC777 {
   // Mapping from tranche to global balance of corresponding tranche.
   mapping (bytes32 => uint256) internal _totalSupplyByTranche;
 
-  // Mapping from investor to their tranches.
+  // Mapping from tokenHolder to their tranches.
   mapping (address => bytes32[]) internal _tranchesOf;
 
-  // Mapping from (investor, tranche) to balance of corresponding tranche.
+  // Mapping from (tokenHolder, tranche) to balance of corresponding tranche.
   mapping (address => mapping (bytes32 => uint256)) internal _balanceOfByTranche;
 
-  // Mapping from investor to their default tranches (for ERC777 and ERC20 compatibility).
+  // Mapping from tokenHolder to their default tranches (for ERC777 and ERC20 compatibility).
   mapping (address => bytes32[]) internal _defaultTranches;
   /****************************************************************************/
 
   /**************** Mappings to find tranche operators ************************/
-  // Mapping from (investor, tranche, operator) to 'approved for tranche' status. [INVESTOR-SPECIFIC]
+  // Mapping from (tokenHolder, tranche, operator) to 'approved for tranche' status. [TOKEN-HOLDER-SPECIFIC]
   mapping (address => mapping (bytes32 => mapping (address => bool))) internal _trancheAuthorized;
 
-  // Mapping from (investor, tranche, operator) to 'revoked for tranche' status. [INVESTOR-SPECIFIC]
+  // Mapping from (tokenHolder, tranche, operator) to 'revoked for tranche' status. [TOKEN-HOLDER-SPECIFIC]
   mapping (address => mapping (bytes32 => mapping (address => bool))) internal _trancheRevokedDefaultOperator;
 
-  // Mapping from tranche to default operators for the tranche. [NOT INVESTOR-SPECIFIC]
+  // Mapping from tranche to default operators for the tranche. [NOT TOKEN-HOLDER-SPECIFIC]
   mapping (bytes32 => address[]) internal _defaultOperatorsByTranche;
 
-  // Mapping from (tranche, operator) to defaultOperatorByTranche status. [NOT INVESTOR-SPECIFIC]
+  // Mapping from (tranche, operator) to defaultOperatorByTranche status. [NOT TOKEN-HOLDER-SPECIFIC]
   mapping (bytes32 => mapping (address => bool)) internal _isDefaultOperatorByTranche;
   /****************************************************************************/
 
