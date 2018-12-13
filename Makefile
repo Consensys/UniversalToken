@@ -46,7 +46,7 @@ run-coverage:
 	@yarn run coverage
 
 coverage: run-coverage
-	@open coverage/index.html
+	@python -mwebbrowser coverage/index.html
 
 test-lint:
 	@yarn run lint:all
