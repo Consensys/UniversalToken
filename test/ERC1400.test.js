@@ -798,6 +798,7 @@ contract('ERC1400', function ([owner, operator, defaultOperator, investor, recip
         await assertBalanceOf(this.token, recipient, tranche1, 0);
 
         await this.token.sendByTranche(tranche1, recipient, sendAmount, VALID_CERTIFICATE, { from: investor });
+        await this.token.sendByTranche(tranche1, recipient, 0, VALID_CERTIFICATE, { from: investor });
 
         await assertBalanceOf(this.token, investor, tranche1, issuanceAmount - sendAmount);
         await assertBalanceOf(this.token, recipient, tranche1, sendAmount);
