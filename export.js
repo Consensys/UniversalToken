@@ -12,7 +12,13 @@ fs.remove(outputFile, function(err){
 
     if(!err) {
       const contractAbi = inputData.abi;
-      const contractAddress = inputData.networks[networkID].address;
+      
+      let contractAddress;
+      if(inputData.networks[networkID]) {
+        contractAddress = inputData.networks[networkID].address;
+      } else {
+        contractAddress = "Undefined - Contract not deployed on network ".concat(networkID);
+      }
 
       console.log("Contract deployed at address: ", contractAddress, "on network with ID: ", networkID);
       if(contractAddress.length == 42) {
