@@ -75,7 +75,17 @@ $ truffle migrate
 
 ## Deploy contract on ropsten
 
+Start building the contract (this generates the concatenated solidity files required to publish the contract on blockchan explorers like Etherscan, Kaleido, etc.):
+```
+$ npm run build
+```
+
 Deploy the contract by running the migration scripts:
 ```
 $ truffle migrate --network ropsten
+```
+
+Export contract parameters in export.txt file:
+```
+$ node export.js
 ```
