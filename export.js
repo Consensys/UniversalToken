@@ -1,7 +1,7 @@
 fs = require('fs-extra');
 
 const inputFile = 'build/contracts/ERC1400.json';
-const outputFile = '.export.txt';
+const outputFile = '.export.json';
 
 const networkID = '3';
 
@@ -12,7 +12,7 @@ fs.remove(outputFile, function(err){
 
     if(!err) {
       const contractAbi = inputData.abi;
-      
+
       let contractAddress;
       if(inputData.networks[networkID]) {
         contractAddress = inputData.networks[networkID].address;
