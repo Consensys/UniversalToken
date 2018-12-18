@@ -77,7 +77,7 @@ $ truffle migrate
 
 Start building the contract (this generates the concatenated solidity files required to publish the contract on blockchan explorers like Etherscan, Kaleido, etc.):
 ```
-$ npm run build
+$ yarn run build
 ```
 
 Deploy the contract by running the migration scripts:
