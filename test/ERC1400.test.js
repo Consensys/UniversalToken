@@ -61,7 +61,7 @@ const assertTransferEvent = (
   assert.equal(_logs[i].args.operator, _operator);
   assert.equal(_logs[i].args.from, _from);
   assert.equal(_logs[i].args.to, _to);
-  assert(_logs[i].args.amount.eq(_amount));
+  assert(_logs[i].args.value.eq(_amount));
   assert.equal(_logs[i].args.data, _data);
   assert.equal(_logs[i].args.operatorData, _operatorData);
 
@@ -70,7 +70,7 @@ const assertTransferEvent = (
   assert.equal(_logs[i + 1].args.operator, _operator);
   assert.equal(_logs[i + 1].args.from, _from);
   assert.equal(_logs[i + 1].args.to, _to);
-  assert(_logs[i + 1].args.amount.eq(_amount));
+  assert(_logs[i + 1].args.value.eq(_amount));
   assert.equal(_logs[i + 1].args.data, _data);
   assert.equal(_logs[i + 1].args.operatorData, _operatorData);
 };
@@ -94,7 +94,7 @@ const assertBurnEvent = (
   assert.equal(_logs[i].event, 'Burned');
   assert.equal(_logs[i].args.operator, _operator);
   assert.equal(_logs[i].args.from, _from);
-  assert(_logs[i].args.amount.eq(_amount));
+  assert(_logs[i].args.value.eq(_amount));
   assert.equal(_logs[i].args.data, _data);
   assert.equal(_logs[i].args.operatorData, _operatorData);
 
@@ -102,7 +102,7 @@ const assertBurnEvent = (
   assert.equal(_logs[i + 1].args.partition, _fromPartition);
   assert.equal(_logs[i + 1].args.operator, _operator);
   assert.equal(_logs[i + 1].args.from, _from);
-  assert(_logs[i + 1].args.amount.eq(_amount));
+  assert(_logs[i + 1].args.value.eq(_amount));
   assert.equal(_logs[i + 1].args.data, _data);
   assert.equal(_logs[i + 1].args.operatorData, _operatorData);
 };
@@ -620,7 +620,7 @@ contract('ERC1400', function ([owner, operator, controller, tokenHolder, recipie
           assert.equal(logs[1].event, 'Minted');
           assert.equal(logs[1].args.operator, owner);
           assert.equal(logs[1].args.to, tokenHolder);
-          assert(logs[1].args.amount.eq(issuanceAmount));
+          assert(logs[1].args.value.eq(issuanceAmount));
           assert.equal(logs[1].args.data, VALID_CERTIFICATE);
           assert.equal(logs[1].args.operatorData, ZERO_BYTE);
 
@@ -628,7 +628,7 @@ contract('ERC1400', function ([owner, operator, controller, tokenHolder, recipie
           assert.equal(logs[2].args.partition, partition1);
           assert.equal(logs[2].args.operator, owner);
           assert.equal(logs[2].args.to, tokenHolder);
-          assert(logs[2].args.amount.eq(issuanceAmount));
+          assert(logs[2].args.value.eq(issuanceAmount));
           assert.equal(logs[2].args.data, VALID_CERTIFICATE);
           assert.equal(logs[2].args.operatorData, ZERO_BYTE);
         });
@@ -857,7 +857,7 @@ contract('ERC1400', function ([owner, operator, controller, tokenHolder, recipie
             assert.equal(logs[3].event, 'ChangedPartition');
             assert.equal(logs[3].args.fromPartition, partition1);
             assert.equal(logs[3].args.toPartition, partition2);
-            assert(logs[3].args.amount.eq(transferAmount));
+            assert(logs[3].args.value.eq(transferAmount));
           });
         });
       });

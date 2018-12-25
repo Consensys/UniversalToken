@@ -15,10 +15,10 @@ interface IERC1410 {
     function partitionsOf(address tokenHolder) external view returns (bytes32[]); // 2/12
 
     // Token Transfers
-    function transferByPartition(bytes32 partition, address to, uint256 amount, bytes data) external returns (bytes32); // 3/12
-    function transferByPartitions(bytes32[] partitions, address to, uint256[] amounts, bytes data) external returns (bytes32[]); // 4/12
-    function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 amount, bytes data, bytes operatorData) external returns (bytes32); // 5/12
-    function operatorTransferByPartitions(bytes32[] partitions, address from, address to, uint256[] amounts, bytes data, bytes operatorData) external returns (bytes32[]); // 6/12
+    function transferByPartition(bytes32 partition, address to, uint256 value, bytes data) external returns (bytes32); // 3/12
+    function transferByPartitions(bytes32[] partitions, address to, uint256[] values, bytes data) external returns (bytes32[]); // 4/12
+    function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes data, bytes operatorData) external returns (bytes32); // 5/12
+    function operatorTransferByPartitions(bytes32[] partitions, address from, address to, uint256[] values, bytes data, bytes operatorData) external returns (bytes32[]); // 6/12
 
     // Default Partition Management
     function getDefaultPartitions(address tokenHolder) external view returns (bytes32[]); // 7/12
@@ -36,14 +36,14 @@ interface IERC1410 {
         address operator,
         address indexed from,
         address indexed to,
-        uint256 amount,
+        uint256 value,
         bytes data,
         bytes operatorData
     );
     event ChangedPartition(
         bytes32 indexed fromPartition,
         bytes32 indexed toPartition,
-        uint256 amount
+        uint256 value
     );
 
     // Operator Events

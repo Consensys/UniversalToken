@@ -17,7 +17,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
 
   bool internal _erc20compatible;
 
-  // Mapping from (tokenHolder, spender) to allowed amount.
+  // Mapping from (tokenHolder, spender) to allowed value.
   mapping (address => mapping (address => uint256)) internal _allowed;
 
   /**
@@ -59,7 +59,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @param operator The address performing the transfer.
    * @param from Token holder.
    * @param to Token recipient.
-   * @param amount Number of tokens to transfer.
+   * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer, and intended for the token holder ('from').
    * @param operatorData Information attached to the transfer by the operator.
    * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
@@ -71,17 +71,17 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
     address operator,
     address from,
     address to,
-    uint256 amount,
+    uint256 value,
     bytes data,
     bytes operatorData,
     bool preventLocking
   )
     internal
   {
-    ERC777._transferWithData(operator, from, to, amount, data, operatorData, preventLocking);
+    ERC777._transferWithData(operator, from, to, value, data, operatorData, preventLocking);
 
     if(_erc20compatible) {
-      emit Transfer(from, to, amount);
+      emit Transfer(from, to, value);
     }
   }
 
@@ -90,15 +90,15 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @dev Perform the burning of tokens.
    * @param operator The address performing the burn.
    * @param from Token holder whose tokens will be burned.
-   * @param amount Number of tokens to burn.
+   * @param value Number of tokens to burn.
    * @param data Information attached to the burn, and intended for the token holder ('from').
    * @param operatorData Information attached to the burn by the operator (if any).
    */
-  function _burn(address operator, address from, uint256 amount, bytes data, bytes operatorData) internal {
-    ERC777._burn(operator, from, amount, data, operatorData);
+  function _burn(address operator, address from, uint256 value, bytes data, bytes operatorData) internal {
+    ERC777._burn(operator, from, value, data, operatorData);
 
     if(_erc20compatible) {
-      emit Transfer(from, address(0), amount);  //  ERC20 backwards compatibility
+      emit Transfer(from, address(0), value);  //  ERC20 backwards compatibility
     }
   }
 
@@ -107,15 +107,15 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @dev Perform the minting of tokens.
    * @param operator Address which triggered the mint.
    * @param to Token recipient.
-   * @param amount Number of tokens minted.
+   * @param value Number of tokens minted.
    * @param data Information attached to the mint, and intended for the recipient ('to').
    * @param operatorData Information attached to the mint by the operator (if any).
    */
-  function _mint(address operator, address to, uint256 amount, bytes data, bytes operatorData) internal {
-    ERC777._mint(operator, to, amount, data, operatorData);
+  function _mint(address operator, address to, uint256 value, bytes data, bytes operatorData) internal {
+    ERC777._mint(operator, to, value, data, operatorData);
 
     if(_erc20compatible) {
-      emit Transfer(address(0), to, amount); // ERC20 backwards compatibility
+      emit Transfer(address(0), to, value); // ERC20 backwards compatibility
     }
   }
 
@@ -130,10 +130,10 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Check the amount of tokens that an owner allowed to a spender.
+   * @dev Check the value of tokens that an owner allowed to a spender.
    * @param owner address The address which owns the funds.
    * @param spender address The address which will spend the funds.
-   * @return A uint256 specifying the amount of tokens still available for the spender.
+   * @return A uint256 specifying the value of tokens still available for the spender.
    */
   function allowance(address owner, address spender) external view erc20Compatible returns (uint256) {
     return _allowed[owner][spender];
@@ -161,7 +161,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * [NOT MANDATORY FOR ERC1400 STANDARD]
    * @dev Transfer token for a specified address.
    * @param to The address to transfer to.
-   * @param value The amount to be transferred.
+   * @param value The value to be transferred.
    * @return A boolean that indicates if the operation was successful.
    */
   function transfer(address to, uint256 value) external erc20Compatible returns (bool) {

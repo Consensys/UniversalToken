@@ -17,7 +17,7 @@ contract ERC777TokensSenderMock is IERC777TokensSender, ERC820ImplementerMock {
     bytes32 /*partition*/,
     address from,
     address to,
-    uint amount,
+    uint value,
     bytes data,
     bytes /*operatorData*/
   ) // Comments to avoid compilation warnings for unused variables.
@@ -25,26 +25,26 @@ contract ERC777TokensSenderMock is IERC777TokensSender, ERC820ImplementerMock {
     view
     returns(bool)
   {
-    return(_canTransfer(from, to, amount, data));
+    return(_canTransfer(from, to, value, data));
   }
 
   function tokensToTransfer(
     address /*operator*/,
     address from,
     address to,
-    uint amount,
+    uint value,
     bytes data,
     bytes /*operatorData*/
   ) // Comments to avoid compilation warnings for unused variables.
     external
   {
-    require(_canTransfer(from, to, amount, data), "A5:	Transfer Blocked - Sender not eligible");
+    require(_canTransfer(from, to, value, data), "A5:	Transfer Blocked - Sender not eligible");
   }
 
   function _canTransfer(
     address /*from*/,
     address /*to*/,
-    uint /*amount*/,
+    uint /*value*/,
     bytes data
   ) // Comments to avoid compilation warnings for unused variables.
     internal

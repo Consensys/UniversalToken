@@ -19,16 +19,16 @@ interface IERC1400  {
 
     // Token Issuance
     function isIssuable() external view returns (bool); // 4/8
-    function issueByPartition(bytes32 partition, address tokenHolder, uint256 amount, bytes data) external; // 5/8
-    event IssuedByPartition(bytes32 indexed partition, address indexed operator, address indexed to, uint256 amount, bytes data, bytes operatorData);
+    function issueByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data) external; // 5/8
+    event IssuedByPartition(bytes32 indexed partition, address indexed operator, address indexed to, uint256 value, bytes data, bytes operatorData);
 
     // Token Redemption
-    function redeemByPartition(bytes32 partition, uint256 amount, bytes data) external; // 6/8
-    function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 amount, bytes data, bytes operatorData) external; // 7/8
-    event RedeemedByPartition(bytes32 indexed partition, address indexed operator, address indexed from, uint256 amount, bytes data, bytes operatorData);
+    function redeemByPartition(bytes32 partition, uint256 value, bytes data) external; // 6/8
+    function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data, bytes operatorData) external; // 7/8
+    event RedeemedByPartition(bytes32 indexed partition, address indexed operator, address indexed from, uint256 value, bytes data, bytes operatorData);
 
     // Transfer Validity
-    function canTransfer(bytes32 partition, address to, uint256 amount, bytes data) external view returns (byte, bytes32, bytes32); // 8/8
+    function canTransfer(bytes32 partition, address to, uint256 value, bytes data) external view returns (byte, bytes32, bytes32); // 8/8
 
 }
 

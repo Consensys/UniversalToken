@@ -119,32 +119,32 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @dev Mint/issue tokens from a specific partition.
    * @param partition Name of the partition.
    * @param tokenHolder Address for which we want to mint/issue tokens.
-   * @param amount Number of tokens minted.
+   * @param value Number of tokens minted.
    * @param data Information attached to the minting, and intended for the
    * token holder ('to'). [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function issueByPartition(bytes32 partition, address tokenHolder, uint256 amount, bytes data)
+  function issueByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data)
     external
     onlyMinter
     issuableToken
     isValidCertificate(data)
   {
-    _issueByPartition(partition, msg.sender, tokenHolder, amount, data, "");
+    _issueByPartition(partition, msg.sender, tokenHolder, value, data, "");
   }
 
   /**
    * [ERC1400 INTERFACE (6/8)]
    * @dev Redeem tokens of a specific partition.
    * @param partition Name of the partition.
-   * @param amount Number of tokens minted.
+   * @param value Number of tokens minted.
    * @param data Information attached to the redeem, and intended for the
    * token holder ('from'). [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function redeemByPartition(bytes32 partition, uint256 amount, bytes data)
+  function redeemByPartition(bytes32 partition, uint256 value, bytes data)
     external
     isValidCertificate(data)
   {
-    _redeemByPartition(partition, msg.sender, msg.sender, amount, data, "");
+    _redeemByPartition(partition, msg.sender, msg.sender, value, data, "");
   }
 
   /**
@@ -152,18 +152,18 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @dev Redeem tokens of a specific partition.
    * @param partition Name of the partition.
    * @param tokenHolder Address for which we want to redeem tokens.
-   * @param amount Number of tokens minted.
+   * @param value Number of tokens minted.
    * @param data Information attached to the redeem, and intended for the token holder ('from').
    * @param operatorData Information attached to the redeem by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 amount, bytes data, bytes operatorData)
+  function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data, bytes operatorData)
     external
     isValidCertificate(operatorData)
   {
     address _from = (tokenHolder == address(0)) ? msg.sender : tokenHolder;
     require(_isOperatorForPartition(partition, msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
-    _redeemByPartition(partition, msg.sender, _from, amount, data, operatorData);
+    _redeemByPartition(partition, msg.sender, _from, value, data, operatorData);
   }
 
   /**
@@ -171,7 +171,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @dev Know the reason on success or failure based on the EIP-1066 application-specific status codes.
    * @param partition Name of the partition.
    * @param to Token recipient.
-   * @param amount Number of tokens to transfer.
+   * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer, and intended for the token holder ('from'). [Can contain the destination partition]
    * @return ESC (Ethereum Status Code) following the EIP-1066 standard.
    * @return Additional bytes32 parameter that can be used to define
@@ -179,7 +179,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * transfer restriction rule responsible for making the transfer operation invalid).
    * @return Destination partition.
    */
-  function canTransfer(bytes32 partition, address to, uint256 amount, bytes data)
+  function canTransfer(bytes32 partition, address to, uint256 value, bytes data)
     external
     view
     returns (byte, bytes32, bytes32)
@@ -187,7 +187,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     if(!_checkCertificate(data, 0, 0xf3d490db)) // 4 first bytes of keccak256(transferByPartition(bytes32,address,uint256,bytes))
       return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
 
-    if((_balances[msg.sender] < amount) || (_balanceOfByPartition[msg.sender][partition] < amount))
+    if((_balances[msg.sender] < value) || (_balanceOfByPartition[msg.sender][partition] < value))
       return(hex"A4", "", partition); // Transfer Blocked - Sender balance insufficient
 
     if(to == address(0))
@@ -199,14 +199,14 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
 
     if((senderImplementation != address(0))
-      && !IERC777TokensSender(senderImplementation).canTransfer(partition, msg.sender, to, amount, data, ""))
+      && !IERC777TokensSender(senderImplementation).canTransfer(partition, msg.sender, to, value, data, ""))
       return(hex"A5", "", partition); // Transfer Blocked - Sender not eligible
 
     if((recipientImplementation != address(0))
-      && !IERC777TokensRecipient(recipientImplementation).canReceive(partition, msg.sender, to, amount, data, ""))
+      && !IERC777TokensRecipient(recipientImplementation).canReceive(partition, msg.sender, to, value, data, ""))
       return(hex"A6", "", partition); // Transfer Blocked - Receiver not eligible
 
-    if(!_isMultiple(amount))
+    if(!_isMultiple(value))
       return(hex"A9", "", partition); // Transfer Blocked - Token granularity
 
     return(hex"A2", "", partition);  // Transfer Verified - Off-Chain approval for restricted token
@@ -220,7 +220,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param toPartition Name of the partition.
    * @param operator The address performing the mint/issuance.
    * @param to Token recipient.
-   * @param amount Number of tokens to mint/issue.
+   * @param value Number of tokens to mint/issue.
    * @param data Information attached to the mint/issuance, and intended for the token holder ('to'). [Contains the destination partition]
    * @param operatorData Information attached to the mint/issuance by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
@@ -228,16 +228,16 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     bytes32 toPartition,
     address operator,
     address to,
-    uint256 amount,
+    uint256 value,
     bytes data,
     bytes operatorData
   )
     internal
   {
-    _mint(operator, to, amount, data, operatorData);
-    _addTokenToPartition(to, toPartition, amount);
+    _mint(operator, to, value, data, operatorData);
+    _addTokenToPartition(to, toPartition, value);
 
-    emit IssuedByPartition(toPartition, operator, to, amount, data, operatorData);
+    emit IssuedByPartition(toPartition, operator, to, value, data, operatorData);
   }
 
   /**
@@ -246,7 +246,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param fromPartition Name of the partition.
    * @param operator The address performing the mint/issuance.
    * @param from Token holder whose tokens will be redeemed.
-   * @param amount Number of tokens to redeem.
+   * @param value Number of tokens to redeem.
    * @param data Information attached to the burn/redeem, and intended for the token holder ('from').
    * @param operatorData Information attached to the burn/redeem by the operator.
    */
@@ -254,18 +254,18 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     bytes32 fromPartition,
     address operator,
     address from,
-    uint256 amount,
+    uint256 value,
     bytes data,
     bytes operatorData
   )
     internal
   {
-    require(_balanceOfByPartition[from][fromPartition] >= amount, "A4: Transfer Blocked - Sender balance insufficient");
+    require(_balanceOfByPartition[from][fromPartition] >= value, "A4: Transfer Blocked - Sender balance insufficient");
 
-    _removeTokenFromPartition(from, fromPartition, amount);
-    _burn(operator, from, amount, data, operatorData);
+    _removeTokenFromPartition(from, fromPartition, value);
+    _burn(operator, from, value, data, operatorData);
 
-    emit RedeemedByPartition(fromPartition, operator, from, amount, data, operatorData);
+    emit RedeemedByPartition(fromPartition, operator, from, value, data, operatorData);
   }
 
   /********************** ERC1400 OPTIONAL FUNCTIONS **************************/
@@ -331,26 +331,26 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC1410 METHOD]
-   * @dev Burn the amount of tokens from the address 'msg.sender'.
-   * @param amount Number of tokens to burn.
+   * @dev Burn the value of tokens from the address 'msg.sender'.
+   * @param value Number of tokens to burn.
    * @param data Information attached to the burn, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function burn(uint256 amount, bytes data)
+  function burn(uint256 value, bytes data)
     external
     isValidCertificate(data)
   {
-    _redeemByDefaultPartitions(msg.sender, msg.sender, amount, data, "");
+    _redeemByDefaultPartitions(msg.sender, msg.sender, value, data, "");
   }
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC1410 METHOD]
-   * @dev Burn the amount of tokens on behalf of the address 'from'.
+   * @dev Burn the value of tokens on behalf of the address 'from'.
    * @param from Token holder whose tokens will be burned (or 'address(0)' to set from to 'msg.sender').
-   * @param amount Number of tokens to burn.
+   * @param value Number of tokens to burn.
    * @param data Information attached to the burn, and intended for the token holder ('from').
    * @param operatorData Information attached to the burn by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function operatorBurn(address from, uint256 amount, bytes data, bytes operatorData)
+  function operatorBurn(address from, uint256 value, bytes data, bytes operatorData)
     external
     isValidCertificate(operatorData)
   {
@@ -358,7 +358,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
     require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
-    _redeemByDefaultPartitions(msg.sender, _from, amount, data, operatorData);
+    _redeemByDefaultPartitions(msg.sender, _from, value, data, operatorData);
   }
 
   /**
@@ -366,14 +366,14 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @dev Redeem tokens from a default partitions.
    * @param operator The address performing the redeem.
    * @param from Token holder.
-   * @param amount Number of tokens to redeem.
+   * @param value Number of tokens to redeem.
    * @param data Information attached to the burn/redeem, and intended for the token holder (from).
    * @param operatorData Information attached to the burn/redeem by the operator.
    */
   function _redeemByDefaultPartitions(
     address operator,
     address from,
-    uint256 amount,
+    uint256 value,
     bytes data,
     bytes operatorData
   )
@@ -381,22 +381,22 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   {
     require(_defaultPartitions[from].length != 0, "A8: Transfer Blocked - Token restriction");
 
-    uint256 _remainingAmount = amount;
+    uint256 _remainingValue = value;
     uint256 _localBalance;
 
     for (uint i = 0; i < _defaultPartitions[from].length; i++) {
       _localBalance = _balanceOfByPartition[from][_defaultPartitions[from][i]];
-      if(_remainingAmount <= _localBalance) {
-        _redeemByPartition(_defaultPartitions[from][i], operator, from, _remainingAmount, data, operatorData);
-        _remainingAmount = 0;
+      if(_remainingValue <= _localBalance) {
+        _redeemByPartition(_defaultPartitions[from][i], operator, from, _remainingValue, data, operatorData);
+        _remainingValue = 0;
         break;
       } else {
         _redeemByPartition(_defaultPartitions[from][i], operator, from, _localBalance, data, operatorData);
-        _remainingAmount = _remainingAmount - _localBalance;
+        _remainingValue = _remainingValue - _localBalance;
       }
     }
 
-    require(_remainingAmount == 0, "A8: Transfer Blocked - Token restriction");
+    require(_remainingValue == 0, "A8: Transfer Blocked - Token restriction");
   }
 
 }

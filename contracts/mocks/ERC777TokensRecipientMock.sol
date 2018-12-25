@@ -17,7 +17,7 @@ contract ERC777TokensRecipientMock is IERC777TokensRecipient, ERC820ImplementerM
     bytes32 /*partition*/,
     address from,
     address to,
-    uint amount,
+    uint value,
     bytes data,
     bytes /*operatorData*/
   ) // Comments to avoid compilation warnings for unused variables.
@@ -25,26 +25,26 @@ contract ERC777TokensRecipientMock is IERC777TokensRecipient, ERC820ImplementerM
     view
     returns(bool)
   {
-    return(_canReceive(from, to, amount, data));
+    return(_canReceive(from, to, value, data));
   }
 
   function tokensReceived(
     address /*operator*/,
     address from,
     address to,
-    uint amount,
+    uint value,
     bytes data,
     bytes /*operatorData*/
   ) // Comments to avoid compilation warnings for unused variables.
     external
   {
-    require(_canReceive(from, to, amount, data), "A6: Transfer Blocked - Receiver not eligible");
+    require(_canReceive(from, to, value, data), "A6: Transfer Blocked - Receiver not eligible");
   }
 
   function _canReceive(
     address /*from*/,
     address /*to*/,
-    uint /*amount*/,
+    uint /*value*/,
     bytes data
   ) // Comments to avoid compilation warnings for unused variables.
     internal

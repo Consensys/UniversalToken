@@ -180,14 +180,14 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * [ERC777 INTERFACE (10/13)]
    * @dev Transfer the amount of tokens from the address 'msg.sender' to the address 'to'.
    * @param to Token recipient.
-   * @param amount Number of tokens to transfer.
+   * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function transferWithData(address to, uint256 amount, bytes data)
+  function transferWithData(address to, uint256 value, bytes data)
     external
     isValidCertificate(data)
   {
-    _transferWithData(msg.sender, msg.sender, to, amount, data, "", true);
+    _transferWithData(msg.sender, msg.sender, to, value, data, "", true);
   }
 
   /**
@@ -195,11 +195,11 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @dev Transfer the amount of tokens on behalf of the address 'from' to the address 'to'.
    * @param from Token holder (or 'address(0)' to set from to 'msg.sender').
    * @param to Token recipient.
-   * @param amount Number of tokens to transfer.
+   * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer, and intended for the token holder ('from').
    * @param operatorData Information attached to the transfer by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function transferFromWithData(address from, address to, uint256 amount, bytes data, bytes operatorData)
+  function transferFromWithData(address from, address to, uint256 value, bytes data, bytes operatorData)
     external
     isValidCertificate(operatorData)
   {
@@ -207,31 +207,31 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
 
     require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
-    _transferWithData(msg.sender, _from, to, amount, data, operatorData, true);
+    _transferWithData(msg.sender, _from, to, value, data, operatorData, true);
   }
 
   /**
    * [ERC777 INTERFACE (12/13)]
    * @dev Burn the amount of tokens from the address 'msg.sender'.
-   * @param amount Number of tokens to burn.
+   * @param value Number of tokens to burn.
    * @param data Information attached to the burn, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function burn(uint256 amount, bytes data)
+  function burn(uint256 value, bytes data)
     external
     isValidCertificate(data)
   {
-    _burn(msg.sender, msg.sender, amount, data, "");
+    _burn(msg.sender, msg.sender, value, data, "");
   }
 
   /**
    * [ERC777 INTERFACE (13/13)]
    * @dev Burn the amount of tokens on behalf of the address from.
    * @param from Token holder whose tokens will be burned (or address(0) to set from to msg.sender).
-   * @param amount Number of tokens to burn.
+   * @param value Number of tokens to burn.
    * @param data Information attached to the burn, and intended for the token holder (from).
    * @param operatorData Information attached to the burn by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function operatorBurn(address from, uint256 amount, bytes data, bytes operatorData)
+  function operatorBurn(address from, uint256 value, bytes data, bytes operatorData)
     external
     isValidCertificate(operatorData)
   {
@@ -239,19 +239,19 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
 
     require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
-    _burn(msg.sender, _from, amount, data, operatorData);
+    _burn(msg.sender, _from, value, data, operatorData);
   }
 
   /********************** ERC777 INTERNAL FUNCTIONS ***************************/
 
   /**
    * [INTERNAL]
-   * @dev Check if 'amount' is multiple of the granularity.
-   * @param amount The quantity that want's to be checked.
-   * @return 'true' if 'amount' is a multiple of the granularity.
+   * @dev Check if 'value' is multiple of the granularity.
+   * @param value The quantity that want's to be checked.
+   * @return 'true' if 'value' is a multiple of the granularity.
    */
-  function _isMultiple(uint256 amount) internal view returns(bool) {
-    return(amount.div(_granularity).mul(_granularity) == amount);
+  function _isMultiple(uint256 value) internal view returns(bool) {
+    return(value.div(_granularity).mul(_granularity) == value);
   }
 
   /**
@@ -287,7 +287,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
     * @param operator The address performing the transfer.
     * @param from Token holder.
     * @param to Token recipient.
-    * @param amount Number of tokens to transfer.
+    * @param value Number of tokens to transfer.
     * @param data Information attached to the transfer, and intended for the token holder ('from').
     * @param operatorData Information attached to the transfer by the operator.
     * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
@@ -299,25 +299,25 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
     address operator,
     address from,
     address to,
-    uint256 amount,
+    uint256 value,
     bytes data,
     bytes operatorData,
     bool preventLocking
   )
     internal
   {
-    require(_isMultiple(amount), "A9: Transfer Blocked - Token granularity");
+    require(_isMultiple(value), "A9: Transfer Blocked - Token granularity");
     require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");
-    require(_balances[from] >= amount, "A4: Transfer Blocked - Sender balance insufficient");
+    require(_balances[from] >= value, "A4: Transfer Blocked - Sender balance insufficient");
 
-    _callSender(operator, from, to, amount, data, operatorData);
+    _callSender(operator, from, to, value, data, operatorData);
 
-    _balances[from] = _balances[from].sub(amount);
-    _balances[to] = _balances[to].add(amount);
+    _balances[from] = _balances[from].sub(value);
+    _balances[to] = _balances[to].add(value);
 
-    _callRecipient(operator, from, to, amount, data, operatorData, preventLocking);
+    _callRecipient(operator, from, to, value, data, operatorData, preventLocking);
 
-    emit Sent(operator, from, to, amount, data, operatorData);
+    emit Sent(operator, from, to, value, data, operatorData);
   }
 
   /**
@@ -325,23 +325,23 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @dev Perform the burning of tokens.
    * @param operator The address performing the burn.
    * @param from Token holder whose tokens will be burned.
-   * @param amount Number of tokens to burn.
+   * @param value Number of tokens to burn.
    * @param data Information attached to the burn, and intended for the token holder ('from').
    * @param operatorData Information attached to the burn by the operator (if any).
    */
-  function _burn(address operator, address from, uint256 amount, bytes data, bytes operatorData)
+  function _burn(address operator, address from, uint256 value, bytes data, bytes operatorData)
     internal
   {
-    require(_isMultiple(amount), "A9: Transfer Blocked - Token granularity");
+    require(_isMultiple(value), "A9: Transfer Blocked - Token granularity");
     require(from != address(0), "A5: Transfer Blocked - Sender not eligible");
-    require(_balances[from] >= amount, "A4: Transfer Blocked - Sender balance insufficient");
+    require(_balances[from] >= value, "A4: Transfer Blocked - Sender balance insufficient");
 
-    _callSender(operator, from, address(0), amount, data, operatorData);
+    _callSender(operator, from, address(0), value, data, operatorData);
 
-    _balances[from] = _balances[from].sub(amount);
-    _totalSupply = _totalSupply.sub(amount);
+    _balances[from] = _balances[from].sub(value);
+    _totalSupply = _totalSupply.sub(value);
 
-    emit Burned(operator, from, amount, data, operatorData);
+    emit Burned(operator, from, value, data, operatorData);
   }
 
   /**
@@ -351,7 +351,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @param operator Address which triggered the balance decrease (through transfer or burning).
    * @param from Token holder.
    * @param to Token recipient for a transfer and 0x for a burn.
-   * @param amount Number of tokens the token holder balance is decreased by.
+   * @param value Number of tokens the token holder balance is decreased by.
    * @param data Extra information, intended for the token holder ('from').
    * @param operatorData Extra information attached by the operator (if any).
    */
@@ -359,7 +359,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
     address operator,
     address from,
     address to,
-    uint256 amount,
+    uint256 value,
     bytes data,
     bytes operatorData
   )
@@ -369,7 +369,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
     senderImplementation = interfaceAddr(from, "ERC777TokensSender");
 
     if (senderImplementation != address(0)) {
-      IERC777TokensSender(senderImplementation).tokensToTransfer(operator, from, to, amount, data, operatorData);
+      IERC777TokensSender(senderImplementation).tokensToTransfer(operator, from, to, value, data, operatorData);
     }
   }
 
@@ -380,7 +380,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @param operator Address which triggered the balance increase (through transfer or minting).
    * @param from Token holder for a transfer and 0x for a mint.
    * @param to Token recipient.
-   * @param amount Number of tokens the recipient balance is increased by.
+   * @param value Number of tokens the recipient balance is increased by.
    * @param data Extra information, intended for the token holder ('from').
    * @param operatorData Extra information attached by the operator (if any).
    * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
@@ -392,7 +392,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
     address operator,
     address from,
     address to,
-    uint256 amount,
+    uint256 value,
     bytes data,
     bytes operatorData,
     bool preventLocking
@@ -403,7 +403,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
     recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
 
     if (recipientImplementation != address(0)) {
-      IERC777TokensRecipient(recipientImplementation).tokensReceived(operator, from, to, amount, data, operatorData);
+      IERC777TokensRecipient(recipientImplementation).tokensReceived(operator, from, to, value, data, operatorData);
     } else if (preventLocking) {
       require(_isRegularAddress(to), "A6: Transfer Blocked - Receiver not eligible");
     }
@@ -414,20 +414,20 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @dev Perform the minting of tokens.
    * @param operator Address which triggered the mint.
    * @param to Token recipient.
-   * @param amount Number of tokens minted.
+   * @param value Number of tokens minted.
    * @param data Information attached to the mint, and intended for the recipient (to).
    * @param operatorData Information attached to the mint by the operator (if any).
    */
-  function _mint(address operator, address to, uint256 amount, bytes data, bytes operatorData) internal {
-    require(_isMultiple(amount), "A9: Transfer Blocked - Token granularity");
+  function _mint(address operator, address to, uint256 value, bytes data, bytes operatorData) internal {
+    require(_isMultiple(value), "A9: Transfer Blocked - Token granularity");
     require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");      // forbid transfer to 0x0 (=burning)
 
-    _totalSupply = _totalSupply.add(amount);
-    _balances[to] = _balances[to].add(amount);
+    _totalSupply = _totalSupply.add(value);
+    _balances[to] = _balances[to].add(value);
 
-    _callRecipient(operator, address(0), to, amount, data, operatorData, true);
+    _callRecipient(operator, address(0), to, value, data, operatorData, true);
 
-    emit Minted(operator, to, amount, data, operatorData);
+    emit Minted(operator, to, value, data, operatorData);
   }
 
   /********************** ERC777 OPTIONAL FUNCTIONS ***************************/

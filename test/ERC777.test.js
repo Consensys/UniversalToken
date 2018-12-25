@@ -267,7 +267,7 @@ contract('ERC777 without hooks', function ([owner, operator, controller, tokenHo
               assert.equal(logs[1].event, 'Minted');
               assert.equal(logs[1].args.operator, owner);
               assert.equal(logs[1].args.to, tokenHolder);
-              assert(logs[1].args.amount.eq(initialSupply));
+              assert(logs[1].args.value.eq(initialSupply));
               assert.equal(logs[1].args.data, VALID_CERTIFICATE);
               assert.equal(logs[1].args.operatorData, ZERO_BYTE);
             });
@@ -339,7 +339,7 @@ contract('ERC777 without hooks', function ([owner, operator, controller, tokenHo
                 assert.equal(logs[1].args.operator, tokenHolder);
                 assert.equal(logs[1].args.from, tokenHolder);
                 assert.equal(logs[1].args.to, to);
-                assert(logs[1].args.amount.eq(amount));
+                assert(logs[1].args.value.eq(amount));
                 assert.equal(logs[1].args.data, VALID_CERTIFICATE);
                 assert.equal(logs[1].args.operatorData, ZERO_BYTE);
               });
@@ -437,7 +437,7 @@ contract('ERC777 without hooks', function ([owner, operator, controller, tokenHo
                 assert.equal(logs[1].args.operator, operator);
                 assert.equal(logs[1].args.from, tokenHolder);
                 assert.equal(logs[1].args.to, to);
-                assert(logs[1].args.amount.eq(amount));
+                assert(logs[1].args.value.eq(amount));
                 assert.equal(logs[1].args.data, ZERO_BYTE);
                 assert.equal(logs[1].args.operatorData, VALID_CERTIFICATE);
               });
@@ -497,7 +497,7 @@ contract('ERC777 without hooks', function ([owner, operator, controller, tokenHo
             assert.equal(logs[1].event, 'Burned');
             assert.equal(logs[1].args.operator, tokenHolder);
             assert.equal(logs[1].args.from, tokenHolder);
-            assert(logs[1].args.amount.eq(amount));
+            assert(logs[1].args.value.eq(amount));
             assert.equal(logs[1].args.data, VALID_CERTIFICATE);
             assert.equal(logs[1].args.operatorData, ZERO_BYTE);
           });
@@ -571,7 +571,7 @@ contract('ERC777 without hooks', function ([owner, operator, controller, tokenHo
               assert.equal(logs[1].event, 'Burned');
               assert.equal(logs[1].args.operator, operator);
               assert.equal(logs[1].args.from, tokenHolder);
-              assert(logs[1].args.amount.eq(amount));
+              assert(logs[1].args.value.eq(amount));
               assert.equal(logs[1].args.data, ZERO_BYTE);
               assert.equal(logs[1].args.operatorData, VALID_CERTIFICATE);
             });
@@ -668,7 +668,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
               assert.equal(logs[1].event, 'Minted');
               assert.equal(logs[1].args.operator, owner);
               assert.equal(logs[1].args.to, tokenHolder);
-              assert(logs[1].args.amount.eq(initialSupply));
+              assert(logs[1].args.value.eq(initialSupply));
               assert.equal(logs[1].args.data, VALID_CERTIFICATE);
               assert.equal(logs[1].args.operatorData, ZERO_BYTE);
 
@@ -689,7 +689,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
               assert.equal(logs[1].event, 'Minted');
               assert.equal(logs[1].args.operator, owner);
               assert.equal(logs[1].args.to, tokenHolder);
-              assert(logs[1].args.amount.eq(initialSupply));
+              assert(logs[1].args.value.eq(initialSupply));
               assert.equal(logs[1].args.data, VALID_CERTIFICATE);
               assert.equal(logs[1].args.operatorData, ZERO_BYTE);
             });
@@ -731,7 +731,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                 assert.equal(logs[1].args.operator, tokenHolder);
                 assert.equal(logs[1].args.from, tokenHolder);
                 assert.equal(logs[1].args.to, to);
-                assert(logs[1].args.amount.eq(amount));
+                assert(logs[1].args.value.eq(amount));
                 assert.equal(logs[1].args.data, VALID_CERTIFICATE);
                 assert.equal(logs[1].args.operatorData, ZERO_BYTE);
 
@@ -754,7 +754,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                 assert.equal(logs[1].args.operator, tokenHolder);
                 assert.equal(logs[1].args.from, tokenHolder);
                 assert.equal(logs[1].args.to, to);
-                assert(logs[1].args.amount.eq(amount));
+                assert(logs[1].args.value.eq(amount));
                 assert.equal(logs[1].args.data, VALID_CERTIFICATE);
                 assert.equal(logs[1].args.operatorData, ZERO_BYTE);
               });
@@ -792,7 +792,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
             assert.equal(logs[1].event, 'Burned');
             assert.equal(logs[1].args.operator, tokenHolder);
             assert.equal(logs[1].args.from, tokenHolder);
-            assert(logs[1].args.amount.eq(amount));
+            assert(logs[1].args.value.eq(amount));
             assert.equal(logs[1].args.data, VALID_CERTIFICATE);
             assert.equal(logs[1].args.operatorData, ZERO_BYTE);
 
@@ -813,7 +813,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
             assert.equal(logs[1].event, 'Burned');
             assert.equal(logs[1].args.operator, tokenHolder);
             assert.equal(logs[1].args.from, tokenHolder);
-            assert(logs[1].args.amount.eq(amount));
+            assert(logs[1].args.value.eq(amount));
             assert.equal(logs[1].args.data, VALID_CERTIFICATE);
             assert.equal(logs[1].args.operatorData, ZERO_BYTE);
           });
@@ -919,7 +919,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                 assert.equal(logs[0].args.operator, tokenHolder);
                 assert.equal(logs[0].args.from, tokenHolder);
                 assert.equal(logs[0].args.to, to);
-                assert(logs[0].args.amount.eq(amount));
+                assert(logs[0].args.value.eq(amount));
                 assert.equal(logs[0].args.data, ZERO_BYTE);
                 assert.equal(logs[0].args.operatorData, ZERO_BYTE);
 
@@ -1021,7 +1021,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                   assert.equal(logs[0].args.operator, operator);
                   assert.equal(logs[0].args.from, tokenHolder);
                   assert.equal(logs[0].args.to, to);
-                  assert(logs[0].args.amount.eq(amount));
+                  assert(logs[0].args.value.eq(amount));
                   assert.equal(logs[0].args.data, ZERO_BYTE);
                   assert.equal(logs[0].args.operatorData, ZERO_BYTE);
 

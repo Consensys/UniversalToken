@@ -12,12 +12,12 @@ contract ERC1410Mock is ERC1410, CertificateControllerMock {
     address[] controllers,
     address certificateSigner,
     address tokenHolderMock,
-    uint256 amountMock
+    uint256 valueMock
   )
     public
     ERC1410(name, symbol, granularity, controllers, certificateSigner)
   {
-    _mint(msg.sender, tokenHolderMock, amountMock, "", "");
+    _mint(msg.sender, tokenHolderMock, valueMock, "", "");
   }
 
 }

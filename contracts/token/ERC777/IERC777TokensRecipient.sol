@@ -14,7 +14,7 @@ interface IERC777TokensRecipient {
     bytes32 partition,
     address from,
     address to,
-    uint amount,
+    uint value,
     bytes data,
     bytes operatorData
   ) external view returns(bool);
@@ -23,7 +23,7 @@ interface IERC777TokensRecipient {
     address operator,
     address from,
     address to,
-    uint amount,
+    uint value,
     bytes data,
     bytes operatorData
   ) external;
