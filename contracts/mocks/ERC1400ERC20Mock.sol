@@ -9,10 +9,11 @@ contract ERC1400ERC20Mock is ERC1400ERC20, CertificateControllerMock {
     string symbol,
     uint256 granularity,
     address[] controllers,
-    address certificateSigner
+    address certificateSigner,
+    bytes32[] tokenDefaultPartitions
   )
     public
-    ERC1400ERC20(name, symbol, granularity, controllers, certificateSigner)
+    ERC1400ERC20(name, symbol, granularity, controllers, certificateSigner, tokenDefaultPartitions)
   {}
 
 }

@@ -12,6 +12,7 @@ const VALID_CERTIFICATE = '0x100000000000000000000000000000000000000000000000000
 const partition1 = '0x5265736572766564000000000000000000000000000000000000000000000000'; // Reserved in hex
 const partition2 = '0x4973737565640000000000000000000000000000000000000000000000000000'; // Issued in hex
 const partition3 = '0x4c6f636b65640000000000000000000000000000000000000000000000000000'; // Locked in hex
+const partitions = [partition1, partition2, partition3];
 
 const issuanceAmount = 1000000;
 
@@ -56,7 +57,7 @@ const assertTotalSupply = async (_contract, _amount) => {
 contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, recipient, unknown]) {
 
   beforeEach(async function () {
-    this.token = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER);
+    this.token = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, partitions);
     await this.token.setERC20compatibility(true, { from: owner });
   });
 
@@ -441,7 +442,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
       });
       describe('when the amount is not a multiple of the granularity', function () {
         it('reverts', async function () {
-          this.token = await ERC1400ERC20.new('ERC777Token', 'DAU', 2, [], CERTIFICATE_SIGNER);
+          this.token = await ERC1400ERC20.new('ERC777Token', 'DAU', 2, [], CERTIFICATE_SIGNER, partitions);
           await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
           await this.token.setDefaultPartitions([partition1, partition2, partition3], { from: tokenHolder });
           await shouldFail.reverting(this.token.transfer(to, 3, { from: tokenHolder }));
@@ -557,7 +558,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
         });
         describe('when the amount is not a multiple of the granularity', function () {
           it('reverts', async function () {
-            this.token = await ERC1400ERC20.new('ERC777Token', 'DAU', 2, [], CERTIFICATE_SIGNER);
+            this.token = await ERC1400ERC20.new('ERC777Token', 'DAU', 2, [], CERTIFICATE_SIGNER, partitions);
             await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
             await this.token.setDefaultPartitions([partition1, partition2, partition3], { from: tokenHolder });
             await shouldFail.reverting(this.token.transferFrom(tokenHolder, to, 3, { from: operator }));

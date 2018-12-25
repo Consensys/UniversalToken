@@ -45,10 +45,11 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
     string symbol,
     uint256 granularity,
     address[] controllers,
-    address certificateSigner
+    address certificateSigner,
+    bytes32[] tokenDefaultPartitions
   )
     public
-    ERC1400(name, symbol, granularity, controllers, certificateSigner)
+    ERC1400(name, symbol, granularity, controllers, certificateSigner, tokenDefaultPartitions)
   {}
 
   /**

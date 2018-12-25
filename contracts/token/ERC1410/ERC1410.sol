@@ -27,7 +27,10 @@ contract ERC1410 is IERC1410, ERC777 {
   mapping (address => mapping (bytes32 => uint256)) internal _balanceOfByPartition;
 
   // Mapping from tokenHolder to their default partitions (for ERC777 and ERC20 compatibility).
-  mapping (address => bytes32[]) internal _defaultPartitions;
+  mapping (address => bytes32[]) internal _defaultPartitionsOf;
+
+  // List of token default partitions (for ERC20 compatibility).
+  bytes32[] internal _tokenDefaultPartitions;
   /****************************************************************************/
 
   /**************** Mappings to find partition operators ************************/
@@ -58,12 +61,14 @@ contract ERC1410 is IERC1410, ERC777 {
     string symbol,
     uint256 granularity,
     address[] controllers,
-    address certificateSigner
+    address certificateSigner,
+    bytes32[] tokenDefaultPartitions
   )
     public
     ERC777(name, symbol, granularity, controllers, certificateSigner)
   {
     setInterfaceImplementation("ERC1410Token", this);
+    _tokenDefaultPartitions = tokenDefaultPartitions;
   }
 
   /********************** ERC1410 EXTERNAL FUNCTIONS **************************/
@@ -149,7 +154,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @return Array of default partitions.
    */
   function getDefaultPartitions(address tokenHolder) external view returns (bytes32[]) {
-    return _defaultPartitions[tokenHolder];
+    return _defaultPartitionsOf[tokenHolder];
   }
 
   /**
@@ -159,7 +164,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param partitions partitions to use by default when not specified.
    */
   function setDefaultPartitions(bytes32[] partitions) external {
-    _defaultPartitions[msg.sender] = partitions;
+    _defaultPartitionsOf[msg.sender] = partitions;
   }
 
   /**
@@ -341,6 +346,21 @@ contract ERC1410 is IERC1410, ERC777 {
     }
   }
 
+  /**
+   * [INTERNAL]
+   * @dev Get the sender's default partition if setup, or the global default partition if not.
+   * @param tokenHolder Address for which the default partition is returned.
+   * @return Default partition.
+   */
+  function _getDefaultPartitions(address tokenHolder) internal view returns(bytes32[]) {
+    if(_defaultPartitionsOf[tokenHolder].length != 0) {
+      return _defaultPartitionsOf[tokenHolder];
+    } else {
+      return _tokenDefaultPartitions;
+    }
+  }
+
+
   /********************* ERC1410 OPTIONAL FUNCTIONS ***************************/
 
   /**
@@ -454,19 +474,20 @@ contract ERC1410 is IERC1410, ERC777 {
   )
     internal
   {
-    require(_defaultPartitions[from].length != 0, "A8: Transfer Blocked - Token restriction");
+    bytes32[] memory _partitions = _getDefaultPartitions(from);
+    require(_partitions.length != 0, "A8: Transfer Blocked - Token restriction");
 
     uint256 _remainingValue = value;
     uint256 _localBalance;
 
-    for (uint i = 0; i < _defaultPartitions[from].length; i++) {
-      _localBalance = _balanceOfByPartition[from][_defaultPartitions[from][i]];
+    for (uint i = 0; i < _partitions.length; i++) {
+      _localBalance = _balanceOfByPartition[from][_partitions[i]];
       if(_remainingValue <= _localBalance) {
-        _transferByPartition(_defaultPartitions[from][i], operator, from, to, _remainingValue, data, operatorData);
+        _transferByPartition(_partitions[i], operator, from, to, _remainingValue, data, operatorData);
         _remainingValue = 0;
         break;
       } else {
-        _transferByPartition(_defaultPartitions[from][i], operator, from, to, _localBalance, data, operatorData);
+        _transferByPartition(_partitions[i], operator, from, to, _localBalance, data, operatorData);
         _remainingValue = _remainingValue - _localBalance;
       }
     }
