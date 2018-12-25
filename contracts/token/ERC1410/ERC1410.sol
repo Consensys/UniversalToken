@@ -69,7 +69,7 @@ contract ERC1410 is IERC1410, ERC777 {
   /********************** ERC1410 EXTERNAL FUNCTIONS **************************/
 
   /**
-   * [ERC1410 INTERFACE (1/12)]
+   * [ERC1410 INTERFACE (1/10)]
    * @dev Get balance of a tokenholder for a specific partition.
    * @param partition Name of the partition.
    * @param tokenHolder Address for which the balance is returned.
@@ -80,7 +80,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (2/12)]
+   * [ERC1410 INTERFACE (2/10)]
    * @dev Get partitions index of a tokenholder.
    * @param tokenHolder Address for which the partitions index are returned.
    * @return Array of partitions index of 'tokenHolder'.
@@ -90,7 +90,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (3/12)]
+   * [ERC1410 INTERFACE (3/10)]
    * @dev Transfer tokens from a specific partition.
    * @param partition Name of the partition.
    * @param to Token recipient.
@@ -112,36 +112,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (4/12)]
-   * @dev Transfer tokens from specific partitions.
-   * @param partitions Name of the partitions.
-   * @param to Token recipient.
-   * @param values Number of tokens to transfer.
-   * @param data Information attached to the transfer, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
-   * @return Destination partitions.
-   */
-  function transferByPartitions(
-    bytes32[] partitions,
-    address to,
-    uint256[] values,
-    bytes data
-  )
-    external
-    isValidCertificate(data)
-    returns (bytes32[])
-  {
-    require(partitions.length == values.length, "A8: Transfer Blocked - Token restriction");
-    bytes32[] memory destinationPartitions = new bytes32[](partitions.length);
-
-    for (uint i = 0; i < partitions.length; i++) {
-      destinationPartitions[i] = _transferByPartition(partitions[i], msg.sender, msg.sender, to, values[i], data, "");
-    }
-
-    return destinationPartitions;
-  }
-
-  /**
-   * [ERC1410 INTERFACE (5/12)]
+   * [ERC1410 INTERFACE (4/10)]
    * @dev Transfer tokens from a specific partition through an operator.
    * @param partition Name of the partition.
    * @param from Token holder.
@@ -170,43 +141,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (6/12)]
-   * @dev Transfer tokens from specific partitions through an operator.
-   * @param partitions Name of the partitions.
-   * @param from Token holder.
-   * @param to Token recipient.
-   * @param values Number of tokens to transfer.
-   * @param data Information attached to the transfer, and intended for the token holder ('from'). [Contains the destination partition]
-   * @param operatorData Information attached to the transfer by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
-   * @return Destination partitions.
-   */
-  function operatorTransferByPartitions(
-    bytes32[] partitions,
-    address from,
-    address to,
-    uint256[] values,
-    bytes data,
-    bytes operatorData
-  )
-    external
-    isValidCertificate(operatorData)
-    returns (bytes32[])
-  {
-    require(partitions.length == values.length, "A8: Transfer Blocked - Token restriction");
-    bytes32[] memory destinationPartitions = new bytes32[](partitions.length);
-    address _from = (from == address(0)) ? msg.sender : from;
-
-    for (uint i = 0; i < partitions.length; i++) {
-      require(_isOperatorForPartition(partitions[i], msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
-
-      destinationPartitions[i] = _transferByPartition(partitions[i], msg.sender, _from, to, values[i], data, operatorData);
-    }
-
-    return destinationPartitions;
-  }
-
-  /**
-   * [ERC1410 INTERFACE (7/12)]
+   * [ERC1410 INTERFACE (5/10)]
    * @dev Get default partitions to transfer from.
    * Function used for ERC777 and ERC20 backwards compatibility.
    * For example, a security token may return the bytes32("unrestricted").
@@ -218,7 +153,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (8/12)]
+   * [ERC1410 INTERFACE (6/10)]
    * @dev Set default partitions to transfer from.
    * Function used for ERC777 and ERC20 backwards compatibility.
    * @param partitions partitions to use by default when not specified.
@@ -228,7 +163,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (9/12)]
+   * [ERC1410 INTERFACE (7/10)]
    * @dev Get controllers for a given partition.
    * Function used for ERC777 and ERC20 backwards compatibility.
    * @param partition Name of the partition.
@@ -239,7 +174,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (10/12)]
+   * [ERC1410 INTERFACE (8/10)]
    * @dev Set 'operator' as an operator for 'msg.sender' for a given partition.
    * @param partition Name of the partition.
    * @param operator Address to set as an operator for 'msg.sender'.
@@ -250,7 +185,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (11/12)]
+   * [ERC1410 INTERFACE (9/10)]
    * @dev Remove the right of the operator address to be an operator on a given
    * partition for 'msg.sender' and to transfer and burn tokens on its behalf.
    * @param partition Name of the partition.
@@ -262,7 +197,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (12/12)]
+   * [ERC1410 INTERFACE (10/10)]
    * @dev Indicate whether the operator address is an operator of the tokenHolder
    * address for the given partition.
    * @param partition Name of the partition.

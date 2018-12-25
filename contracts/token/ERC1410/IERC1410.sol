@@ -11,24 +11,22 @@ pragma solidity ^0.4.24;
 interface IERC1410 {
 
     // Token Information
-    function balanceOfByPartition(bytes32 partition, address tokenHolder) external view returns (uint256); // 1/12
-    function partitionsOf(address tokenHolder) external view returns (bytes32[]); // 2/12
+    function balanceOfByPartition(bytes32 partition, address tokenHolder) external view returns (uint256); // 1/10
+    function partitionsOf(address tokenHolder) external view returns (bytes32[]); // 2/10
 
     // Token Transfers
-    function transferByPartition(bytes32 partition, address to, uint256 value, bytes data) external returns (bytes32); // 3/12
-    function transferByPartitions(bytes32[] partitions, address to, uint256[] values, bytes data) external returns (bytes32[]); // 4/12
-    function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes data, bytes operatorData) external returns (bytes32); // 5/12
-    function operatorTransferByPartitions(bytes32[] partitions, address from, address to, uint256[] values, bytes data, bytes operatorData) external returns (bytes32[]); // 6/12
+    function transferByPartition(bytes32 partition, address to, uint256 value, bytes data) external returns (bytes32); // 3/10
+    function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes data, bytes operatorData) external returns (bytes32); // 4/10
 
     // Default Partition Management
-    function getDefaultPartitions(address tokenHolder) external view returns (bytes32[]); // 7/12
-    function setDefaultPartitions(bytes32[] partitions) external; // 8/12
+    function getDefaultPartitions(address tokenHolder) external view returns (bytes32[]); // 5/10
+    function setDefaultPartitions(bytes32[] partitions) external; // 6/10
 
     // Operators
-    function controllersByPartition(bytes32 partition) external view returns (address[]); // 9/12
-    function authorizeOperatorByPartition(bytes32 partition, address operator) external; // 10/12
-    function revokeOperatorByPartition(bytes32 partition, address operator) external; // 11/12
-    function isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) external view returns (bool); // 12/12
+    function controllersByPartition(bytes32 partition) external view returns (address[]); // 7/10
+    function authorizeOperatorByPartition(bytes32 partition, address operator) external; // 8/10
+    function revokeOperatorByPartition(bytes32 partition, address operator) external; // 9/10
+    function isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) external view returns (bool); // 10/10
 
     // Transfer Events
     event SentByPartition(
