@@ -13,9 +13,6 @@ import "../ERC777/ERC777.sol";
  */
 contract ERC1410 is IERC1410, ERC777 {
 
-  // Indicate whether the token can still be controlled by operators or not anymore.
-  bool internal _isControllable;
-
   /******************** Mappings to find partition ******************************/
   // List of partitions.
   bytes32[] internal _totalPartitions;
@@ -37,23 +34,12 @@ contract ERC1410 is IERC1410, ERC777 {
   // Mapping from (tokenHolder, partition, operator) to 'approved for partition' status. [TOKEN-HOLDER-SPECIFIC]
   mapping (address => mapping (bytes32 => mapping (address => bool))) internal _partitionAuthorizedOperator;
 
-  // Mapping from (tokenHolder, partition, operator) to 'revoked for partition' status. [TOKEN-HOLDER-SPECIFIC]
-  mapping (address => mapping (bytes32 => mapping (address => bool))) internal _partitionRevokedController;
-
   // Mapping from partition to controllers for the partition. [NOT TOKEN-HOLDER-SPECIFIC]
   mapping (bytes32 => address[]) internal _partitionControllers;
 
   // Mapping from (partition, operator) to controllerByPartition status. [NOT TOKEN-HOLDER-SPECIFIC]
   mapping (bytes32 => mapping (address => bool)) internal _isPartitionController;
   /****************************************************************************/
-
-  /**
-   * @dev Modifier to verify if token is controllable.
-   */
-  modifier controllableToken() {
-    require(_isControllable, "A8: Transfer Blocked - Token restriction");
-    _;
-  }
 
   /**
    * [ERC1410 CONSTRUCTOR]
@@ -178,8 +164,7 @@ contract ERC1410 is IERC1410, ERC777 {
     returns (bytes32)
   {
     address _from = (from == address(0)) ? msg.sender : from;
-    require(_isOperatorFor(msg.sender, _from, _isControllable)
-      || _isOperatorForPartition(partition, msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperatorForPartition(partition, msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
     return _transferByPartition(partition, msg.sender, _from, to, amount, data, operatorData);
   }
@@ -212,8 +197,7 @@ contract ERC1410 is IERC1410, ERC777 {
     address _from = (from == address(0)) ? msg.sender : from;
 
     for (uint i = 0; i < partitions.length; i++) {
-      require(_isOperatorFor(msg.sender, _from, _isControllable)
-        || _isOperatorForPartition(partitions[i], msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
+      require(_isOperatorForPartition(partitions[i], msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
       destinationPartitions[i] = _transferByPartition(partitions[i], msg.sender, _from, to, amounts[i], data, operatorData);
     }
@@ -251,11 +235,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @return Array of controllers for partition.
    */
   function controllersByPartition(bytes32 partition) external view returns (address[]) {
-    if (_isControllable) {
-      return _partitionControllers[partition];
-    } else {
-      return new address[](0);
-    }
+    return _partitionControllers[partition];
   }
 
   /**
@@ -265,7 +245,6 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param operator Address to set as an operator for 'msg.sender'.
    */
   function authorizeOperatorByPartition(bytes32 partition, address operator) external {
-    _partitionRevokedController[msg.sender][partition][operator] = false;
     _partitionAuthorizedOperator[msg.sender][partition][operator] = true;
     emit AuthorizedOperatorByPartition(partition, operator, msg.sender);
   }
@@ -278,7 +257,6 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param operator Address to rescind as an operator on given partition for 'msg.sender'.
    */
   function revokeOperatorByPartition(bytes32 partition, address operator) external {
-    _partitionRevokedController[msg.sender][partition][operator] = true;
     _partitionAuthorizedOperator[msg.sender][partition][operator] = false;
     emit RevokedOperatorByPartition(partition, operator, msg.sender);
   }
@@ -308,9 +286,9 @@ contract ERC1410 is IERC1410, ERC777 {
    * @return 'true' if 'operator' is an operator of 'tokenHolder' for partition 'partition' and 'false' otherwise.
    */
    function _isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) internal view returns (bool) {
-     return (_partitionAuthorizedOperator[tokenHolder][partition][operator]
-       || (_isPartitionController[partition][operator] && !_partitionRevokedController[tokenHolder][partition][operator])
-       || (_isPartitionController[partition][operator] && _isControllable)
+     return (_isOperatorFor(operator, tokenHolder)
+       || _partitionAuthorizedOperator[tokenHolder][partition][operator]
+       || (_isControllable && _isPartitionController[partition][operator])
      );
    }
 
@@ -475,15 +453,6 @@ contract ERC1410 is IERC1410, ERC777 {
 
   /**
    * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
-   * @dev Get the list of controllers as defined by the token contract.
-   * @return List of addresses of all the controllers.
-   */
-  function controllers() external view returns (address[]) {
-    return _getControllers(_isControllable);
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
    * @dev Transfer the amount of tokens from the address 'msg.sender' to the address 'to'.
    * @param to Token recipient.
    * @param amount Number of tokens to transfer.
@@ -511,7 +480,7 @@ contract ERC1410 is IERC1410, ERC777 {
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from, _isControllable), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
     _transferByDefaultPartitions(msg.sender, _from, to, amount, data, operatorData);
   }

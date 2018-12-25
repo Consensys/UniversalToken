@@ -26,6 +26,9 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   uint256 internal _granularity;
   uint256 internal _totalSupply;
 
+  // Indicate whether the token can still be controlled by operators or not anymore.
+  bool internal _isControllable;
+
   // Mapping from tokenHolder to balance.
   mapping(address => uint256) internal _balances;
 
@@ -33,15 +36,20 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   // Mapping from (operator, tokenHolder) to authorized status. [TOKEN-HOLDER-SPECIFIC]
   mapping(address => mapping(address => bool)) internal _authorizedOperator;
 
-  // Mapping from (operator, tokenHolder) to revoked status. [TOKEN-HOLDER-SPECIFIC]
-  mapping(address => mapping(address => bool)) internal _revokedController;
-
   // Array of controllers. [GLOBAL - NOT TOKEN-HOLDER-SPECIFIC]
   address[] internal _controllers;
 
   // Mapping from operator to controller status. [GLOBAL - NOT TOKEN-HOLDER-SPECIFIC]
   mapping(address => bool) internal _isController;
   /****************************************************************************/
+
+  /**
+   * @dev Modifier to verify if token is controllable.
+   */
+  modifier controllableToken() {
+    require(_isControllable, "A8: Transfer Blocked - Token restriction");
+    _;
+  }
 
   /**
    * [ERC777 CONSTRUCTOR]
@@ -132,7 +140,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @return List of addresses of all the controllers.
    */
   function controllers() external view returns (address[]) {
-    return _getControllers(true);
+    return _controllers;
   }
 
   /**
@@ -142,7 +150,6 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @param operator Address to set as an operator for 'msg.sender'.
    */
   function authorizeOperator(address operator) external {
-    _revokedController[operator][msg.sender] = false;
     _authorizedOperator[operator][msg.sender] = true;
     emit AuthorizedOperator(operator, msg.sender);
   }
@@ -154,7 +161,6 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @param operator Address to rescind as an operator for 'msg.sender'.
    */
   function revokeOperator(address operator) external {
-    _revokedController[operator][msg.sender] = true;
     _authorizedOperator[operator][msg.sender] = false;
     emit RevokedOperator(operator, msg.sender);
   }
@@ -167,7 +173,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @return 'true' if operator is an operator of 'tokenHolder' and 'false' otherwise.
    */
   function isOperatorFor(address operator, address tokenHolder) external view returns (bool) {
-    return _isOperatorFor(operator, tokenHolder, false);
+    return _isOperatorFor(operator, tokenHolder);
   }
 
   /**
@@ -199,7 +205,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from, false), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
     _transferWithData(msg.sender, _from, to, amount, data, operatorData, true);
   }
@@ -231,7 +237,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from, false), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
     _burn(msg.sender, _from, amount, data, operatorData);
   }
@@ -268,26 +274,11 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @param tokenHolder Address of a token holder which may have the 'operator' address as an operator.
    * @return 'true' if 'operator' is an operator of 'tokenHolder' and 'false' otherwise.
    */
-  function _isOperatorFor(address operator, address tokenHolder, bool isControllable) internal view returns (bool) {
+  function _isOperatorFor(address operator, address tokenHolder) internal view returns (bool) {
     return (operator == tokenHolder
       || _authorizedOperator[operator][tokenHolder]
-      || (_isController[operator] && !_revokedController[operator][tokenHolder])
-      || (_isController[operator] && isControllable)
+      || (_isControllable && _isController[operator])
     );
-  }
-
-  /**
-   * [INTERNAL]
-   * @dev Get the list of controllers as defined by the token contract.
-   * @param isControllable 'true' if token can have controllers, 'false' if not.
-   * @return List of addresses of all the controllers.
-   */
-  function _getControllers(bool isControllable) internal view returns (address[]) {
-    if (isControllable) {
-      return _controllers;
-    } else {
-      return new address[](0);
-    }
   }
 
    /**

@@ -161,8 +161,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     isValidCertificate(operatorData)
   {
     address _from = (tokenHolder == address(0)) ? msg.sender : tokenHolder;
-    require(_isOperatorFor(msg.sender, _from, _isControllable)
-      || _isOperatorForPartition(partition, msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperatorForPartition(partition, msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
     _redeemByPartition(partition, msg.sender, _from, amount, data, operatorData);
   }
@@ -331,17 +330,6 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   /************* ERC1410/ERC777 BACKWARDS RETROCOMPATIBILITY ******************/
 
   /**
-   * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC777 METHOD]
-   * @dev Indicate whether the operator address is an operator of the tokenHolder address.
-   * @param operator Address which may be an operator of 'tokenHolder'.
-   * @param tokenHolder Address of a token holder which may have the operator address as an operator.
-   * @return 'true' if operator is an operator of 'tokenHolder' and 'false' otherwise.
-   */
-  function isOperatorFor(address operator, address tokenHolder) external view returns (bool) {
-    return _isOperatorFor(operator, tokenHolder, _isControllable);
-  }
-
-  /**
    * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC1410 METHOD]
    * @dev Burn the amount of tokens from the address 'msg.sender'.
    * @param amount Number of tokens to burn.
@@ -368,7 +356,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from, _isControllable), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
     _redeemByDefaultPartitions(msg.sender, _from, amount, data, operatorData);
   }

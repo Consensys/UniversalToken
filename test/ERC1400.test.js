@@ -507,31 +507,6 @@ contract('ERC1400', function ([owner, operator, controller, tokenHolder, recipie
         assert.equal(logs[0].args.tokenHolder, tokenHolder);
       });
     });
-    describe('when operator is controller', function () {
-      describe('when token is not controllable', function () {
-        it('revokes the operator', async function () {
-          await this.token.removeController(controller, { from: owner });
-          await this.token.renounceControl({ from: owner });
-          assert(!(await this.token.isControllable()));
-
-          await this.token.fakeAddControllerByPartition(partition1, operator, { from: owner });
-          assert(await this.token.isOperatorForPartition(partition1, operator, tokenHolder));
-
-          await this.token.revokeOperatorByPartition(partition1, controller, { from: tokenHolder });
-          assert(!(await this.token.isOperatorForPartition(partition1, controller, tokenHolder)));
-        });
-      });
-      describe('when token is controllable', function () {
-        it('can not revoke the operator', async function () {
-          await this.token.addControllerByPartition(partition1, controller, { from: owner });
-          assert(await this.token.isOperatorForPartition(partition1, controller, tokenHolder));
-          assert(await this.token.isControllable());
-
-          await this.token.revokeOperatorByPartition(partition1, controller, { from: tokenHolder });
-          assert(await this.token.isOperatorForPartition(partition1, controller, tokenHolder));
-        });
-      });
-    });
   });
 
   // CONTROLLERS
@@ -547,17 +522,6 @@ contract('ERC1400', function ([owner, operator, controller, tokenHolder, recipie
 
         assert.equal(controllers.length, 1);
         assert.equal(controllers[0], controller);
-      });
-    });
-    describe('when the token is not controllable', function () {
-      it('returns an empty list', async function () {
-        assert(await this.token.isControllable());
-        await this.token.renounceControl({ from: owner });
-        assert(!(await this.token.isControllable()));
-
-        const controllers = await this.token.controllers();
-
-        assert.equal(controllers.length, 0);
       });
     });
   });
@@ -576,17 +540,6 @@ contract('ERC1400', function ([owner, operator, controller, tokenHolder, recipie
 
         assert.equal(controllers.length, 1);
         assert.equal(controllers[0], operator);
-      });
-    });
-    describe('when the token is not controllable', function () {
-      it('returns an empty list', async function () {
-        assert(await this.token.isControllable());
-        await this.token.renounceControl({ from: owner });
-        assert(!(await this.token.isControllable()));
-
-        const controllers = await this.token.controllersByPartition(partition3);
-
-        assert.equal(controllers.length, 0);
       });
     });
   });

@@ -106,20 +106,11 @@ contract('ERC777 without hooks', function ([owner, operator, controller, tokenHo
     });
 
     describe('controllers', function () {
-      describe('when the token is not controllable [ERC777-version]', function () {
-        it('returns the list of controllers', async function () {
-          const controllers = await this.token.controllers();
+      it('returns the list of controllers', async function () {
+        const controllers = await this.token.controllers();
 
-          assert.equal(controllers.length, 1);
-          assert.equal(controllers[0], controller);
-        });
-      });
-      describe('when the token is not controllable [ERC1400-version]', function () {
-        it('returns an empty list', async function () {
-          const controllers = await this.token.controllersMock(false);
-
-          assert.equal(controllers.length, 0);
-        });
+        assert.equal(controllers.length, 1);
+        assert.equal(controllers[0], controller);
       });
     });
 
@@ -152,11 +143,6 @@ contract('ERC777 without hooks', function ([owner, operator, controller, tokenHo
 
           assert(!(await this.token.isOperatorFor(operator, tokenHolder)));
         });
-        it('revokes the operator (when operator is the controller)', async function () {
-          assert(await this.token.isOperatorFor(controller, tokenHolder));
-          await this.token.revokeOperator(controller, { from: tokenHolder });
-          assert(!(await this.token.isOperatorFor(controller, tokenHolder)));
-        });
         it('emits a revoked event', async function () {
           const { logs } = await this.token.revokeOperator(controller, { from: tokenHolder });
 
@@ -175,9 +161,6 @@ contract('ERC777 without hooks', function ([owner, operator, controller, tokenHo
       it('when operator is authorized by tokenHolder', async function () {
         await this.token.authorizeOperator(operator, { from: tokenHolder });
         assert(await this.token.isOperatorFor(operator, tokenHolder));
-      });
-      it('when operator is controller', async function () {
-        assert(await this.token.isOperatorFor(controller, tokenHolder));
       });
       it('when is a revoked operator', async function () {
         await this.token.revokeOperator(controller, { from: tokenHolder });
@@ -199,7 +182,6 @@ contract('ERC777 without hooks', function ([owner, operator, controller, tokenHo
             assert.equal(controllers2.length, 2);
             assert.equal(controllers2[0], controller);
             assert.equal(controllers2[1], operator);
-            assert(await this.token.isOperatorFor(operator, unknown));
           });
         });
         describe('when the operator is already a controller', function () {
@@ -230,7 +212,6 @@ contract('ERC777 without hooks', function ([owner, operator, controller, tokenHo
             await this.token.removeController(controller, { from: owner });
             const controllers2 = await this.token.controllers();
             assert.equal(controllers2.length, 0);
-            assert(!(await this.token.isOperatorFor(controller, unknown)));
           });
           it('removes the operator from controllers (new controller)', async function () {
             await this.token.addController(operator, { from: owner });
@@ -238,12 +219,10 @@ contract('ERC777 without hooks', function ([owner, operator, controller, tokenHo
             assert.equal(controllers1.length, 2);
             assert.equal(controllers1[0], controller);
             assert.equal(controllers1[1], operator);
-            assert(await this.token.isOperatorFor(operator, unknown));
             await this.token.removeController(operator, { from: owner });
             const controllers2 = await this.token.controllers();
             assert.equal(controllers2.length, 1);
             assert.equal(controllers1[0], controller);
-            assert(!(await this.token.isOperatorFor(operator, unknown)));
           });
         });
         describe('when the operator is not already a controller', function () {

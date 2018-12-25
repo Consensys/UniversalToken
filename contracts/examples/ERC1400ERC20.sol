@@ -179,7 +179,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    */
   function transferFrom(address from, address to, uint256 value) external erc20Compatible returns (bool) {
     address _from = (from == address(0)) ? msg.sender : from;
-    require( _isOperatorFor(msg.sender, _from, _isControllable)
+    require( _isOperatorFor(msg.sender, _from)
       || (value <= _allowed[_from][msg.sender]), "A7: Transfer Blocked - Identity restriction");
 
     if(_allowed[_from][msg.sender] >= value) {
