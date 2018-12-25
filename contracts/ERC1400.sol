@@ -16,13 +16,13 @@ import "./token/ERC1410/ERC1410.sol";
  */
 contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
-  struct Document {
+  struct Doc {
     string docURI;
     bytes32 docHash;
   }
 
   // Mapping for token URIs.
-  mapping(bytes32 => Document) internal _documents;
+  mapping(bytes32 => Doc) internal _documents;
 
   // Indicate whether the token can still be minted/issued by the minter or not anymore.
   bool internal _isIssuable;
@@ -86,10 +86,11 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param documentHash Hash of the document [optional parameter].
    */
   function setDocument(bytes32 name, string uri, bytes32 documentHash) external onlyOwner {
-    _documents[name] = Document({
+    _documents[name] = Doc({
       docURI: uri,
       docHash: documentHash
     });
+    emit Document(name, uri, documentHash);
   }
 
   /**

@@ -24,6 +24,8 @@ const partition2 = '0x4973737565640000000000000000000000000000000000000000000000
 const partition3 = '0x4c6f636b65640000000000000000000000000000000000000000000000000000'; // dAuriel3 in hex
 const partitions = [partition1, partition2, partition3];
 
+const documentName = "0x446f63756d656e74204e616d6500000000000000000000000000000000000000";
+
 // const ESC_A1 = '0xa1'; // Transfer Verified - On-Chain approval for restricted token
 const ESC_A2 = '0xa2'; // Transfer Verified - Off-Chain approval for restricted token
 const ESC_A3 = '0xa3'; // Transfer Blocked - Sender lockup period not ended
@@ -547,7 +549,6 @@ contract('ERC1400', function ([owner, operator, controller, tokenHolder, recipie
   // SET/GET DOCUMENT
 
   describe('set/getDocument', function () {
-    const documentName = 'Document Name';
     const documentURI = 'Lorem ipsum dolor sit amet, consectetur adipiscing elit,sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat.'; // SHA-256 of documentURI
     const documentHash = '0x1c81c608a616183cc4a38c09ecc944eb77eaff465dd87aae0290177f2b70b6f8'; // SHA-256 of documentURI + '0x'
 
@@ -562,6 +563,15 @@ contract('ERC1400', function ([owner, operator, controller, tokenHolder, recipie
           const doc = await this.token.getDocument(documentName);
           assert.equal(documentURI, doc[0]);
           assert.equal(documentHash, doc[1]);
+        });
+        it('emits a docuemnt event', async function () {
+          const { logs } = await this.token.setDocument(documentName, documentURI, documentHash, { from: owner });
+
+          assert.equal(logs.length, 1);
+          assert.equal(logs[0].event, 'Document');
+          assert.equal(logs[0].args.name, documentName);
+          assert.equal(logs[0].args.uri, documentURI);
+          assert.equal(logs[0].args.documentHash, documentHash);
         });
       });
       describe('when sender is not the contract owner', function () {

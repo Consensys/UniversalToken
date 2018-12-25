@@ -13,6 +13,7 @@ interface IERC1400  {
     // Document Management
     function getDocument(bytes32 name) external view returns (string, bytes32); // 1/8
     function setDocument(bytes32 name, string uri, bytes32 documentHash) external; // 2/8
+    event Document(bytes32 indexed name, string uri, bytes32 documentHash);
 
     // Controller Operation
     function isControllable() external view returns (bool); // 3/8
