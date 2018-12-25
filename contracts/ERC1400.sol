@@ -66,7 +66,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   /********************** ERC1400 EXTERNAL FUNCTIONS **************************/
 
   /**
-   * [ERC1400 INTERFACE (1/8)]
+   * [ERC1400 INTERFACE (1/9)]
    * @dev Access a document associated with the token.
    * @param name Short name (represented as a bytes32) associated to the document.
    * @return Requested document + document hash.
@@ -80,7 +80,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   }
 
   /**
-   * [ERC1400 INTERFACE (2/8)]
+   * [ERC1400 INTERFACE (2/9)]
    * @dev Associate a document with the token.
    * @param name Short name (represented as a bytes32) associated to the document.
    * @param uri Document content.
@@ -95,7 +95,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   }
 
   /**
-   * [ERC1400 INTERFACE (3/8)]
+   * [ERC1400 INTERFACE (3/9)]
    * @dev Know if the token can be controlled by operators.
    * If a token returns 'false' for 'isControllable()'' then it MUST:
    *  - always return 'false' in the future.
@@ -108,7 +108,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   }
 
   /**
-   * [ERC1400 INTERFACE (4/8)]
+   * [ERC1400 INTERFACE (4/9)]
    * @dev Know if new tokens can be minted/issued in the future.
    * @return bool 'true' if tokens can still be minted/issued by the minter, 'false' if they can't anymore.
    */
@@ -117,7 +117,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   }
 
   /**
-   * [ERC1400 INTERFACE (5/8)]
+   * [ERC1400 INTERFACE (5/9)]
    * @dev Mint/issue tokens from a specific partition.
    * @param partition Name of the partition.
    * @param tokenHolder Address for which we want to mint/issue tokens.
@@ -135,7 +135,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   }
 
   /**
-   * [ERC1400 INTERFACE (6/8)]
+   * [ERC1400 INTERFACE (6/9)]
    * @dev Redeem tokens of a specific partition.
    * @param partition Name of the partition.
    * @param value Number of tokens minted.
@@ -150,7 +150,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   }
 
   /**
-   * [ERC1400 INTERFACE (7/8)]
+   * [ERC1400 INTERFACE (7/9)]
    * @dev Redeem tokens of a specific partition.
    * @param partition Name of the partition.
    * @param tokenHolder Address for which we want to redeem tokens.
@@ -169,9 +169,66 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   }
 
   /**
-   * [ERC1400 INTERFACE (8/8)]
+   * [ERC1400 INTERFACE (8/9)]
    * @dev Know the reason on success or failure based on the EIP-1066 application-specific status codes.
    * @param partition Name of the partition.
+   * @param to Token recipient.
+   * @param value Number of tokens to transfer.
+   * @param data Information attached to the transfer, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @return ESC (Ethereum Status Code) following the EIP-1066 standard.
+   * @return Additional bytes32 parameter that can be used to define
+   * application specific reason codes with additional details (for example the
+   * transfer restriction rule responsible for making the transfer operation invalid).
+   * @return Destination partition.
+   */
+  function canTransferByPartition(bytes32 partition, address to, uint256 value, bytes data)
+    external
+    view
+    returns (byte, bytes32, bytes32)
+  {
+    if(!_checkCertificate(data, 0, 0xf3d490db)) { // 4 first bytes of keccak256(transferByPartition(bytes32,address,uint256,bytes))
+      return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
+    } else {
+      return _canTransfer(partition, msg.sender, msg.sender, to, value, data, "");
+    }
+  }
+
+  /**
+   * [ERC1400 INTERFACE (9/9)]
+   * @dev Know the reason on success or failure based on the EIP-1066 application-specific status codes.
+   * @param partition Name of the partition.
+   * @param from Token holder.
+   * @param to Token recipient.
+   * @param value Number of tokens to transfer.
+   * @param data Information attached to the transfer, and intended for the token holder ('from'). [Can contain the destination partition]
+   * @param operatorData Information attached to the transfer, by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @return ESC (Ethereum Status Code) following the EIP-1066 standard.
+   * @return Additional bytes32 parameter that can be used to define
+   * application specific reason codes with additional details (for example the
+   * transfer restriction rule responsible for making the transfer operation invalid).
+   * @return Destination partition.
+   */
+  function canOperatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes data, bytes operatorData)
+    external
+    view
+    returns (byte, bytes32, bytes32)
+  {
+    if(!_checkCertificate(operatorData, 0, 0x8c0dee9c)) { // 4 first bytes of keccak256(operatorTransferByPartition(bytes32,address,address,uint256,bytes,bytes))
+      return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
+    } else {
+      address _from = (from == address(0)) ? msg.sender : from;
+      return _canTransfer(partition, msg.sender, _from, to, value, data, operatorData);
+    }
+  }
+
+  /********************** ERC1400 INTERNAL FUNCTIONS **************************/
+
+  /**
+   * [INTERNAL]
+   * @dev Know the reason on success or failure based on the EIP-1066 application-specific status codes.
+   * @param partition Name of the partition.
+   * @param operator The address performing the transfer.
+   * @param from Token holder.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer, and intended for the token holder ('from'). [Can contain the destination partition]
@@ -181,40 +238,38 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * transfer restriction rule responsible for making the transfer operation invalid).
    * @return Destination partition.
    */
-  function canTransfer(bytes32 partition, address to, uint256 value, bytes data)
-    external
-    view
-    returns (byte, bytes32, bytes32)
-  {
-    if(!_checkCertificate(data, 0, 0xf3d490db)) // 4 first bytes of keccak256(transferByPartition(bytes32,address,uint256,bytes))
-      return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
+   function _canTransfer(bytes32 partition, address operator, address from, address to, uint256 value, bytes data, bytes operatorData)
+     internal
+     view
+     returns (byte, bytes32, bytes32)
+   {
+     if(!_isOperatorForPartition(partition, operator, from))
+       return(hex"A7", "", partition); // "Transfer Blocked - Identity restriction"
 
-    if((_balances[msg.sender] < value) || (_balanceOfByPartition[msg.sender][partition] < value))
-      return(hex"A4", "", partition); // Transfer Blocked - Sender balance insufficient
+     if((_balances[from] < value) || (_balanceOfByPartition[from][partition] < value))
+       return(hex"A4", "", partition); // Transfer Blocked - Sender balance insufficient
 
-    if(to == address(0))
-      return(hex"A6", "", partition); // Transfer Blocked - Receiver not eligible
+     if(to == address(0))
+       return(hex"A6", "", partition); // Transfer Blocked - Receiver not eligible
 
-    address senderImplementation;
-    address recipientImplementation;
-    senderImplementation = interfaceAddr(msg.sender, "ERC777TokensSender");
-    recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
+     address senderImplementation;
+     address recipientImplementation;
+     senderImplementation = interfaceAddr(from, "ERC777TokensSender");
+     recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
 
-    if((senderImplementation != address(0))
-      && !IERC777TokensSender(senderImplementation).canTransfer(partition, msg.sender, to, value, data, ""))
-      return(hex"A5", "", partition); // Transfer Blocked - Sender not eligible
+     if((senderImplementation != address(0))
+       && !IERC777TokensSender(senderImplementation).canTransfer(partition, from, to, value, data, operatorData))
+       return(hex"A5", "", partition); // Transfer Blocked - Sender not eligible
 
-    if((recipientImplementation != address(0))
-      && !IERC777TokensRecipient(recipientImplementation).canReceive(partition, msg.sender, to, value, data, ""))
-      return(hex"A6", "", partition); // Transfer Blocked - Receiver not eligible
+     if((recipientImplementation != address(0))
+       && !IERC777TokensRecipient(recipientImplementation).canReceive(partition, from, to, value, data, operatorData))
+       return(hex"A6", "", partition); // Transfer Blocked - Receiver not eligible
 
-    if(!_isMultiple(value))
-      return(hex"A9", "", partition); // Transfer Blocked - Token granularity
+     if(!_isMultiple(value))
+       return(hex"A9", "", partition); // Transfer Blocked - Token granularity
 
-    return(hex"A2", "", partition);  // Transfer Verified - Off-Chain approval for restricted token
-  }
-
-  /********************** ERC1400 INTERNAL FUNCTIONS **************************/
+     return(hex"A2", "", partition);  // Transfer Verified - Off-Chain approval for restricted token
+   }
 
   /**
    * [INTERNAL]
