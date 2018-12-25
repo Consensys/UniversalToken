@@ -17,8 +17,8 @@ contract ERC1400Mock is ERC1400, CertificateControllerMock {
   {
   }
 
-  function fakeAddDefaultOperatorByTranche(bytes32 tranche, address operator) external onlyOwner {
-    _addDefaultOperatorByTranche(tranche, operator);
+  function fakeAddDefaultOperatorByPartition(bytes32 partition, address operator) external onlyOwner {
+    _addDefaultOperatorByPartition(partition, operator);
   }
 
 }

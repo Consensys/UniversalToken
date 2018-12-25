@@ -97,8 +97,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @dev Know if the token can be controlled by operators.
    * If a token returns 'false' for 'isControllable()'' then it MUST:
    *  - always return 'false' in the future.
-   *  - return empty lists for 'defaultOperators' and 'defaultOperatorsByTranche'.
-   *  - never add addresses for 'defaultOperators' and 'defaultOperatorsByTranche'.
+   *  - return empty lists for 'defaultOperators' and 'defaultOperatorsByPartition'.
+   *  - never add addresses for 'defaultOperators' and 'defaultOperatorsByPartition'.
    * @return bool 'true' if the token can still be controlled by operators, 'false' if it can't anymore.
    */
   function isControllable() external view returns (bool) {
@@ -116,83 +116,83 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
   /**
    * [ERC1400 INTERFACE (5/8)]
-   * @dev Mint/issue tokens from a specific tranche.
-   * @param tranche Name of the tranche.
+   * @dev Mint/issue tokens from a specific partition.
+   * @param partition Name of the partition.
    * @param tokenHolder Address for which we want to mint/issue tokens.
    * @param amount Number of tokens minted.
    * @param data Information attached to the minting, and intended for the
    * token holder ('to'). [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function issueByTranche(bytes32 tranche, address tokenHolder, uint256 amount, bytes data)
+  function issueByPartition(bytes32 partition, address tokenHolder, uint256 amount, bytes data)
     external
     onlyMinter
     issuableToken
     isValidCertificate(data)
   {
-    _issueByTranche(tranche, msg.sender, tokenHolder, amount, data, "");
+    _issueByPartition(partition, msg.sender, tokenHolder, amount, data, "");
   }
 
   /**
    * [ERC1400 INTERFACE (6/8)]
-   * @dev Redeem tokens of a specific tranche.
-   * @param tranche Name of the tranche.
+   * @dev Redeem tokens of a specific partition.
+   * @param partition Name of the partition.
    * @param amount Number of tokens minted.
    * @param data Information attached to the redeem, and intended for the
    * token holder ('from'). [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function redeemByTranche(bytes32 tranche, uint256 amount, bytes data)
+  function redeemByPartition(bytes32 partition, uint256 amount, bytes data)
     external
     isValidCertificate(data)
   {
-    _redeemByTranche(tranche, msg.sender, msg.sender, amount, data, "");
+    _redeemByPartition(partition, msg.sender, msg.sender, amount, data, "");
   }
 
   /**
    * [ERC1400 INTERFACE (7/8)]
-   * @dev Redeem tokens of a specific tranche.
-   * @param tranche Name of the tranche.
+   * @dev Redeem tokens of a specific partition.
+   * @param partition Name of the partition.
    * @param tokenHolder Address for which we want to redeem tokens.
    * @param amount Number of tokens minted.
    * @param data Information attached to the redeem, and intended for the token holder ('from').
    * @param operatorData Information attached to the redeem by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function operatorRedeemByTranche(bytes32 tranche, address tokenHolder, uint256 amount, bytes data, bytes operatorData)
+  function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 amount, bytes data, bytes operatorData)
     external
     isValidCertificate(operatorData)
   {
     address _from = (tokenHolder == address(0)) ? msg.sender : tokenHolder;
     require(_isOperatorFor(msg.sender, _from, _isControllable)
-      || _isOperatorForTranche(tranche, msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
+      || _isOperatorForPartition(partition, msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
-    _redeemByTranche(tranche, msg.sender, _from, amount, data, operatorData);
+    _redeemByPartition(partition, msg.sender, _from, amount, data, operatorData);
   }
 
   /**
    * [ERC1400 INTERFACE (8/8)]
    * @dev Know the reason on success or failure based on the EIP-1066 application-specific status codes.
-   * @param tranche Name of the tranche.
+   * @param partition Name of the partition.
    * @param to Token recipient.
-   * @param amount Number of tokens to send.
-   * @param data Information attached to the transfer, and intended for the token holder ('from'). [Can contain the destination tranche]
+   * @param amount Number of tokens to transfer.
+   * @param data Information attached to the transfer, and intended for the token holder ('from'). [Can contain the destination partition]
    * @return ESC (Ethereum Status Code) following the EIP-1066 standard.
    * @return Additional bytes32 parameter that can be used to define
    * application specific reason codes with additional details (for example the
-   * transfer restriction rule responsible for making the send operation invalid).
-   * @return Destination tranche.
+   * transfer restriction rule responsible for making the transfer operation invalid).
+   * @return Destination partition.
    */
-  function canSend(bytes32 tranche, address to, uint256 amount, bytes data)
+  function canTransfer(bytes32 partition, address to, uint256 amount, bytes data)
     external
     view
     returns (byte, bytes32, bytes32)
   {
-    if(!_checkCertificate(data, 0, 0xfb913d14)) // 4 first bytes of keccak256(sendByTranche(bytes32,address,uint256,bytes))
-      return(hex"A3", "", tranche); // Transfer Blocked - Sender lockup period not ended
+    if(!_checkCertificate(data, 0, 0xf3d490db)) // 4 first bytes of keccak256(transferByPartition(bytes32,address,uint256,bytes))
+      return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
 
-    if((_balances[msg.sender] < amount) || (_balanceOfByTranche[msg.sender][tranche] < amount))
-      return(hex"A4", "", tranche); // Transfer Blocked - Sender balance insufficient
+    if((_balances[msg.sender] < amount) || (_balanceOfByPartition[msg.sender][partition] < amount))
+      return(hex"A4", "", partition); // Transfer Blocked - Sender balance insufficient
 
     if(to == address(0))
-      return(hex"A6", "", tranche); // Transfer Blocked - Receiver not eligible
+      return(hex"A6", "", partition); // Transfer Blocked - Receiver not eligible
 
     address senderImplementation;
     address recipientImplementation;
@@ -200,33 +200,33 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
 
     if((senderImplementation != address(0))
-      && !IERC777TokensSender(senderImplementation).canSend(tranche, msg.sender, to, amount, data, ""))
-      return(hex"A5", "", tranche); // Transfer Blocked - Sender not eligible
+      && !IERC777TokensSender(senderImplementation).canTransfer(partition, msg.sender, to, amount, data, ""))
+      return(hex"A5", "", partition); // Transfer Blocked - Sender not eligible
 
     if((recipientImplementation != address(0))
-      && !IERC777TokensRecipient(recipientImplementation).canReceive(tranche, msg.sender, to, amount, data, ""))
-      return(hex"A6", "", tranche); // Transfer Blocked - Receiver not eligible
+      && !IERC777TokensRecipient(recipientImplementation).canReceive(partition, msg.sender, to, amount, data, ""))
+      return(hex"A6", "", partition); // Transfer Blocked - Receiver not eligible
 
     if(!_isMultiple(amount))
-      return(hex"A9", "", tranche); // Transfer Blocked - Token granularity
+      return(hex"A9", "", partition); // Transfer Blocked - Token granularity
 
-    return(hex"A2", "", tranche);  // Transfer Verified - Off-Chain approval for restricted token
+    return(hex"A2", "", partition);  // Transfer Verified - Off-Chain approval for restricted token
   }
 
   /********************** ERC1400 INTERNAL FUNCTIONS **************************/
 
   /**
    * [INTERNAL]
-   * @dev Mint/issue tokens from a specific tranche.
-   * @param toTranche Name of the tranche.
+   * @dev Mint/issue tokens from a specific partition.
+   * @param toPartition Name of the partition.
    * @param operator The address performing the mint/issuance.
    * @param to Token recipient.
    * @param amount Number of tokens to mint/issue.
-   * @param data Information attached to the mint/issuance, and intended for the token holder ('to'). [Contains the destination tranche]
+   * @param data Information attached to the mint/issuance, and intended for the token holder ('to'). [Contains the destination partition]
    * @param operatorData Information attached to the mint/issuance by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function _issueByTranche(
-    bytes32 toTranche,
+  function _issueByPartition(
+    bytes32 toPartition,
     address operator,
     address to,
     uint256 amount,
@@ -236,23 +236,23 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     internal
   {
     _mint(operator, to, amount, data, operatorData);
-    _addTokenToTranche(to, toTranche, amount);
+    _addTokenToPartition(to, toPartition, amount);
 
-    emit IssuedByTranche(toTranche, operator, to, amount, data, operatorData);
+    emit IssuedByPartition(toPartition, operator, to, amount, data, operatorData);
   }
 
   /**
    * [INTERNAL]
-   * @dev Redeem tokens of a specific tranche.
-   * @param fromTranche Name of the tranche.
+   * @dev Redeem tokens of a specific partition.
+   * @param fromPartition Name of the partition.
    * @param operator The address performing the mint/issuance.
    * @param from Token holder whose tokens will be redeemed.
    * @param amount Number of tokens to redeem.
    * @param data Information attached to the burn/redeem, and intended for the token holder ('from').
    * @param operatorData Information attached to the burn/redeem by the operator.
    */
-  function _redeemByTranche(
-    bytes32 fromTranche,
+  function _redeemByPartition(
+    bytes32 fromPartition,
     address operator,
     address from,
     uint256 amount,
@@ -261,12 +261,12 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   )
     internal
   {
-    require(_balanceOfByTranche[from][fromTranche] >= amount, "A4: Transfer Blocked - Sender balance insufficient");
+    require(_balanceOfByPartition[from][fromPartition] >= amount, "A4: Transfer Blocked - Sender balance insufficient");
 
-    _removeTokenFromTranche(from, fromTranche, amount);
+    _removeTokenFromPartition(from, fromPartition, amount);
     _burn(operator, from, amount, data, operatorData);
 
-    emit RedeemedByTranche(fromTranche, operator, from, amount, data, operatorData);
+    emit RedeemedByPartition(fromPartition, operator, from, amount, data, operatorData);
   }
 
   /********************** ERC1400 OPTIONAL FUNCTIONS **************************/
@@ -310,22 +310,22 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Add a default operator for a specific tranche of the token.
-   * @param tranche Name of the tranche.
+   * @dev Add a default operator for a specific partition of the token.
+   * @param partition Name of the partition.
    * @param operator Address to set as a default operator.
    */
-  function addDefaultOperatorByTranche(bytes32 tranche, address operator) external onlyOwner controllableToken {
-    _addDefaultOperatorByTranche(tranche, operator);
+  function addDefaultOperatorByPartition(bytes32 partition, address operator) external onlyOwner controllableToken {
+    _addDefaultOperatorByPartition(partition, operator);
   }
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Remove default operator of a specific tranche of the token.
-   * @param tranche Name of the tranche.
+   * @dev Remove default operator of a specific partition of the token.
+   * @param partition Name of the partition.
    * @param operator Address to set as a default operator.
    */
-  function removeDefaultOperatorByTranche(bytes32 tranche, address operator) external onlyOwner {
-    _removeDefaultOperatorByTranche(tranche, operator);
+  function removeDefaultOperatorByPartition(bytes32 partition, address operator) external onlyOwner {
+    _removeDefaultOperatorByPartition(partition, operator);
   }
 
   /************* ERC1410/ERC777 BACKWARDS RETROCOMPATIBILITY ******************/
@@ -351,7 +351,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     external
     isValidCertificate(data)
   {
-    _redeemByDefaultTranches(msg.sender, msg.sender, amount, data, "");
+    _redeemByDefaultPartitions(msg.sender, msg.sender, amount, data, "");
   }
 
   /**
@@ -370,19 +370,19 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
     require(_isOperatorFor(msg.sender, _from, _isControllable), "A7: Transfer Blocked - Identity restriction");
 
-    _redeemByDefaultTranches(msg.sender, _from, amount, data, operatorData);
+    _redeemByDefaultPartitions(msg.sender, _from, amount, data, operatorData);
   }
 
   /**
   * [NOT MANDATORY FOR ERC1410 STANDARD]
-   * @dev Redeem tokens from a default tranches.
+   * @dev Redeem tokens from a default partitions.
    * @param operator The address performing the redeem.
    * @param from Token holder.
    * @param amount Number of tokens to redeem.
    * @param data Information attached to the burn/redeem, and intended for the token holder (from).
    * @param operatorData Information attached to the burn/redeem by the operator.
    */
-  function _redeemByDefaultTranches(
+  function _redeemByDefaultPartitions(
     address operator,
     address from,
     uint256 amount,
@@ -391,19 +391,19 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   )
     internal
   {
-    require(_defaultTranches[from].length != 0, "A8: Transfer Blocked - Token restriction");
+    require(_defaultPartitions[from].length != 0, "A8: Transfer Blocked - Token restriction");
 
     uint256 _remainingAmount = amount;
     uint256 _localBalance;
 
-    for (uint i = 0; i < _defaultTranches[from].length; i++) {
-      _localBalance = _balanceOfByTranche[from][_defaultTranches[from][i]];
+    for (uint i = 0; i < _defaultPartitions[from].length; i++) {
+      _localBalance = _balanceOfByPartition[from][_defaultPartitions[from][i]];
       if(_remainingAmount <= _localBalance) {
-        _redeemByTranche(_defaultTranches[from][i], operator, from, _remainingAmount, data, operatorData);
+        _redeemByPartition(_defaultPartitions[from][i], operator, from, _remainingAmount, data, operatorData);
         _remainingAmount = 0;
         break;
       } else {
-        _redeemByTranche(_defaultTranches[from][i], operator, from, _localBalance, data, operatorData);
+        _redeemByPartition(_defaultPartitions[from][i], operator, from, _localBalance, data, operatorData);
         _remainingAmount = _remainingAmount - _localBalance;
       }
     }

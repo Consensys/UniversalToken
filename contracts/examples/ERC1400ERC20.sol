@@ -55,19 +55,19 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
 
   /**
    * [OVERRIDES ERC1400 METHOD]
-   * @dev Perform the sending of tokens.
-   * @param operator The address performing the send.
+   * @dev Perform the transfer of tokens.
+   * @param operator The address performing the transfer.
    * @param from Token holder.
    * @param to Token recipient.
-   * @param amount Number of tokens to send.
-   * @param data Information attached to the send, and intended for the token holder ('from').
-   * @param operatorData Information attached to the send by the operator.
+   * @param amount Number of tokens to transfer.
+   * @param data Information attached to the transfer, and intended for the token holder ('from').
+   * @param operatorData Information attached to the transfer by the operator.
    * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
    * implementing 'erc777tokenHolder'.
-   * ERC777 native Send functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
+   * ERC777 native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
    * functions SHOULD set this parameter to 'false'.
    */
-  function _sendTo(
+  function _transferWithData(
     address operator,
     address from,
     address to,
@@ -78,7 +78,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
   )
     internal
   {
-    ERC777._sendTo(operator, from, to, amount, data, operatorData, preventLocking);
+    ERC777._transferWithData(operator, from, to, amount, data, operatorData, preventLocking);
 
     if(_erc20compatible) {
       emit Transfer(from, to, amount);
@@ -165,14 +165,14 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @return A boolean that indicates if the operation was successful.
    */
   function transfer(address to, uint256 value) external erc20Compatible returns (bool) {
-    _sendByDefaultTranches(msg.sender, msg.sender, to, value, "", "");
+    _transferByDefaultPartitions(msg.sender, msg.sender, to, value, "", "");
     return true;
   }
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD]
    * @dev Transfer tokens from one address to another.
-   * @param from The address which you want to send tokens from.
+   * @param from The address which you want to transfer tokens from.
    * @param to The address which you want to transfer to.
    * @param value The amount of tokens to be transferred.
    * @return A boolean that indicates if the operation was successful.
@@ -188,7 +188,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
       _allowed[_from][msg.sender] = 0;
     }
 
-    _sendByDefaultTranches(msg.sender, _from, to, value, "", "");
+    _transferByDefaultPartitions(msg.sender, _from, to, value, "", "");
     return true;
   }
 

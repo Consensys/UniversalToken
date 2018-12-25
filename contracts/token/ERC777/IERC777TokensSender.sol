@@ -9,9 +9,9 @@ pragma solidity ^0.4.24;
  * @dev ERC777TokensSender interface
  */
 interface IERC777TokensSender {
-  
-  function canSend(
-    bytes32 tranche,
+
+  function canTransfer(
+    bytes32 partition,
     address from,
     address to,
     uint amount,
@@ -19,7 +19,7 @@ interface IERC777TokensSender {
     bytes operatorData
   ) external view returns(bool);
 
-  function tokensToSend(
+  function tokensToTransfer(
     address operator,
     address from,
     address to,

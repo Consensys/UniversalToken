@@ -11,28 +11,28 @@ pragma solidity ^0.4.24;
 interface IERC1410 {
 
     // Token Information
-    function balanceOfByTranche(bytes32 tranche, address tokenHolder) external view returns (uint256); // 1/12
-    function tranchesOf(address tokenHolder) external view returns (bytes32[]); // 2/12
+    function balanceOfByPartition(bytes32 partition, address tokenHolder) external view returns (uint256); // 1/12
+    function partitionsOf(address tokenHolder) external view returns (bytes32[]); // 2/12
 
     // Token Transfers
-    function sendByTranche(bytes32 tranche, address to, uint256 amount, bytes data) external returns (bytes32); // 3/12
-    function sendByTranches(bytes32[] tranches, address to, uint256[] amounts, bytes data) external returns (bytes32[]); // 4/12
-    function operatorSendByTranche(bytes32 tranche, address from, address to, uint256 amount, bytes data, bytes operatorData) external returns (bytes32); // 5/12
-    function operatorSendByTranches(bytes32[] tranches, address from, address to, uint256[] amounts, bytes data, bytes operatorData) external returns (bytes32[]); // 6/12
+    function transferByPartition(bytes32 partition, address to, uint256 amount, bytes data) external returns (bytes32); // 3/12
+    function transferByPartitions(bytes32[] partitions, address to, uint256[] amounts, bytes data) external returns (bytes32[]); // 4/12
+    function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 amount, bytes data, bytes operatorData) external returns (bytes32); // 5/12
+    function operatorTransferByPartitions(bytes32[] partitions, address from, address to, uint256[] amounts, bytes data, bytes operatorData) external returns (bytes32[]); // 6/12
 
-    // Default Tranche Management
-    function getDefaultTranches(address tokenHolder) external view returns (bytes32[]); // 7/12
-    function setDefaultTranches(bytes32[] tranches) external; // 8/12
+    // Default Partition Management
+    function getDefaultPartitions(address tokenHolder) external view returns (bytes32[]); // 7/12
+    function setDefaultPartitions(bytes32[] partitions) external; // 8/12
 
     // Operators
-    function defaultOperatorsByTranche(bytes32 tranche) external view returns (address[]); // 9/12
-    function authorizeOperatorByTranche(bytes32 tranche, address operator) external; // 10/12
-    function revokeOperatorByTranche(bytes32 tranche, address operator) external; // 11/12
-    function isOperatorForTranche(bytes32 tranche, address operator, address tokenHolder) external view returns (bool); // 12/12
+    function defaultOperatorsByPartition(bytes32 partition) external view returns (address[]); // 9/12
+    function authorizeOperatorByPartition(bytes32 partition, address operator) external; // 10/12
+    function revokeOperatorByPartition(bytes32 partition, address operator) external; // 11/12
+    function isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) external view returns (bool); // 12/12
 
     // Transfer Events
-    event SentByTranche(
-        bytes32 indexed fromTranche,
+    event SentByPartition(
+        bytes32 indexed fromPartition,
         address operator,
         address indexed from,
         address indexed to,
@@ -40,14 +40,14 @@ interface IERC1410 {
         bytes data,
         bytes operatorData
     );
-    event ChangedTranche(
-        bytes32 indexed fromTranche,
-        bytes32 indexed toTranche,
+    event ChangedPartition(
+        bytes32 indexed fromPartition,
+        bytes32 indexed toPartition,
         uint256 amount
     );
 
     // Operator Events
-    event AuthorizedOperatorByTranche(bytes32 indexed tranche, address indexed operator, address indexed tokenHolder);
-    event RevokedOperatorByTranche(bytes32 indexed tranche, address indexed operator, address indexed tokenHolder);
+    event AuthorizedOperatorByPartition(bytes32 indexed partition, address indexed operator, address indexed tokenHolder);
+    event RevokedOperatorByPartition(bytes32 indexed partition, address indexed operator, address indexed tokenHolder);
 
 }

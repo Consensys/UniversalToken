@@ -137,7 +137,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
 
   /**
    * [ERC777 INTERFACE (7/13)]
-   * @dev Set a third party operator address as an operator of 'msg.sender' to send
+   * @dev Set a third party operator address as an operator of 'msg.sender' to transfer
    * and burn tokens on its behalf.
    * @param operator Address to set as an operator for 'msg.sender'.
    */
@@ -150,7 +150,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   /**
    * [ERC777 INTERFACE (8/13)]
    * @dev Remove the right of the operator address to be an operator for 'msg.sender'
-   * and to send and burn tokens on its behalf.
+   * and to transfer and burn tokens on its behalf.
    * @param operator Address to rescind as an operator for 'msg.sender'.
    */
   function revokeOperator(address operator) external {
@@ -172,28 +172,28 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
 
   /**
    * [ERC777 INTERFACE (10/13)]
-   * @dev Send the amount of tokens from the address 'msg.sender' to the address 'to'.
+   * @dev Transfer the amount of tokens from the address 'msg.sender' to the address 'to'.
    * @param to Token recipient.
-   * @param amount Number of tokens to send.
-   * @param data Information attached to the send, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param amount Number of tokens to transfer.
+   * @param data Information attached to the transfer, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function sendTo(address to, uint256 amount, bytes data)
+  function transferWithData(address to, uint256 amount, bytes data)
     external
     isValidCertificate(data)
   {
-    _sendTo(msg.sender, msg.sender, to, amount, data, "", true);
+    _transferWithData(msg.sender, msg.sender, to, amount, data, "", true);
   }
 
   /**
    * [ERC777 INTERFACE (11/13)]
-   * @dev Send the amount of tokens on behalf of the address 'from' to the address 'to'.
+   * @dev Transfer the amount of tokens on behalf of the address 'from' to the address 'to'.
    * @param from Token holder (or 'address(0)' to set from to 'msg.sender').
    * @param to Token recipient.
-   * @param amount Number of tokens to send.
-   * @param data Information attached to the send, and intended for the token holder ('from').
-   * @param operatorData Information attached to the send by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param amount Number of tokens to transfer.
+   * @param data Information attached to the transfer, and intended for the token holder ('from').
+   * @param operatorData Information attached to the transfer by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function operatorSendTo(address from, address to, uint256 amount, bytes data, bytes operatorData)
+  function transferFromWithData(address from, address to, uint256 amount, bytes data, bytes operatorData)
     external
     isValidCertificate(operatorData)
   {
@@ -201,7 +201,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
 
     require(_isOperatorFor(msg.sender, _from, false), "A7: Transfer Blocked - Identity restriction");
 
-    _sendTo(msg.sender, _from, to, amount, data, operatorData, true);
+    _transferWithData(msg.sender, _from, to, amount, data, operatorData, true);
   }
 
   /**
@@ -292,19 +292,19 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
 
    /**
     * [INTERNAL]
-    * @dev Perform the sending of tokens.
-    * @param operator The address performing the send.
+    * @dev Perform the transfer of tokens.
+    * @param operator The address performing the transfer.
     * @param from Token holder.
     * @param to Token recipient.
-    * @param amount Number of tokens to send.
-    * @param data Information attached to the send, and intended for the token holder ('from').
-    * @param operatorData Information attached to the send by the operator.
+    * @param amount Number of tokens to transfer.
+    * @param data Information attached to the transfer, and intended for the token holder ('from').
+    * @param operatorData Information attached to the transfer by the operator.
     * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
     * implementing 'erc777tokenHolder'.
-    * ERC777 native Send functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
+    * ERC777 native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
     * functions SHOULD set this parameter to 'false'.
     */
-  function _sendTo(
+  function _transferWithData(
     address operator,
     address from,
     address to,
@@ -357,9 +357,9 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * [INTERNAL]
    * @dev Check for 'ERC777TokensSender' hook on the sender and call it.
    * May throw according to 'preventLocking'.
-   * @param operator Address which triggered the balance decrease (through sending or burning).
+   * @param operator Address which triggered the balance decrease (through transfer or burning).
    * @param from Token holder.
-   * @param to Token recipient for a send and 0x for a burn.
+   * @param to Token recipient for a transfer and 0x for a burn.
    * @param amount Number of tokens the token holder balance is decreased by.
    * @param data Extra information, intended for the token holder ('from').
    * @param operatorData Extra information attached by the operator (if any).
@@ -378,7 +378,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
     senderImplementation = interfaceAddr(from, "ERC777TokensSender");
 
     if (senderImplementation != address(0)) {
-      IERC777TokensSender(senderImplementation).tokensToSend(operator, from, to, amount, data, operatorData);
+      IERC777TokensSender(senderImplementation).tokensToTransfer(operator, from, to, amount, data, operatorData);
     }
   }
 
@@ -386,15 +386,15 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * [INTERNAL]
    * @dev Check for 'ERC777TokensRecipient' hook on the recipient and call it.
    * May throw according to 'preventLocking'.
-   * @param operator Address which triggered the balance increase (through sending or minting).
-   * @param from Token holder for a send and 0x for a mint.
+   * @param operator Address which triggered the balance increase (through transfer or minting).
+   * @param from Token holder for a transfer and 0x for a mint.
    * @param to Token recipient.
    * @param amount Number of tokens the recipient balance is increased by.
    * @param data Extra information, intended for the token holder ('from').
    * @param operatorData Extra information attached by the operator (if any).
    * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
    * implementing 'ERC777TokensRecipient'.
-   * ERC777 native Send functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
+   * ERC777 native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
    * functions SHOULD set this parameter to 'false'.
    */
   function _callRecipient(
@@ -429,7 +429,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    */
   function _mint(address operator, address to, uint256 amount, bytes data, bytes operatorData) internal {
     require(_isMultiple(amount), "A9: Transfer Blocked - Token granularity");
-    require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");      // forbid sending to 0x0 (=burning)
+    require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");      // forbid transfer to 0x0 (=burning)
 
     _totalSupply = _totalSupply.add(amount);
     _balances[to] = _balances[to].add(amount);
