@@ -16,7 +16,7 @@ interface IERC777 {
   function balanceOf(address owner) external view returns (uint256); // 4/13
   function granularity() external view returns (uint256); // 5/13
 
-  function defaultOperators() external view returns (address[]); // 6/13
+  function controllers() external view returns (address[]); // 6/13
   function authorizeOperator(address operator) external; // 7/13
   function revokeOperator(address operator) external; // 8/13
   function isOperatorFor(address operator, address tokenHolder) external view returns (bool); // 9/13

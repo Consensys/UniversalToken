@@ -35,16 +35,16 @@ contract ERC1410 is IERC1410, ERC777 {
 
   /**************** Mappings to find partition operators ************************/
   // Mapping from (tokenHolder, partition, operator) to 'approved for partition' status. [TOKEN-HOLDER-SPECIFIC]
-  mapping (address => mapping (bytes32 => mapping (address => bool))) internal _partitionAuthorized;
+  mapping (address => mapping (bytes32 => mapping (address => bool))) internal _partitionAuthorizedOperator;
 
   // Mapping from (tokenHolder, partition, operator) to 'revoked for partition' status. [TOKEN-HOLDER-SPECIFIC]
-  mapping (address => mapping (bytes32 => mapping (address => bool))) internal _partitionRevokedDefaultOperator;
+  mapping (address => mapping (bytes32 => mapping (address => bool))) internal _partitionRevokedController;
 
-  // Mapping from partition to default operators for the partition. [NOT TOKEN-HOLDER-SPECIFIC]
-  mapping (bytes32 => address[]) internal _defaultOperatorsByPartition;
+  // Mapping from partition to controllers for the partition. [NOT TOKEN-HOLDER-SPECIFIC]
+  mapping (bytes32 => address[]) internal _partitionControllers;
 
-  // Mapping from (partition, operator) to defaultOperatorByPartition status. [NOT TOKEN-HOLDER-SPECIFIC]
-  mapping (bytes32 => mapping (address => bool)) internal _isDefaultOperatorByPartition;
+  // Mapping from (partition, operator) to controllerByPartition status. [NOT TOKEN-HOLDER-SPECIFIC]
+  mapping (bytes32 => mapping (address => bool)) internal _isPartitionController;
   /****************************************************************************/
 
   /**
@@ -62,7 +62,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param name Name of the token.
    * @param symbol Symbol of the token.
    * @param granularity Granularity of the token.
-   * @param defaultOperators Array of initial default operators.
+   * @param controllers Array of initial controllers.
    * @param certificateSigner Address of the off-chain service which signs the
    * conditional ownership certificates required for token transfers, mint,
    * burn (Cf. CertificateController.sol).
@@ -71,11 +71,11 @@ contract ERC1410 is IERC1410, ERC777 {
     string name,
     string symbol,
     uint256 granularity,
-    address[] defaultOperators,
+    address[] controllers,
     address certificateSigner
   )
     public
-    ERC777(name, symbol, granularity, defaultOperators, certificateSigner)
+    ERC777(name, symbol, granularity, controllers, certificateSigner)
   {
     setInterfaceImplementation("ERC1410Token", this);
   }
@@ -245,14 +245,14 @@ contract ERC1410 is IERC1410, ERC777 {
 
   /**
    * [ERC1410 INTERFACE (9/12)]
-   * @dev Get default operators for a given partition.
+   * @dev Get controllers for a given partition.
    * Function used for ERC777 and ERC20 backwards compatibility.
    * @param partition Name of the partition.
-   * @return Array of default operators for partition.
+   * @return Array of controllers for partition.
    */
-  function defaultOperatorsByPartition(bytes32 partition) external view returns (address[]) {
+  function controllersByPartition(bytes32 partition) external view returns (address[]) {
     if (_isControllable) {
-      return _defaultOperatorsByPartition[partition];
+      return _partitionControllers[partition];
     } else {
       return new address[](0);
     }
@@ -265,8 +265,8 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param operator Address to set as an operator for 'msg.sender'.
    */
   function authorizeOperatorByPartition(bytes32 partition, address operator) external {
-    _partitionRevokedDefaultOperator[msg.sender][partition][operator] = false;
-    _partitionAuthorized[msg.sender][partition][operator] = true;
+    _partitionRevokedController[msg.sender][partition][operator] = false;
+    _partitionAuthorizedOperator[msg.sender][partition][operator] = true;
     emit AuthorizedOperatorByPartition(partition, operator, msg.sender);
   }
 
@@ -278,8 +278,8 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param operator Address to rescind as an operator on given partition for 'msg.sender'.
    */
   function revokeOperatorByPartition(bytes32 partition, address operator) external {
-    _partitionRevokedDefaultOperator[msg.sender][partition][operator] = true;
-    _partitionAuthorized[msg.sender][partition][operator] = false;
+    _partitionRevokedController[msg.sender][partition][operator] = true;
+    _partitionAuthorizedOperator[msg.sender][partition][operator] = false;
     emit RevokedOperatorByPartition(partition, operator, msg.sender);
   }
 
@@ -308,9 +308,9 @@ contract ERC1410 is IERC1410, ERC777 {
    * @return 'true' if 'operator' is an operator of 'tokenHolder' for partition 'partition' and 'false' otherwise.
    */
    function _isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) internal view returns (bool) {
-     return (_partitionAuthorized[tokenHolder][partition][operator]
-       || (_isDefaultOperatorByPartition[partition][operator] && !_partitionRevokedDefaultOperator[tokenHolder][partition][operator])
-       || (_isDefaultOperatorByPartition[partition][operator] && _isControllable)
+     return (_partitionAuthorizedOperator[tokenHolder][partition][operator]
+       || (_isPartitionController[partition][operator] && !_partitionRevokedController[tokenHolder][partition][operator])
+       || (_isPartitionController[partition][operator] && _isControllable)
      );
    }
 
@@ -441,45 +441,45 @@ contract ERC1410 is IERC1410, ERC777 {
 
   /**
    * [NOT MANDATORY FOR ERC1410 STANDARD][SHALL BE CALLED ONLY FROM ERC1400]
-   * @dev Add a default operator for a specific partition of the token.
+   * @dev Add a controller for a specific partition of the token.
    * @param partition Name of the partition.
-   * @param operator Address to set as a default operator.
+   * @param operator Address to set as a controller.
    */
-  function _addDefaultOperatorByPartition(bytes32 partition, address operator) internal {
-    require(!_isDefaultOperatorByPartition[partition][operator], "Action Blocked - Already a default operator");
-    _defaultOperatorsByPartition[partition].push(operator);
-    _isDefaultOperatorByPartition[partition][operator] = true;
+  function _addControllerByPartition(bytes32 partition, address operator) internal {
+    require(!_isPartitionController[partition][operator], "Action Blocked - Already a controller");
+    _partitionControllers[partition].push(operator);
+    _isPartitionController[partition][operator] = true;
   }
 
   /**
    * [NOT MANDATORY FOR ERC1410 STANDARD][SHALL BE CALLED ONLY FROM ERC1400]
-   * @dev Remove default operator of a specific partition of the token.
+   * @dev Remove controller of a specific partition of the token.
    * @param partition Name of the partition.
-   * @param operator Address to remove from default operators of partition.
+   * @param operator Address to remove from controllers of partition.
    */
-  function _removeDefaultOperatorByPartition(bytes32 partition, address operator) internal {
-    require(_isDefaultOperatorByPartition[partition][operator], "Action Blocked - Not a default operator");
+  function _removeControllerByPartition(bytes32 partition, address operator) internal {
+    require(_isPartitionController[partition][operator], "Action Blocked - Not a controller");
 
-    for (uint i = 0; i < _defaultOperatorsByPartition[partition].length; i++){
-      if(_defaultOperatorsByPartition[partition][i] == operator) {
-        _defaultOperatorsByPartition[partition][i] = _defaultOperatorsByPartition[partition][_defaultOperatorsByPartition[partition].length - 1];
-        delete _defaultOperatorsByPartition[partition][_defaultOperatorsByPartition[partition].length-1];
-        _defaultOperatorsByPartition[partition].length--;
+    for (uint i = 0; i < _partitionControllers[partition].length; i++){
+      if(_partitionControllers[partition][i] == operator) {
+        _partitionControllers[partition][i] = _partitionControllers[partition][_partitionControllers[partition].length - 1];
+        delete _partitionControllers[partition][_partitionControllers[partition].length-1];
+        _partitionControllers[partition].length--;
         break;
       }
     }
-    _isDefaultOperatorByPartition[partition][operator] = false;
+    _isPartitionController[partition][operator] = false;
   }
 
   /************** ERC777 BACKWARDS RETROCOMPATIBILITY *************************/
 
   /**
    * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
-   * @dev Get the list of default operators as defined by the token contract.
-   * @return List of addresses of all the default operators.
+   * @dev Get the list of controllers as defined by the token contract.
+   * @return List of addresses of all the controllers.
    */
-  function defaultOperators() external view returns (address[]) {
-    return _getDefaultOperators(_isControllable);
+  function controllers() external view returns (address[]) {
+    return _getControllers(_isControllable);
   }
 
   /**

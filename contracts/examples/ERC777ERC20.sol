@@ -35,7 +35,7 @@ contract ERC777ERC20 is IERC20, ERC777Mintable {
    * @param name Name of the token.
    * @param symbol Symbol of the token.
    * @param granularity Granularity of the token.
-   * @param defaultOperators Array of initial default operators.
+   * @param controllers Array of initial controllers.
    * @param certificateSigner Address of the off-chain service which signs the
    * conditional ownership certificates required for token transfers, mint,
    * burn (Cf. CertificateController.sol).
@@ -44,11 +44,11 @@ contract ERC777ERC20 is IERC20, ERC777Mintable {
     string name,
     string symbol,
     uint256 granularity,
-    address[] defaultOperators,
+    address[] controllers,
     address certificateSigner
   )
     public
-    ERC777(name, symbol, granularity, defaultOperators, certificateSigner)
+    ERC777(name, symbol, granularity, controllers, certificateSigner)
   {
     _setERC20compatibility(true);
   }

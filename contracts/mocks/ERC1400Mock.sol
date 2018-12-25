@@ -9,16 +9,16 @@ contract ERC1400Mock is ERC1400, CertificateControllerMock {
     string name,
     string symbol,
     uint256 granularity,
-    address[] defaultOperators,
+    address[] controllers,
     address certificateSigner
   )
     public
-    ERC1400(name, symbol, granularity, defaultOperators, certificateSigner)
+    ERC1400(name, symbol, granularity, controllers, certificateSigner)
   {
   }
 
-  function fakeAddDefaultOperatorByPartition(bytes32 partition, address operator) external onlyOwner {
-    _addDefaultOperatorByPartition(partition, operator);
+  function fakeAddControllerByPartition(bytes32 partition, address operator) external onlyOwner {
+    _addControllerByPartition(partition, operator);
   }
 
 }

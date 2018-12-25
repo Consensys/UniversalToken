@@ -25,7 +25,7 @@ interface IERC1410 {
     function setDefaultPartitions(bytes32[] partitions) external; // 8/12
 
     // Operators
-    function defaultOperatorsByPartition(bytes32 partition) external view returns (address[]); // 9/12
+    function controllersByPartition(bytes32 partition) external view returns (address[]); // 9/12
     function authorizeOperatorByPartition(bytes32 partition, address operator) external; // 10/12
     function revokeOperatorByPartition(bytes32 partition, address operator) external; // 11/12
     function isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) external view returns (bool); // 12/12

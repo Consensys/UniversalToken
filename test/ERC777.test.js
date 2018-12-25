@@ -19,17 +19,17 @@ const CERTIFICATE_SIGNER = '0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630';
 
 const initialSupply = 1000000000;
 
-contract('ERC777 without hooks', function ([owner, operator, defaultOperator, tokenHolder, recipient, unknown]) {
+contract('ERC777 without hooks', function ([owner, operator, controller, tokenHolder, recipient, unknown]) {
   // ADDITIONNAL MOCK TESTS
 
   describe('Additionnal mock tests', function () {
     beforeEach(async function () {
-      this.token = await ERC777.new('ERC777Token', 'DAU', 1, [defaultOperator], CERTIFICATE_SIGNER);
+      this.token = await ERC777.new('ERC777Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER);
     });
 
     describe('contract creation', function () {
       it('fails deploying the contract if granularity is lower than 1', async function () {
-        await shouldFail.reverting(ERC777.new('ERC777Token', 'DAU', 0, [defaultOperator], CERTIFICATE_SIGNER));
+        await shouldFail.reverting(ERC777.new('ERC777Token', 'DAU', 0, [controller], CERTIFICATE_SIGNER));
       });
     });
 
@@ -50,7 +50,7 @@ contract('ERC777 without hooks', function ([owner, operator, defaultOperator, to
 
   describe('parameters', function () {
     beforeEach(async function () {
-      this.token = await ERC777.new('ERC777Token', 'DAU', 1, [defaultOperator], CERTIFICATE_SIGNER);
+      this.token = await ERC777.new('ERC777Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER);
     });
 
     describe('name', function () {
@@ -105,20 +105,20 @@ contract('ERC777 without hooks', function ([owner, operator, defaultOperator, to
       });
     });
 
-    describe('defaultOperators', function () {
+    describe('controllers', function () {
       describe('when the token is not controllable [ERC777-version]', function () {
-        it('returns the list of defaultOperators', async function () {
-          const defaultOperators = await this.token.defaultOperators();
+        it('returns the list of controllers', async function () {
+          const controllers = await this.token.controllers();
 
-          assert.equal(defaultOperators.length, 1);
-          assert.equal(defaultOperators[0], defaultOperator);
+          assert.equal(controllers.length, 1);
+          assert.equal(controllers[0], controller);
         });
       });
       describe('when the token is not controllable [ERC1400-version]', function () {
         it('returns an empty list', async function () {
-          const defaultOperators = await this.token.defaultOperatorsMock(false);
+          const controllers = await this.token.controllersMock(false);
 
-          assert.equal(defaultOperators.length, 0);
+          assert.equal(controllers.length, 0);
         });
       });
     });
@@ -143,7 +143,7 @@ contract('ERC777 without hooks', function ([owner, operator, defaultOperator, to
 
     describe('revokeOperator', function () {
       describe('when sender revokes an operator', function () {
-        it('revokes the operator (when operator is not the default operator)', async function () {
+        it('revokes the operator (when operator is not the controller)', async function () {
           assert(!(await this.token.isOperatorFor(operator, tokenHolder)));
           await this.token.authorizeOperator(operator, { from: tokenHolder });
           assert(await this.token.isOperatorFor(operator, tokenHolder));
@@ -152,17 +152,17 @@ contract('ERC777 without hooks', function ([owner, operator, defaultOperator, to
 
           assert(!(await this.token.isOperatorFor(operator, tokenHolder)));
         });
-        it('revokes the operator (when operator is the default operator)', async function () {
-          assert(await this.token.isOperatorFor(defaultOperator, tokenHolder));
-          await this.token.revokeOperator(defaultOperator, { from: tokenHolder });
-          assert(!(await this.token.isOperatorFor(defaultOperator, tokenHolder)));
+        it('revokes the operator (when operator is the controller)', async function () {
+          assert(await this.token.isOperatorFor(controller, tokenHolder));
+          await this.token.revokeOperator(controller, { from: tokenHolder });
+          assert(!(await this.token.isOperatorFor(controller, tokenHolder)));
         });
         it('emits a revoked event', async function () {
-          const { logs } = await this.token.revokeOperator(defaultOperator, { from: tokenHolder });
+          const { logs } = await this.token.revokeOperator(controller, { from: tokenHolder });
 
           assert.equal(logs.length, 1);
           assert.equal(logs[0].event, 'RevokedOperator');
-          assert.equal(logs[0].args.operator, defaultOperator);
+          assert.equal(logs[0].args.operator, controller);
           assert.equal(logs[0].args.tokenHolder, tokenHolder);
         });
       });
@@ -176,88 +176,88 @@ contract('ERC777 without hooks', function ([owner, operator, defaultOperator, to
         await this.token.authorizeOperator(operator, { from: tokenHolder });
         assert(await this.token.isOperatorFor(operator, tokenHolder));
       });
-      it('when operator is defaultOperator', async function () {
-        assert(await this.token.isOperatorFor(defaultOperator, tokenHolder));
+      it('when operator is controller', async function () {
+        assert(await this.token.isOperatorFor(controller, tokenHolder));
       });
       it('when is a revoked operator', async function () {
-        await this.token.revokeOperator(defaultOperator, { from: tokenHolder });
-        assert(!(await this.token.isOperatorFor(defaultOperator, tokenHolder)));
+        await this.token.revokeOperator(controller, { from: tokenHolder });
+        assert(!(await this.token.isOperatorFor(controller, tokenHolder)));
       });
     });
 
-    // DEFAULTOPERATOR
+    // CONTROLLER
 
-    describe('addDefaultOperator', function () {
+    describe('addController', function () {
       describe('when the caller is the contract owner', function () {
-        describe('when the operator is not already a default operator', function () {
-          it('adds the operator to default operators', async function () {
-            const defaultOperators1 = await this.token.defaultOperators();
-            assert.equal(defaultOperators1.length, 1);
-            assert.equal(defaultOperators1[0], defaultOperator);
-            await this.token.addDefaultOperator(operator, { from: owner });
-            const defaultOperators2 = await this.token.defaultOperators();
-            assert.equal(defaultOperators2.length, 2);
-            assert.equal(defaultOperators2[0], defaultOperator);
-            assert.equal(defaultOperators2[1], operator);
+        describe('when the operator is not already a controller', function () {
+          it('adds the operator to controllers', async function () {
+            const controllers1 = await this.token.controllers();
+            assert.equal(controllers1.length, 1);
+            assert.equal(controllers1[0], controller);
+            await this.token.addController(operator, { from: owner });
+            const controllers2 = await this.token.controllers();
+            assert.equal(controllers2.length, 2);
+            assert.equal(controllers2[0], controller);
+            assert.equal(controllers2[1], operator);
             assert(await this.token.isOperatorFor(operator, unknown));
           });
         });
-        describe('when the operator is already a default operator', function () {
+        describe('when the operator is already a controller', function () {
           it('reverts', async function () {
-            await this.token.addDefaultOperator(operator, { from: owner });
-            const defaultOperators = await this.token.defaultOperators();
-            assert.equal(defaultOperators.length, 2);
-            assert.equal(defaultOperators[0], defaultOperator);
-            assert.equal(defaultOperators[1], operator);
-            await shouldFail.reverting(this.token.addDefaultOperator(operator, { from: owner }));
+            await this.token.addController(operator, { from: owner });
+            const controllers = await this.token.controllers();
+            assert.equal(controllers.length, 2);
+            assert.equal(controllers[0], controller);
+            assert.equal(controllers[1], operator);
+            await shouldFail.reverting(this.token.addController(operator, { from: owner }));
           });
         });
       });
       describe('when the caller is not the contract owner', function () {
         it('reverts', async function () {
-          await shouldFail.reverting(this.token.addDefaultOperator(operator, { from: unknown }));
+          await shouldFail.reverting(this.token.addController(operator, { from: unknown }));
         });
       });
     });
 
-    describe('removeDefaultOperator', function () {
+    describe('removeController', function () {
       describe('when the caller is the contract owner', function () {
-        describe('when the operator is already a default operator', function () {
-          it('removes the operator from default operators (initial default operator)', async function () {
-            const defaultOperators1 = await this.token.defaultOperators();
-            assert.equal(defaultOperators1.length, 1);
-            assert.equal(defaultOperators1[0], defaultOperator);
-            await this.token.removeDefaultOperator(defaultOperator, { from: owner });
-            const defaultOperators2 = await this.token.defaultOperators();
-            assert.equal(defaultOperators2.length, 0);
-            assert(!(await this.token.isOperatorFor(defaultOperator, unknown)));
+        describe('when the operator is already a controller', function () {
+          it('removes the operator from controllers (initial controller)', async function () {
+            const controllers1 = await this.token.controllers();
+            assert.equal(controllers1.length, 1);
+            assert.equal(controllers1[0], controller);
+            await this.token.removeController(controller, { from: owner });
+            const controllers2 = await this.token.controllers();
+            assert.equal(controllers2.length, 0);
+            assert(!(await this.token.isOperatorFor(controller, unknown)));
           });
-          it('removes the operator from default operators (new default operator)', async function () {
-            await this.token.addDefaultOperator(operator, { from: owner });
-            const defaultOperators1 = await this.token.defaultOperators();
-            assert.equal(defaultOperators1.length, 2);
-            assert.equal(defaultOperators1[0], defaultOperator);
-            assert.equal(defaultOperators1[1], operator);
+          it('removes the operator from controllers (new controller)', async function () {
+            await this.token.addController(operator, { from: owner });
+            const controllers1 = await this.token.controllers();
+            assert.equal(controllers1.length, 2);
+            assert.equal(controllers1[0], controller);
+            assert.equal(controllers1[1], operator);
             assert(await this.token.isOperatorFor(operator, unknown));
-            await this.token.removeDefaultOperator(operator, { from: owner });
-            const defaultOperators2 = await this.token.defaultOperators();
-            assert.equal(defaultOperators2.length, 1);
-            assert.equal(defaultOperators1[0], defaultOperator);
+            await this.token.removeController(operator, { from: owner });
+            const controllers2 = await this.token.controllers();
+            assert.equal(controllers2.length, 1);
+            assert.equal(controllers1[0], controller);
             assert(!(await this.token.isOperatorFor(operator, unknown)));
           });
         });
-        describe('when the operator is not already a default operator', function () {
+        describe('when the operator is not already a controller', function () {
           it('reverts', async function () {
-            const defaultOperators = await this.token.defaultOperators();
-            assert.equal(defaultOperators.length, 1);
-            assert.equal(defaultOperators[0], defaultOperator);
-            await shouldFail.reverting(this.token.removeDefaultOperator(operator, { from: owner }));
+            const controllers = await this.token.controllers();
+            assert.equal(controllers.length, 1);
+            assert.equal(controllers[0], controller);
+            await shouldFail.reverting(this.token.removeController(operator, { from: owner }));
           });
         });
       });
       describe('when the caller is not the contract owner', function () {
         it('reverts', async function () {
-          await shouldFail.reverting(this.token.removeDefaultOperator(defaultOperator, { from: unknown }));
+          await shouldFail.reverting(this.token.removeController(controller, { from: unknown }));
         });
       });
     });
@@ -617,7 +617,7 @@ contract('ERC777 without hooks', function ([owner, operator, defaultOperator, to
   });
 });
 
-contract('ERC777 with hooks', function ([owner, operator, defaultOperator, tokenHolder, recipient, unknown]) {
+contract('ERC777 with hooks', function ([owner, operator, controller, tokenHolder, recipient, unknown]) {
   // HOOKS
 
   describe('hooks', function () {
@@ -625,7 +625,7 @@ contract('ERC777 with hooks', function ([owner, operator, defaultOperator, token
     const to = recipient;
 
     beforeEach(async function () {
-      this.token = await ERC777.new('ERC777Token', 'DAU', 1, [defaultOperator], CERTIFICATE_SIGNER);
+      this.token = await ERC777.new('ERC777Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER);
       this.registry = await ERC820Registry.at('0x820b586C8C28125366C998641B09DCbE7d4cBF06');
 
       this.senderContract = await ERC777TokensSender.new('ERC777TokensSender', { from: tokenHolder });
@@ -661,12 +661,12 @@ contract('ERC777 with hooks', function ([owner, operator, defaultOperator, token
   });
 });
 
-contract('ERC777ERC20', function ([owner, operator, defaultOperator, tokenHolder, recipient, unknown]) {
+contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, recipient, unknown]) {
   // ERC20 RETROCOMPATIBILITY
 
   describe('ERC20 retrocompatibility', function () {
     beforeEach(async function () {
-      this.token = await ERC777ERC20.new('ERC777ERC20Token', 'DAU20', 1, [defaultOperator], CERTIFICATE_SIGNER);
+      this.token = await ERC777ERC20.new('ERC777ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER);
     });
 
     // MINT

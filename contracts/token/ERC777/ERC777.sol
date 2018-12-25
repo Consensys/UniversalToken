@@ -34,13 +34,13 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   mapping(address => mapping(address => bool)) internal _authorizedOperator;
 
   // Mapping from (operator, tokenHolder) to revoked status. [TOKEN-HOLDER-SPECIFIC]
-  mapping(address => mapping(address => bool)) internal _revokedDefaultOperator;
+  mapping(address => mapping(address => bool)) internal _revokedController;
 
-  // Array of default operators. [GLOBAL - NOT TOKEN-HOLDER-SPECIFIC]
-  address[] internal _defaultOperators;
+  // Array of controllers. [GLOBAL - NOT TOKEN-HOLDER-SPECIFIC]
+  address[] internal _controllers;
 
-  // Mapping from operator to defaultOperator status. [GLOBAL - NOT TOKEN-HOLDER-SPECIFIC]
-  mapping(address => bool) internal _isDefaultOperator;
+  // Mapping from operator to controller status. [GLOBAL - NOT TOKEN-HOLDER-SPECIFIC]
+  mapping(address => bool) internal _isController;
   /****************************************************************************/
 
   /**
@@ -50,7 +50,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @param name Name of the token.
    * @param symbol Symbol of the token.
    * @param granularity Granularity of the token.
-   * @param defaultOperators Array of initial default operators.
+   * @param controllers Array of initial controllers.
    * @param certificateSigner Address of the off-chain service which signs the
    * conditional ownership certificates required for token transfers, mint,
    * burn (Cf. CertificateController.sol).
@@ -59,7 +59,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
     string name,
     string symbol,
     uint256 granularity,
-    address[] defaultOperators,
+    address[] controllers,
     address certificateSigner
   )
     public
@@ -71,8 +71,8 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
     require(granularity >= 1, "Constructor Blocked - Token granularity can not be lower than 1");
     _granularity = granularity;
 
-    for (uint i = 0; i < defaultOperators.length; i++) {
-      _addDefaultOperator(defaultOperators[i]);
+    for (uint i = 0; i < controllers.length; i++) {
+      _addController(controllers[i]);
     }
 
     setInterfaceImplementation("ERC777Token", this);
@@ -128,11 +128,11 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
 
   /**
    * [ERC777 INTERFACE (6/13)]
-   * @dev Get the list of default operators as defined by the token contract.
-   * @return List of addresses of all the default operators.
+   * @dev Get the list of controllers as defined by the token contract.
+   * @return List of addresses of all the controllers.
    */
-  function defaultOperators() external view returns (address[]) {
-    return _getDefaultOperators(true);
+  function controllers() external view returns (address[]) {
+    return _getControllers(true);
   }
 
   /**
@@ -142,7 +142,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @param operator Address to set as an operator for 'msg.sender'.
    */
   function authorizeOperator(address operator) external {
-    _revokedDefaultOperator[operator][msg.sender] = false;
+    _revokedController[operator][msg.sender] = false;
     _authorizedOperator[operator][msg.sender] = true;
     emit AuthorizedOperator(operator, msg.sender);
   }
@@ -154,7 +154,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @param operator Address to rescind as an operator for 'msg.sender'.
    */
   function revokeOperator(address operator) external {
-    _revokedDefaultOperator[operator][msg.sender] = true;
+    _revokedController[operator][msg.sender] = true;
     _authorizedOperator[operator][msg.sender] = false;
     emit RevokedOperator(operator, msg.sender);
   }
@@ -271,20 +271,20 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
   function _isOperatorFor(address operator, address tokenHolder, bool isControllable) internal view returns (bool) {
     return (operator == tokenHolder
       || _authorizedOperator[operator][tokenHolder]
-      || (_isDefaultOperator[operator] && !_revokedDefaultOperator[operator][tokenHolder])
-      || (_isDefaultOperator[operator] && isControllable)
+      || (_isController[operator] && !_revokedController[operator][tokenHolder])
+      || (_isController[operator] && isControllable)
     );
   }
 
   /**
    * [INTERNAL]
-   * @dev Get the list of default operators as defined by the token contract.
-   * @param isControllable 'true' if token can have default operators, 'false' if not.
-   * @return List of addresses of all the default operators.
+   * @dev Get the list of controllers as defined by the token contract.
+   * @param isControllable 'true' if token can have controllers, 'false' if not.
+   * @return List of addresses of all the controllers.
    */
-  function _getDefaultOperators(bool isControllable) internal view returns (address[]) {
+  function _getControllers(bool isControllable) internal view returns (address[]) {
     if (isControllable) {
-      return _defaultOperators;
+      return _controllers;
     } else {
       return new address[](0);
     }
@@ -443,31 +443,31 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
 
   /**
    * [NOT MANDATORY FOR ERC777 STANDARD][SHALL BE CALLED ONLY FROM ERC1400]
-   * @dev Add a default operator for the token.
-   * @param operator Address to set as a default operator.
+   * @dev Add a controller for the token.
+   * @param operator Address to set as a controller.
    */
-  function _addDefaultOperator(address operator) internal {
-    require(!_isDefaultOperator[operator], "Action Blocked - Already a default operator");
-    _defaultOperators.push(operator);
-    _isDefaultOperator[operator] = true;
+  function _addController(address operator) internal {
+    require(!_isController[operator], "Action Blocked - Already a controller");
+    _controllers.push(operator);
+    _isController[operator] = true;
   }
 
   /**
    * [NOT MANDATORY FOR ERC777 STANDARD][SHALL BE CALLED ONLY FROM ERC1400]
-   * @dev Remove default operator of the token.
-   * @param operator Address to remove from default operators.
+   * @dev Remove controller of the token.
+   * @param operator Address to remove from controllers.
    */
-  function _removeDefaultOperator(address operator) internal {
-    require(_isDefaultOperator[operator], "Action Blocked - Not a default operator");
+  function _removeController(address operator) internal {
+    require(_isController[operator], "Action Blocked - Not a controller");
 
-    for (uint i = 0; i<_defaultOperators.length; i++){
-      if(_defaultOperators[i] == operator) {
-        _defaultOperators[i] = _defaultOperators[_defaultOperators.length - 1];
-        delete _defaultOperators[_defaultOperators.length-1];
-        _defaultOperators.length--;
+    for (uint i = 0; i<_controllers.length; i++){
+      if(_controllers[i] == operator) {
+        _controllers[i] = _controllers[_controllers.length - 1];
+        delete _controllers[_controllers.length-1];
+        _controllers.length--;
         break;
       }
     }
-    _isDefaultOperator[operator] = false;
+    _isController[operator] = false;
   }
 }

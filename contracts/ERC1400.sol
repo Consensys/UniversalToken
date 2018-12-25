@@ -42,7 +42,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param name Name of the token.
    * @param symbol Symbol of the token.
    * @param granularity Granularity of the token.
-   * @param defaultOperators Array of initial default operators.
+   * @param controllers Array of initial controllers.
    * @param certificateSigner Address of the off-chain service which signs the
    * conditional ownership certificates required for token transfers, mint,
    * burn (Cf. CertificateController.sol).
@@ -51,11 +51,11 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     string name,
     string symbol,
     uint256 granularity,
-    address[] defaultOperators,
+    address[] controllers,
     address certificateSigner
   )
     public
-    ERC1410(name, symbol, granularity, defaultOperators, certificateSigner)
+    ERC1410(name, symbol, granularity, controllers, certificateSigner)
   {
     setInterfaceImplementation("ERC1400Token", this);
     _isControllable = true;
@@ -97,8 +97,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @dev Know if the token can be controlled by operators.
    * If a token returns 'false' for 'isControllable()'' then it MUST:
    *  - always return 'false' in the future.
-   *  - return empty lists for 'defaultOperators' and 'defaultOperatorsByPartition'.
-   *  - never add addresses for 'defaultOperators' and 'defaultOperatorsByPartition'.
+   *  - return empty lists for 'controllers' and 'controllersByPartition'.
+   *  - never add addresses for 'controllers' and 'controllersByPartition'.
    * @return bool 'true' if the token can still be controlled by operators, 'false' if it can't anymore.
    */
   function isControllable() external view returns (bool) {
@@ -292,40 +292,40 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Add a default operator for the token.
-   * @param operator Address to set as a default operator.
+   * @dev Add a controller for the token.
+   * @param operator Address to set as a controller.
    */
-  function addDefaultOperator(address operator) external onlyOwner controllableToken {
-    _addDefaultOperator(operator);
+  function addController(address operator) external onlyOwner controllableToken {
+    _addController(operator);
   }
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Remove default operator of the token.
-   * @param operator Address to remove from default operators.
+   * @dev Remove controller of the token.
+   * @param operator Address to remove from controllers.
    */
-  function removeDefaultOperator(address operator) external onlyOwner {
-    _removeDefaultOperator(operator);
+  function removeController(address operator) external onlyOwner {
+    _removeController(operator);
   }
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Add a default operator for a specific partition of the token.
+   * @dev Add a controller for a specific partition of the token.
    * @param partition Name of the partition.
-   * @param operator Address to set as a default operator.
+   * @param operator Address to set as a controller.
    */
-  function addDefaultOperatorByPartition(bytes32 partition, address operator) external onlyOwner controllableToken {
-    _addDefaultOperatorByPartition(partition, operator);
+  function addControllerByPartition(bytes32 partition, address operator) external onlyOwner controllableToken {
+    _addControllerByPartition(partition, operator);
   }
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Remove default operator of a specific partition of the token.
+   * @dev Remove controller of a specific partition of the token.
    * @param partition Name of the partition.
-   * @param operator Address to set as a default operator.
+   * @param operator Address to set as a controller.
    */
-  function removeDefaultOperatorByPartition(bytes32 partition, address operator) external onlyOwner {
-    _removeDefaultOperatorByPartition(partition, operator);
+  function removeControllerByPartition(bytes32 partition, address operator) external onlyOwner {
+    _removeControllerByPartition(partition, operator);
   }
 
   /************* ERC1410/ERC777 BACKWARDS RETROCOMPATIBILITY ******************/

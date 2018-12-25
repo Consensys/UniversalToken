@@ -9,13 +9,13 @@ contract ERC1410Mock is ERC1410, CertificateControllerMock {
     string name,
     string symbol,
     uint256 granularity,
-    address[] defaultOperators,
+    address[] controllers,
     address certificateSigner,
     address tokenHolderMock,
     uint256 amountMock
   )
     public
-    ERC1410(name, symbol, granularity, defaultOperators, certificateSigner)
+    ERC1410(name, symbol, granularity, controllers, certificateSigner)
   {
     _mint(msg.sender, tokenHolderMock, amountMock, "", "");
   }
