@@ -262,7 +262,7 @@ contract ERC1410 is IERC1410, ERC777 {
     _transferWithData(operator, from, to, value, data, operatorData, true);
     _addTokenToPartition(to, toPartition, value);
 
-    emit SentByPartition(fromPartition, operator, from, to, value, data, operatorData);
+    emit TransferByPartition(fromPartition, operator, from, to, value, data, operatorData);
 
     if(toPartition != fromPartition) {
       emit ChangedPartition(fromPartition, toPartition, value);

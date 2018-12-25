@@ -29,7 +29,7 @@ interface IERC1410 {
     function isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) external view returns (bool); // 10/10
 
     // Transfer Events
-    event SentByPartition(
+    event TransferByPartition(
         bytes32 indexed fromPartition,
         address operator,
         address indexed from,
@@ -38,6 +38,7 @@ interface IERC1410 {
         bytes data,
         bytes operatorData
     );
+
     event ChangedPartition(
         bytes32 indexed fromPartition,
         bytes32 indexed toPartition,

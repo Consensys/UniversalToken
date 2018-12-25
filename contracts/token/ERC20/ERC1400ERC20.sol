@@ -6,7 +6,7 @@ pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import "../ERC1400.sol";
+import "../../ERC1400.sol";
 
 
 /**
@@ -49,9 +49,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
   )
     public
     ERC1400(name, symbol, granularity, controllers, certificateSigner)
-  {
-    _setERC20compatibility(true);
-  }
+  {}
 
   /**
    * [OVERRIDES ERC1400 METHOD]

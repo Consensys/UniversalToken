@@ -6,7 +6,7 @@ pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import "../token/ERC777/ERC777Mintable.sol";
+import "../ERC777/ERC777Mintable.sol";
 
 
 /**
@@ -49,9 +49,7 @@ contract ERC777ERC20 is IERC20, ERC777Mintable {
   )
     public
     ERC777(name, symbol, granularity, controllers, certificateSigner)
-  {
-    _setERC20compatibility(true);
-  }
+  {}
 
   /**
    * [OVERRIDES ERC777 METHOD]
