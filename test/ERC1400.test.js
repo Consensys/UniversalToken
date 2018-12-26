@@ -412,7 +412,7 @@ contract('ERC1400', function ([owner, operator, controller, tokenHolder, recipie
 
   // ADD CONTROLLER BY PARTITION
 
-  describe('addControllerByPartition', function () {
+  describe('addPartitionController', function () {
     beforeEach(async function () {
       this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
     });
@@ -422,16 +422,16 @@ contract('ERC1400', function ([owner, operator, controller, tokenHolder, recipie
           it('adds the controller', async function () {
             assert(await this.token.isControllable());
             assert(!(await this.token.isOperatorForPartition(partition1, operator, tokenHolder)));
-            await this.token.addControllerByPartition(partition1, operator, { from: owner });
+            await this.token.addPartitionController(partition1, operator, { from: owner });
             assert(await this.token.isOperatorForPartition(partition1, operator, tokenHolder));
           });
         });
         describe('when operator has already been added', function () {
           it('reverts', async function () {
-            await this.token.addControllerByPartition(partition1, operator, { from: owner });
+            await this.token.addPartitionController(partition1, operator, { from: owner });
             assert(await this.token.isOperatorForPartition(partition1, operator, tokenHolder));
 
-            await shouldFail.reverting(this.token.addControllerByPartition(partition1, operator, { from: owner }));
+            await shouldFail.reverting(this.token.addPartitionController(partition1, operator, { from: owner }));
           });
         });
       });
@@ -441,46 +441,46 @@ contract('ERC1400', function ([owner, operator, controller, tokenHolder, recipie
           await this.token.renounceControl({ from: owner });
           assert(!(await this.token.isControllable()));
 
-          await shouldFail.reverting(this.token.addControllerByPartition(partition1, operator, { from: owner }));
+          await shouldFail.reverting(this.token.addPartitionController(partition1, operator, { from: owner }));
         });
       });
     });
     describe('when sender is not the contract owner', function () {
       it('reverts', async function () {
-        await shouldFail.reverting(this.token.addControllerByPartition(partition1, operator, { from: unknown }));
+        await shouldFail.reverting(this.token.addPartitionController(partition1, operator, { from: unknown }));
       });
     });
   });
 
   // REMOVE CONTROLLER BY PARTITION
 
-  describe('removeControllerByPartition', function () {
+  describe('removePartitionController', function () {
     beforeEach(async function () {
       this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
     });
     describe('when operator is the only controller', function () {
       it('removes the controller', async function () {
         assert(!(await this.token.isOperatorForPartition(partition1, operator, tokenHolder)));
-        await this.token.addControllerByPartition(partition1, operator, { from: owner });
+        await this.token.addPartitionController(partition1, operator, { from: owner });
         assert(await this.token.isOperatorForPartition(partition1, operator, tokenHolder));
-        await this.token.removeControllerByPartition(partition1, operator, { from: owner });
+        await this.token.removePartitionController(partition1, operator, { from: owner });
         assert(!(await this.token.isOperatorForPartition(partition1, operator, tokenHolder)));
       });
     });
     describe('when operator is one of the controllers', function () {
       it('removes the controller', async function () {
         assert(!(await this.token.isOperatorForPartition(partition1, operator, tokenHolder)));
-        await this.token.addControllerByPartition(partition1, operator, { from: owner });
+        await this.token.addPartitionController(partition1, operator, { from: owner });
         assert(await this.token.isOperatorForPartition(partition1, operator, tokenHolder));
-        await this.token.addControllerByPartition(partition1, unknown, { from: owner });
+        await this.token.addPartitionController(partition1, unknown, { from: owner });
         assert(await this.token.isOperatorForPartition(partition1, unknown, tokenHolder));
-        await this.token.removeControllerByPartition(partition1, unknown, { from: owner });
+        await this.token.removePartitionController(partition1, unknown, { from: owner });
         assert(!(await this.token.isOperatorForPartition(partition1, unknown, tokenHolder)));
       });
     });
     describe('when operator is not controller', function () {
       it('reverts', async function () {
-        await shouldFail.reverting(this.token.removeControllerByPartition(partition1, operator, { from: owner }));
+        await shouldFail.reverting(this.token.removePartitionController(partition1, operator, { from: owner }));
       });
     });
   });
@@ -555,7 +555,7 @@ contract('ERC1400', function ([owner, operator, controller, tokenHolder, recipie
   describe('controllersByPartition', function () {
     beforeEach(async function () {
       this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
-      await this.token.addControllerByPartition(partition3, operator, { from: owner });
+      await this.token.addPartitionController(partition3, operator, { from: owner });
     });
     describe('when the token is controllable', function () {
       it('returns the list of controllers', async function () {

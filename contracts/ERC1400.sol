@@ -369,8 +369,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param partition Name of the partition.
    * @param operator Address to set as a controller.
    */
-  function addControllerByPartition(bytes32 partition, address operator) external onlyOwner controllableToken {
-    _addControllerByPartition(partition, operator);
+  function addPartitionController(bytes32 partition, address operator) external onlyOwner controllableToken {
+    _addPartitionController(partition, operator);
   }
 
   /**
@@ -379,8 +379,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param partition Name of the partition.
    * @param operator Address to set as a controller.
    */
-  function removeControllerByPartition(bytes32 partition, address operator) external onlyOwner {
-    _removeControllerByPartition(partition, operator);
+  function removePartitionController(bytes32 partition, address operator) external onlyOwner {
+    _removePartitionController(partition, operator);
   }
 
   /************* ERC1410/ERC777 BACKWARDS RETROCOMPATIBILITY ******************/

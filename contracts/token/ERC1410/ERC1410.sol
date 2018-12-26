@@ -40,7 +40,7 @@ contract ERC1410 is IERC1410, ERC777 {
   // Mapping from partition to controllers for the partition. [NOT TOKEN-HOLDER-SPECIFIC]
   mapping (bytes32 => address[]) internal _partitionControllers;
 
-  // Mapping from (partition, operator) to controllerByPartition status. [NOT TOKEN-HOLDER-SPECIFIC]
+  // Mapping from (partition, operator) to PartitionController status. [NOT TOKEN-HOLDER-SPECIFIC]
   mapping (bytes32 => mapping (address => bool)) internal _isPartitionController;
   /****************************************************************************/
 
@@ -378,7 +378,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param partition Name of the partition.
    * @param operator Address to set as a controller.
    */
-  function _addControllerByPartition(bytes32 partition, address operator) internal {
+  function _addPartitionController(bytes32 partition, address operator) internal {
     require(!_isPartitionController[partition][operator], "Action Blocked - Already a controller");
     _partitionControllers[partition].push(operator);
     _isPartitionController[partition][operator] = true;
@@ -390,7 +390,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param partition Name of the partition.
    * @param operator Address to remove from controllers of partition.
    */
-  function _removeControllerByPartition(bytes32 partition, address operator) internal {
+  function _removePartitionController(bytes32 partition, address operator) internal {
     require(_isPartitionController[partition][operator], "Action Blocked - Not a controller");
 
     for (uint i = 0; i < _partitionControllers[partition].length; i++){
