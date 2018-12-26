@@ -24,7 +24,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   // Mapping for token URIs.
   mapping(bytes32 => Doc) internal _documents;
 
-  // Indicate whether the token can still be minted/issued by the minter or not anymore.
+  // Indicate whether the token can still be issued by the issuer or not anymore.
   bool internal _isIssuable;
 
   /**
@@ -44,8 +44,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param granularity Granularity of the token.
    * @param controllers Array of initial controllers.
    * @param certificateSigner Address of the off-chain service which signs the
-   * conditional ownership certificates required for token transfers, mint,
-   * burn (Cf. CertificateController.sol).
+   * conditional ownership certificates required for token transfers, issuance,
+   * redemption (Cf. CertificateController.sol).
    */
   constructor(
     string name,
@@ -109,8 +109,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
   /**
    * [ERC1400 INTERFACE (4/9)]
-   * @dev Know if new tokens can be minted/issued in the future.
-   * @return bool 'true' if tokens can still be minted/issued by the minter, 'false' if they can't anymore.
+   * @dev Know if new tokens can be issued in the future.
+   * @return bool 'true' if tokens can still be issued by the issuer, 'false' if they can't anymore.
    */
   function isIssuable() external view returns (bool) {
     return _isIssuable;
@@ -118,12 +118,11 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
   /**
    * [ERC1400 INTERFACE (5/9)]
-   * @dev Mint/issue tokens from a specific partition.
+   * @dev Issue tokens from a specific partition.
    * @param partition Name of the partition.
-   * @param tokenHolder Address for which we want to mint/issue tokens.
-   * @param value Number of tokens minted.
-   * @param data Information attached to the minting, and intended for the
-   * token holder ('to'). [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param tokenHolder Address for which we want to issue tokens.
+   * @param value Number of tokens issued.
+   * @param data Information attached to the issuance, by the issuer. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
   function issueByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data)
     external
@@ -138,9 +137,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * [ERC1400 INTERFACE (6/9)]
    * @dev Redeem tokens of a specific partition.
    * @param partition Name of the partition.
-   * @param value Number of tokens minted.
-   * @param data Information attached to the redeem, and intended for the
-   * token holder ('from'). [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param value Number of tokens redeemed.
+   * @param data Information attached to the redemption, by the redeemer. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
   function redeemByPartition(bytes32 partition, uint256 value, bytes data)
     external
@@ -154,9 +152,9 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @dev Redeem tokens of a specific partition.
    * @param partition Name of the partition.
    * @param tokenHolder Address for which we want to redeem tokens.
-   * @param value Number of tokens minted.
-   * @param data Information attached to the redeem, and intended for the token holder ('from').
-   * @param operatorData Information attached to the redeem by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param value Number of tokens redeemed.
+   * @param data Information attached to the redemption.
+   * @param operatorData Information attached to the redemption, by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
   function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data, bytes operatorData)
     external
@@ -200,7 +198,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param from Token holder.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
-   * @param data Information attached to the transfer, and intended for the token holder ('from'). [Can contain the destination partition]
+   * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
    * @param operatorData Information attached to the transfer, by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    * @return ESC (Ethereum Status Code) following the EIP-1066 standard.
    * @return Additional bytes32 parameter that can be used to define
@@ -231,7 +229,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param from Token holder.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
-   * @param data Information attached to the transfer, and intended for the token holder ('from'). [Can contain the destination partition]
+   * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
+   * @param operatorData Information attached to the transfer, by the operator.
    * @return ESC (Ethereum Status Code) following the EIP-1066 standard.
    * @return Additional bytes32 parameter that can be used to define
    * application specific reason codes with additional details (for example the
@@ -273,13 +272,13 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
   /**
    * [INTERNAL]
-   * @dev Mint/issue tokens from a specific partition.
+   * @dev Issue tokens from a specific partition.
    * @param toPartition Name of the partition.
-   * @param operator The address performing the mint/issuance.
+   * @param operator The address performing the issuance.
    * @param to Token recipient.
-   * @param value Number of tokens to mint/issue.
-   * @param data Information attached to the mint/issuance, and intended for the token holder ('to'). [Contains the destination partition]
-   * @param operatorData Information attached to the mint/issuance by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param value Number of tokens to issue.
+   * @param data Information attached to the issuance.
+   * @param operatorData Information attached to the issuance, by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
   function _issueByPartition(
     bytes32 toPartition,
@@ -301,11 +300,11 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * [INTERNAL]
    * @dev Redeem tokens of a specific partition.
    * @param fromPartition Name of the partition.
-   * @param operator The address performing the mint/issuance.
+   * @param operator The address performing the redemption.
    * @param from Token holder whose tokens will be redeemed.
    * @param value Number of tokens to redeem.
-   * @param data Information attached to the burn/redeem, and intended for the token holder ('from').
-   * @param operatorData Information attached to the burn/redeem by the operator.
+   * @param data Information attached to the redemption.
+   * @param operatorData Information attached to the redemption, by the operator.
    */
   function _redeemByPartition(
     bytes32 fromPartition,
@@ -410,9 +409,9 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC1410 METHOD]
-   * @dev Burn the value of tokens from the address 'msg.sender'.
-   * @param value Number of tokens to burn.
-   * @param data Information attached to the burn, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @dev Redeem the value of tokens from the address 'msg.sender'.
+   * @param value Number of tokens to redeem.
+   * @param data Information attached to the redemption, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
   function burn(uint256 value, bytes data)
     external
@@ -423,11 +422,11 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC1410 METHOD]
-   * @dev Burn the value of tokens on behalf of the address 'from'.
-   * @param from Token holder whose tokens will be burned (or 'address(0)' to set from to 'msg.sender').
-   * @param value Number of tokens to burn.
-   * @param data Information attached to the burn, and intended for the token holder ('from').
-   * @param operatorData Information attached to the burn by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @dev Redeem the value of tokens on behalf of the address 'from'.
+   * @param from Token holder whose tokens will be redeemed (or 'address(0)' to set from to 'msg.sender').
+   * @param value Number of tokens to redeem.
+   * @param data Information attached to the redemption.
+   * @param operatorData Information attached to the redemption, by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
   function operatorBurn(address from, uint256 value, bytes data, bytes operatorData)
     external
@@ -446,8 +445,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param operator The address performing the redeem.
    * @param from Token holder.
    * @param value Number of tokens to redeem.
-   * @param data Information attached to the burn/redeem, and intended for the token holder (from).
-   * @param operatorData Information attached to the burn/redeem by the operator.
+   * @param data Information attached to the redemption.
+   * @param operatorData Information attached to the redemption, by the operator.
    */
   function _redeemByDefaultPartitions(
     address operator,

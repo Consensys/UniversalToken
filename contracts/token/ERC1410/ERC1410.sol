@@ -53,8 +53,8 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param granularity Granularity of the token.
    * @param controllers Array of initial controllers.
    * @param certificateSigner Address of the off-chain service which signs the
-   * conditional ownership certificates required for token transfers, mint,
-   * burn (Cf. CertificateController.sol).
+   * conditional ownership certificates required for token transfers, issuance,
+   * redemption (Cf. CertificateController.sol).
    */
   constructor(
     string name,
@@ -123,8 +123,8 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param from Token holder.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
-   * @param data Information attached to the transfer, and intended for the token holder ('from'). [Contains the destination partition]
-   * @param operatorData Information attached to the transfer by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
+   * @param operatorData Information attached to the transfer, by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    * @return Destination partition.
    */
   function operatorTransferByPartition(
@@ -192,7 +192,7 @@ contract ERC1410 is IERC1410, ERC777 {
   /**
    * [ERC1410 INTERFACE (9/10)]
    * @dev Remove the right of the operator address to be an operator on a given
-   * partition for 'msg.sender' and to transfer and burn tokens on its behalf.
+   * partition for 'msg.sender' and to transfer and redeem tokens on its behalf.
    * @param partition Name of the partition.
    * @param operator Address to rescind as an operator on given partition for 'msg.sender'.
    */
@@ -240,8 +240,8 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param from Token holder.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
-   * @param data Information attached to the transfer, and intended for the token holder ('from'). [Can contain the destination partition]
-   * @param operatorData Information attached to the transfer by the operator.
+   * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
+   * @param operatorData Information attached to the transfer, by the operator.
    * @return Destination partition.
    */
   function _transferByPartition(
@@ -337,7 +337,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * [INTERNAL]
    * @dev Retrieve the destination partition from the 'data' field.
    * Basically, this function only converts the bytes variable into a bytes32 variable.
-   * @param data Information attached to the transfer [Contains the destination partition].
+   * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
    * @return Destination partition.
    */
   function _getDestinationPartition(bytes data) internal pure returns(bytes32 toPartition) {
@@ -426,7 +426,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param from Token holder (or 'address(0)'' to set from to 'msg.sender').
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
-   * @param data Information attached to the transfer, and intended for the token holder ('from'). [Can contain the destination partition]
+   * @param data Information attached to the transfer, and intended for the token holder ('from'). [CAN CONTAIN THE DESTINATION PARTITION]
    * @param operatorData Information attached to the transfer by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
   function transferFromWithData(address from, address to, uint256 value, bytes data, bytes operatorData)
@@ -461,7 +461,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param from Token holder.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
-   * @param data Information attached to the transfer, and intended for the token holder ('from') [can contain the destination partition].
+   * @param data Information attached to the transfer, and intended for the token holder ('from') [CAN CONTAIN THE DESTINATION PARTITION].
    * @param operatorData Information attached to the transfer by the operator.
    */
   function _transferByDefaultPartitions(
