@@ -6,6 +6,7 @@ pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
 import "erc820/contracts/ERC820Client.sol";
 
 import "contract-certificate-controller/contracts/CertificateController.sol";
@@ -18,7 +19,7 @@ import "./IERC777TokensRecipient.sol";
  * @title ERC777
  * @dev ERC777 logic
  */
-contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
+contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, ReentrancyGuard {
   using SafeMath for uint256;
 
   string internal _name;
@@ -305,6 +306,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
     bool preventLocking
   )
     internal
+    nonReentrant
   {
     require(_isMultiple(value), "A9: Transfer Blocked - Token granularity");
     require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");
@@ -331,6 +333,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    */
   function _burn(address operator, address from, uint256 value, bytes data, bytes operatorData)
     internal
+    nonReentrant
   {
     require(_isMultiple(value), "A9: Transfer Blocked - Token granularity");
     require(from != address(0), "A5: Transfer Blocked - Sender not eligible");
@@ -418,7 +421,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController {
    * @param data Information attached to the mint, and intended for the recipient (to).
    * @param operatorData Information attached to the mint by the operator (if any).
    */
-  function _mint(address operator, address to, uint256 value, bytes data, bytes operatorData) internal {
+  function _mint(address operator, address to, uint256 value, bytes data, bytes operatorData) internal nonReentrant {
     require(_isMultiple(value), "A9: Transfer Blocked - Token granularity");
     require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");      // forbid transfer to 0x0 (=burning)
 
