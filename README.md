@@ -1,8 +1,36 @@
-# ERC1400 - Contracts
+![dAuriel](/uploads/2489352dae4903fe54f96831a39743af/dAuriel.png)
 
-This project contains ERC1400 security token smart contracts as well as the tests files and testing environment.
+# What is dAuriel?
 
-## Quick start
+dAuriel is an advanced institutional technology platform for issuing and exchanging tokenized financial assets, powered by the Ethereum blockchain.
+dAuriel is a product created by ConsenSys.
+
+# Security token implementations (ERC777 and ERC1400) adapted for financial asset tokenization.
+
+This project contains security token smart contract implementations:
+#### ERC777 implementation - Advanced token standard for asset transfers.
+
+ - Empowerment of operators with the ability to send tokens on behalf of other addresses.
+ - Setup of send/receive hooks to offer token holders more control over their tokens.
+ - Use of ERC820 to notify contracts and regular addresses when they receive tokens.
+ - Backwards compatible with ERC20.
+
+
+#### ERC1400 implementation - Partially fungible token standard.
+
+ - Differentiated ownership / transparent restrictions.
+ - Controller operations (force transfer).
+ - On-chain restriction checking with error signalling, off-chain data injection for transfer restrictions and issuance / redemption semantics.
+ - Document management.
+ - Backwards compatible with ERC20 and ERC777.
+
+# Security token issuance & management
+
+User-friendly interfaces are recommended for better security token issuance & management:
+
+![dAurielInterface](/uploads/966e30a32dd5e10fdc24ce2e6d14603d/dAurielInterface.png)
+
+# Quick start
 
 Test the smart contract, by running the following commands:
 ```
@@ -13,7 +41,7 @@ $ make coverage
 ```
 Prerequisites: please make sure you installed "truffle", "make", "g++"" on your device.
 
-## Install your own personal blockchain for Ethereum development.
+#### Install your own personal blockchain for Ethereum development.
 
 ```
 $ yarn global add ganache-cli
@@ -23,7 +51,7 @@ or
 $ npm i ganache-cli
 ```
 
-## Setup environment variables
+#### Setup environment variables
 
 Before deploying the contract you need to generate and fill the file containing all environment variables ('.env' file).
 
@@ -51,8 +79,7 @@ This option is recommended since the wallet will be pre-loaded with ETH for test
 
 Option 2: MNEMONIC can also be obtained by generating 12 random words on https://iancoleman.io/bip39/ (BIP39 Mnemonic).
 
-
-## Send ETH to the address corresponding to your MNEMONIC
+#### Send ETH to the address corresponding to your MNEMONIC
 
 There are 2 options to recover the ETH address corresponding to your MNEMONIC:
 
@@ -66,14 +93,14 @@ Option 2:
 Discover the wallet associated to your MNEMONIC on https://www.myetherwallet.com/#view-wallet-info > Mnemonic phrase.
 Send ETH to the first address of this wallet in order to be able to send transactions with it.
 
-## Deploy contract on ganache
+#### Deploy contract on ganache
 
 Deploy the contract by running the migration scripts:
 ```
 $ truffle migrate
 ```
 
-## Deploy contract on ropsten
+#### Deploy contract on ropsten
 
 Start building the contract (this generates the concatenated solidity files required to publish the contract on blockchan explorers like Etherscan, Kaleido, etc.):
 ```
