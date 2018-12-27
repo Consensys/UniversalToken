@@ -80,9 +80,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
     require(granularity >= 1, "Constructor Blocked - Token granularity can not be lower than 1");
     _granularity = granularity;
 
-    for (uint i = 0; i < controllers.length; i++) {
-      _addController(controllers[i]);
-    }
+    _setControllers(controllers);
 
     setInterfaceImplementation("ERC777Token", this);
   }
@@ -436,32 +434,18 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
   /********************** ERC777 OPTIONAL FUNCTIONS ***************************/
 
   /**
-   * [NOT MANDATORY FOR ERC777 STANDARD][SHALL BE CALLED ONLY FROM ERC1400]
-   * @dev Add a controller for the token.
-   * @param operator Address to set as a controller.
+   * [NOT MANDATORY FOR ERC777 STANDARD]
+   * @dev Set list of token controllers.
+   * @param operators Controller addresses.
    */
-  function _addController(address operator) internal {
-    require(!_isController[operator], "Action Blocked - Already a controller");
-    _controllers.push(operator);
-    _isController[operator] = true;
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC777 STANDARD][SHALL BE CALLED ONLY FROM ERC1400]
-   * @dev Remove controller of the token.
-   * @param operator Address to remove from controllers.
-   */
-  function _removeController(address operator) internal {
-    require(_isController[operator], "Action Blocked - Not a controller");
-
+  function _setControllers(address[] operators) internal onlyOwner {
     for (uint i = 0; i<_controllers.length; i++){
-      if(_controllers[i] == operator) {
-        _controllers[i] = _controllers[_controllers.length - 1];
-        delete _controllers[_controllers.length-1];
-        _controllers.length--;
-        break;
-      }
+      _isController[_controllers[i]] = false;
     }
-    _isController[operator] = false;
+    for (uint j = 0; j<operators.length; j++){
+      _isController[operators[j]] = true;
+    }
+    _controllers = operators;
   }
+
 }

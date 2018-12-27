@@ -15,11 +15,6 @@ contract ERC1400Mock is ERC1400, CertificateControllerMock {
   )
     public
     ERC1400(name, symbol, granularity, controllers, certificateSigner, tokenDefaultPartitions)
-  {
-  }
-
-  function fakeAddPartitionController(bytes32 partition, address operator) external onlyOwner {
-    _addPartitionController(partition, operator);
-  }
+  {}
 
 }

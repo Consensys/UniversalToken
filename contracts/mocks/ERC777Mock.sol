@@ -17,12 +17,16 @@ contract ERC777Mock is ERC777Issuable, CertificateControllerMock {
   {
   }
 
-  function addController(address operator) external onlyOwner {
-    _addController(operator);
+  function setControllable(bool _controllable) external onlyOwner {
+    _isControllable = _controllable;
   }
 
-  function removeController(address operator) external onlyOwner {
-    _removeController(operator);
+  function renounceControl() external onlyOwner {
+    _isControllable = false;
+  }
+
+  function setControllers(address[] operators) external onlyOwner {
+    _setControllers(operators);
   }
 
   function isRegularAddress(address adr) external view returns(bool) {

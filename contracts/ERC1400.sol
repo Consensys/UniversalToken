@@ -347,40 +347,30 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Add a controller for the token.
-   * @param operator Address to set as a controller.
+   * @dev Set list of token controllers.
+   * @param operators Controller addresses.
    */
-  function addController(address operator) external onlyOwner controllableToken {
-    _addController(operator);
+  function setControllers(address[] operators) external onlyOwner {
+    _setControllers(operators);
   }
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Remove controller of the token.
-   * @param operator Address to remove from controllers.
-   */
-  function removeController(address operator) external onlyOwner {
-    _removeController(operator);
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Add a controller for a specific partition of the token.
+   * @dev Set list of token partition controllers.
    * @param partition Name of the partition.
-   * @param operator Address to set as a controller.
+   * @param operators Controller addresses.
    */
-  function addPartitionController(bytes32 partition, address operator) external onlyOwner controllableToken {
-    _addPartitionController(partition, operator);
-  }
+   function setPartitionControllers(bytes32 partition, address[] operators) external onlyOwner {
+     _setPartitionControllers(partition, operators);
+   }
 
-  /**
-   * [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Remove controller of a specific partition of the token.
-   * @param partition Name of the partition.
-   * @param operator Address to set as a controller.
+   /**
+   * @dev Add a certificate signer for the token.
+   * @param operator Address to set as a certificate signer.
+   * @param authorized 'true' if operator shall be accepted as certificate signer, 'false' if not.
    */
-  function removePartitionController(bytes32 partition, address operator) external onlyOwner {
-    _removePartitionController(partition, operator);
+  function setCertificateSigner(address operator, bool authorized) external onlyOwner {
+    _setCertificateSigner(operator, authorized);
   }
 
   /************* ERC1410/ERC777 BACKWARDS RETROCOMPATIBILITY ******************/

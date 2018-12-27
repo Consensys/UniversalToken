@@ -67,7 +67,6 @@ contract ERC1410 is IERC1410, ERC777 {
     public
     ERC777(name, symbol, granularity, controllers, certificateSigner)
   {
-    setInterfaceImplementation("ERC1410Token", this);
     _tokenDefaultPartitions = tokenDefaultPartitions;
   }
 
@@ -374,35 +373,19 @@ contract ERC1410 is IERC1410, ERC777 {
 
   /**
    * [NOT MANDATORY FOR ERC1410 STANDARD][SHALL BE CALLED ONLY FROM ERC1400]
-   * @dev Add a controller for a specific partition of the token.
+   * @dev Set list of token partition controllers.
    * @param partition Name of the partition.
-   * @param operator Address to set as a controller.
+   * @param operators Controller addresses.
    */
-  function _addPartitionController(bytes32 partition, address operator) internal {
-    require(!_isPartitionController[partition][operator], "Action Blocked - Already a controller");
-    _partitionControllers[partition].push(operator);
-    _isPartitionController[partition][operator] = true;
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC1410 STANDARD][SHALL BE CALLED ONLY FROM ERC1400]
-   * @dev Remove controller of a specific partition of the token.
-   * @param partition Name of the partition.
-   * @param operator Address to remove from controllers of partition.
-   */
-  function _removePartitionController(bytes32 partition, address operator) internal {
-    require(_isPartitionController[partition][operator], "Action Blocked - Not a controller");
-
-    for (uint i = 0; i < _partitionControllers[partition].length; i++){
-      if(_partitionControllers[partition][i] == operator) {
-        _partitionControllers[partition][i] = _partitionControllers[partition][_partitionControllers[partition].length - 1];
-        delete _partitionControllers[partition][_partitionControllers[partition].length-1];
-        _partitionControllers[partition].length--;
-        break;
-      }
-    }
-    _isPartitionController[partition][operator] = false;
-  }
+   function _setPartitionControllers(bytes32 partition, address[] operators) internal onlyOwner {
+     for (uint i = 0; i<_partitionControllers[partition].length; i++){
+       _isPartitionController[partition][_partitionControllers[partition][i]] = false;
+     }
+     for (uint j = 0; j<operators.length; j++){
+       _isPartitionController[partition][operators[j]] = true;
+     }
+     _partitionControllers[partition] = operators;
+   }
 
   /************** ERC777 BACKWARDS RETROCOMPATIBILITY *************************/
 
