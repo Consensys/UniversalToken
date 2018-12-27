@@ -7,16 +7,19 @@
     "tests"
   ],
   "scripts": {
-    "build:sol": "solcpiler -i './contracts/*.sol' --solc-version=\"v0.4.24+commit.e67f0147\" --output-artifacts-dir artifacts --insert-file-names imports",
-    "build": "npm run clean && npm run build:sol",
+    "build:sol:ERC20": "solcpiler -i './contracts/token/ERC20/*.sol' --solc-version=\"v0.4.24+commit.e67f0147\" --output-artifacts-dir artifacts --insert-file-names imports",
+    "build:sol:ERC777": "solcpiler -i './contracts/token/ERC777/*.sol' --solc-version=\"v0.4.24+commit.e67f0147\" --output-artifacts-dir artifacts --insert-file-names imports",
+    "build:sol:ERC1400": "solcpiler -i './contracts/*.sol' --solc-version=\"v0.4.24+commit.e67f0147\" --output-artifacts-dir artifacts --insert-file-names imports",
+    "build:sol": "yarn run build:sol:ERC1400 && yarn run build:sol:ERC777 && yarn run build:sol:ERC20",
+    "build": "yarn run clean && yarn run build:sol",
     "clean": "rm -rf build artifacts",
     "coverage": "solidity-coverage",
     "lint": "eslint ./migrations ./test ",
     "lint:fix": "eslint ./test ./migrations --fix",
     "lint:sol": "solium -d .",
     "lint:sol:fix": "solium -d . --fix",
-    "lint:all": "npm run lint && npm run lint:sol",
-    "lint:all:fix": "npm run lint:fix && npm run lint:sol:fix",
+    "lint:all": "yarn run lint && yarn run lint:sol",
+    "lint:all:fix": "yarn run lint:fix && yarn run lint:sol:fix",
     "console": "truffle console",
     "version": "scripts/version.js",
     "remix": "python -mwebbrowser http://localhost:8080 && ./node_modules/remix-ide/bin/remix-ide"
