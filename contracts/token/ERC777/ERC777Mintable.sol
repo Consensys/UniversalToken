@@ -4,46 +4,26 @@ import "./ERC777.sol";
 import "openzeppelin-solidity/contracts/access/roles/MinterRole.sol";
 
 /**
- * @title ERC777Mintable
- * @dev ERC777 minting logic
+ * @title ERC777Issuable
+ * @dev ERC777 issuance logic
  */
-contract ERC777Mintable is ERC777, MinterRole {
+contract ERC777Issuable is ERC777, MinterRole {
 
   /**
    * [NOT MANDATORY FOR ERC777 STANDARD]
-   * @dev Mint the amout of tokens for the recipient 'to'.
+   * @dev Issue the amout of tokens for the recipient 'to'.
    * @param to Token recipient.
-   * @param value Number of tokens minted.
-   * @param data Information attached to the mint, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param value Number of tokens issued.
+   * @param data Information attached to the issuance, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    * @return A boolean that indicates if the operation was successful.
    */
-  function mint(address to, uint256 value, bytes data)
+  function issue(address to, uint256 value, bytes data)
     external
     isValidCertificate(data)
     onlyMinter
     returns (bool)
   {
-    _mint(msg.sender, to, value, data, "");
-
-    return true;
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC777 STANDARD]
-   * @dev Mint the amout of tokens for the recipient 'to'.
-   * @param to Token recipient.
-   * @param value Number of tokens minted.
-   * @param data Information attached to the minting, and intended for the recipient ('to').
-   * @param operatorData Information attached to the mint by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
-   * @return A boolean that indicates if the operation was successful.
-   */
-  function operatorMint(address to, uint256 value, bytes data, bytes operatorData)
-    external
-    isValidCertificate(operatorData)
-    onlyMinter
-    returns (bool)
-  {
-    _mint(msg.sender, to, value, data, operatorData);
+    _issue(msg.sender, to, value, data, "");
 
     return true;
   }

@@ -18,7 +18,7 @@ contract ERC1410Mock is ERC1410, CertificateControllerMock {
     public
     ERC1410(name, symbol, granularity, controllers, certificateSigner, tokenDefaultPartitions)
   {
-    _mint(msg.sender, tokenHolderMock, valueMock, "", "");
+    _issue(msg.sender, tokenHolderMock, valueMock, "", "");
   }
 
 }

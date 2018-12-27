@@ -102,15 +102,15 @@ contract ERC777ERC20 is IERC20, ERC777Mintable {
 
   /**
    * [OVERRIDES ERC777 METHOD]
-   * @dev Perform the minting of tokens.
-   * @param operator Address which triggered the mint.
+   * @dev Perform the issuance of tokens.
+   * @param operator Address which triggered the issuance.
    * @param to Token recipient.
-   * @param value Number of tokens minted.
-   * @param data Information attached to the mint.
-   * @param operatorData Information attached to the mint by the operator (if any).
+   * @param value Number of tokens issued.
+   * @param data Information attached to the issuance.
+   * @param operatorData Information attached to the issued by the operator (if any).
    */
-  function _mint(address operator, address to, uint256 value, bytes data, bytes operatorData) internal {
-    ERC777._mint(operator, to, value, data, operatorData);
+  function _issue(address operator, address to, uint256 value, bytes data, bytes operatorData) internal {
+    ERC777._issue(operator, to, value, data, operatorData);
 
     if(_erc20compatible) {
       emit Transfer(address(0), to, value); // ERC20 backwards compatibility

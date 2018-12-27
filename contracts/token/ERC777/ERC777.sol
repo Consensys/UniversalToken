@@ -61,7 +61,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @param granularity Granularity of the token.
    * @param controllers Array of initial controllers.
    * @param certificateSigner Address of the off-chain service which signs the
-   * conditional ownership certificates required for token transfers, mint,
+   * conditional ownership certificates required for token transfers, issuance,
    * redemption (Cf. CertificateController.sol).
    */
   constructor(
@@ -109,7 +109,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
 
   /**
    * [ERC777 INTERFACE (3/13)]
-   * @dev Get the total number of minted tokens.
+   * @dev Get the total number of issued tokens.
    * @return Total supply of tokens currently in circulation.
    */
   function totalSupply() external view returns (uint256) {
@@ -380,8 +380,8 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * [INTERNAL]
    * @dev Check for 'ERC777TokensRecipient' hook on the recipient and call it.
    * May throw according to 'preventLocking'.
-   * @param operator Address which triggered the balance increase (through transfer or minting).
-   * @param from Token holder for a transfer and 0x for a mint.
+   * @param operator Address which triggered the balance increase (through transfer or issuance).
+   * @param from Token holder for a transfer and 0x for an issuance.
    * @param to Token recipient.
    * @param value Number of tokens the recipient balance is increased by.
    * @param data Extra information, intended for the token holder ('from').
@@ -414,14 +414,14 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
 
   /**
    * [INTERNAL]
-   * @dev Perform the minting of tokens.
-   * @param operator Address which triggered the mint.
+   * @dev Perform the issuance of tokens.
+   * @param operator Address which triggered the issuance.
    * @param to Token recipient.
-   * @param value Number of tokens minted.
-   * @param data Information attached to the mint, and intended for the recipient (to).
-   * @param operatorData Information attached to the mint by the operator (if any).
+   * @param value Number of tokens issued.
+   * @param data Information attached to the issuance, and intended for the recipient (to).
+   * @param operatorData Information attached to the issuance by the operator (if any).
    */
-  function _mint(address operator, address to, uint256 value, bytes data, bytes operatorData) internal nonReentrant {
+  function _issue(address operator, address to, uint256 value, bytes data, bytes operatorData) internal nonReentrant {
     require(_isMultiple(value), "A9: Transfer Blocked - Token granularity");
     require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");
 

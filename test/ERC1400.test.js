@@ -654,7 +654,7 @@ contract('ERC1400', function ([owner, operator, controller, tokenHolder, recipie
       this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
     });
 
-    describe('when sender is the minter', function () {
+    describe('when sender is the issuer', function () {
       describe('when token is issuable', function () {
         it('issues the requested amount', async function () {
           await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
@@ -702,7 +702,7 @@ contract('ERC1400', function ([owner, operator, controller, tokenHolder, recipie
         });
       });
     });
-    describe('when sender is not the minter', function () {
+    describe('when sender is not the issuer', function () {
       it('reverts', async function () {
         await shouldFail.reverting(this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: unknown }));
       });

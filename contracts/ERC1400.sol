@@ -290,7 +290,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   )
     internal
   {
-    _mint(operator, to, value, data, operatorData);
+    _issue(operator, to, value, data, operatorData);
     _addTokenToPartition(to, toPartition, value);
 
     emit IssuedByPartition(toPartition, operator, to, value, data, operatorData);

@@ -1,4 +1,4 @@
-import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
+ISSUEimport shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
 
 const ERC1400ERC20 = artifacts.require('ERC1400ERC20Mock');
 
@@ -229,9 +229,9 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
     });
   });
 
-  // MINT
+  // ISSUE
 
-  describe('mint', function () {
+  describe('issue', function () {
     describe('when the ERC20 retrocompatibility is activated', function () {
       beforeEach(async function () {
         await this.token.setERC20compatibility(true, { from: owner });
