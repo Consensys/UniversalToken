@@ -99,7 +99,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                 assert.equal(logs[0].event, 'Checked');
                 assert.equal(logs[0].args.sender, tokenHolder);
 
-                assert.equal(logs[1].event, 'Sent');
+                assert.equal(logs[1].event, 'TransferWithData');
                 assert.equal(logs[1].args.operator, tokenHolder);
                 assert.equal(logs[1].args.from, tokenHolder);
                 assert.equal(logs[1].args.to, to);
@@ -122,7 +122,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                 assert.equal(logs[0].event, 'Checked');
                 assert.equal(logs[0].args.sender, tokenHolder);
 
-                assert.equal(logs[1].event, 'Sent');
+                assert.equal(logs[1].event, 'TransferWithData');
                 assert.equal(logs[1].args.operator, tokenHolder);
                 assert.equal(logs[1].args.from, tokenHolder);
                 assert.equal(logs[1].args.to, to);
@@ -287,7 +287,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                 const { logs } = await this.token.transfer(to, amount, { from: tokenHolder });
 
                 assert.equal(logs.length, 2);
-                assert.equal(logs[0].event, 'Sent');
+                assert.equal(logs[0].event, 'TransferWithData');
                 assert.equal(logs[0].args.operator, tokenHolder);
                 assert.equal(logs[0].args.from, tokenHolder);
                 assert.equal(logs[0].args.to, to);
@@ -389,7 +389,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                   // await this.token.transferFrom(tokenHolder, to, amount, { from: operator });
 
                   assert.equal(logs.length, 2);
-                  assert.equal(logs[0].event, 'Sent');
+                  assert.equal(logs[0].event, 'TransferWithData');
                   assert.equal(logs[0].args.operator, operator);
                   assert.equal(logs[0].args.from, tokenHolder);
                   assert.equal(logs[0].args.to, to);

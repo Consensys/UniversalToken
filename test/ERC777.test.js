@@ -333,7 +333,7 @@ contract('ERC777 without hooks', function ([owner, operator, controller, tokenHo
                 assert.equal(logs[0].event, 'Checked');
                 assert.equal(logs[0].args.sender, tokenHolder);
 
-                assert.equal(logs[1].event, 'Sent');
+                assert.equal(logs[1].event, 'TransferWithData');
                 assert.equal(logs[1].args.operator, tokenHolder);
                 assert.equal(logs[1].args.from, tokenHolder);
                 assert.equal(logs[1].args.to, to);
@@ -431,7 +431,7 @@ contract('ERC777 without hooks', function ([owner, operator, controller, tokenHo
                 assert.equal(logs[0].event, 'Checked');
                 assert.equal(logs[0].args.sender, operator);
 
-                assert.equal(logs[1].event, 'Sent');
+                assert.equal(logs[1].event, 'TransferWithData');
                 assert.equal(logs[1].args.operator, operator);
                 assert.equal(logs[1].args.from, tokenHolder);
                 assert.equal(logs[1].args.to, to);

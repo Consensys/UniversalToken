@@ -88,7 +88,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
         assert.equal(logs[0].event, 'Checked');
         assert.equal(logs[0].args.sender, tokenHolder);
 
-        assert.equal(logs[1].event, 'Sent');
+        assert.equal(logs[1].event, 'TransferWithData');
         assert.equal(logs[1].args.operator, tokenHolder);
         assert.equal(logs[1].args.from, tokenHolder);
         assert.equal(logs[1].args.to, to);
@@ -130,7 +130,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
         assert.equal(logs[0].event, 'Checked');
         assert.equal(logs[0].args.sender, tokenHolder);
 
-        assert.equal(logs[1].event, 'Sent');
+        assert.equal(logs[1].event, 'TransferWithData');
         assert.equal(logs[1].args.operator, tokenHolder);
         assert.equal(logs[1].args.from, tokenHolder);
         assert.equal(logs[1].args.to, to);
@@ -406,7 +406,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
 
               assert.equal(logs.length, 3);
 
-              assert.equal(logs[0].event, 'Sent');
+              assert.equal(logs[0].event, 'TransferWithData');
               assert.equal(logs[0].args.operator, tokenHolder);
               assert.equal(logs[0].args.from, tokenHolder);
               assert.equal(logs[0].args.to, to);
@@ -520,7 +520,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
 
                 assert.equal(logs.length, 3);
 
-                assert.equal(logs[0].event, 'Sent');
+                assert.equal(logs[0].event, 'TransferWithData');
                 assert.equal(logs[0].args.operator, operator);
                 assert.equal(logs[0].args.from, tokenHolder);
                 assert.equal(logs[0].args.to, to);

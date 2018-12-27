@@ -62,7 +62,7 @@ const assertTransferEvent = (
     i = 1;
   }
 
-  assert.equal(_logs[i].event, 'Sent');
+  assert.equal(_logs[i].event, 'TransferWithData');
   assert.equal(_logs[i].args.operator, _operator);
   assert.equal(_logs[i].args.from, _from);
   assert.equal(_logs[i].args.to, _to);
