@@ -35,13 +35,13 @@ contract ERC1410 is IERC1410, ERC777 {
 
   /**************** Mappings to find partition operators ************************/
   // Mapping from (tokenHolder, partition, operator) to 'approved for partition' status. [TOKEN-HOLDER-SPECIFIC]
-  mapping (address => mapping (bytes32 => mapping (address => bool))) internal _partitionAuthorizedOperator;
+  mapping (address => mapping (bytes32 => mapping (address => bool))) internal _authorizedOperatorByPartition;
 
   // Mapping from partition to controllers for the partition. [NOT TOKEN-HOLDER-SPECIFIC]
-  mapping (bytes32 => address[]) internal _partitionControllers;
+  mapping (bytes32 => address[]) internal _controllersByPartition;
 
   // Mapping from (partition, operator) to PartitionController status. [NOT TOKEN-HOLDER-SPECIFIC]
-  mapping (bytes32 => mapping (address => bool)) internal _isPartitionController;
+  mapping (bytes32 => mapping (address => bool)) internal _isControllerByPartition;
   /****************************************************************************/
 
   /**
@@ -174,7 +174,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @return Array of controllers for partition.
    */
   function controllersByPartition(bytes32 partition) external view returns (address[]) {
-    return _partitionControllers[partition];
+    return _controllersByPartition[partition];
   }
 
   /**
@@ -184,7 +184,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param operator Address to set as an operator for 'msg.sender'.
    */
   function authorizeOperatorByPartition(bytes32 partition, address operator) external {
-    _partitionAuthorizedOperator[msg.sender][partition][operator] = true;
+    _authorizedOperatorByPartition[msg.sender][partition][operator] = true;
     emit AuthorizedOperatorByPartition(partition, operator, msg.sender);
   }
 
@@ -196,7 +196,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param operator Address to rescind as an operator on given partition for 'msg.sender'.
    */
   function revokeOperatorByPartition(bytes32 partition, address operator) external {
-    _partitionAuthorizedOperator[msg.sender][partition][operator] = false;
+    _authorizedOperatorByPartition[msg.sender][partition][operator] = false;
     emit RevokedOperatorByPartition(partition, operator, msg.sender);
   }
 
@@ -226,8 +226,8 @@ contract ERC1410 is IERC1410, ERC777 {
    */
    function _isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) internal view returns (bool) {
      return (_isOperatorFor(operator, tokenHolder)
-       || _partitionAuthorizedOperator[tokenHolder][partition][operator]
-       || (_isControllable && _isPartitionController[partition][operator])
+       || _authorizedOperatorByPartition[tokenHolder][partition][operator]
+       || (_isControllable && _isControllerByPartition[partition][operator])
      );
    }
 
@@ -378,13 +378,13 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param operators Controller addresses.
    */
    function _setPartitionControllers(bytes32 partition, address[] operators) internal onlyOwner {
-     for (uint i = 0; i<_partitionControllers[partition].length; i++){
-       _isPartitionController[partition][_partitionControllers[partition][i]] = false;
+     for (uint i = 0; i<_controllersByPartition[partition].length; i++){
+       _isControllerByPartition[partition][_controllersByPartition[partition][i]] = false;
      }
      for (uint j = 0; j<operators.length; j++){
-       _isPartitionController[partition][operators[j]] = true;
+       _isControllerByPartition[partition][operators[j]] = true;
      }
-     _partitionControllers[partition] = operators;
+     _controllersByPartition[partition] = operators;
    }
 
   /************** ERC777 BACKWARDS RETROCOMPATIBILITY *************************/

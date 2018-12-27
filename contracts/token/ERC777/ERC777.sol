@@ -45,14 +45,6 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
   /****************************************************************************/
 
   /**
-   * @dev Modifier to verify if token is controllable.
-   */
-  modifier controllableToken() {
-    require(_isControllable, "A8: Transfer Blocked - Token restriction");
-    _;
-  }
-
-  /**
    * [ERC777 CONSTRUCTOR]
    * @dev Initialize ERC777 and CertificateController parameters + register
    * the contract implementation in ERC820Registry.

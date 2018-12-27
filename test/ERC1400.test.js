@@ -423,6 +423,30 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
         assert(!(await this.token.isOperatorForPartition(partition1, controller_alternative1, unknown)));
         assert(!(await this.token.isOperatorForPartition(partition1, controller_alternative2, unknown)));
       });
+      it('removes the operators as controllers for the specified partition', async function () {
+        assert(await this.token.isControllable());
+
+        const controllers1 = await this.token.controllersByPartition(partition1);
+        assert.equal(controllers1.length, 0);
+        assert(await this.token.isOperatorForPartition(partition1, controller, unknown));
+        assert(!(await this.token.isOperatorForPartition(partition1, controller_alternative1, unknown)));
+        assert(!(await this.token.isOperatorForPartition(partition1, controller_alternative2, unknown)));
+        await this.token.setPartitionControllers(partition1, [controller_alternative1, controller_alternative2], { from: owner });
+        const controllers2 = await this.token.controllersByPartition(partition1);
+        assert.equal(controllers2.length, 2);
+        assert.equal(controllers2[0], controller_alternative1);
+        assert.equal(controllers2[1], controller_alternative2);
+        assert(await this.token.isOperatorForPartition(partition1, controller, unknown));
+        assert(await this.token.isOperatorForPartition(partition1, controller_alternative1, unknown));
+        assert(await this.token.isOperatorForPartition(partition1, controller_alternative2, unknown));
+        await this.token.setPartitionControllers(partition1, [controller_alternative2], { from: owner });
+        const controllers3 = await this.token.controllersByPartition(partition1);
+        assert.equal(controllers3.length, 1);
+        assert.equal(controllers3[0], controller_alternative2);
+        assert(await this.token.isOperatorForPartition(partition1, controller, unknown));
+        assert(!(await this.token.isOperatorForPartition(partition1, controller_alternative1, unknown)));
+        assert(await this.token.isOperatorForPartition(partition1, controller_alternative2, unknown));
+      });
     });
     describe('when the caller is not the contract owner', function () {
       it('reverts', async function () {
