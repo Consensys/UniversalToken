@@ -428,7 +428,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param data Information attached to the redemption.
    * @param operatorData Information attached to the redemption, by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function operatorBurn(address from, uint256 value, bytes data, bytes operatorData)
+  function redeemFrom(address from, uint256 value, bytes data, bytes operatorData)
     external
     isValidCertificate(operatorData)
   {

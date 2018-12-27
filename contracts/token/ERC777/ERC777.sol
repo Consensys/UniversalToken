@@ -232,7 +232,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @param data Information attached to the burn, and intended for the token holder (from).
    * @param operatorData Information attached to the burn by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function operatorBurn(address from, uint256 value, bytes data, bytes operatorData)
+  function redeemFrom(address from, uint256 value, bytes data, bytes operatorData)
     external
     isValidCertificate(operatorData)
   {

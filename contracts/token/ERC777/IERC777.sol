@@ -25,7 +25,7 @@ interface IERC777 {
   function transferFromWithData(address from, address to, uint256 value, bytes data, bytes operatorData) external; // 11/13
 
   function burn(uint256 value, bytes data) external; // 12/13
-  function operatorBurn(address from, uint256 value, bytes data, bytes operatorData) external; // 13/13
+  function redeemFrom(address from, uint256 value, bytes data, bytes operatorData) external; // 13/13
 
   event TransferWithData(
     address indexed operator,

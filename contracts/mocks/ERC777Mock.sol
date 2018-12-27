@@ -29,7 +29,7 @@ contract ERC777Mock is ERC777Mintable, CertificateControllerMock {
     return _isRegularAddress(adr);
   }
 
-  function operatorBurnMock(address from, uint256 value, bytes data, bytes operatorData) external {
+  function redeemFromMock(address from, uint256 value, bytes data, bytes operatorData) external {
     _burn(msg.sender, from, value, data, operatorData);
   }
 

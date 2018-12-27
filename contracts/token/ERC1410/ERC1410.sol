@@ -449,9 +449,9 @@ contract ERC1410 is IERC1410, ERC777 {
 
   /**
    * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
-   * @dev Empty function to erase ERC777 operatorBurn() function since it doesn't handle partitions.
+   * @dev Empty function to erase ERC777 redeemFrom() function since it doesn't handle partitions.
    */
-  function operatorBurn(address /*from*/, uint256 /*value*/, bytes /*data*/, bytes /*operatorData*/) external { // Comments to avoid compilation warnings for unused variables.
+  function redeemFrom(address /*from*/, uint256 /*value*/, bytes /*data*/, bytes /*operatorData*/) external { // Comments to avoid compilation warnings for unused variables.
   }
 
   /**
