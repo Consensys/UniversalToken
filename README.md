@@ -12,7 +12,7 @@ This repo contains security token smart contract implementations used by dAuriel
 
  - Empowerment of operators with the ability to send tokens on behalf of other addresses.
  - Setup of send/receive hooks to offer token holders more control over their tokens.
- - Use of ERC820 to notify contracts and regular addresses when they receive tokens.
+ - Use of ER820([eips.ethereum.org/EIPS/eip-820](https://eips.ethereum.org/EIPS/eip-820)) to notify contracts and regular addresses when they receive tokens.
  - Backwards compatible with ERC20.
 
 
@@ -42,7 +42,7 @@ The security token standards contained in this repository, combined to user-frie
 
 # Approach - Introduce a new transfer standard to provide issuers with strong control capabilities over their financial assets.
 
-### Introduction.
+### Introduction - The limits of ERC20 token standard.
 
 Currently the most common and well-known standard within crypto community is the [ERC20](https://eips.ethereum.org/EIPS/eip-20).
 While the vast majority of ICOs are based on this ERC20 standard, it appears not to be the most relevant for financial asset tokenization.
@@ -66,12 +66,17 @@ A token transfer shall be conditioned to the validity of the certificate, thus o
 
 ![dAurielTransaction](/uploads/3c2d2122ddc97a23bb4f00e5f9acdfec/dAurielTransaction.png)
 
-The certificate contains:
+### dAuriel certificate - A way to perform advanced conditional ownership.
+
+The dAuriel certificate contains:
  - The function ID which ensures the certificate can’t be used on an other function.
  - The parameters which ensures the input parameters have been validated by the issuer.
  - A validity date which ensures the certificate can’t be used after validity date.
  - A nonce which ensures the certificate can’t be used twice.
+
 Finally the certificate is signed by the issuer which ensures it is authentic.
+
+The certificate enables the issuer to perform advanced conditional ownership, since he needs to be aware of all parameters of a function call before generating the associated certificate.
 
 ![dAurielCertificate](/uploads/22898f9cb907bea0a20334ee46ab70e6/dAurielCertificate.png)
 
@@ -79,9 +84,25 @@ Finally the certificate is signed by the issuer which ensures it is authentic.
 
 ### ERC777
 
+The ERC777 is an advanced token standard adapted for regulated asset transfers, since it allows to inject data (i.e. our certificate) in the transfer transactions:
+```
+function transferWithData(address recipient, uint256 value, bytes data)
+```
+
 The official proposal can be found at: [eips.ethereum.org/EIPS/eip-777](https://eips.ethereum.org/EIPS/eip-777).
 
-The standard implements the [following interface](https://gitlab.com/ConsenSys/client/fr/dauriel/securities-smart-contracts/blob/master/contracts/token/ERC777/IERC777.sol):
+We've performed a few updates compared to the official proposal, mainly to better fit with our implementation of ERC1400:
+ - Introduction of the notion of 'controllers' (replacing defaultOperators) for better consistency with ERC1400 'controllers'.
+ - Introduction of '_isControllable' property (set to 'false' by default for the ERC777 but set to 'true' for the ERC1400).
+ - Renaming of 'send' function (now 'transferWithData') and 'Sent' event (now 'TransferWithData') for better consistency with ERC1400 names + to avoid potential issues with blockchain tools (e.g. Truffle, etc.) considering 'send' as a reserved word.
+ - Renaming of 'mint' function (now 'issue') and 'Minted' event (now 'Issued') for better consistency with ERC1400 names.
+ - Renaming of 'burn' function (now 'redeem') and 'Burned' event (now 'Redeemed') for better consistency with ERC1400 names.
+ - Renaming of 'operatorBurn' function (now 'redeemFrom') for better consistency with ERC1400 names.
+
+ERC777 can be made compatible with ERC20 (see [ERC777ERC20.sol](contracts/token/ERC20/ERC777ERC20.sol)).
+This backwards compatibility property offers interoperability, as ERC20 tokens are compatible with most existing exchange platforms.
+
+It implements the [following interface](contracts/token/ERC777/IERC777.sol):
 ```
 interface IERC777 {
 
@@ -120,9 +141,21 @@ interface IERC777 {
 
 ### ERC1400
 
+ERC1400 has an additional feature on top of ERC77 properties: the partial fungibility property.
+This property allows to perform corporate actions, like mergers and acquisitions, which is essential for financial assets.
+
 The original submission with discussion can be found at: [github.com/ethereum/EIPs/issues/1411](https://github.com/ethereum/EIPs/issues/1411).
 
-The standard implements the following interfaces: [IERC1410](https://gitlab.com/ConsenSys/client/fr/dauriel/securities-smart-contracts/blob/master/contracts/token/ERC1410/IERC1410.sol) + [IERC1400](https://gitlab.com/ConsenSys/client/fr/dauriel/securities-smart-contracts/blob/master/contracts/IERC1400.sol):
+We've performed a few updates compared to the original submission, mainly to fit with business requirements + to save gas cost of contract deployment:
+ - Compatibility with ERC777 as all ERC777 properties are required for financial asset tokenization business requirements (incl. send/receive hooks and ERC820 which are used to ensure transfer atomicity).
+ - Modification of view functions ('canTransferByPartition', 'canOperatorTransferByPartition') as consequence of our certificate design choice: the view functions need to have the exact same parameters as 'transferByPartition' and 'operatorTransferByPartition' in order to be in measure to validate the certificate's validity.
+ - Removal of controller functions ('controllerTransfer' and 'controllerRedeem') and events ('ControllerTransfer' and 'ControllerRedemption') to save gas cost of contract deployment. Those controller functionnalities are already included in 'transferByPartition' and 'redeemByPartition' functions.
+ - Split of ERC1400 functions into 2 interfaces (IERC1410 for asset transfers logic + IERC1400 for asset issuance/redemption logic) for better readability.
+
+ERC1400 is compatible with ERC777 and can be made compatible with ERC20 (see [ERC1400ERC20.sol](contracts/token/ERC20/ERC1400ERC20.sol)).
+This backwards compatibility property offers interoperability, as ERC20 tokens are compatible with most existing exchange platforms.
+
+The standard implements the following interfaces: [IERC1410](contracts/token/ERC1410/IERC1410.sol) + [IERC1400](contracts/IERC1400.sol):
 ```
 interface IERC1410 {
 
@@ -166,7 +199,9 @@ interface IERC1410 {
     event RevokedOperatorByPartition(bytes32 indexed partition, address indexed operator, address indexed tokenHolder);
 
 }
+```
 
+```
 interface IERC1400  {
 
     // Document Management
@@ -275,6 +310,8 @@ Deploy the contract by running the migration scripts:
 ```
 $ truffle migrate --network ropsten
 ```
+
+#### Once deployed, make contract address available for other services.
 
 Export contract parameters in export.txt file:
 ```
