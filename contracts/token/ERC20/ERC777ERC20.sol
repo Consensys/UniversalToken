@@ -6,14 +6,14 @@ pragma solidity ^0.4.24;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import "../ERC777/ERC777Mintable.sol";
+import "../ERC777/ERC777Issuable.sol";
 
 
 /**
  * @title ERC777ERC20
  * @dev ERC777 with ERC20 retrocompatibility
  */
-contract ERC777ERC20 is IERC20, ERC777Mintable {
+contract ERC777ERC20 is IERC20, ERC777Issuable {
 
   bool internal _erc20compatible;
 
