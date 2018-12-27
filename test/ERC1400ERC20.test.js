@@ -149,9 +149,9 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
 
   });
 
-  // BURN
+  // REDEEM
 
-  describe('burn', function () {
+  describe('redeem', function () {
     const redeemAmount = 300;
     beforeEach(async function () {
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });

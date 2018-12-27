@@ -241,7 +241,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
-   * @param operatorData Information attached to the transfer, by the operator.
+   * @param operatorData Information attached to the transfer, by the operator (if any).
    * @return Destination partition.
    */
   function _transferByPartition(
@@ -442,9 +442,9 @@ contract ERC1410 is IERC1410, ERC777 {
 
   /**
    * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
-   * @dev Empty function to erase ERC777 burn() function since it doesn't handle partitions.
+   * @dev Empty function to erase ERC777 redeem() function since it doesn't handle partitions.
    */
-  function burn(uint256 /*value*/, bytes /*data*/) external { // Comments to avoid compilation warnings for unused variables.
+  function redeem(uint256 /*value*/, bytes /*data*/) external { // Comments to avoid compilation warnings for unused variables.
   }
 
   /**
@@ -462,7 +462,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer, and intended for the token holder ('from') [CAN CONTAIN THE DESTINATION PARTITION].
-   * @param operatorData Information attached to the transfer by the operator.
+   * @param operatorData Information attached to the transfer by the operator (if any).
    */
   function _transferByDefaultPartitions(
     address operator,

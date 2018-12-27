@@ -136,25 +136,25 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
       });
     });
 
-    // BURN
+    // REDEEM
 
-    describe('burn', function () {
+    describe('redeem', function () {
       beforeEach(async function () {
         await this.token.mint(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
       });
 
       describe('when the amount is a multiple of the granularity', function () {
-        describe('when the burner has enough balance', function () {
+        describe('when the redeemer has enough balance', function () {
           const amount = initialSupply;
 
-          it('burns the requested amount', async function () {
-            await this.token.burn(amount, VALID_CERTIFICATE, { from: tokenHolder });
+          it('redeems the requested amount', async function () {
+            await this.token.redeem(amount, VALID_CERTIFICATE, { from: tokenHolder });
             const senderBalance = await this.token.balanceOf(tokenHolder);
             assert.equal(senderBalance, initialSupply - amount);
           });
 
-          it('emits a burned event [with ERC20 retrocompatibility]', async function () {
-            const { logs } = await this.token.burn(amount, VALID_CERTIFICATE, { from: tokenHolder });
+          it('emits a redeemed event [with ERC20 retrocompatibility]', async function () {
+            const { logs } = await this.token.redeem(amount, VALID_CERTIFICATE, { from: tokenHolder });
 
             assert.equal(logs.length, 3);
 
@@ -173,9 +173,9 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
             assert.equal(logs[2].args.to, ZERO_ADDRESS);
             assert(logs[2].args.value.eq(amount));
           });
-          it('emits a burned event [without ERC20 retrocompatibility]', async function () {
+          it('emits a redeemed event [without ERC20 retrocompatibility]', async function () {
             await this.token.setERC20compatibility(false, { from: owner });
-            const { logs } = await this.token.burn(amount, VALID_CERTIFICATE, { from: tokenHolder });
+            const { logs } = await this.token.redeem(amount, VALID_CERTIFICATE, { from: tokenHolder });
 
             assert.equal(logs.length, 2);
 

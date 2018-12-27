@@ -230,7 +230,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
-   * @param operatorData Information attached to the transfer, by the operator.
+   * @param operatorData Information attached to the transfer, by the operator (if any).
    * @return ESC (Ethereum Status Code) following the EIP-1066 standard.
    * @return Additional bytes32 parameter that can be used to define
    * application specific reason codes with additional details (for example the
@@ -278,7 +278,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param to Token recipient.
    * @param value Number of tokens to issue.
    * @param data Information attached to the issuance.
-   * @param operatorData Information attached to the issuance, by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param operatorData Information attached to the issuance, by the operator (if any).
    */
   function _issueByPartition(
     bytes32 toPartition,
@@ -304,7 +304,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param from Token holder whose tokens will be redeemed.
    * @param value Number of tokens to redeem.
    * @param data Information attached to the redemption.
-   * @param operatorData Information attached to the redemption, by the operator.
+   * @param operatorData Information attached to the redemption, by the operator (if any).
    */
   function _redeemByPartition(
     bytes32 fromPartition,
@@ -319,7 +319,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     require(_balanceOfByPartition[from][fromPartition] >= value, "A4: Transfer Blocked - Sender balance insufficient");
 
     _removeTokenFromPartition(from, fromPartition, value);
-    _burn(operator, from, value, data, operatorData);
+    _redeem(operator, from, value, data, operatorData);
 
     emit RedeemedByPartition(fromPartition, operator, from, value, data, operatorData);
   }
@@ -413,7 +413,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param value Number of tokens to redeem.
    * @param data Information attached to the redemption, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function burn(uint256 value, bytes data)
+  function redeem(uint256 value, bytes data)
     external
     isValidCertificate(data)
   {
@@ -446,7 +446,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param from Token holder.
    * @param value Number of tokens to redeem.
    * @param data Information attached to the redemption.
-   * @param operatorData Information attached to the redemption, by the operator.
+   * @param operatorData Information attached to the redemption, by the operator (if any).
    */
   function _redeemByDefaultPartitions(
     address operator,

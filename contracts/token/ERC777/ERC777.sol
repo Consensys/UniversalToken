@@ -62,7 +62,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @param controllers Array of initial controllers.
    * @param certificateSigner Address of the off-chain service which signs the
    * conditional ownership certificates required for token transfers, mint,
-   * burn (Cf. CertificateController.sol).
+   * redemption (Cf. CertificateController.sol).
    */
   constructor(
     string name,
@@ -147,7 +147,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
   /**
    * [ERC777 INTERFACE (7/13)]
    * @dev Set a third party operator address as an operator of 'msg.sender' to transfer
-   * and burn tokens on its behalf.
+   * and redeem tokens on its behalf.
    * @param operator Address to set as an operator for 'msg.sender'.
    */
   function authorizeOperator(address operator) external {
@@ -158,7 +158,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
   /**
    * [ERC777 INTERFACE (8/13)]
    * @dev Remove the right of the operator address to be an operator for 'msg.sender'
-   * and to transfer and burn tokens on its behalf.
+   * and to transfer and redeem tokens on its behalf.
    * @param operator Address to rescind as an operator for 'msg.sender'.
    */
   function revokeOperator(address operator) external {
@@ -213,24 +213,24 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
 
   /**
    * [ERC777 INTERFACE (12/13)]
-   * @dev Burn the amount of tokens from the address 'msg.sender'.
-   * @param value Number of tokens to burn.
-   * @param data Information attached to the burn, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @dev Redeem the amount of tokens from the address 'msg.sender'.
+   * @param value Number of tokens to redeem.
+   * @param data Information attached to the redemption, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function burn(uint256 value, bytes data)
+  function redeem(uint256 value, bytes data)
     external
     isValidCertificate(data)
   {
-    _burn(msg.sender, msg.sender, value, data, "");
+    _redeem(msg.sender, msg.sender, value, data, "");
   }
 
   /**
    * [ERC777 INTERFACE (13/13)]
-   * @dev Burn the amount of tokens on behalf of the address from.
-   * @param from Token holder whose tokens will be burned (or address(0) to set from to msg.sender).
-   * @param value Number of tokens to burn.
-   * @param data Information attached to the burn, and intended for the token holder (from).
-   * @param operatorData Information attached to the burn by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @dev Redeem the amount of tokens on behalf of the address from.
+   * @param from Token holder whose tokens will be redeemed (or address(0) to set from to msg.sender).
+   * @param value Number of tokens to redeem.
+   * @param data Information attached to the redemption.
+   * @param operatorData Information attached to the redemption, by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
   function redeemFrom(address from, uint256 value, bytes data, bytes operatorData)
     external
@@ -240,7 +240,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
 
     require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
-    _burn(msg.sender, _from, value, data, operatorData);
+    _redeem(msg.sender, _from, value, data, operatorData);
   }
 
   /********************** ERC777 INTERNAL FUNCTIONS ***************************/
@@ -289,8 +289,8 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
     * @param from Token holder.
     * @param to Token recipient.
     * @param value Number of tokens to transfer.
-    * @param data Information attached to the transfer, and intended for the token holder ('from').
-    * @param operatorData Information attached to the transfer by the operator.
+    * @param data Information attached to the transfer.
+    * @param operatorData Information attached to the transfer by the operator (if any)..
     * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
     * implementing 'erc777tokenHolder'.
     * ERC777 native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
@@ -324,14 +324,14 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
 
   /**
    * [INTERNAL]
-   * @dev Perform the burning of tokens.
-   * @param operator The address performing the burn.
-   * @param from Token holder whose tokens will be burned.
-   * @param value Number of tokens to burn.
-   * @param data Information attached to the burn, and intended for the token holder ('from').
-   * @param operatorData Information attached to the burn by the operator (if any).
+   * @dev Perform the token redemption.
+   * @param operator The address performing the redemption.
+   * @param from Token holder whose tokens will be redeemed.
+   * @param value Number of tokens to redeem.
+   * @param data Information attached to the redemption.
+   * @param operatorData Information attached to the redemption, by the operator (if any).
    */
-  function _burn(address operator, address from, uint256 value, bytes data, bytes operatorData)
+  function _redeem(address operator, address from, uint256 value, bytes data, bytes operatorData)
     internal
     nonReentrant
   {
@@ -351,12 +351,12 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * [INTERNAL]
    * @dev Check for 'ERC777TokensSender' hook on the sender and call it.
    * May throw according to 'preventLocking'.
-   * @param operator Address which triggered the balance decrease (through transfer or burning).
+   * @param operator Address which triggered the balance decrease (through transfer or redemption).
    * @param from Token holder.
-   * @param to Token recipient for a transfer and 0x for a burn.
+   * @param to Token recipient for a transfer and 0x for a redemption.
    * @param value Number of tokens the token holder balance is decreased by.
-   * @param data Extra information, intended for the token holder ('from').
-   * @param operatorData Extra information attached by the operator (if any).
+   * @param data Extra information.
+   * @param operatorData Extra information, attached by the operator (if any).
    */
   function _callSender(
     address operator,
@@ -423,7 +423,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    */
   function _mint(address operator, address to, uint256 value, bytes data, bytes operatorData) internal nonReentrant {
     require(_isMultiple(value), "A9: Transfer Blocked - Token granularity");
-    require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");      // forbid transfer to 0x0 (=burning)
+    require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");
 
     _totalSupply = _totalSupply.add(value);
     _balances[to] = _balances[to].add(value);

@@ -37,8 +37,8 @@ contract ERC777ERC20 is IERC20, ERC777Mintable {
    * @param granularity Granularity of the token.
    * @param controllers Array of initial controllers.
    * @param certificateSigner Address of the off-chain service which signs the
-   * conditional ownership certificates required for token transfers, mint,
-   * burn (Cf. CertificateController.sol).
+   * conditional ownership certificates required for token transfers, issuance,
+   * redemption (Cf. CertificateController.sol).
    */
   constructor(
     string name,
@@ -58,8 +58,8 @@ contract ERC777ERC20 is IERC20, ERC777Mintable {
    * @param from Token holder.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
-   * @param data Information attached to the transfer, and intended for the token holder ('from').
-   * @param operatorData Information attached to the transfer by the operator.
+   * @param data Information attached to the transfer.
+   * @param operatorData Information attached to the transfer by the operator (if any).
    * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
    * implementing 'erc777tokenHolder'.
    * ERC777 native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
@@ -85,15 +85,15 @@ contract ERC777ERC20 is IERC20, ERC777Mintable {
 
   /**
    * [OVERRIDES ERC777 METHOD]
-   * @dev Perform the burning of tokens.
-   * @param operator The address performing the burn.
-   * @param from Token holder whose tokens will be burned.
-   * @param value Number of tokens to burn.
-   * @param data Information attached to the burn, and intended for the token holder ('from').
-   * @param operatorData Information attached to the burn by the operator (if any).
+   * @dev Perform the token redemption.
+   * @param operator The address performing the redemption.
+   * @param from Token holder whose tokens will be redeemed.
+   * @param value Number of tokens to redeem.
+   * @param data Information attached to the redemption.
+   * @param operatorData Information attached to the redemption by the operator (if any).
    */
-  function _burn(address operator, address from, uint256 value, bytes data, bytes operatorData) internal {
-    ERC777._burn(operator, from, value, data, operatorData);
+  function _redeem(address operator, address from, uint256 value, bytes data, bytes operatorData) internal {
+    ERC777._redeem(operator, from, value, data, operatorData);
 
     if(_erc20compatible) {
       emit Transfer(from, address(0), value);  //  ERC20 backwards compatibility
@@ -106,7 +106,7 @@ contract ERC777ERC20 is IERC20, ERC777Mintable {
    * @param operator Address which triggered the mint.
    * @param to Token recipient.
    * @param value Number of tokens minted.
-   * @param data Information attached to the mint, and intended for the recipient ('to').
+   * @param data Information attached to the mint.
    * @param operatorData Information attached to the mint by the operator (if any).
    */
   function _mint(address operator, address to, uint256 value, bytes data, bytes operatorData) internal {
