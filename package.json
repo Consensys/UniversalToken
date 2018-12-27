@@ -7,12 +7,6 @@
     "tests"
   ],
   "scripts": {
-    "build:sol:ERC20": "solcpiler -i './contracts/token/ERC20/*.sol' --solc-version=\"v0.4.24+commit.e67f0147\" --output-artifacts-dir artifacts --insert-file-names imports",
-    "build:sol:ERC777": "solcpiler -i './contracts/token/ERC777/*.sol' --solc-version=\"v0.4.24+commit.e67f0147\" --output-artifacts-dir artifacts --insert-file-names imports",
-    "build:sol:ERC1400": "solcpiler -i './contracts/*.sol' --solc-version=\"v0.4.24+commit.e67f0147\" --output-artifacts-dir artifacts --insert-file-names imports",
-    "build:sol": "yarn run build:sol:ERC1400 && yarn run build:sol:ERC777 && yarn run build:sol:ERC20",
-    "build": "yarn run clean && yarn run build:sol",
-    "clean": "rm -rf build artifacts",
     "coverage": "solidity-coverage",
     "lint": "eslint ./migrations ./test ",
     "lint:fix": "eslint ./test ./migrations --fix",

@@ -1,14 +1,14 @@
 ![dAuriel](images/dAurielLogo.png)
 
-# What is dAuriel?
+## What is dAuriel?
 
 dAuriel is an advanced institutional technology platform for issuing and exchanging tokenized financial assets, powered by the Ethereum blockchain.
 dAuriel is a product created by ConsenSys.
 
-# Content - Security token implementations (ERC777 and ERC1400), adapted for financial asset tokenization.
+## Content - Security token implementations (ERC777 and ERC1400), adapted for financial asset tokenization
 
 This repo contains security token smart contract implementations used by dAuriel:
-#### ERC777 implementation - Advanced token standard for asset transfers.
+#### ERC777 implementation - Advanced token standard for asset transfers
 
  - Empowerment of operators with the ability to send tokens on behalf of other addresses.
  - Setup of send/receive hooks to offer token holders more control over their tokens.
@@ -16,7 +16,7 @@ This repo contains security token smart contract implementations used by dAuriel
  - Backwards compatible with ERC20.
 
 
-#### ERC1400 implementation - Partially fungible token standard.
+#### ERC1400 implementation - Partially fungible token standard
 
  - Differentiated ownership / transparent restrictions.
  - Controller operations (force transfer).
@@ -24,7 +24,7 @@ This repo contains security token smart contract implementations used by dAuriel
  - Document management.
  - Backwards compatible with ERC20 and ERC777.
 
-# Objective - Financial asset issuance & management.
+## Objective - Financial asset issuance & management
 
 The current capital market still needs to overcome a few pain points:
  - Today, it is cumbersome and costly to issue an asset.
@@ -40,9 +40,9 @@ The security token standards contained in this repository, combined to user-frie
 
 ![dAurielInterface](images/dAurielInterface.png)
 
-# Approach - Introduce a new transfer standard to provide issuers with strong control capabilities over their financial assets.
+## Approach - Introduce a new transfer standard to provide issuers with strong control capabilities over their financial assets
 
-### Introduction - The limits of ERC20 token standard.
+### Introduction - The limits of ERC20 token standard
 
 Currently the most common and well-known standard within crypto community is the ERC20([eips.ethereum.org/EIPS/eip-20](https://eips.ethereum.org/EIPS/eip-20)).
 While the vast majority of ICOs are based on this ERC20 standard, it appears not to be the most relevant for financial asset tokenization.
@@ -55,7 +55,7 @@ All controls have to be hard-coded on-chain and are often limited to simple / bi
 dAuriel makes use of more evolved / granular controls to secure transfers.
 Those controls can evolve quickly and require flexibility, which makes it difficult to hard-code them on-chain.
 
-### dAuriel transaction - A way to secure all transfers with a certificate generated off-chain by the issuer.
+### dAuriel transaction - A way to secure all transfers with a certificate generated off-chain by the issuer
 
 The use of an additional 'data' parameter in the transfer functions can enable more evolved / granular controls:
 ```
@@ -66,7 +66,7 @@ A token transfer shall be conditioned to the validity of the certificate, thus o
 
 ![dAurielTransaction](images/dAurielTransaction.png)
 
-### dAuriel certificate - A way to perform advanced conditional ownership.
+### dAuriel certificate - A way to perform advanced conditional ownership
 
 The dAuriel certificate contains:
  - The function ID which ensures the certificate can’t be used on an other function.
@@ -80,7 +80,7 @@ The certificate enables the issuer to perform advanced conditional ownership, si
 
 ![dAurielCertificate](images/dAurielCertificate.png)
 
-# Detailed presentation - Standards description & implementation choices.
+## Detailed presentation - Standards description & implementation choices
 
 ### ERC777
 
@@ -106,22 +106,22 @@ It implements the [following interface](contracts/token/ERC777/IERC777.sol):
 ```
 interface IERC777 {
 
-  function name() external view returns (string); // 1/13
-  function symbol() external view returns (string); // 2/13
-  function totalSupply() external view returns (uint256); // 3/13
-  function balanceOf(address owner) external view returns (uint256); // 4/13
-  function granularity() external view returns (uint256); // 5/13
+  function name() external view returns (string);
+  function symbol() external view returns (string);
+  function totalSupply() external view returns (uint256);
+  function balanceOf(address owner) external view returns (uint256);
+  function granularity() external view returns (uint256);
 
-  function controllers() external view returns (address[]); // 6/13
-  function authorizeOperator(address operator) external; // 7/13
-  function revokeOperator(address operator) external; // 8/13
-  function isOperatorFor(address operator, address tokenHolder) external view returns (bool); // 9/13
+  function controllers() external view returns (address[]);
+  function authorizeOperator(address operator) external;
+  function revokeOperator(address operator) external;
+  function isOperatorFor(address operator, address tokenHolder) external view returns (bool);
 
-  function transferWithData(address to, uint256 value, bytes data) external; // 10/13
-  function transferFromWithData(address from, address to, uint256 value, bytes data, bytes operatorData) external; // 11/13
+  function transferWithData(address to, uint256 value, bytes data) external;
+  function transferFromWithData(address from, address to, uint256 value, bytes data, bytes operatorData) external;
 
-  function redeem(uint256 value, bytes data) external; // 12/13
-  function redeemFrom(address from, uint256 value, bytes data, bytes operatorData) external; // 13/13
+  function redeem(uint256 value, bytes data) external;
+  function redeemFrom(address from, uint256 value, bytes data, bytes operatorData) external;
 
   event TransferWithData(
     address indexed operator,
@@ -160,22 +160,22 @@ The standard implements the following interfaces: [IERC1410](contracts/token/ERC
 interface IERC1410 {
 
     // Token Information
-    function balanceOfByPartition(bytes32 partition, address tokenHolder) external view returns (uint256); // 1/10
-    function partitionsOf(address tokenHolder) external view returns (bytes32[]); // 2/10
+    function balanceOfByPartition(bytes32 partition, address tokenHolder) external view returns (uint256);
+    function partitionsOf(address tokenHolder) external view returns (bytes32[]);
 
     // Token Transfers
-    function transferByPartition(bytes32 partition, address to, uint256 value, bytes data) external returns (bytes32); // 3/10
-    function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes data, bytes operatorData) external returns (bytes32); // 4/10
+    function transferByPartition(bytes32 partition, address to, uint256 value, bytes data) external returns (bytes32);
+    function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes data, bytes operatorData) external returns (bytes32);
 
     // Default Partition Management
-    function getDefaultPartitions(address tokenHolder) external view returns (bytes32[]); // 5/10
-    function setDefaultPartitions(bytes32[] partitions) external; // 6/10
+    function getDefaultPartitions(address tokenHolder) external view returns (bytes32[]);
+    function setDefaultPartitions(bytes32[] partitions) external;
 
     // Operators
-    function controllersByPartition(bytes32 partition) external view returns (address[]); // 7/10
-    function authorizeOperatorByPartition(bytes32 partition, address operator) external; // 8/10
-    function revokeOperatorByPartition(bytes32 partition, address operator) external; // 9/10
-    function isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) external view returns (bool); // 10/10
+    function controllersByPartition(bytes32 partition) external view returns (address[]);
+    function authorizeOperatorByPartition(bytes32 partition, address operator) external;
+    function revokeOperatorByPartition(bytes32 partition, address operator) external;
+    function isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) external view returns (bool);
 
     // Transfer Events
     event TransferByPartition(
@@ -205,42 +205,42 @@ interface IERC1410 {
 interface IERC1400  {
 
     // Document Management
-    function getDocument(bytes32 name) external view returns (string, bytes32); // 1/9
-    function setDocument(bytes32 name, string uri, bytes32 documentHash) external; // 2/9
+    function getDocument(bytes32 name) external view returns (string, bytes32);
+    function setDocument(bytes32 name, string uri, bytes32 documentHash) external;
     event Document(bytes32 indexed name, string uri, bytes32 documentHash);
 
     // Controller Operation
-    function isControllable() external view returns (bool); // 3/9
+    function isControllable() external view returns (bool);
 
     // Token Issuance
-    function isIssuable() external view returns (bool); // 4/9
-    function issueByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data) external; // 5/9
+    function isIssuable() external view returns (bool);
+    function issueByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data) external;
     event IssuedByPartition(bytes32 indexed partition, address indexed operator, address indexed to, uint256 value, bytes data, bytes operatorData);
 
     // Token Redemption
-    function redeemByPartition(bytes32 partition, uint256 value, bytes data) external; // 6/9
-    function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data, bytes operatorData) external; // 7/9
+    function redeemByPartition(bytes32 partition, uint256 value, bytes data) external;
+    function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data, bytes operatorData) external;
     event RedeemedByPartition(bytes32 indexed partition, address indexed operator, address indexed from, uint256 value, bytes data, bytes operatorData);
 
     // Transfer Validity
-    function canTransferByPartition(bytes32 partition, address to, uint256 value, bytes data) external view returns (byte, bytes32, bytes32); // 8/9
-    function canOperatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes data, bytes operatorData) external view returns (byte, bytes32, bytes32); // 9/9
+    function canTransferByPartition(bytes32 partition, address to, uint256 value, bytes data) external view returns (byte, bytes32, bytes32);
+    function canOperatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes data, bytes operatorData) external view returns (byte, bytes32, bytes32);
 
 }
 ```
 
-# Quick start.
+## Quick start
 
 Test the smart contract, by running the following commands:
 ```
-$ git clone https://gitlab.com/ConsenSys/client/fr/dauriel/securities-smart-contracts.git
+$ git clone git@github.com:ConsenSys/ERC1400.git
 $ cd securities-smart-contracts
 $ make init
 $ make coverage
 ```
 Prerequisites: please make sure you installed "truffle", "make", "g++"" on your device.
 
-#### Install your own personal blockchain for Ethereum development.
+#### Install your own personal blockchain for Ethereum development
 
 ```
 $ yarn global add ganache-cli
@@ -250,7 +250,7 @@ or
 $ npm i ganache-cli
 ```
 
-#### Setup environment variables.
+#### Setup environment variables
 
 Before deploying the contract you need to generate and fill the file containing all environment variables ('.env' file).
 
@@ -261,7 +261,7 @@ $ node setup.js
 
 Open the '.env' Replace the fake variable values. Here's an example '.env' file:
 ```
-$ INFURA_API_KEY=a420aed2329e49f7ab09f2ba1efb38fc
+$ INFURA_API_KEY=a4c0aed4329e49f6db09f7ba1efa38fc
 $ SOLIDITY_COVERAGE=
 $ MNEMONIC=brain surround have swap horror body response double fire dumb bring hazard
 ```
@@ -278,7 +278,7 @@ This option is recommended since the wallet will be pre-loaded with ETH for test
 
 Option 2: MNEMONIC can also be obtained by generating 12 random words on https://iancoleman.io/bip39/ (BIP39 Mnemonic).
 
-#### Send ETH to the address corresponding to your MNEMONIC.
+#### Send ETH to the address corresponding to your MNEMONIC
 
 There are 2 options to recover the ETH address corresponding to your MNEMONIC:
 
@@ -292,14 +292,14 @@ Option 2:
 Discover the wallet associated to your MNEMONIC on https://www.myetherwallet.com/#view-wallet-info > Mnemonic phrase.
 Send ETH to the first address of this wallet in order to be able to send transactions with it.
 
-#### Deploy contract on ganache.
+#### Deploy contract on ganache
 
 Deploy the contract by running the migration scripts:
 ```
 $ truffle migrate
 ```
 
-#### Deploy contract on ropsten.
+#### Deploy contract on ropsten
 
 Start building the contract (this generates the concatenated solidity files required to publish the contract on blockchan explorers like Etherscan, Kaleido, etc.):
 ```
@@ -311,7 +311,7 @@ Deploy the contract by running the migration scripts:
 $ truffle migrate --network ropsten
 ```
 
-#### Once deployed, make contract address available for other services.
+#### Once deployed, make contract address available for other services
 
 Export contract parameters in export.txt file:
 ```

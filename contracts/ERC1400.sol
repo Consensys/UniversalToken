@@ -97,10 +97,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   /**
    * [ERC1400 INTERFACE (3/9)]
    * @dev Know if the token can be controlled by operators.
-   * If a token returns 'false' for 'isControllable()'' then it MUST:
-   *  - always return 'false' in the future.
-   *  - return empty lists for 'controllers' and 'controllersByPartition'.
-   *  - never add addresses for 'controllers' and 'controllersByPartition'.
+   * If a token returns 'false' for 'isControllable()'' then it MUST always return 'false' in the future.
    * @return bool 'true' if the token can still be controlled by operators, 'false' if it can't anymore.
    */
   function isControllable() external view returns (bool) {
@@ -328,8 +325,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Definitely renounce the possibility to control tokens
-   * on behalf of tokenHolders.
+   * @dev Definitely renounce the possibility to control tokens on behalf of tokenHolders.
    * Once set to false, '_isControllable' can never be set to 'true' again.
    */
   function renounceControl() external onlyOwner {

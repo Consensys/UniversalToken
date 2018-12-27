@@ -7,11 +7,9 @@ node_modules
 package-json.lock
 
 # Generated files
-artifacts
 build
 dist
 coverage
 coverage.json
 coverageEnv
 allFiredEvents
-export
