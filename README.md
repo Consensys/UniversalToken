@@ -1,4 +1,4 @@
-![dAuriel](/uploads/2489352dae4903fe54f96831a39743af/dAuriel.png)
+![dAuriel](images/dAurielLogo.png)
 
 # What is dAuriel?
 
@@ -31,40 +31,40 @@ The current capital market still needs to overcome a few pain points:
  - Once issued, the assets are mainly reserved for high-ticket investors.
  - Finally, those asset are not easily tradable, which strongly limits the secondary market possibilities.
 
-With dAuriel, we want to tokenize the capital market to tackle those pain points. In the new system we imagine:
+With dAuriel, we want to tokenize the capital market to tackle those pain points. In the new system, we imagine:
  - An asset issuance will be faster, simpler but also cheaper than today.
  - This reduction of costs will allow us to onboard smaller ticket investors.
  - Globally, the tokenization removes constraints for more liquid and frictionless asset transfers, while keeping a strong control over the market, thus liberating the secondary market.
 
 The security token standards contained in this repository, combined to user-friendly interfaces, can be leveraged for financial asset issuance & management:
 
-![dAurielInterface](/uploads/966e30a32dd5e10fdc24ce2e6d14603d/dAurielInterface.png)
+![dAurielInterface](images/dAurielInterface.png)
 
 # Approach - Introduce a new transfer standard to provide issuers with strong control capabilities over their financial assets.
 
 ### Introduction - The limits of ERC20 token standard.
 
-Currently the most common and well-known standard within crypto community is the [ERC20](https://eips.ethereum.org/EIPS/eip-20).
+Currently the most common and well-known standard within crypto community is the ERC20([eips.ethereum.org/EIPS/eip-20](https://eips.ethereum.org/EIPS/eip-20)).
 While the vast majority of ICOs are based on this ERC20 standard, it appears not to be the most relevant for financial asset tokenization.
 The only parameters required to perform an ERC20 token transfer are the recipient's address and the value of the transfer, thus limiting the control possibilities over transfers:
 ```
 function transfer(address recipient, uint256 value)
 ```
-All controls have to be hard-coded on-chain and are often limited to simple/binary checks e.g. checking whether an investor is blacklisted or not.
+All controls have to be hard-coded on-chain and are often limited to simple / binary checks e.g. checking whether an investor is blacklisted or not.
 
-dAuriel makes use of more evolved/granular controls to secure transfers.
+dAuriel makes use of more evolved / granular controls to secure transfers.
 Those controls can evolve quickly and require flexibility, which makes it difficult to hard-code them on-chain.
 
 ### dAuriel transaction - A way to secure all transfers with a certificate generated off-chain by the issuer.
 
-The use of an additional 'data' parameter in the transfer functions can enable more evolved/granular controls:
+The use of an additional 'data' parameter in the transfer functions can enable more evolved / granular controls:
 ```
 function transferWithData(address recipient, uint256 value, bytes data)
 ```
 dAuriel fosters to use this additional 'data' field (available in ERC777 and ERC1400 standards) to inject a certificate generated off-chain by the issuer.
 A token transfer shall be conditioned to the validity of the certificate, thus offering the issuer with strong control capabilities over its financial assets.
 
-![dAurielTransaction](/uploads/3c2d2122ddc97a23bb4f00e5f9acdfec/dAurielTransaction.png)
+![dAurielTransaction](images/dAurielTransaction.png)
 
 ### dAuriel certificate - A way to perform advanced conditional ownership.
 
@@ -78,13 +78,13 @@ Finally the certificate is signed by the issuer which ensures it is authentic.
 
 The certificate enables the issuer to perform advanced conditional ownership, since he needs to be aware of all parameters of a function call before generating the associated certificate.
 
-![dAurielCertificate](/uploads/22898f9cb907bea0a20334ee46ab70e6/dAurielCertificate.png)
+![dAurielCertificate](images/dAurielCertificate.png)
 
 # Detailed presentation - Standards description & implementation choices.
 
 ### ERC777
 
-The ERC777 is an advanced token standard adapted for regulated asset transfers, since it allows to inject data (i.e. our certificate) in the transfer transactions:
+The [ERC777](contracts/token/ERC777/ERC777.sol) is an advanced token standard adapted for regulated asset transfers, since it allows to inject data (i.e. our certificate) in the transfer transactions:
 ```
 function transferWithData(address recipient, uint256 value, bytes data)
 ```
@@ -93,7 +93,7 @@ The official proposal can be found at: [eips.ethereum.org/EIPS/eip-777](https://
 
 We've performed a few updates compared to the official proposal, mainly to better fit with our implementation of ERC1400:
  - Introduction of the notion of 'controllers' (replacing defaultOperators) for better consistency with ERC1400 'controllers'.
- - Introduction of '_isControllable' property (set to 'false' by default for the ERC777 but set to 'true' for the ERC1400).
+ - Introduction of '_isControllable' property (set to 'false' by default for the ERC777, but set to 'true' for the ERC1400).
  - Renaming of 'send' function (now 'transferWithData') and 'Sent' event (now 'TransferWithData') for better consistency with ERC1400 names + to avoid potential issues with blockchain tools (e.g. Truffle, etc.) considering 'send' as a reserved word.
  - Renaming of 'mint' function (now 'issue') and 'Minted' event (now 'Issued') for better consistency with ERC1400 names.
  - Renaming of 'burn' function (now 'redeem') and 'Burned' event (now 'Redeemed') for better consistency with ERC1400 names.
@@ -120,8 +120,8 @@ interface IERC777 {
   function transferWithData(address to, uint256 value, bytes data) external; // 10/13
   function transferFromWithData(address from, address to, uint256 value, bytes data, bytes operatorData) external; // 11/13
 
-  function burn(uint256 value, bytes data) external; // 12/13
-  function operatorBurn(address from, uint256 value, bytes data, bytes operatorData) external; // 13/13
+  function redeem(uint256 value, bytes data) external; // 12/13
+  function redeemFrom(address from, uint256 value, bytes data, bytes operatorData) external; // 13/13
 
   event TransferWithData(
     address indexed operator,
@@ -131,8 +131,8 @@ interface IERC777 {
     bytes data,
     bytes operatorData
   );
-  event Minted(address indexed operator, address indexed to, uint256 value, bytes data, bytes operatorData);
-  event Burned(address indexed operator, address indexed from, uint256 value, bytes data, bytes operatorData);
+  event Issued(address indexed operator, address indexed to, uint256 value, bytes data, bytes operatorData);
+  event Redeemed(address indexed operator, address indexed from, uint256 value, bytes data, bytes operatorData);
   event AuthorizedOperator(address indexed operator, address indexed tokenHolder);
   event RevokedOperator(address indexed operator, address indexed tokenHolder);
 
@@ -141,16 +141,16 @@ interface IERC777 {
 
 ### ERC1400
 
-ERC1400 has an additional feature on top of ERC77 properties: the partial fungibility property.
+The [ERC1400](contracts/ERC1400.sol) has an additional feature on top of ERC777 properties: the partial fungibility property.
 This property allows to perform corporate actions, like mergers and acquisitions, which is essential for financial assets.
 
 The original submission with discussion can be found at: [github.com/ethereum/EIPs/issues/1411](https://github.com/ethereum/EIPs/issues/1411).
 
 We've performed a few updates compared to the original submission, mainly to fit with business requirements + to save gas cost of contract deployment:
- - Compatibility with ERC777 as all ERC777 properties are required for financial asset tokenization business requirements (incl. send/receive hooks and ERC820 which are used to ensure transfer atomicity).
- - Modification of view functions ('canTransferByPartition', 'canOperatorTransferByPartition') as consequence of our certificate design choice: the view functions need to have the exact same parameters as 'transferByPartition' and 'operatorTransferByPartition' in order to be in measure to validate the certificate's validity.
- - Removal of controller functions ('controllerTransfer' and 'controllerRedeem') and events ('ControllerTransfer' and 'ControllerRedemption') to save gas cost of contract deployment. Those controller functionnalities are already included in 'transferByPartition' and 'redeemByPartition' functions.
- - Split of ERC1400 functions into 2 interfaces (IERC1410 for asset transfers logic + IERC1400 for asset issuance/redemption logic) for better readability.
+ - Compatibility with ERC777 as all ERC777 properties are business requirements for financial asset tokenization (incl. send/receive hooks and ERC820 which are used to ensure transfer atomicity).
+ - Modification of view functions ('canTransferByPartition', 'canOperatorTransferByPartition') as consequence of our certificate design choice: the view functions need to have the exact same parameters as 'transferByPartition' and 'operatorTransferByPartition' in order to be in measure to confirm the certificate's validity.
+ - Removal of controller functions ('controllerTransfer' and 'controllerRedeem') and events ('ControllerTransfer' and 'ControllerRedemption') to save gas cost of contract deployment. Those controller functionnalities have been included in 'transferByPartition' and 'redeemByPartition' functions instead.
+ - Split of ERC1400 functions into 2 interfaces (IERC1410 for asset transfer logic + IERC1400 for asset issuance/redemption logic) for better readability.
 
 ERC1400 is compatible with ERC777 and can be made compatible with ERC20 (see [ERC1400ERC20.sol](contracts/token/ERC20/ERC1400ERC20.sol)).
 This backwards compatibility property offers interoperability, as ERC20 tokens are compatible with most existing exchange platforms.
