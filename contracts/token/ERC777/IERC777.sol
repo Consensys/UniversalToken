@@ -35,7 +35,7 @@ interface IERC777 {
     bytes data,
     bytes operatorData
   );
-  event Minted(address indexed operator, address indexed to, uint256 value, bytes data, bytes operatorData);
+  event Issued(address indexed operator, address indexed to, uint256 value, bytes data, bytes operatorData);
   event Burned(address indexed operator, address indexed from, uint256 value, bytes data, bytes operatorData);
   event AuthorizedOperator(address indexed operator, address indexed tokenHolder);
   event RevokedOperator(address indexed operator, address indexed tokenHolder);

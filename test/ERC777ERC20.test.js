@@ -37,7 +37,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
               assert.equal(logs[0].event, 'Checked');
               assert.equal(logs[0].args.sender, owner);
 
-              assert.equal(logs[1].event, 'Minted');
+              assert.equal(logs[1].event, 'Issued');
               assert.equal(logs[1].args.operator, owner);
               assert.equal(logs[1].args.to, tokenHolder);
               assert(logs[1].args.value.eq(initialSupply));
@@ -58,7 +58,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
               assert.equal(logs[0].event, 'Checked');
               assert.equal(logs[0].args.sender, owner);
 
-              assert.equal(logs[1].event, 'Minted');
+              assert.equal(logs[1].event, 'Issued');
               assert.equal(logs[1].args.operator, owner);
               assert.equal(logs[1].args.to, tokenHolder);
               assert(logs[1].args.value.eq(initialSupply));

@@ -430,7 +430,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
 
     _callRecipient(operator, address(0), to, value, data, operatorData, true);
 
-    emit Minted(operator, to, value, data, operatorData);
+    emit Issued(operator, to, value, data, operatorData);
   }
 
   /********************** ERC777 OPTIONAL FUNCTIONS ***************************/
