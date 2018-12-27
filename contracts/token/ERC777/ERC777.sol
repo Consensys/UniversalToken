@@ -344,7 +344,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
     _balances[from] = _balances[from].sub(value);
     _totalSupply = _totalSupply.sub(value);
 
-    emit Burned(operator, from, value, data, operatorData);
+    emit Redeemed(operator, from, value, data, operatorData);
   }
 
   /**

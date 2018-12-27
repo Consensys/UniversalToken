@@ -96,7 +96,7 @@ const assertBurnEvent = (
     i = 1;
   }
 
-  assert.equal(_logs[i].event, 'Burned');
+  assert.equal(_logs[i].event, 'Redeemed');
   assert.equal(_logs[i].args.operator, _operator);
   assert.equal(_logs[i].args.from, _from);
   assert(_logs[i].args.value.eq(_amount));
