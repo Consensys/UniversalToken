@@ -73,7 +73,7 @@ The certificate contains:
  - A nonce which ensures the certificate can’t be used twice.
 Finally the certificate is signed by the issuer which ensures it is authentic.
 
-![dAurielCertificate](/uploads/f5c30d15cf0b917e975bed50b3707a3f/dAurielCertificate.png)
+![dAurielCertificate](/uploads/22898f9cb907bea0a20334ee46ab70e6/dAurielCertificate.png)
 
 # Detailed presentation - Standards description & implementation choices.
 
@@ -118,7 +118,81 @@ interface IERC777 {
 }
 ```
 
+### ERC1400
 
+The original submission with discussion can be found at: [github.com/ethereum/EIPs/issues/1411](https://github.com/ethereum/EIPs/issues/1411).
+
+The standard implements the following interfaces: [IERC1410](https://gitlab.com/ConsenSys/client/fr/dauriel/securities-smart-contracts/blob/master/contracts/token/ERC1410/IERC1410.sol) + [IERC1400](https://gitlab.com/ConsenSys/client/fr/dauriel/securities-smart-contracts/blob/master/contracts/IERC1400.sol):
+```
+interface IERC1410 {
+
+    // Token Information
+    function balanceOfByPartition(bytes32 partition, address tokenHolder) external view returns (uint256); // 1/10
+    function partitionsOf(address tokenHolder) external view returns (bytes32[]); // 2/10
+
+    // Token Transfers
+    function transferByPartition(bytes32 partition, address to, uint256 value, bytes data) external returns (bytes32); // 3/10
+    function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes data, bytes operatorData) external returns (bytes32); // 4/10
+
+    // Default Partition Management
+    function getDefaultPartitions(address tokenHolder) external view returns (bytes32[]); // 5/10
+    function setDefaultPartitions(bytes32[] partitions) external; // 6/10
+
+    // Operators
+    function controllersByPartition(bytes32 partition) external view returns (address[]); // 7/10
+    function authorizeOperatorByPartition(bytes32 partition, address operator) external; // 8/10
+    function revokeOperatorByPartition(bytes32 partition, address operator) external; // 9/10
+    function isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) external view returns (bool); // 10/10
+
+    // Transfer Events
+    event TransferByPartition(
+        bytes32 indexed fromPartition,
+        address operator,
+        address indexed from,
+        address indexed to,
+        uint256 value,
+        bytes data,
+        bytes operatorData
+    );
+
+    event ChangedPartition(
+        bytes32 indexed fromPartition,
+        bytes32 indexed toPartition,
+        uint256 value
+    );
+
+    // Operator Events
+    event AuthorizedOperatorByPartition(bytes32 indexed partition, address indexed operator, address indexed tokenHolder);
+    event RevokedOperatorByPartition(bytes32 indexed partition, address indexed operator, address indexed tokenHolder);
+
+}
+
+interface IERC1400  {
+
+    // Document Management
+    function getDocument(bytes32 name) external view returns (string, bytes32); // 1/9
+    function setDocument(bytes32 name, string uri, bytes32 documentHash) external; // 2/9
+    event Document(bytes32 indexed name, string uri, bytes32 documentHash);
+
+    // Controller Operation
+    function isControllable() external view returns (bool); // 3/9
+
+    // Token Issuance
+    function isIssuable() external view returns (bool); // 4/9
+    function issueByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data) external; // 5/9
+    event IssuedByPartition(bytes32 indexed partition, address indexed operator, address indexed to, uint256 value, bytes data, bytes operatorData);
+
+    // Token Redemption
+    function redeemByPartition(bytes32 partition, uint256 value, bytes data) external; // 6/9
+    function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data, bytes operatorData) external; // 7/9
+    event RedeemedByPartition(bytes32 indexed partition, address indexed operator, address indexed from, uint256 value, bytes data, bytes operatorData);
+
+    // Transfer Validity
+    function canTransferByPartition(bytes32 partition, address to, uint256 value, bytes data) external view returns (byte, bytes32, bytes32); // 8/9
+    function canOperatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes data, bytes operatorData) external view returns (byte, bytes32, bytes32); // 9/9
+
+}
+```
 
 # Quick start.
 
