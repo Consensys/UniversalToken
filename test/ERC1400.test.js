@@ -1,6 +1,6 @@
 import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
 
-const ERC1400 = artifacts.require('ERC1400Mock');
+const ERC1400 = artifacts.require('ERC1400');
 const ERC1410 = artifacts.require('ERC1410Mock');
 const ERC820Registry = artifacts.require('ERC820Registry');
 const ERC777TokensSender = artifacts.require('ERC777TokensSenderMock');

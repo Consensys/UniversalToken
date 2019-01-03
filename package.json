@@ -1,7 +1,7 @@
 {
-  "name": "boilerplate-solidity",
+  "name": "ERC1400",
   "version": "0.1.0-dev",
-  "description": "Solidity Smart-Contract-Boilerplate",
+  "description": "dAuriel's ERC1400 implementation",
   "files": [
     "contracts",
     "tests"
@@ -20,7 +20,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://gitlab.com/ConsenSys/mesh/boilerplates/solidity/boilerplate-solidity.git"
+    "url": "https://github.com/ConsenSys/ERC1400"
   },
   "keywords": [
     "boilerplate",
@@ -34,15 +34,11 @@
     "ERC1410",
     "ERC1400"
   ],
-  "author": "Gauthier Petetin <gauthier.petetin@consensys.net>",
+  "author": "Gauthier Petetin <gauthierpetetin@hotmail.com>",
   "contributors": [
     "Julien Marchand <julien.marchand4@gmail.com>"
   ],
   "license": "MIT",
-  "bugs": {
-    "url": "https://gitlab.com/ConsenSys/mesh/boilerplates/solidity/boilerplate-solidity/issues"
-  },
-  "homepage": "https://gitlab.com/ConsenSys/mesh/boilerplates/solidity/boilerplate-solidity",
   "devDependencies": {
     "babel-polyfill": "^6.23.0",
     "babel-preset-es2015": "^6.18.0",
@@ -70,10 +66,9 @@
     "solium-plugin-zeppelin": "^0.0.2"
   },
   "dependencies": {
-    "contract-certificate-controller": "git+https://gitlab.com/ConsenSys/client/fr/dauriel/contract-certificate-controller#70e646dceff444076291348e733e70c02accd372",
     "openzeppelin-solidity": "git+https://github.com/OpenZeppelin/openzeppelin-solidity#06e265b38d3e9daeaa7b33f9035c700d6bc0c6a0",
     "erc820": "git+https://github.com/jbaylina/ERC820#6c13a97a5eba73df2a99c3a089c65f7d2df63775",
-    "truffle": "^4.1.14",
+    "truffle": "4.1.14",
     "truffle-hdwallet-provider": "0.0.6"
   },
   "husky": {

@@ -1,9 +1,8 @@
 pragma solidity ^0.4.24;
 import "../token/ERC777/ERC777Issuable.sol";
-import "./CertificateControllerMock.sol";
 
 
-contract ERC777Mock is ERC777Issuable, CertificateControllerMock {
+contract ERC777Mock is ERC777Issuable {
 
   constructor(
     string name,

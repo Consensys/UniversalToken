@@ -1,6 +1,6 @@
 import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
 
-const ERC777ERC20 = artifacts.require('ERC777ERC20Mock');
+const ERC777ERC20 = artifacts.require('ERC777ERC20');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTE = '0x';

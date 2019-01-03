@@ -3,7 +3,7 @@ import "../token/ERC1410/ERC1410.sol";
 import "./CertificateControllerMock.sol";
 
 
-contract ERC1410Mock is ERC1410, CertificateControllerMock {
+contract ERC1410Mock is ERC1410 {
 
   constructor(
     string name,

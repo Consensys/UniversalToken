@@ -4,5 +4,5 @@ module.exports = {
     skipFiles: [
        'mocks',
     ],
-    copyPackages: ['openzeppelin-solidity', 'contract-certificate-controller'],
+    copyPackages: ['openzeppelin-solidity'],
 }

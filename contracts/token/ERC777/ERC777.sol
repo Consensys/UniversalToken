@@ -9,7 +9,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
 import "erc820/contracts/ERC820Client.sol";
 
-import "contract-certificate-controller/contracts/CertificateController.sol";
+import "../../mocks/CertificateControllerMock.sol"; // TO BE REPLACED WITH REAL CERTIFICATECONTROLLER (ADAPTED TO BUSINESS NEEDS)
 
 import "./IERC777.sol";
 import "./IERC777TokensSender.sol";
@@ -19,7 +19,7 @@ import "./IERC777TokensRecipient.sol";
  * @title ERC777
  * @dev ERC777 logic
  */
-contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, ReentrancyGuard {
+contract ERC777 is IERC777, Ownable, ERC820Client, CertificateControllerMock, ReentrancyGuard {
   using SafeMath for uint256;
 
   string internal _name;
@@ -64,7 +64,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
     address certificateSigner
   )
     public
-    CertificateController(certificateSigner)
+    CertificateControllerMock(certificateSigner)
   {
     _name = name;
     _symbol = symbol;
