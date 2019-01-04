@@ -1,8 +1,5 @@
 pragma solidity ^0.4.24;
 
-/* import "erc820/contracts/ERC820ImplementerInterface.sol"; */
-
-
 contract ERC820Registry {
     function setInterfaceImplementer(address _addr, bytes32 _interfaceHash, address _implementer) external;
     function getInterfaceImplementer(address _addr, bytes32 _interfaceHash) external view returns (address);
