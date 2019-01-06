@@ -25,12 +25,16 @@ contract ERC820ImplementerMock {
     ERC820REGISTRY.setManager(msg.sender, msg.sender);
   }
 
-  function canImplementInterfaceForAddress(bytes32 /*interfaceHash*/, address /*addr*/) // Comments to avoid compilation warnings for unused variables.
+  function canImplementInterfaceForAddress(bytes32 interfaceHash, address /*addr*/) // Comments to avoid compilation warnings for unused variables.
     external
     view
     returns(bytes32)
   {
-    return ERC820_ACCEPT_MAGIC;
+    if(interfaceHash == _interfaceHash) {
+      return ERC820_ACCEPT_MAGIC;
+    } else {
+      return "";
+    }
   }
 
 }
