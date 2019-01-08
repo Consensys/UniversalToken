@@ -20,7 +20,7 @@ contract CertificateControllerMock {
    */
   modifier isValidCertificate(bytes data) {
 
-    require(_checkCertificateMock(data, msg.value, 0x00000000), "A3: Transfer Blocked - Sender lockup period not ended");
+    require(_checkCertificate(data, msg.value, 0x00000000), "A3: Transfer Blocked - Sender lockup period not ended");
 
     _checkCount[msg.sender] += 1; // Increment sender check count
 
@@ -60,7 +60,7 @@ contract CertificateControllerMock {
    * @dev Checks if a certificate is correct
    * @param data Certificate to control
    */
-   function _checkCertificateMock(bytes data, uint256 /*value*/, bytes4 /*functionID*/) internal view returns(bool) { // Comments to avoid compilation warnings for unused variables.
+   function _checkCertificate(bytes data, uint256 /*value*/, bytes4 /*functionID*/) internal view returns(bool) { // Comments to avoid compilation warnings for unused variables.
      if(data.length > 0 && (data[0] == hex"10" || data[0] == hex"11" || data[0] == hex"22")) {
        return true;
      } else {

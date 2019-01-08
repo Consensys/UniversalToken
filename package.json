@@ -7,6 +7,9 @@
     "tests"
   ],
   "scripts": {
+    "build:sol": "solcpiler -i './contracts/*.sol' --solc-version=\"v0.4.24+commit.e67f0147\" --output-artifacts-dir artifacts --insert-file-names imports",
+    "build": "yarn run clean && yarn run build:sol",
+    "clean": "rm -rf artifacts",
     "coverage": "solidity-coverage",
     "env": "node setup.js",
     "lint": "eslint ./migrations ./test ",
