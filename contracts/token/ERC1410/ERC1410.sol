@@ -258,8 +258,9 @@ contract ERC1410 is IERC1410, ERC777 {
     require(_balanceOfByPartition[from][fromPartition] >= value, "A4: Transfer Blocked - Sender balance insufficient"); // ensure enough funds
 
     bytes32 toPartition = fromPartition;
+
     if(operatorData.length != 0 && data.length != 0) {
-      toPartition = _getDestinationPartition(data);
+      toPartition = _getDestinationPartition(fromPartition, data);
     }
 
     _removeTokenFromPartition(from, fromPartition, value);
@@ -335,13 +336,26 @@ contract ERC1410 is IERC1410, ERC777 {
   /**
    * [INTERNAL]
    * @dev Retrieve the destination partition from the 'data' field.
-   * Basically, this function only converts the bytes variable into a bytes32 variable.
+   * By convention, a partition change is requested ONLY when 'data' starts
+   * with the flag: 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
+   * When the flag is detected, the destination tranche is ewtracted from the
+   * 32 bytes following the flag.
+   * @param fromPartition Partition of the tokens to transfer.
    * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
    * @return Destination partition.
    */
-  function _getDestinationPartition(bytes data) internal pure returns(bytes32 toPartition) {
+  function _getDestinationPartition(bytes32 fromPartition, bytes data) internal pure returns(bytes32 toPartition) {
+    bytes32 changePartitionFlag = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
+    bytes32 flag;
     assembly {
-      toPartition := mload(add(data, 32))
+      flag := mload(add(data, 32))
+    }
+    if(flag == changePartitionFlag) {
+      assembly {
+        toPartition := mload(add(data, 64))
+      }
+    } else {
+      toPartition = fromPartition;
     }
   }
 
