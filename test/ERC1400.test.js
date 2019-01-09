@@ -22,9 +22,17 @@ const INVALID_CERTIFICATE = '0x0000000000000000000000000000000000000000000000000
 const INVALID_CERTIFICATE_SENDER = '0x1100000000000000000000000000000000000000000000000000000000000000';
 const INVALID_CERTIFICATE_RECIPIENT = '0x2200000000000000000000000000000000000000000000000000000000000000';
 
-const partition1 = '0x5265736572766564000000000000000000000000000000000000000000000000'; // Reserved in hex
-const partition2 = '0x4973737565640000000000000000000000000000000000000000000000000000'; // Issued in hex
-const partition3 = '0x4c6f636b65640000000000000000000000000000000000000000000000000000'; // Locked in hex
+const partitionFlag = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'; // Flag to indicate a partition change
+const partition1_short = '5265736572766564000000000000000000000000000000000000000000000000'; // Reserved in hex
+const partition2_short = '4973737565640000000000000000000000000000000000000000000000000000'; // Issued in hex
+const partition3_short = '4c6f636b65640000000000000000000000000000000000000000000000000000'; // Locked in hex
+const changeToPartition1 = partitionFlag.concat(partition1_short);
+const changeToPartition2 = partitionFlag.concat(partition2_short);
+const changeToPartition3 = partitionFlag.concat(partition3_short);
+const partition1 = '0x'.concat(partition1_short);
+const partition2 = '0x'.concat(partition2_short);
+const partition3 = '0x'.concat(partition3_short);
+
 const partitions = [partition1, partition2, partition3];
 const reversedPartitions = [partition3, partition1, partition2];
 
@@ -862,6 +870,16 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
             await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
             await assertBalanceOf(this.token, recipient, partition1, transferAmount);
           });
+          it('transfers the requested amount with attached data (without changePartition flage)', async function () {
+            await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount);
+            await assertBalanceOf(this.token, recipient, partition1, 0);
+
+            await this.token.authorizeOperatorByPartition(partition1, operator, { from: tokenHolder });
+            await this.token.operatorTransferByPartition(partition1, tokenHolder, recipient, transferAmount, partition2, VALID_CERTIFICATE, { from: operator });
+
+            await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
+            await assertBalanceOf(this.token, recipient, partition1, transferAmount);
+          });
           it('emits a TransferByPartition event', async function () {
             await this.token.authorizeOperatorByPartition(partition1, operator, { from: tokenHolder });
             const { logs } = await this.token.operatorTransferByPartition(partition1, tokenHolder, recipient, transferAmount, '', VALID_CERTIFICATE, { from: operator });
@@ -877,7 +895,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
             await assertBalanceOf(this.token, recipient, partition2, 0);
 
             await this.token.authorizeOperatorByPartition(partition1, operator, { from: tokenHolder });
-            await this.token.operatorTransferByPartition(partition1, tokenHolder, recipient, transferAmount, partition2, VALID_CERTIFICATE, { from: operator });
+            await this.token.operatorTransferByPartition(partition1, tokenHolder, recipient, transferAmount, changeToPartition2, VALID_CERTIFICATE, { from: operator });
 
             await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
             await assertBalanceOf(this.token, recipient, partition2, transferAmount);
@@ -888,7 +906,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
             await assertBalanceOfByPartition(this.token, tokenHolder, partition2, 0);
 
             await this.token.authorizeOperatorByPartition(partition1, operator, { from: tokenHolder });
-            await this.token.operatorTransferByPartition(partition1, tokenHolder, tokenHolder, transferAmount, partition2, VALID_CERTIFICATE, { from: operator });
+            await this.token.operatorTransferByPartition(partition1, tokenHolder, tokenHolder, transferAmount, changeToPartition2, VALID_CERTIFICATE, { from: operator });
 
             await assertBalance(this.token, tokenHolder, issuanceAmount);
             await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
@@ -899,7 +917,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
             await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount);
             await assertBalanceOfByPartition(this.token, tokenHolder, partition2, 0);
 
-            await this.token.operatorTransferByPartition(partition1, ZERO_ADDRESS, tokenHolder, transferAmount, partition2, VALID_CERTIFICATE, { from: tokenHolder });
+            await this.token.operatorTransferByPartition(partition1, ZERO_ADDRESS, tokenHolder, transferAmount, changeToPartition2, VALID_CERTIFICATE, { from: tokenHolder });
 
             await assertBalance(this.token, tokenHolder, issuanceAmount);
             await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
@@ -907,11 +925,11 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
           });
           it('emits a changedPartition event', async function () {
             await this.token.authorizeOperatorByPartition(partition1, operator, { from: tokenHolder });
-            const { logs } = await this.token.operatorTransferByPartition(partition1, tokenHolder, recipient, transferAmount, partition2, VALID_CERTIFICATE, { from: operator });
+            const { logs } = await this.token.operatorTransferByPartition(partition1, tokenHolder, recipient, transferAmount, changeToPartition2, VALID_CERTIFICATE, { from: operator });
 
             assert.equal(logs.length, 4);
 
-            assertTransferEvent([logs[0], logs[1], logs[2]], partition1, operator, tokenHolder, recipient, transferAmount, partition2, VALID_CERTIFICATE);
+            assertTransferEvent([logs[0], logs[1], logs[2]], partition1, operator, tokenHolder, recipient, transferAmount, changeToPartition2, VALID_CERTIFICATE);
 
             assert.equal(logs[3].event, 'ChangedPartition');
             assert.equal(logs[3].args.fromPartition, partition1);
