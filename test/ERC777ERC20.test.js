@@ -40,14 +40,14 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
               assert.equal(logs[1].event, 'Issued');
               assert.equal(logs[1].args.operator, owner);
               assert.equal(logs[1].args.to, tokenHolder);
-              assert(logs[1].args.value.eq(initialSupply));
+              assert.equal(logs[1].args.value, initialSupply);
               assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-              assert.equal(logs[1].args.operatorData, ZERO_BYTE);
+              assert.equal(logs[1].args.operatorData, null);
 
               assert.equal(logs[2].event, 'Transfer');
               assert.equal(logs[2].args.from, ZERO_ADDRESS);
               assert.equal(logs[2].args.to, tokenHolder);
-              assert(logs[2].args.value.eq(initialSupply));
+              assert.equal(logs[2].args.value, initialSupply);
             });
             it('emits a sent event [without ERC20 retrocompatibility]', async function () {
               await this.token.setERC20compatibility(false, { from: owner });
@@ -61,9 +61,9 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
               assert.equal(logs[1].event, 'Issued');
               assert.equal(logs[1].args.operator, owner);
               assert.equal(logs[1].args.to, tokenHolder);
-              assert(logs[1].args.value.eq(initialSupply));
+              assert.equal(logs[1].args.value, initialSupply);
               assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-              assert.equal(logs[1].args.operatorData, ZERO_BYTE);
+              assert.equal(logs[1].args.operatorData, null);
             });
           });
         });
@@ -103,14 +103,14 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                 assert.equal(logs[1].args.operator, tokenHolder);
                 assert.equal(logs[1].args.from, tokenHolder);
                 assert.equal(logs[1].args.to, to);
-                assert(logs[1].args.value.eq(amount));
+                assert.equal(logs[1].args.value, amount);
                 assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-                assert.equal(logs[1].args.operatorData, ZERO_BYTE);
+                assert.equal(logs[1].args.operatorData, null);
 
                 assert.equal(logs[2].event, 'Transfer');
                 assert.equal(logs[2].args.from, tokenHolder);
                 assert.equal(logs[2].args.to, to);
-                assert(logs[2].args.value.eq(amount));
+                assert.equal(logs[2].args.value, amount);
               });
 
               it('emits a sent event [without ERC20 retrocompatibility]', async function () {
@@ -126,9 +126,9 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                 assert.equal(logs[1].args.operator, tokenHolder);
                 assert.equal(logs[1].args.from, tokenHolder);
                 assert.equal(logs[1].args.to, to);
-                assert(logs[1].args.value.eq(amount));
+                assert.equal(logs[1].args.value, amount);
                 assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-                assert.equal(logs[1].args.operatorData, ZERO_BYTE);
+                assert.equal(logs[1].args.operatorData, null);
               });
             });
           });
@@ -164,14 +164,14 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
             assert.equal(logs[1].event, 'Redeemed');
             assert.equal(logs[1].args.operator, tokenHolder);
             assert.equal(logs[1].args.from, tokenHolder);
-            assert(logs[1].args.value.eq(amount));
+            assert.equal(logs[1].args.value, amount);
             assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-            assert.equal(logs[1].args.operatorData, ZERO_BYTE);
+            assert.equal(logs[1].args.operatorData, null);
 
             assert.equal(logs[2].event, 'Transfer');
             assert.equal(logs[2].args.from, tokenHolder);
             assert.equal(logs[2].args.to, ZERO_ADDRESS);
-            assert(logs[2].args.value.eq(amount));
+            assert.equal(logs[2].args.value, amount);
           });
           it('emits a redeemed event [without ERC20 retrocompatibility]', async function () {
             await this.token.setERC20compatibility(false, { from: owner });
@@ -185,9 +185,9 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
             assert.equal(logs[1].event, 'Redeemed');
             assert.equal(logs[1].args.operator, tokenHolder);
             assert.equal(logs[1].args.from, tokenHolder);
-            assert(logs[1].args.value.eq(amount));
+            assert.equal(logs[1].args.value, amount);
             assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-            assert.equal(logs[1].args.operatorData, ZERO_BYTE);
+            assert.equal(logs[1].args.operatorData, null);
           });
         });
       });
@@ -231,7 +231,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
             assert.equal(logs[0].event, 'Approval');
             assert.equal(logs[0].args.owner, tokenHolder);
             assert.equal(logs[0].args.spender, operator);
-            assert(logs[0].args.value.eq(amount));
+            assert.equal(logs[0].args.value, amount);
           });
         });
         describe('when the operator to approve is the zero address', function () {
@@ -291,14 +291,14 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                 assert.equal(logs[0].args.operator, tokenHolder);
                 assert.equal(logs[0].args.from, tokenHolder);
                 assert.equal(logs[0].args.to, to);
-                assert(logs[0].args.value.eq(amount));
-                assert.equal(logs[0].args.data, ZERO_BYTE);
-                assert.equal(logs[0].args.operatorData, ZERO_BYTE);
+                assert.equal(logs[0].args.value, amount);
+                assert.equal(logs[0].args.data, null);
+                assert.equal(logs[0].args.operatorData, null);
 
                 assert.equal(logs[1].event, 'Transfer');
                 assert.equal(logs[1].args.from, tokenHolder);
                 assert.equal(logs[1].args.to, to);
-                assert(logs[1].args.value.eq(amount));
+                assert.equal(logs[1].args.value, amount);
               });
             });
           });
@@ -393,16 +393,14 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                   assert.equal(logs[0].args.operator, operator);
                   assert.equal(logs[0].args.from, tokenHolder);
                   assert.equal(logs[0].args.to, to);
-                  assert(logs[0].args.value.eq(amount));
-                  assert.equal(logs[0].args.data, ZERO_BYTE);
-                  assert.equal(logs[0].args.operatorData, ZERO_BYTE);
+                  assert.equal(logs[0].args.value, amount);
+                  assert.equal(logs[0].args.data, null);
+                  assert.equal(logs[0].args.operatorData, null);
 
                   assert.equal(logs[1].event, 'Transfer');
                   assert.equal(logs[1].args.from, tokenHolder);
                   assert.equal(logs[1].args.to, to);
-                  assert(logs[1].args.value.eq(amount));
-
-                  assert(true);
+                  assert.equal(logs[1].args.value, amount);
                 });
               });
             });

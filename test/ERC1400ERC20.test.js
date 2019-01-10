@@ -92,21 +92,21 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
         assert.equal(logs[1].args.operator, tokenHolder);
         assert.equal(logs[1].args.from, tokenHolder);
         assert.equal(logs[1].args.to, to);
-        assert(logs[1].args.value.eq(amount));
+        assert.equal(logs[1].args.value, amount);
         assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-        assert.equal(logs[1].args.operatorData, ZERO_BYTE);
+        assert.equal(logs[1].args.operatorData, null);
 
         assert.equal(logs[2].event, 'Transfer');
         assert.equal(logs[2].args.from, tokenHolder);
         assert.equal(logs[2].args.to, to);
-        assert(logs[2].args.value.eq(amount));
+        assert.equal(logs[2].args.value, amount);
 
         assert.equal(logs[3].event, 'TransferByPartition');
         assert.equal(logs[3].args.operator, tokenHolder);
         assert.equal(logs[3].args.to, to);
-        assert(logs[3].args.value.eq(amount));
+        assert.equal(logs[3].args.value, amount);
         assert.equal(logs[3].args.data, VALID_CERTIFICATE);
-        assert.equal(logs[3].args.operatorData, ZERO_BYTE);
+        assert.equal(logs[3].args.operatorData, null);
       });
     });
     describe('when the ERC20 retrocompatibility is not activated', function () {
@@ -134,16 +134,16 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
         assert.equal(logs[1].args.operator, tokenHolder);
         assert.equal(logs[1].args.from, tokenHolder);
         assert.equal(logs[1].args.to, to);
-        assert(logs[1].args.value.eq(amount));
+        assert.equal(logs[1].args.value, amount);
         assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-        assert.equal(logs[1].args.operatorData, ZERO_BYTE);
+        assert.equal(logs[1].args.operatorData, null);
 
         assert.equal(logs[2].event, 'TransferByPartition');
         assert.equal(logs[2].args.operator, tokenHolder);
         assert.equal(logs[2].args.to, to);
-        assert(logs[2].args.value.eq(amount));
+        assert.equal(logs[2].args.value, amount);
         assert.equal(logs[2].args.data, VALID_CERTIFICATE);
-        assert.equal(logs[2].args.operatorData, ZERO_BYTE);
+        assert.equal(logs[2].args.operatorData, null);
       });
     });
 
@@ -175,22 +175,22 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
         assert.equal(logs[1].event, 'Redeemed');
         assert.equal(logs[1].args.operator, tokenHolder);
         assert.equal(logs[1].args.from, tokenHolder);
-        assert(logs[1].args.value.eq(redeemAmount));
+        assert.equal(logs[1].args.value, redeemAmount);
         assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-        assert.equal(logs[1].args.operatorData, ZERO_BYTE);
+        assert.equal(logs[1].args.operatorData, null);
 
         assert.equal(logs[2].event, 'Transfer');
         assert.equal(logs[2].args.from, tokenHolder);
         assert.equal(logs[2].args.to, ZERO_ADDRESS);
-        assert(logs[2].args.value.eq(redeemAmount));
+        assert.equal(logs[2].args.value, redeemAmount);
 
         assert.equal(logs[3].event, 'RedeemedByPartition');
         assert.equal(logs[3].args.partition, partition1);
         assert.equal(logs[3].args.operator, tokenHolder);
         assert.equal(logs[3].args.from, tokenHolder);
-        assert(logs[3].args.value.eq(redeemAmount));
+        assert.equal(logs[3].args.value, redeemAmount);
         assert.equal(logs[3].args.data, VALID_CERTIFICATE);
-        assert.equal(logs[3].args.operatorData, ZERO_BYTE);
+        assert.equal(logs[3].args.operatorData, null);
       });
     });
     describe('when the ERC20 retrocompatibility is not activated', function () {
@@ -214,17 +214,17 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
         assert.equal(logs[1].event, 'Redeemed');
         assert.equal(logs[1].args.operator, tokenHolder);
         assert.equal(logs[1].args.from, tokenHolder);
-        assert(logs[1].args.value.eq(redeemAmount));
+        assert.equal(logs[1].args.value, redeemAmount);
         assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-        assert.equal(logs[1].args.operatorData, ZERO_BYTE);
+        assert.equal(logs[1].args.operatorData, null);
 
         assert.equal(logs[2].event, 'RedeemedByPartition');
         assert.equal(logs[2].args.partition, partition1);
         assert.equal(logs[2].args.operator, tokenHolder);
         assert.equal(logs[2].args.from, tokenHolder);
-        assert(logs[2].args.value.eq(redeemAmount));
+        assert.equal(logs[2].args.value, redeemAmount);
         assert.equal(logs[2].args.data, VALID_CERTIFICATE);
-        assert.equal(logs[2].args.operatorData, ZERO_BYTE);
+        assert.equal(logs[2].args.operatorData, null);
       });
     });
   });
@@ -253,22 +253,22 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
         assert.equal(logs[1].event, 'Issued');
         assert.equal(logs[1].args.operator, owner);
         assert.equal(logs[1].args.to, tokenHolder);
-        assert(logs[1].args.value.eq(issuanceAmount));
+        assert.equal(logs[1].args.value, issuanceAmount);
         assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-        assert.equal(logs[1].args.operatorData, ZERO_BYTE);
+        assert.equal(logs[1].args.operatorData, null);
 
         assert.equal(logs[2].event, 'Transfer');
         assert.equal(logs[2].args.from, ZERO_ADDRESS);
         assert.equal(logs[2].args.to, tokenHolder);
-        assert(logs[2].args.value.eq(issuanceAmount));
+        assert.equal(logs[2].args.value, issuanceAmount);
 
         assert.equal(logs[3].event, 'IssuedByPartition');
         assert.equal(logs[3].args.partition, partition1);
         assert.equal(logs[3].args.operator, owner);
         assert.equal(logs[3].args.to, tokenHolder);
-        assert(logs[3].args.value.eq(issuanceAmount));
+        assert.equal(logs[3].args.value, issuanceAmount);
         assert.equal(logs[3].args.data, VALID_CERTIFICATE);
-        assert.equal(logs[3].args.operatorData, ZERO_BYTE);
+        assert.equal(logs[3].args.operatorData, null);
       });
     });
     describe('when the ERC20 retrocompatibility is not activated', function () {
@@ -292,17 +292,17 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
         assert.equal(logs[1].event, 'Issued');
         assert.equal(logs[1].args.operator, owner);
         assert.equal(logs[1].args.to, tokenHolder);
-        assert(logs[1].args.value.eq(issuanceAmount));
+        assert.equal(logs[1].args.value, issuanceAmount);
         assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-        assert.equal(logs[1].args.operatorData, ZERO_BYTE);
+        assert.equal(logs[1].args.operatorData, null);
 
         assert.equal(logs[2].event, 'IssuedByPartition');
         assert.equal(logs[2].args.partition, partition1);
         assert.equal(logs[2].args.operator, owner);
         assert.equal(logs[2].args.to, tokenHolder);
-        assert(logs[2].args.value.eq(issuanceAmount));
+        assert.equal(logs[2].args.value, issuanceAmount);
         assert.equal(logs[2].args.data, VALID_CERTIFICATE);
-        assert.equal(logs[2].args.operatorData, ZERO_BYTE);
+        assert.equal(logs[2].args.operatorData, null);
       });
     });
   });
@@ -348,7 +348,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
           assert.equal(logs[0].event, 'Approval');
           assert.equal(logs[0].args.owner, tokenHolder);
           assert.equal(logs[0].args.spender, operator);
-          assert(logs[0].args.value.eq(amount));
+          assert.equal(logs[0].args.value, amount);
         });
       });
       describe('when the operator to approve is the zero address', function () {
@@ -410,23 +410,23 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
               assert.equal(logs[0].args.operator, tokenHolder);
               assert.equal(logs[0].args.from, tokenHolder);
               assert.equal(logs[0].args.to, to);
-              assert(logs[0].args.value.eq(amount));
-              assert.equal(logs[0].args.data, ZERO_BYTE);
-              assert.equal(logs[0].args.operatorData, ZERO_BYTE);
+              assert.equal(logs[0].args.value, amount);
+              assert.equal(logs[0].args.data, null);
+              assert.equal(logs[0].args.operatorData, null);
 
               assert.equal(logs[1].event, 'Transfer');
               assert.equal(logs[1].args.from, tokenHolder);
               assert.equal(logs[1].args.to, to);
-              assert(logs[1].args.value.eq(amount));
+              assert.equal(logs[1].args.value, amount);
 
               assert.equal(logs[2].event, 'TransferByPartition');
               assert.equal(logs[2].args.fromPartition, partition1);
               assert.equal(logs[2].args.operator, tokenHolder);
               assert.equal(logs[2].args.from, tokenHolder);
               assert.equal(logs[2].args.to, to);
-              assert(logs[2].args.value.eq(amount));
-              assert.equal(logs[2].args.data, ZERO_BYTE);
-              assert.equal(logs[2].args.operatorData, ZERO_BYTE);
+              assert.equal(logs[2].args.value, amount);
+              assert.equal(logs[2].args.data, null);
+              assert.equal(logs[2].args.operatorData, null);
             });
           });
         });
@@ -524,25 +524,23 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
                 assert.equal(logs[0].args.operator, operator);
                 assert.equal(logs[0].args.from, tokenHolder);
                 assert.equal(logs[0].args.to, to);
-                assert(logs[0].args.value.eq(amount));
-                assert.equal(logs[0].args.data, ZERO_BYTE);
-                assert.equal(logs[0].args.operatorData, ZERO_BYTE);
+                assert.equal(logs[0].args.value, amount);
+                assert.equal(logs[0].args.data, null);
+                assert.equal(logs[0].args.operatorData, null);
 
                 assert.equal(logs[1].event, 'Transfer');
                 assert.equal(logs[1].args.from, tokenHolder);
                 assert.equal(logs[1].args.to, to);
-                assert(logs[1].args.value.eq(amount));
+                assert.equal(logs[1].args.value, amount);
 
                 assert.equal(logs[2].event, 'TransferByPartition');
                 assert.equal(logs[2].args.fromPartition, partition1);
                 assert.equal(logs[2].args.operator, operator);
                 assert.equal(logs[2].args.from, tokenHolder);
                 assert.equal(logs[2].args.to, to);
-                assert(logs[2].args.value.eq(amount));
-                assert.equal(logs[2].args.data, ZERO_BYTE);
-                assert.equal(logs[2].args.operatorData, ZERO_BYTE);
-
-                assert(true);
+                assert.equal(logs[2].args.value, amount);
+                assert.equal(logs[2].args.data, null);
+                assert.equal(logs[2].args.operatorData, null);
               });
             });
           });
