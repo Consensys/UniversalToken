@@ -264,7 +264,7 @@ contract ERC1410 is IERC1410, ERC777 {
     }
 
     _removeTokenFromPartition(from, fromPartition, value);
-    _transferWithData(operator, from, to, value, data, operatorData, true);
+    _transferWithData(fromPartition, operator, from, to, value, data, operatorData, true);
     _addTokenToPartition(to, toPartition, value);
 
     emit TransferByPartition(fromPartition, operator, from, to, value, data, operatorData);
@@ -338,7 +338,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @dev Retrieve the destination partition from the 'data' field.
    * By convention, a partition change is requested ONLY when 'data' starts
    * with the flag: 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff
-   * When the flag is detected, the destination tranche is ewtracted from the
+   * When the flag is detected, the destination tranche is extracted from the
    * 32 bytes following the flag.
    * @param fromPartition Partition of the tokens to transfer.
    * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
