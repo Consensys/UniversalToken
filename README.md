@@ -96,6 +96,7 @@ The official proposal can be found at: [eips.ethereum.org/EIPS/eip-777](https://
 We've performed a few updates compared to the official proposal, mainly to better fit with our implementation of ERC1400:
  - Introduction of the notion of 'controllers' (replacing defaultOperators) for better consistency with ERC1400 'controllers'.
  - Introduction of '_isControllable' property (set to 'false' by default for the ERC777, but set to 'true' for the ERC1400).
+ - Update of IERC777TokensRecipient and IERC777TokensSender interfaces, by adding 'partition' parameters, in order to make the hooks ERC1400-compliant.
  - Renaming of 'send' function (now 'transferWithData') and 'Sent' event (now 'TransferWithData') for better consistency with ERC1400 names + to avoid potential issues with blockchain tools (e.g. Truffle, etc.) considering 'send' as a reserved word.
  - Renaming of 'mint' function (now 'issue') and 'Minted' event (now 'Issued') for better consistency with ERC1400 names.
  - Renaming of 'burn' function (now 'redeem') and 'Burned' event (now 'Redeemed') for better consistency with ERC1400 names.
