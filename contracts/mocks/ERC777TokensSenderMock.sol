@@ -29,6 +29,7 @@ contract ERC777TokensSenderMock is IERC777TokensSender, ERC820ImplementerMock {
   }
 
   function tokensToTransfer(
+    bytes32 /*partition*/,
     address /*operator*/,
     address from,
     address to,

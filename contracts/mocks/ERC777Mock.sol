@@ -33,7 +33,7 @@ contract ERC777Mock is ERC777Issuable {
   }
 
   function redeemFromMock(address from, uint256 value, bytes data, bytes operatorData) external {
-    _redeem(msg.sender, from, value, data, operatorData);
+    _redeem("", msg.sender, from, value, data, operatorData);
   }
 
 }

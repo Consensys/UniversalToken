@@ -54,6 +54,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   /**
    * [OVERRIDES ERC777 METHOD]
    * @dev Perform the transfer of tokens.
+   * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
    * @param operator The address performing the transfer.
    * @param from Token holder.
    * @param to Token recipient.
@@ -66,6 +67,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    * functions SHOULD set this parameter to 'false'.
    */
   function _transferWithData(
+    bytes32 partition,
     address operator,
     address from,
     address to,
@@ -76,7 +78,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   )
    internal
   {
-    ERC777._transferWithData(operator, from, to, value, data, operatorData, preventLocking);
+    ERC777._transferWithData(partition, operator, from, to, value, data, operatorData, preventLocking);
 
     if(_erc20compatible) {
       emit Transfer(from, to, value);
@@ -86,14 +88,15 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   /**
    * [OVERRIDES ERC777 METHOD]
    * @dev Perform the token redemption.
+   * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
    * @param operator The address performing the redemption.
    * @param from Token holder whose tokens will be redeemed.
    * @param value Number of tokens to redeem.
    * @param data Information attached to the redemption.
    * @param operatorData Information attached to the redemption by the operator (if any).
    */
-  function _redeem(address operator, address from, uint256 value, bytes data, bytes operatorData) internal {
-    ERC777._redeem(operator, from, value, data, operatorData);
+  function _redeem(bytes32 partition, address operator, address from, uint256 value, bytes data, bytes operatorData) internal {
+    ERC777._redeem(partition, operator, from, value, data, operatorData);
 
     if(_erc20compatible) {
       emit Transfer(from, address(0), value);  //  ERC20 backwards compatibility
@@ -103,14 +106,15 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   /**
    * [OVERRIDES ERC777 METHOD]
    * @dev Perform the issuance of tokens.
+   * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
    * @param operator Address which triggered the issuance.
    * @param to Token recipient.
    * @param value Number of tokens issued.
    * @param data Information attached to the issuance.
    * @param operatorData Information attached to the issued by the operator (if any).
    */
-  function _issue(address operator, address to, uint256 value, bytes data, bytes operatorData) internal {
-    ERC777._issue(operator, to, value, data, operatorData);
+  function _issue(bytes32 partition, address operator, address to, uint256 value, bytes data, bytes operatorData) internal {
+    ERC777._issue(partition, operator, to, value, data, operatorData);
 
     if(_erc20compatible) {
       emit Transfer(address(0), to, value); // ERC20 backwards compatibility
@@ -163,7 +167,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    * @return A boolean that indicates if the operation was successful.
    */
   function transfer(address to, uint256 value) external erc20Compatible returns (bool) {
-    _transferWithData(msg.sender, msg.sender, to, value, "", "", false);
+    _transferWithData("", msg.sender, msg.sender, to, value, "", "", false);
     return true;
   }
 
@@ -186,7 +190,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
       _allowed[_from][msg.sender] = 0;
     }
 
-    _transferWithData(msg.sender, _from, to, value, "", "", false);
+    _transferWithData("", msg.sender, _from, to, value, "", "", false);
     return true;
   }
 

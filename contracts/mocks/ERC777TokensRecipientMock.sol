@@ -29,6 +29,7 @@ contract ERC777TokensRecipientMock is IERC777TokensRecipient, ERC820ImplementerM
   }
 
   function tokensReceived(
+    bytes32 /*partition*/,
     address /*operator*/,
     address from,
     address to,

@@ -49,7 +49,7 @@ module.exports = {
       network_id: parseInt(process.env.NETWORK_ID) || '*', // eslint-disable-line camelcase
     },
   },
-    compilers: {
+  compilers: {
     solc: {
       version: "0.4.24",
       settings: {

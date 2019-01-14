@@ -178,7 +178,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
     external
     isValidCertificate(data)
   {
-    _transferWithData(msg.sender, msg.sender, to, value, data, "", true);
+    _transferWithData("", msg.sender, msg.sender, to, value, data, "", true);
   }
 
   /**
@@ -198,7 +198,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
 
     require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
-    _transferWithData(msg.sender, _from, to, value, data, operatorData, true);
+    _transferWithData("", msg.sender, _from, to, value, data, operatorData, true);
   }
 
   /**
@@ -211,7 +211,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
     external
     isValidCertificate(data)
   {
-    _redeem(msg.sender, msg.sender, value, data, "");
+    _redeem("", msg.sender, msg.sender, value, data, "");
   }
 
   /**
@@ -230,7 +230,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
 
     require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
-    _redeem(msg.sender, _from, value, data, operatorData);
+    _redeem("", msg.sender, _from, value, data, operatorData);
   }
 
   /********************** ERC777 INTERNAL FUNCTIONS ***************************/
@@ -275,6 +275,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    /**
     * [INTERNAL]
     * @dev Perform the transfer of tokens.
+    * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
     * @param operator The address performing the transfer.
     * @param from Token holder.
     * @param to Token recipient.
@@ -287,6 +288,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
     * functions SHOULD set this parameter to 'false'.
     */
   function _transferWithData(
+    bytes32 partition,
     address operator,
     address from,
     address to,
@@ -302,12 +304,12 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
     require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");
     require(_balances[from] >= value, "A4: Transfer Blocked - Sender balance insufficient");
 
-    _callSender(operator, from, to, value, data, operatorData);
+    _callSender(partition, operator, from, to, value, data, operatorData);
 
     _balances[from] = _balances[from].sub(value);
     _balances[to] = _balances[to].add(value);
 
-    _callRecipient(operator, from, to, value, data, operatorData, preventLocking);
+    _callRecipient(partition, operator, from, to, value, data, operatorData, preventLocking);
 
     emit TransferWithData(operator, from, to, value, data, operatorData);
   }
@@ -315,13 +317,14 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
   /**
    * [INTERNAL]
    * @dev Perform the token redemption.
+   * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
    * @param operator The address performing the redemption.
    * @param from Token holder whose tokens will be redeemed.
    * @param value Number of tokens to redeem.
    * @param data Information attached to the redemption.
    * @param operatorData Information attached to the redemption, by the operator (if any).
    */
-  function _redeem(address operator, address from, uint256 value, bytes data, bytes operatorData)
+  function _redeem(bytes32 partition, address operator, address from, uint256 value, bytes data, bytes operatorData)
     internal
     nonReentrant
   {
@@ -329,7 +332,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
     require(from != address(0), "A5: Transfer Blocked - Sender not eligible");
     require(_balances[from] >= value, "A4: Transfer Blocked - Sender balance insufficient");
 
-    _callSender(operator, from, address(0), value, data, operatorData);
+    _callSender(partition, operator, from, address(0), value, data, operatorData);
 
     _balances[from] = _balances[from].sub(value);
     _totalSupply = _totalSupply.sub(value);
@@ -341,6 +344,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * [INTERNAL]
    * @dev Check for 'ERC777TokensSender' hook on the sender and call it.
    * May throw according to 'preventLocking'.
+   * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
    * @param operator Address which triggered the balance decrease (through transfer or redemption).
    * @param from Token holder.
    * @param to Token recipient for a transfer and 0x for a redemption.
@@ -349,6 +353,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @param operatorData Extra information, attached by the operator (if any).
    */
   function _callSender(
+    bytes32 partition,
     address operator,
     address from,
     address to,
@@ -362,7 +367,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
     senderImplementation = interfaceAddr(from, "ERC777TokensSender");
 
     if (senderImplementation != address(0)) {
-      IERC777TokensSender(senderImplementation).tokensToTransfer(operator, from, to, value, data, operatorData);
+      IERC777TokensSender(senderImplementation).tokensToTransfer(partition, operator, from, to, value, data, operatorData);
     }
   }
 
@@ -370,6 +375,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * [INTERNAL]
    * @dev Check for 'ERC777TokensRecipient' hook on the recipient and call it.
    * May throw according to 'preventLocking'.
+   * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
    * @param operator Address which triggered the balance increase (through transfer or issuance).
    * @param from Token holder for a transfer and 0x for an issuance.
    * @param to Token recipient.
@@ -382,6 +388,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * functions SHOULD set this parameter to 'false'.
    */
   function _callRecipient(
+    bytes32 partition,
     address operator,
     address from,
     address to,
@@ -396,7 +403,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
     recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
 
     if (recipientImplementation != address(0)) {
-      IERC777TokensRecipient(recipientImplementation).tokensReceived(operator, from, to, value, data, operatorData);
+      IERC777TokensRecipient(recipientImplementation).tokensReceived(partition, operator, from, to, value, data, operatorData);
     } else if (preventLocking) {
       require(_isRegularAddress(to), "A6: Transfer Blocked - Receiver not eligible");
     }
@@ -405,20 +412,21 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
   /**
    * [INTERNAL]
    * @dev Perform the issuance of tokens.
+   * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
    * @param operator Address which triggered the issuance.
    * @param to Token recipient.
    * @param value Number of tokens issued.
    * @param data Information attached to the issuance, and intended for the recipient (to).
    * @param operatorData Information attached to the issuance by the operator (if any).
    */
-  function _issue(address operator, address to, uint256 value, bytes data, bytes operatorData) internal nonReentrant {
+  function _issue(bytes32 partition, address operator, address to, uint256 value, bytes data, bytes operatorData) internal nonReentrant {
     require(_isMultiple(value), "A9: Transfer Blocked - Token granularity");
     require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");
 
     _totalSupply = _totalSupply.add(value);
     _balances[to] = _balances[to].add(value);
 
-    _callRecipient(operator, address(0), to, value, data, operatorData, true);
+    _callRecipient(partition, operator, address(0), to, value, data, operatorData, true);
 
     emit Issued(operator, to, value, data, operatorData);
   }

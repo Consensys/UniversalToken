@@ -20,6 +20,7 @@ interface IERC777TokensSender {
   ) external view returns(bool);
 
   function tokensToTransfer(
+    bytes32 partition,
     address operator,
     address from,
     address to,

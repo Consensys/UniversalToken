@@ -23,7 +23,7 @@ contract ERC777Issuable is ERC777, MinterRole {
     onlyMinter
     returns (bool)
   {
-    _issue(msg.sender, to, value, data, "");
+    _issue("", msg.sender, to, value, data, "");
 
     return true;
   }
