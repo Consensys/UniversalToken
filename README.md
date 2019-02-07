@@ -1,13 +1,13 @@
 ![dAuriel](images/dAurielLogo.png)
 
-## What is dAuriel?
+## What is the Dauriel Network?
 
-dAuriel is an advanced institutional technology platform for issuing and exchanging tokenized financial assets, powered by the Ethereum blockchain. The security token implementations used by the platform are shared in this repository.
-dAuriel is a product created by ConsenSys.
+Dauriel Network is an advanced institutional technology platform for issuing and exchanging tokenized financial assets, powered by the Ethereum blockchain. The security token implementations used by the platform are shared in this repository.
+Dauriel Network is a product created by ConsenSys.
 
 ## Content - Security token implementations (ERC777 and ERC1400), adapted for financial asset tokenization
 
-This repo contains security token smart contract implementations used by dAuriel:
+This repo contains security token smart contract implementations used by the Dauriel Network:
 #### ERC777 implementation - Advanced token standard for asset transfers
 
  - Empowerment of operators with the ability to send tokens on behalf of other addresses.
@@ -31,7 +31,7 @@ The current capital market still needs to overcome a few pain points:
  - Once issued, the assets are mainly reserved for high-ticket investors.
  - Finally, those asset are not easily tradable, which strongly limits the secondary market possibilities.
 
-With dAuriel, we want to tokenize the capital market to tackle those pain points. In the new system, we imagine:
+With the Dauriel Network, we want to tokenize the capital market to tackle those pain points. In the new system, we imagine:
  - An asset issuance will be faster, simpler but also cheaper than today.
  - This reduction of costs will allow us to onboard smaller ticket investors.
  - Globally, the tokenization removes constraints for more liquid and frictionless asset transfers, while keeping a strong control over the market, thus liberating the secondary market.
@@ -52,23 +52,23 @@ function transfer(address recipient, uint256 value)
 ```
 All controls have to be hard-coded on-chain and are often limited to simple / binary checks e.g. checking whether an investor is blacklisted or not.
 
-dAuriel makes use of more evolved / granular controls to secure transfers.
+The Dauriel Network makes use of more evolved / granular controls to secure transfers.
 Those controls can evolve quickly and require flexibility, which makes it difficult to hard-code them on-chain.
 
-### dAuriel transaction - A way to secure all transfers with a certificate generated off-chain by the issuer
+### Dauriel transaction - A way to secure all transfers with a certificate generated off-chain by the issuer
 
 The use of an additional 'data' parameter in the transfer functions can enable more evolved / granular controls:
 ```
 function transferWithData(address recipient, uint256 value, bytes data)
 ```
-dAuriel fosters to use this additional 'data' field (available in ERC777 and ERC1400 standards) to inject a certificate generated off-chain by the issuer.
+The Dauriel Network fosters to use this additional 'data' field (available in ERC777 and ERC1400 standards) to inject a certificate generated off-chain by the issuer.
 A token transfer shall be conditioned to the validity of the certificate, thus offering the issuer with strong control capabilities over its financial assets.
 
 ![dAurielTransaction](images/dAurielTransaction.png)
 
-### dAuriel certificate - A way to perform advanced conditional ownership
+### Dauriel certificate - A way to perform advanced conditional ownership
 
-The dAuriel certificate contains:
+The Dauriel certificate contains:
  - The function ID which ensures the certificate can’t be used on an other function.
  - The parameters which ensures the input parameters have been validated by the issuer.
  - A validity date which ensures the certificate can’t be used after validity date.
