@@ -2,17 +2,27 @@ pragma solidity ^0.4.24;
 
 import "../CertificateController.sol";
 
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 
 /**
  * @title ControlledMock
  * @dev Mock class to test certificate controller
  */
-contract ControlledMock is CertificateController {
+contract ControlledMock is Ownable, CertificateController {
 
-  constructor(address _certificateSigner)
+  constructor(address certificateSigner)
     public
-    CertificateController(_certificateSigner)
+    CertificateController(certificateSigner)
   {}
+
+  /**
+   * @dev Add a certificate signer for the token.
+   * @param operator Address to set as a certificate signer.
+   * @param authorized 'true' if operator shall be accepted as certificate signer, 'false' if not.
+   */
+  function setCertificateSigner(address operator, bool authorized) external onlyOwner {
+    _setCertificateSigner(operator, authorized);
+  }
 
   /**
    * @dev A test function

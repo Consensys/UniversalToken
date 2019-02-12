@@ -12,3 +12,5 @@ coverage
 coverage.json
 coverageEnv
 allFiredEvents
+artifacts
+js
