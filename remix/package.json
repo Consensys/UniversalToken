@@ -1,8 +1,0 @@
-{
-    "devDependencies": {
-      "remixd": "^0.1.0"
-    },
-    "scripts": {
-      "remixd": "./node_modules/remixd/bin/remixd -s ../contracts"
-    }
-  }
