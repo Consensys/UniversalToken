@@ -1,8 +1,8 @@
 # Installation commands
-.PHONY: npm build-ganache build-remix-ide docker-build build docker-start docker-stop init develop
+.PHONY: yarn docker-start docker-stop init develop
 
 # Commands to use remix
-.PHONY: start-remixd open-remix-ide remix
+.PHONY: remix
 
 # Test commands
 .PHONY: test coverage
@@ -10,40 +10,43 @@
 # Linting commands
 .PHONY: test-lint lint
 
-# ganache options
-GANACHE=ganache/docker-compose.yml
-ACCOUNTS=ganache/accounts.txt
+# Executables
+NODE_MODULES=./node_modules
+BIN=$(NODE_MODULES)/.bin
+TRUFFLE=$(BIN)/truffle
 
 yarn:
 	@yarn install
 
-build-ganache:
-	@ACCOUNTS="" docker-compose -f $(GANACHE) build
-
-docker-build: build-ganache
-
-build: yarn docker-build
-
 start-ganache:
-	@ACCOUNTS=`cat $(ACCOUNTS)` docker-compose -f $(GANACHE) up -d
+	docker run -p 7545:8545 --name ganache-cli --rm -d trufflesuite/ganache-cli:latest -d -e 1000 -g 0xfffffffffff
 
 stop-ganache:
-	@ACCOUNTS="" docker-compose -f $(GANACHE) stop
+	docker stop ganache-cli
 
-init: build start-ganache
+init: yarn start-ganache
 
 develop: start-ganache
 
 stop-develop: stop-ganache
-	
+
+start-remixd:
+	@yarn run remixd
+
+open-remix-ide:
+	@xdg-open http://localhost:8080
+
+remix:
+	@yarn run remix
+
 test:
-	@yarn run contract:test
+	@$(TRUFFLE) test --network development
 
 run-coverage:
-	@yarn run contract:test:coverage
+	@yarn run coverage
 
 coverage: run-coverage
-	@xdg-open coverage/index.html
+	@python -mwebbrowser coverage/index.html
 
 test-lint:
 	@yarn run lint:all

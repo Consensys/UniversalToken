@@ -1,14 +1,35 @@
 {
-    "extends": "solium:all",
-    "plugins": ["security"],
-    "rules": {
-      "quotes": ["error", "double"],
-      "no-empty-blocks": "off",
-      "indentation": ["error", 2],
-      "arg-overflow": ["warning", 3],
-      "no-constant": ["error"],
-      "security/enforce-explicit-visibility": ["error"],
-      "security/no-block-members": ["warning"],
-      "security/no-inline-assembly": ["warning"]
-    }
+  "extends": "solium:all",
+  "plugins": ["security", "zeppelin"],
+  "rules": {
+    "quotes": ["error", "double"],
+    "no-empty-blocks": "off",
+    "indentation": ["error", 2],
+    "arg-overflow": ["warning", 3],
+    "no-constant": ["error"],
+    "security/enforce-explicit-visibility": ["error"],
+    "security/no-block-members": ["warning"],
+    "security/no-inline-assembly": ["warning"],
+    "zeppelin/constant-candidates": [
+      "warning"
+    ],
+    "zeppelin/highlight-comments": [
+      "warning"
+    ],
+    "zeppelin/missing-natspec-comments": [
+      "warning"
+    ],
+    "zeppelin/no-arithmetic-operations": [
+      "warning"
+    ],
+    "zeppelin/no-state-variable-shadowing": [
+      "warning"
+    ],
+    "zeppelin/no-unchecked-send": [
+      "warning"
+    ],
+    "zeppelin/no-unused-imports": [
+      "warning"
+    ]
   }
+}

@@ -1,4 +1,4 @@
-image: node:9.1-alpine
+image: node:8.9
 
 cache:
   untracked: true
@@ -9,23 +9,23 @@ cache:
 stages:
   - test
 
-before_script:
-  - apk --no-cache add git openssh g++ gcc libgcc libstdc++ linux-headers make python
-  - npm install
-
 test:
   stage: test
+  before_script:
+    - yarn install
   script:
     - make run-coverage
   artifacts:
     paths:
       - coverage
-  tags:
-    - private-ci
+  only:
+    - master
 
 test-lint:
   stage: test
+  before_script:
+    - yarn install
   script:
     - make test-lint
-  tags:
-    - private-ci
+  only:
+    - master
