@@ -1,6 +1,8 @@
 require('dotenv').config();
 require('babel-register');
 require('babel-polyfill');
+const TestRPC = require('ganache-cli');
+let provider;
 
 const HDWalletProvider = require('truffle-hdwallet-provider');
 
@@ -19,6 +21,15 @@ const ropstenProvider = process.env.SOLIDITY_COVERAGE
 module.exports = {
   networks: {
     development: {
+      get provider () {
+        if (!provider) {
+          provider = TestRPC.provider({ total_accounts: 25 }); // eslint-disable-line camelcase
+        }
+        return provider;
+      },
+      network_id: '*', // eslint-disable-line camelcase
+    },
+    test: {
       host: 'localhost',
       port: 7545,
       network_id: '*', // eslint-disable-line camelcase
@@ -49,7 +60,7 @@ module.exports = {
   },
   compilers: {
     solc: {
-      version: '0.4.24',
+      version: '0.5.3',
       settings: {
         optimizer: {
           enabled: true, // Default: false
