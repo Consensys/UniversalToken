@@ -1,6 +1,7 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5;
 
 
+// CertificateController comment...
 contract CertificateController {
 
   // Address used by off-chain controller service to sign certificate
@@ -18,9 +19,12 @@ contract CertificateController {
   /**
    * @dev Modifier to protect methods with certificate control
    */
-  modifier isValidCertificate(bytes data) {
+  modifier isValidCertificate(bytes memory data) {
 
-    require(_certificateSigners[msg.sender] || _checkCertificate(data, msg.value, 0x00000000), "A3: Transfer Blocked - Sender lockup period not ended");
+    require(
+      _certificateSigners[msg.sender] || _checkCertificate(data, msg.value, 0x00000000),
+      "A3: Transfer Blocked - Sender lockup period not ended"
+    );
 
     _checkCount[msg.sender] += 1; // Increment sender check count
 
@@ -61,7 +65,7 @@ contract CertificateController {
    * @param data Certificate to control
    */
   function _checkCertificate(
-    bytes data,
+    bytes memory data,
     uint256 amount,
     bytes4 functionID
   )

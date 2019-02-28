@@ -1,8 +1,9 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5;
 
 import "../CertificateController.sol";
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
+
 
 /**
  * @title ControlledMock
@@ -29,8 +30,8 @@ contract ControlledMock is Ownable, CertificateController {
    * @param i An integer
    * @param data Certificate to control
    */
-  function test(uint i, bytes b, bytes data)
-    external
+  function test(uint i, bytes memory b, bytes memory data)
+    internal
     isValidCertificate(data)
     returns (bool)
   {
@@ -42,7 +43,8 @@ contract ControlledMock is Ownable, CertificateController {
    * @param i An integer
    * @param data Certificate to control
    */
-  function testCertificate(uint i, bytes b, bytes data)
+  function testCertificate(uint i, bytes calldata b, bytes calldata data)
+    view
     external
     returns (bool)
   {
