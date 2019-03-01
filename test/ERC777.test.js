@@ -1,4 +1,4 @@
-import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
+import { shouldFail } from 'openzeppelin-test-helpers';
 
 const ERC777 = artifacts.require('ERC777Mock');
 const ERC820Registry = artifacts.require('ERC820Registry');
@@ -169,7 +169,6 @@ contract('ERC777 without hooks', function ([owner, operator, controller, control
     // SET CONTROLLERS
 
     describe('setControllers', function () {
-
       describe('when the caller is the contract owner', function () {
         it('sets the operators as controllers', async function () {
           const controllers1 = await this.token.controllers();
@@ -201,7 +200,6 @@ contract('ERC777 without hooks', function ([owner, operator, controller, control
           await shouldFail.reverting(this.token.setControllers([controller_alternative1, controller_alternative2], { from: unknown }));
         });
       });
-
     });
 
     // ISSUE
@@ -390,7 +388,6 @@ contract('ERC777 without hooks', function ([owner, operator, controller, control
                 await shouldFail.reverting(this.token.transferFromWithData(tokenHolder, to, amount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
               });
             });
-
           });
 
           describe('when the recipient is the zero address', function () {

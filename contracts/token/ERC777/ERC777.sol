@@ -2,7 +2,7 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.4.24;
+pragma solidity ^0.5;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
@@ -14,6 +14,7 @@ import "../../CertificateController/CertificateController.sol";
 import "./IERC777.sol";
 import "./IERC777TokensSender.sol";
 import "./IERC777TokensRecipient.sol";
+
 
 /**
  * @title ERC777
@@ -57,10 +58,10 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * redemption (Cf. CertificateController.sol).
    */
   constructor(
-    string name,
-    string symbol,
+    string memory name,
+    string memory symbol,
     uint256 granularity,
-    address[] controllers,
+    address[] memory controllers,
     address certificateSigner
   )
     public
@@ -74,7 +75,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
 
     _setControllers(controllers);
 
-    setInterfaceImplementation("ERC777Token", this);
+    setInterfaceImplementation("ERC777Token", address(this));
   }
 
   /********************** ERC777 EXTERNAL FUNCTIONS ***************************/
@@ -84,7 +85,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @dev Get the name of the token, e.g., "MyToken".
    * @return Name of the token.
    */
-  function name() external view returns(string) {
+  function name() external view returns(string memory) {
     return _name;
   }
 
@@ -93,7 +94,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @dev Get the symbol of the token, e.g., "MYT".
    * @return Symbol of the token.
    */
-  function symbol() external view returns(string) {
+  function symbol() external view returns(string memory) {
     return _symbol;
   }
 
@@ -130,7 +131,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @dev Get the list of controllers as defined by the token contract.
    * @return List of addresses of all the controllers.
    */
-  function controllers() external view returns (address[]) {
+  function controllers() external view returns (address[] memory) {
     return _controllers;
   }
 
@@ -174,7 +175,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function transferWithData(address to, uint256 value, bytes data)
+  function transferWithData(address to, uint256 value, bytes calldata data)
     external
     isValidCertificate(data)
   {
@@ -190,7 +191,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @param data Information attached to the transfer, and intended for the token holder ('from').
    * @param operatorData Information attached to the transfer by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function transferFromWithData(address from, address to, uint256 value, bytes data, bytes operatorData)
+  function transferFromWithData(address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData)
     external
     isValidCertificate(operatorData)
   {
@@ -207,7 +208,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @param value Number of tokens to redeem.
    * @param data Information attached to the redemption, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function redeem(uint256 value, bytes data)
+  function redeem(uint256 value, bytes calldata data)
     external
     isValidCertificate(data)
   {
@@ -222,7 +223,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @param data Information attached to the redemption.
    * @param operatorData Information attached to the redemption, by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function redeemFrom(address from, uint256 value, bytes data, bytes operatorData)
+  function redeemFrom(address from, uint256 value, bytes calldata data, bytes calldata operatorData)
     external
     isValidCertificate(operatorData)
   {
@@ -293,8 +294,8 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
     address from,
     address to,
     uint256 value,
-    bytes data,
-    bytes operatorData,
+    bytes memory data,
+    bytes memory operatorData,
     bool preventLocking
   )
     internal
@@ -324,7 +325,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @param data Information attached to the redemption.
    * @param operatorData Information attached to the redemption, by the operator (if any).
    */
-  function _redeem(bytes32 partition, address operator, address from, uint256 value, bytes data, bytes operatorData)
+  function _redeem(bytes32 partition, address operator, address from, uint256 value, bytes memory data, bytes memory operatorData)
     internal
     nonReentrant
   {
@@ -358,8 +359,8 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
     address from,
     address to,
     uint256 value,
-    bytes data,
-    bytes operatorData
+    bytes memory data,
+    bytes memory operatorData
   )
     internal
   {
@@ -393,8 +394,8 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
     address from,
     address to,
     uint256 value,
-    bytes data,
-    bytes operatorData,
+    bytes memory data,
+    bytes memory operatorData,
     bool preventLocking
   )
     internal
@@ -419,7 +420,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @param data Information attached to the issuance, and intended for the recipient (to).
    * @param operatorData Information attached to the issuance by the operator (if any).
    */
-  function _issue(bytes32 partition, address operator, address to, uint256 value, bytes data, bytes operatorData) internal nonReentrant {
+  function _issue(bytes32 partition, address operator, address to, uint256 value, bytes memory data, bytes memory operatorData) internal nonReentrant {
     require(_isMultiple(value), "A9: Transfer Blocked - Token granularity");
     require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");
 
@@ -438,7 +439,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @dev Set list of token controllers.
    * @param operators Controller addresses.
    */
-  function _setControllers(address[] operators) internal onlyOwner {
+  function _setControllers(address[] memory operators) internal onlyOwner {
     for (uint i = 0; i<_controllers.length; i++){
       _isController[_controllers[i]] = false;
     }

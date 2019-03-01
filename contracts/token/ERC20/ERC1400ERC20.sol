@@ -2,7 +2,7 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.4.24;
+pragma solidity ^0.5;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
@@ -41,12 +41,12 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * redemption (Cf. CertificateController.sol).
    */
   constructor(
-    string name,
-    string symbol,
+    string memory name,
+    string memory symbol,
     uint256 granularity,
-    address[] controllers,
+    address[] memory controllers,
     address certificateSigner,
-    bytes32[] tokenDefaultPartitions
+    bytes32[] memory tokenDefaultPartitions
   )
     public
     ERC1400(name, symbol, granularity, controllers, certificateSigner, tokenDefaultPartitions)
@@ -73,8 +73,8 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
     address from,
     address to,
     uint256 value,
-    bytes data,
-    bytes operatorData,
+    bytes memory data,
+    bytes memory operatorData,
     bool preventLocking
   )
     internal
@@ -96,7 +96,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @param data Information attached to the redemption.
    * @param operatorData Information attached to the redemption by the operator (if any).
    */
-  function _redeem(bytes32 partition, address operator, address from, uint256 value, bytes data, bytes operatorData) internal {
+  function _redeem(bytes32 partition, address operator, address from, uint256 value, bytes memory data, bytes memory operatorData) internal {
     ERC777._redeem(partition, operator, from, value, data, operatorData);
 
     if(_erc20compatible) {
@@ -114,7 +114,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @param data Information attached to the issuance.
    * @param operatorData Information attached to the issuance by the operator (if any).
    */
-  function _issue(bytes32 partition, address operator, address to, uint256 value, bytes data, bytes operatorData) internal {
+  function _issue(bytes32 partition, address operator, address to, uint256 value, bytes memory data, bytes memory operatorData) internal {
     ERC777._issue(partition, operator, to, value, data, operatorData);
 
     if(_erc20compatible) {
@@ -214,7 +214,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
   function _setERC20compatibility(bool erc20compatible) internal {
     _erc20compatible = erc20compatible;
     if(_erc20compatible) {
-      setInterfaceImplementation("ERC20Token", this);
+      setInterfaceImplementation("ERC20Token", address(this));
     } else {
       setInterfaceImplementation("ERC20Token", address(0));
     }

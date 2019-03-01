@@ -1,4 +1,4 @@
-import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
+import { shouldFail } from 'openzeppelin-test-helpers';
 
 const ERC777ERC20 = artifacts.require('ERC777ERC20');
 

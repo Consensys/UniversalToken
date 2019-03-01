@@ -1,4 +1,5 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.5;
+
 
 contract ERC820Registry {
     function setInterfaceImplementer(address _addr, bytes32 _interfaceHash, address _implementer) external;
@@ -15,13 +16,13 @@ contract ERC820ImplementerMock {
 
   bytes32 internal _interfaceHash;
 
-  constructor(string interfaceLabel) public {
+  constructor(string memory interfaceLabel) public {
     _interfaceHash = keccak256(abi.encodePacked(interfaceLabel));
   }
 
   function setERC820Implementer() external {
     require(ERC820REGISTRY.getManager(msg.sender) == address(this), "Manager rights neeed to be transferred to this contract first.");
-    ERC820REGISTRY.setInterfaceImplementer(msg.sender, _interfaceHash, this);
+    ERC820REGISTRY.setInterfaceImplementer(msg.sender, _interfaceHash, address(this));
     ERC820REGISTRY.setManager(msg.sender, msg.sender);
   }
 
