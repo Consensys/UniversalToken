@@ -5,6 +5,9 @@
 Dauriel Network is an advanced institutional technology platform for issuing and exchanging tokenized financial assets, powered by the Ethereum blockchain. The security token implementations used by the platform are shared in this repository.
 Dauriel Network is a product created by ConsenSys.
 
+Example of an asset issuance leveraging the Dauriel Network technology:
+![dAurielVideo](images/dAurielVideo.png)
+
 ## Content - Security token implementations (ERC777 and ERC1400), adapted for financial asset tokenization
 
 This repo contains security token smart contract implementations used by the Dauriel Network:
