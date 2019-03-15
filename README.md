@@ -6,7 +6,9 @@ Dauriel Network is an advanced institutional technology platform for issuing and
 Dauriel Network is a product created by ConsenSys.
 
 Example of an asset issuance leveraging the Dauriel Network technology:
-![dAurielVideo](images/dAurielVideo.png)
+
+![daurielVideo](images/daurielVideo.png)
+https://www.youtube.com/watch?v=F7cAdPSXyqs
 
 ## Content - Security token implementations (ERC777 and ERC1400), adapted for financial asset tokenization
 
