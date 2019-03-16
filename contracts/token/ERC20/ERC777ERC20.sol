@@ -15,16 +15,17 @@ import "../ERC777/ERC777Issuable.sol";
  */
 contract ERC777ERC20 is IERC20, ERC777Issuable {
 
-  bool internal _erc20compatible;
-
   // Mapping from (tokenHolder, spender) to allowed value.
   mapping (address => mapping (address => uint256)) internal _allowed;
 
+  // Mapping from (tokenHolder) to whitelisted status.
+  mapping (address => bool) internal _whitelisted;
+
   /**
-   * @dev Modifier to verify if ERC20 retrocompatible are locked/unlocked.
+   * @dev Modifier to verify if sender and recipient are whitelisted.
    */
-  modifier erc20Compatible() {
-    require(_erc20compatible, "Action Blocked - Token restriction");
+  modifier isWhitelisted(address recipient) {
+    require(_whitelisted[recipient], "A3: Transfer Blocked - Sender lockup period not ended");
     _;
   }
 
@@ -49,7 +50,9 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   )
     public
     ERC777(name, symbol, granularity, controllers, certificateSigner)
-  {}
+  {
+    setInterfaceImplementation("ERC20Token", this);
+  }
 
   /**
    * [OVERRIDES ERC777 METHOD]
@@ -80,9 +83,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   {
     ERC777._transferWithData(partition, operator, from, to, value, data, operatorData, preventLocking);
 
-    if(_erc20compatible) {
-      emit Transfer(from, to, value);
-    }
+    emit Transfer(from, to, value);
   }
 
   /**
@@ -98,9 +99,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   function _redeem(bytes32 partition, address operator, address from, uint256 value, bytes data, bytes operatorData) internal {
     ERC777._redeem(partition, operator, from, value, data, operatorData);
 
-    if(_erc20compatible) {
-      emit Transfer(from, address(0), value);  //  ERC20 backwards compatibility
-    }
+    emit Transfer(from, address(0), value);  //  ERC20 backwards compatibility
   }
 
   /**
@@ -116,9 +115,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   function _issue(bytes32 partition, address operator, address to, uint256 value, bytes data, bytes operatorData) internal {
     ERC777._issue(partition, operator, to, value, data, operatorData);
 
-    if(_erc20compatible) {
-      emit Transfer(address(0), to, value); // ERC20 backwards compatibility
-    }
+    emit Transfer(address(0), to, value); // ERC20 backwards compatibility
   }
 
   /**
@@ -126,7 +123,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    * @dev Get the number of decimals of the token.
    * @return The number of decimals of the token. For Backwards compatibility, decimals are forced to 18 in ERC777.
    */
-  function decimals() external view erc20Compatible returns(uint8) {
+  function decimals() external pure returns(uint8) {
     return uint8(18);
   }
 
@@ -137,7 +134,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    * @param spender address The address which will spend the funds.
    * @return A uint256 specifying the amount of tokens still available for the spender.
    */
-  function allowance(address owner, address spender) external view erc20Compatible returns (uint256) {
+  function allowance(address owner, address spender) external view returns (uint256) {
     return _allowed[owner][spender];
   }
 
@@ -152,7 +149,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    * @param value The amount of tokens to be spent.
    * @return A boolean that indicates if the operation was successful.
    */
-  function approve(address spender, uint256 value) external erc20Compatible returns (bool) {
+  function approve(address spender, uint256 value) external returns (bool) {
     require(spender != address(0), "A6: Transfer Blocked - Receiver not eligible");
     _allowed[msg.sender][spender] = value;
     emit Approval(msg.sender, spender, value);
@@ -166,7 +163,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    * @param value The amount to be transferred.
    * @return A boolean that indicates if the operation was successful.
    */
-  function transfer(address to, uint256 value) external erc20Compatible returns (bool) {
+  function transfer(address to, uint256 value) external isWhitelisted(to) returns (bool) {
     _transferWithData("", msg.sender, msg.sender, to, value, "", "", false);
     return true;
   }
@@ -179,7 +176,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    * @param value The amount of tokens to be transferred.
    * @return A boolean that indicates if the operation was successful.
    */
-  function transferFrom(address from, address to, uint256 value) external erc20Compatible returns (bool) {
+  function transferFrom(address from, address to, uint256 value) external isWhitelisted(to) returns (bool) {
     address _from = (from == address(0)) ? msg.sender : from;
     require( _isOperatorFor(msg.sender, _from)
       || (value <= _allowed[_from][msg.sender]), "A7: Transfer Blocked - Identity restriction");
@@ -198,25 +195,33 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
 
   /**
    * [NOT MANDATORY FOR ERC777ERC20 STANDARD]
-   * @dev Register/Unregister the ERC20Token interface with its own address via ERC820.
-   * @param erc20compatible 'true' to register the ERC20Token interface, 'false' to unregister.
+   * @dev Get whitelisted status for a tokenHolder.
+   * @param tokenHolder Address whom to check the whitelisted status for.
+   * @return bool 'true' if tokenHolder is whitelisted, 'false' if not.
    */
-  function setERC20compatibility(bool erc20compatible) external onlyOwner {
-    _setERC20compatibility(erc20compatible);
+  function whitelisted(address tokenHolder) external view returns (bool) {
+    return _whitelisted[tokenHolder];
   }
 
   /**
    * [NOT MANDATORY FOR ERC777ERC20 STANDARD]
-   * @dev Register/unregister the ERC20Token interface.
-   * @param erc20compatible 'true' to register the ERC20Token interface, 'false' to unregister.
+   * @dev Set whitelisted status for a tokenHolder.
+   * @param tokenHolder Address to add/remove from whitelist.
+   * @param authorized 'true' if tokenHolder shall be added to whitelist, 'false' if not.
    */
-  function _setERC20compatibility(bool erc20compatible) internal {
-    _erc20compatible = erc20compatible;
-    if(_erc20compatible) {
-      setInterfaceImplementation("ERC20Token", this);
-    } else {
-      setInterfaceImplementation("ERC20Token", address(0));
-    }
+  function setWhitelisted(address tokenHolder, bool authorized) external onlyOwner {
+    _setWhitelisted(tokenHolder, authorized);
+  }
+
+  /**
+   * [NOT MANDATORY FOR ERC777ERC20 STANDARD]
+   * @dev Set whitelisted status for a tokenHolder.
+   * @param tokenHolder Address to add/remove from whitelist.
+   * @param authorized 'true' if tokenHolder shall be added to whitelist, 'false' if not.
+   */
+  function _setWhitelisted(address tokenHolder, bool authorized) internal {
+    require(tokenHolder != address(0), "Action Blocked - Not a valid address");
+    _whitelisted[tokenHolder] = authorized;
   }
 
 }
