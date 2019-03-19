@@ -1,4 +1,4 @@
-pragma solidity ^0.5;
+pragma solidity ^0.5.0;
 import "../token/ERC1410/ERC1410.sol";
 
 
