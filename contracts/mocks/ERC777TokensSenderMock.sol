@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity >=0.4.24;
 
 import "../token/ERC777/IERC777TokensSender.sol";
 import "./ERC820ImplementerMock.sol";

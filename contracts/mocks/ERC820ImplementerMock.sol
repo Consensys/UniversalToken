@@ -1,4 +1,4 @@
-pragma solidity ^0.4.24;
+pragma solidity >=0.4.24;
 
 contract ERC820Registry {
     function setInterfaceImplementer(address _addr, bytes32 _interfaceHash, address _implementer) external;

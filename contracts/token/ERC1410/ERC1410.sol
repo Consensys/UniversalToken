@@ -2,7 +2,7 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.4.24;
+pragma solidity >=0.4.24;
 
 import "./IERC1410.sol";
 import "../ERC777/ERC777.sol";
