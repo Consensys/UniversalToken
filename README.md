@@ -34,7 +34,7 @@ This repo contains security token smart contract implementations used by the Dau
 The current capital market still needs to overcome a few pain points:
  - Today, it is cumbersome and costly to issue an asset.
  - Once issued, the assets are mainly reserved for high-ticket investors.
- - Finally, those asset are not easily tradable, which strongly limits the secondary market possibilities.
+ - Finally, those assets are not easily tradable, which strongly limits the secondary market possibilities.
 
 With the Dauriel Network, we want to tokenize the capital market to tackle those pain points. In the new system, we imagine:
  - An asset issuance will be faster, simpler but also cheaper than today.
