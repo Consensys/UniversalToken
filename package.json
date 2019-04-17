@@ -73,7 +73,7 @@
     "solium-plugin-zeppelin": "^0.0.2"
   },
   "dependencies": {
-    "erc820": "0.0.25",
+    "erc820": "git+https://github.com/jbaylina/ERC820#6c13a97a5eba73df2a99c3a089c65f7d2df63775",
     "openzeppelin-solidity": "git+https://github.com/OpenZeppelin/openzeppelin-solidity#06e265b38d3e9daeaa7b33f9035c700d6bc0c6a0",
     "truffle": "5.0.1",
     "truffle-hdwallet-provider": "1.0.1"
