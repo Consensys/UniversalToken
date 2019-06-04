@@ -392,7 +392,11 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param partition Name of the partition.
    * @param operators Controller addresses.
    */
+<<<<<<< HEAD
    function _setPartitionControllers(bytes32 partition, address[] memory operators) internal onlyOwner {
+=======
+   function _setPartitionControllers(bytes32 partition, address[] operators) internal {
+>>>>>>> master
      for (uint i = 0; i<_controllersByPartition[partition].length; i++){
        _isControllerByPartition[partition][_controllersByPartition[partition][i]] = false;
      }

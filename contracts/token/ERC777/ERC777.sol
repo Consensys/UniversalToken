@@ -439,7 +439,11 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
    * @dev Set list of token controllers.
    * @param operators Controller addresses.
    */
+<<<<<<< HEAD
   function _setControllers(address[] memory operators) internal onlyOwner {
+=======
+  function _setControllers(address[] operators) internal {
+>>>>>>> master
     for (uint i = 0; i<_controllers.length; i++){
       _isController[_controllers[i]] = false;
     }

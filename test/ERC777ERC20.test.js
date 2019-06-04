@@ -17,7 +17,32 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
   describe('ERC20 retrocompatibility', function () {
     beforeEach(async function () {
       this.token = await ERC777ERC20.new('ERC777ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER);
-      await this.token.setERC20compatibility(true, { from: owner });
+    });
+
+    // SETWHITELISTED
+
+    describe('setWhitelisted', function () {
+      describe('when sender is the contract owner', function () {
+        describe('when targeted address is not the zero address', function () {
+          it('adds/removes the address from whitelist', async function () {
+            assert(!(await this.token.whitelisted(tokenHolder)));
+            await this.token.setWhitelisted(tokenHolder, true, { from: owner });
+            assert(await this.token.whitelisted(tokenHolder));
+            await this.token.setWhitelisted(tokenHolder, false, { from: owner });
+            assert(!(await this.token.whitelisted(tokenHolder)));
+          });
+        });
+        describe('when targeted address is the zero address', function () {
+          it('reverts', async function () {
+            await shouldFail.reverting(this.token.setWhitelisted(ZERO_ADDRESS, true, { from: owner }));
+          });
+        });
+      });
+      describe('when sender is not the contract owner', function () {
+        it('reverts', async function () {
+          await shouldFail.reverting(this.token.setWhitelisted(tokenHolder, true, { from: unknown }));
+        });
+      });
     });
 
     // ISSUE
@@ -29,7 +54,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
             it('issues the requested amount', async function () {
               await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
             });
-            it('emits a sent event [with ERC20 retrocompatibility]', async function () {
+            it('emits a Transfer event [ERC20 retrocompatibility]', async function () {
               const { logs } = await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
 
               assert.equal(logs.length, 3);
@@ -48,22 +73,6 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
               assert.equal(logs[2].args.from, ZERO_ADDRESS);
               assert.equal(logs[2].args.to, tokenHolder);
               assert.equal(logs[2].args.value, initialSupply);
-            });
-            it('emits a sent event [without ERC20 retrocompatibility]', async function () {
-              await this.token.setERC20compatibility(false, { from: owner });
-              const { logs } = await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
-
-              assert.equal(logs.length, 2);
-
-              assert.equal(logs[0].event, 'Checked');
-              assert.equal(logs[0].args.sender, owner);
-
-              assert.equal(logs[1].event, 'Issued');
-              assert.equal(logs[1].args.operator, owner);
-              assert.equal(logs[1].args.to, tokenHolder);
-              assert.equal(logs[1].args.value, initialSupply);
-              assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-              assert.equal(logs[1].args.operatorData, null);
             });
           });
         });
@@ -91,7 +100,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                 assert.equal(recipientBalance, amount);
               });
 
-              it('emits a sent event [with ERC20 retrocompatibility]', async function () {
+              it('emits a Transfer event [ERC20 retrocompatibility]', async function () {
                 const { logs } = await this.token.transferWithData(to, amount, VALID_CERTIFICATE, { from: tokenHolder });
 
                 assert.equal(logs.length, 3);
@@ -111,24 +120,6 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                 assert.equal(logs[2].args.from, tokenHolder);
                 assert.equal(logs[2].args.to, to);
                 assert.equal(logs[2].args.value, amount);
-              });
-
-              it('emits a sent event [without ERC20 retrocompatibility]', async function () {
-                await this.token.setERC20compatibility(false, { from: owner });
-                const { logs } = await this.token.transferWithData(to, amount, VALID_CERTIFICATE, { from: tokenHolder });
-
-                assert.equal(logs.length, 2);
-
-                assert.equal(logs[0].event, 'Checked');
-                assert.equal(logs[0].args.sender, tokenHolder);
-
-                assert.equal(logs[1].event, 'TransferWithData');
-                assert.equal(logs[1].args.operator, tokenHolder);
-                assert.equal(logs[1].args.from, tokenHolder);
-                assert.equal(logs[1].args.to, to);
-                assert.equal(logs[1].args.value, amount);
-                assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-                assert.equal(logs[1].args.operatorData, null);
               });
             });
           });
@@ -153,7 +144,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
             assert.equal(senderBalance, initialSupply - amount);
           });
 
-          it('emits a redeemed event [with ERC20 retrocompatibility]', async function () {
+          it('emits a Transfer event [ERC20 retrocompatibility]', async function () {
             const { logs } = await this.token.redeem(amount, VALID_CERTIFICATE, { from: tokenHolder });
 
             assert.equal(logs.length, 3);
@@ -173,22 +164,6 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
             assert.equal(logs[2].args.to, ZERO_ADDRESS);
             assert.equal(logs[2].args.value, amount);
           });
-          it('emits a redeemed event [without ERC20 retrocompatibility]', async function () {
-            await this.token.setERC20compatibility(false, { from: owner });
-            const { logs } = await this.token.redeem(amount, VALID_CERTIFICATE, { from: tokenHolder });
-
-            assert.equal(logs.length, 2);
-
-            assert.equal(logs[0].event, 'Checked');
-            assert.equal(logs[0].args.sender, tokenHolder);
-
-            assert.equal(logs[1].event, 'Redeemed');
-            assert.equal(logs[1].args.operator, tokenHolder);
-            assert.equal(logs[1].args.from, tokenHolder);
-            assert.equal(logs[1].args.value, amount);
-            assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-            assert.equal(logs[1].args.operatorData, null);
-          });
         });
       });
     });
@@ -196,18 +171,10 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
     // DECIMALS
 
     describe('decimals', function () {
-      describe('when the ERC20 retrocompatibility is activated', function () {
-        it('returns the decimals the token', async function () {
-          const decimals = await this.token.decimals();
+      it('returns the decimals the token', async function () {
+        const decimals = await this.token.decimals();
 
-          assert.equal(decimals, 18);
-        });
-      });
-      describe('when the ERC20 retrocompatibility is not activated', function () {
-        it('reverts', async function () {
-          await this.token.setERC20compatibility(false, { from: owner });
-          await shouldFail.reverting(this.token.decimals());
-        });
+        assert.equal(decimals, 18);
       });
     });
 
@@ -215,39 +182,27 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
 
     describe('approve', function () {
       const amount = 100;
-      describe('when the ERC20 retrocompatibility is activated', function () {
-        describe('when sender approves an operator', function () {
-          it('approves the operator', async function () {
-            assert.equal(await this.token.allowance(tokenHolder, operator), 0);
+      describe('when sender approves an operator', function () {
+        it('approves the operator', async function () {
+          assert.equal(await this.token.allowance(tokenHolder, operator), 0);
 
-            await this.token.approve(operator, amount, { from: tokenHolder });
+          await this.token.approve(operator, amount, { from: tokenHolder });
 
-            assert.equal(await this.token.allowance(tokenHolder, operator), amount);
-          });
-          it('emits an approval event', async function () {
-            const { logs } = await this.token.approve(operator, amount, { from: tokenHolder });
-
-            assert.equal(logs.length, 1);
-            assert.equal(logs[0].event, 'Approval');
-            assert.equal(logs[0].args.owner, tokenHolder);
-            assert.equal(logs[0].args.spender, operator);
-            assert.equal(logs[0].args.value, amount);
-          });
+          assert.equal(await this.token.allowance(tokenHolder, operator), amount);
         });
-        describe('when the operator to approve is the zero address', function () {
-          it('reverts', async function () {
-            await shouldFail.reverting(this.token.approve(ZERO_ADDRESS, amount, { from: tokenHolder }));
-          });
+        it('emits an approval event', async function () {
+          const { logs } = await this.token.approve(operator, amount, { from: tokenHolder });
+
+          assert.equal(logs.length, 1);
+          assert.equal(logs[0].event, 'Approval');
+          assert.equal(logs[0].args.owner, tokenHolder);
+          assert.equal(logs[0].args.spender, operator);
+          assert.equal(logs[0].args.value, amount);
         });
       });
-      describe('when the ERC20 retrocompatibility is not activated', function () {
+      describe('when the operator to approve is the zero address', function () {
         it('reverts', async function () {
-          await this.token.setERC20compatibility(false, { from: owner });
-          await shouldFail.reverting(this.token.approve(operator, amount, { from: tokenHolder }));
-        });
-        it('reverts', async function () {
-          await this.token.setERC20compatibility(false, { from: owner });
-          await shouldFail.reverting(this.token.allowance(tokenHolder, operator), amount);
+          await shouldFail.reverting(this.token.approve(ZERO_ADDRESS, amount, { from: tokenHolder }));
         });
       });
     });
@@ -258,9 +213,10 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
       const to = recipient;
       beforeEach(async function () {
         await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
+        await this.token.setWhitelisted(to, true, { from: owner });
       });
 
-      describe('when the ERC20 retrocompatibility is activated', function () {
+      describe('when the recipient is whitelisted', function () {
         describe('when the amount is a multiple of the granularity', function () {
           describe('when the recipient is not the zero address', function () {
             describe('when the sender does not have enough balance', function () {
@@ -283,7 +239,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                 assert.equal(recipientBalance, amount);
               });
 
-              it('emits a sent + a transfer event', async function () {
+              it('emits a Transfer event', async function () {
                 const { logs } = await this.token.transfer(to, amount, { from: tokenHolder });
 
                 assert.equal(logs.length, 2);
@@ -320,11 +276,11 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
           });
         });
       });
-      describe('when the ERC20 retrocompatibility is not activated', function () {
+      describe('when the recipient is not whitelisted', function () {
         const amount = initialSupply;
 
         it('reverts', async function () {
-          await this.token.setERC20compatibility(false, { from: owner });
+          await this.token.setWhitelisted(to, false, { from: owner });
           await shouldFail.reverting(this.token.transfer(to, amount, { from: tokenHolder }));
         });
       });
@@ -337,12 +293,12 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
       const approvedAmount = 10000;
       beforeEach(async function () {
         await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
+        await this.token.setWhitelisted(to, true, { from: owner });
       });
 
-      describe('when the ERC20 retrocompatibility is activated', function () {
+      describe('when the recipient is whitelisted', function () {
         describe('when the operator is approved', function () {
           beforeEach(async function () {
-            // await this.token.authorizeOperator(operator, { from: tokenHolder});
             await this.token.approve(operator, approvedAmount, { from: tokenHolder });
           });
           describe('when the amount is a multiple of the granularity', function () {
@@ -359,6 +315,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                 const amount = 500;
 
                 it('transfers the requested amount from operator address', async function () {
+                  await this.token.setWhitelisted(operator, true, { from: owner });
                   await this.token.transfer(operator, approvedAmount, { from: tokenHolder });
 
                   await this.token.transferFrom(ZERO_ADDRESS, to, amount, { from: operator });
@@ -384,7 +341,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                   assert.equal(await this.token.allowance(tokenHolder, operator), approvedAmount - amount);
                 });
 
-                it('emits a sent + a transfer event', async function () {
+                it('emits a Transfer event', async function () {
                   const { logs } = await this.token.transferFrom(tokenHolder, to, amount, { from: operator });
                   // await this.token.transferFrom(tokenHolder, to, amount, { from: operator });
 
@@ -444,10 +401,10 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
           });
         });
       });
-      describe('when the ERC20 retrocompatibility is not activated', function () {
+      describe('when the recipient is not whitelisted', function () {
         const amount = approvedAmount;
         it('reverts', async function () {
-          await this.token.setERC20compatibility(false, { from: owner });
+          await this.token.setWhitelisted(to, false, { from: owner });
           await shouldFail.reverting(this.token.transferFrom(tokenHolder, to, amount, { from: operator }));
         });
       });
