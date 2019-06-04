@@ -52,7 +52,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
     public
     ERC1400(name, symbol, granularity, controllers, certificateSigner, tokenDefaultPartitions)
   {
-    setInterfaceImplementation("ERC20Token", this);
+    setInterfaceImplementation("ERC20Token", address(this));
   }
 
   /**
@@ -210,15 +210,6 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @param tokenHolder Address to add/remove from whitelist.
    * @param authorized 'true' if tokenHolder shall be added to whitelist, 'false' if not.
    */
-<<<<<<< HEAD
-  function _setERC20compatibility(bool erc20compatible) internal {
-    _erc20compatible = erc20compatible;
-    if(_erc20compatible) {
-      setInterfaceImplementation("ERC20Token", address(this));
-    } else {
-      setInterfaceImplementation("ERC20Token", address(0));
-    }
-=======
   function setWhitelisted(address tokenHolder, bool authorized) external onlyOwner {
     _setWhitelisted(tokenHolder, authorized);
   }
@@ -232,7 +223,6 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
   function _setWhitelisted(address tokenHolder, bool authorized) internal {
     require(tokenHolder != address(0), "Action Blocked - Not a valid address");
     _whitelisted[tokenHolder] = authorized;
->>>>>>> master
   }
 
 }
