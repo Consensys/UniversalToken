@@ -1,4 +1,4 @@
-pragma solidity ^0.5;
+pragma solidity ^0.5.0;
 
 
 // CertificateController comment...
@@ -35,7 +35,7 @@ contract CertificateController {
   /**
    * @dev Modifier to protect methods with certificate control
    */
-  modifier isValidPayableCertificate(bytes memory data) {
+  /* modifier isValidPayableCertificate(bytes memory data) {
 
     require(
       _certificateSigners[msg.sender] || _checkCertificate(data, msg.value, 0x00000000),
@@ -46,7 +46,7 @@ contract CertificateController {
 
     emit Checked(msg.sender);
     _;
-  }
+  } */
 
 
   /**
