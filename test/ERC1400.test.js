@@ -2,7 +2,7 @@ import { shouldFail } from 'openzeppelin-test-helpers';
 
 const ERC1400 = artifacts.require('ERC1400');
 const ERC1410 = artifacts.require('ERC1410Mock');
-const ERC820Registry = artifacts.require('ERC820Registry');
+const ERC1820Registry = artifacts.require('ERC1820Registry');
 const ERC777TokensSender = artifacts.require('ERC777TokensSenderMock');
 const ERC777TokensRecipient = artifacts.require('ERC777TokensRecipientMock');
 
@@ -234,15 +234,15 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     const amount = 10 * localGranularity;
 
     before(async function () {
-      this.registry = await ERC820Registry.at('0x820b586C8C28125366C998641B09DCbE7d4cBF06');
+      this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
 
       this.senderContract = await ERC777TokensSender.new('ERC777TokensSender', { from: tokenHolder });
       await this.registry.setManager(tokenHolder, this.senderContract.address, { from: tokenHolder });
-      await this.senderContract.setERC820Implementer({ from: tokenHolder });
+      await this.senderContract.setERC1820Implementer({ from: tokenHolder });
 
       this.recipientContract = await ERC777TokensRecipient.new('ERC777TokensRecipient', { from: recipient });
       await this.registry.setManager(recipient, this.recipientContract.address, { from: recipient });
-      await this.recipientContract.setERC820Implementer({ from: recipient });
+      await this.recipientContract.setERC1820Implementer({ from: recipient });
     });
 
     beforeEach(async function () {

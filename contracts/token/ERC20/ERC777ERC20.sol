@@ -32,7 +32,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   /**
    * [ERC777ERC20 CONSTRUCTOR]
    * @dev Initialize ERC777ERC20 and CertificateController parameters + register
-   * the contract implementation in ERC820Registry.
+   * the contract implementation in ERC1820Registry.
    * @param name Name of the token.
    * @param symbol Symbol of the token.
    * @param granularity Granularity of the token.

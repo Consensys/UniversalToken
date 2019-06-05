@@ -36,7 +36,7 @@
     "smart",
     "contracts",
     "security",
-    "ERC820",
+    "ERC1820",
     "ERC777",
     "ERC1410",
     "ERC1400"
@@ -75,7 +75,7 @@
     "solium-plugin-zeppelin": "^0.0.2"
   },
   "dependencies": {
-    "erc820": "git+https://github.com/Kriys94/ERC820#62c01a956c83e9e5915443e2f1898297b511a70a",
+    "erc1820": "git+https://github.com/0xjac/ERC1820#885549fe3e9f0fd22444f78532be3dce4ee8a5e2",
     "openzeppelin-solidity": "git+https://github.com/OpenZeppelin/openzeppelin-solidity#77d569d8fafe7f39d44386e0083bda26968e534c",
     "truffle": "5.0.1",
     "truffle-hdwallet-provider": "1.0.1"

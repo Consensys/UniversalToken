@@ -1,14 +1,14 @@
 pragma solidity ^0.5.0;
 
 import "../token/ERC777/IERC777TokensRecipient.sol";
-import "./ERC820ImplementerMock.sol";
+import "./ERC1820ImplementerMock.sol";
 
 
-contract ERC777TokensRecipientMock is IERC777TokensRecipient, ERC820ImplementerMock {
+contract ERC777TokensRecipientMock is IERC777TokensRecipient, ERC1820ImplementerMock {
 
   constructor(string memory interfaceLabel)
     public
-    ERC820ImplementerMock(interfaceLabel)
+    ERC1820ImplementerMock(interfaceLabel)
   {
 
   }

@@ -48,7 +48,7 @@ contract ERC1410 is IERC1410, ERC777 {
   /**
    * [ERC1410 CONSTRUCTOR]
    * @dev Initialize ERC1410 parameters + register
-   * the contract implementation in ERC820Registry.
+   * the contract implementation in ERC1820Registry.
    * @param name Name of the token.
    * @param symbol Symbol of the token.
    * @param granularity Granularity of the token.

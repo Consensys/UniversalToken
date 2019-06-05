@@ -7,7 +7,7 @@ pragma solidity ^0.5.0;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
-import "erc820/contracts/ERC820Client.sol";
+import "erc1820/contracts/ERC1820Client.sol";
 
 import "../../CertificateController/CertificateController.sol";
 
@@ -20,7 +20,7 @@ import "./IERC777TokensRecipient.sol";
  * @title ERC777
  * @dev ERC777 logic
  */
-contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, ReentrancyGuard {
+contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, ReentrancyGuard {
   using SafeMath for uint256;
 
   string internal _name;
@@ -48,7 +48,7 @@ contract ERC777 is IERC777, Ownable, ERC820Client, CertificateController, Reentr
   /**
    * [ERC777 CONSTRUCTOR]
    * @dev Initialize ERC777 and CertificateController parameters + register
-   * the contract implementation in ERC820Registry.
+   * the contract implementation in ERC1820Registry.
    * @param name Name of the token.
    * @param symbol Symbol of the token.
    * @param granularity Granularity of the token.
