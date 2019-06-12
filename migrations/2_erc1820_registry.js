@@ -5,7 +5,7 @@ const rawTx = '0xf90a388085174876e800830c35008080b909e56080604052348015610010576
 
 module.exports = async function (deployer, network, accounts) {
   await web3.eth.sendTransaction({
-    from: accounts[0], to: deployerAddress, value: '100000000000000000', /* web3.utils.toWei(0.1) */
+    from: accounts[0], to: deployerAddress, value: web3.utils.toWei('0.1'),
   });
   web3.eth.sendSignedTransaction(rawTx).then((res) => {
     console.log('\n   > ERC1820 deployment: Success -->', res.contractAddress);
