@@ -63,6 +63,7 @@
     "eslint-plugin-promise": "^3.6.0",
     "eslint-plugin-standard": "^3.0.1",
     "ethereumjs-util": "^5.1.2",
+    "ethereumjs-testrpc-sc": "6.1.6",
     "fs-extra": "^7.0.1",
     "ganache-cli": "^6.4.0",
     "husky": "^1.1.3",
@@ -70,7 +71,7 @@
     "openzeppelin-test-helpers": "^0.1.2",
     "remix-ide": "^0.7.4",
     "solcpiler": "1.0.0-beta.9",
-    "solidity-coverage": "^0.5.11",
+    "solidity-coverage": "git+https://github.com/leapdao/solidity-coverage#bb22d28edb700040ddb614bb2a4605f641383ced",
     "solium": "^1.1.8",
     "solium-plugin-zeppelin": "^0.0.2"
   },
