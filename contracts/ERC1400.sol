@@ -2,7 +2,7 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity >=0.4.24;
+pragma solidity ^0.5.0;
 
 import "openzeppelin-solidity/contracts/access/roles/MinterRole.sol";
 
@@ -38,7 +38,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   /**
    * [ERC1400 CONSTRUCTOR]
    * @dev Initialize ERC1400 + register
-   * the contract implementation in ERC820Registry.
+   * the contract implementation in ERC1820Registry.
    * @param name Name of the token.
    * @param symbol Symbol of the token.
    * @param granularity Granularity of the token.
@@ -48,17 +48,17 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * redemption (Cf. CertificateController.sol).
    */
   constructor(
-    string name,
-    string symbol,
+    string memory name,
+    string memory symbol,
     uint256 granularity,
-    address[] controllers,
+    address[] memory controllers,
     address certificateSigner,
-    bytes32[] tokenDefaultPartitions
+    bytes32[] memory tokenDefaultPartitions
   )
     public
     ERC1410(name, symbol, granularity, controllers, certificateSigner, tokenDefaultPartitions)
   {
-    setInterfaceImplementation("ERC1400Token", this);
+    setInterfaceImplementation("ERC1400Token", address(this));
     _isControllable = true;
     _isIssuable = true;
   }
@@ -71,7 +71,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param name Short name (represented as a bytes32) associated to the document.
    * @return Requested document + document hash.
    */
-  function getDocument(bytes32 name) external view returns (string, bytes32) {
+  function getDocument(bytes32 name) external view returns (string memory, bytes32) {
     require(bytes(_documents[name].docURI).length != 0, "Action Blocked - Empty document");
     return (
       _documents[name].docURI,
@@ -86,7 +86,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param uri Document content.
    * @param documentHash Hash of the document [optional parameter].
    */
-  function setDocument(bytes32 name, string uri, bytes32 documentHash) external onlyOwner {
+  function setDocument(bytes32 name, string calldata uri, bytes32 documentHash) external onlyOwner {
     _documents[name] = Doc({
       docURI: uri,
       docHash: documentHash
@@ -121,7 +121,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param value Number of tokens issued.
    * @param data Information attached to the issuance, by the issuer. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function issueByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data)
+  function issueByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes calldata data)
     external
     onlyMinter
     issuableToken
@@ -137,7 +137,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param value Number of tokens redeemed.
    * @param data Information attached to the redemption, by the redeemer. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function redeemByPartition(bytes32 partition, uint256 value, bytes data)
+  function redeemByPartition(bytes32 partition, uint256 value, bytes calldata data)
     external
     isValidCertificate(data)
   {
@@ -153,7 +153,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param data Information attached to the redemption.
    * @param operatorData Information attached to the redemption, by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data, bytes operatorData)
+  function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes calldata data, bytes calldata operatorData)
     external
     isValidCertificate(operatorData)
   {
@@ -176,7 +176,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * transfer restriction rule responsible for making the transfer operation invalid).
    * @return Destination partition.
    */
-  function canTransferByPartition(bytes32 partition, address to, uint256 value, bytes data)
+  function canTransferByPartition(bytes32 partition, address to, uint256 value, bytes calldata data)
     external
     view
     returns (byte, bytes32, bytes32)
@@ -203,7 +203,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * transfer restriction rule responsible for making the transfer operation invalid).
    * @return Destination partition.
    */
-  function canOperatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes data, bytes operatorData)
+  function canOperatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData)
     external
     view
     returns (byte, bytes32, bytes32)
@@ -234,7 +234,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * transfer restriction rule responsible for making the transfer operation invalid).
    * @return Destination partition.
    */
-   function _canTransfer(bytes32 partition, address operator, address from, address to, uint256 value, bytes data, bytes operatorData)
+   function _canTransfer(bytes32 partition, address operator, address from, address to, uint256 value, bytes memory data, bytes memory operatorData)
      internal
      view
      returns (byte, bytes32, bytes32)
@@ -282,8 +282,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     address operator,
     address to,
     uint256 value,
-    bytes data,
-    bytes operatorData
+    bytes memory data,
+    bytes memory operatorData
   )
     internal
   {
@@ -308,8 +308,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     address operator,
     address from,
     uint256 value,
-    bytes data,
-    bytes operatorData
+    bytes memory data,
+    bytes memory operatorData
   )
     internal
   {
@@ -346,7 +346,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @dev Set list of token controllers.
    * @param operators Controller addresses.
    */
-  function setControllers(address[] operators) external onlyOwner {
+  function setControllers(address[] calldata operators) external onlyOwner {
     _setControllers(operators);
   }
 
@@ -356,7 +356,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param partition Name of the partition.
    * @param operators Controller addresses.
    */
-   function setPartitionControllers(bytes32 partition, address[] operators) external onlyOwner {
+   function setPartitionControllers(bytes32 partition, address[] calldata operators) external onlyOwner {
      _setPartitionControllers(partition, operators);
    }
 
@@ -378,7 +378,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * For example, a security token may return the bytes32("unrestricted").
    * @return Default partitions.
    */
-  function getTokenDefaultPartitions() external view returns (bytes32[]) {
+  function getTokenDefaultPartitions() external view returns (bytes32[] memory) {
     return _tokenDefaultPartitions;
   }
 
@@ -388,7 +388,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * Function used for ERC777 and ERC20 backwards compatibility.
    * @param defaultPartitions Partitions to use by default when not specified.
    */
-  function setTokenDefaultPartitions(bytes32[] defaultPartitions) external onlyOwner {
+  function setTokenDefaultPartitions(bytes32[] calldata defaultPartitions) external onlyOwner {
     _tokenDefaultPartitions = defaultPartitions;
   }
 
@@ -399,7 +399,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param value Number of tokens to redeem.
    * @param data Information attached to the redemption, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function redeem(uint256 value, bytes data)
+  function redeem(uint256 value, bytes calldata data)
     external
     isValidCertificate(data)
   {
@@ -414,7 +414,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
    * @param data Information attached to the redemption.
    * @param operatorData Information attached to the redemption, by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function redeemFrom(address from, uint256 value, bytes data, bytes operatorData)
+  function redeemFrom(address from, uint256 value, bytes calldata data, bytes calldata operatorData)
     external
     isValidCertificate(operatorData)
   {
@@ -438,8 +438,8 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     address operator,
     address from,
     uint256 value,
-    bytes data,
-    bytes operatorData
+    bytes memory data,
+    bytes memory operatorData
   )
     internal
   {

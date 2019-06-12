@@ -1,7 +1,7 @@
-import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
+import { shouldFail } from 'openzeppelin-test-helpers';
 
 const ERC777 = artifacts.require('ERC777Mock');
-const ERC820Registry = artifacts.require('ERC820Registry');
+const ERC1820Registry = artifacts.require('ERC1820Registry');
 const ERC777TokensSender = artifacts.require('ERC777TokensSenderMock');
 const ERC777TokensRecipient = artifacts.require('ERC777TokensRecipientMock');
 
@@ -169,7 +169,6 @@ contract('ERC777 without hooks', function ([owner, operator, controller, control
     // SET CONTROLLERS
 
     describe('setControllers', function () {
-
       describe('when the caller is the contract owner', function () {
         it('sets the operators as controllers', async function () {
           const controllers1 = await this.token.controllers();
@@ -201,7 +200,6 @@ contract('ERC777 without hooks', function ([owner, operator, controller, control
           await shouldFail.reverting(this.token.setControllers([controller_alternative1, controller_alternative2], { from: unknown }));
         });
       });
-
     });
 
     // ISSUE
@@ -390,7 +388,6 @@ contract('ERC777 without hooks', function ([owner, operator, controller, control
                 await shouldFail.reverting(this.token.transferFromWithData(tokenHolder, to, amount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
               });
             });
-
           });
 
           describe('when the recipient is the zero address', function () {
@@ -554,15 +551,15 @@ contract('ERC777 with hooks', function ([owner, operator, controller, tokenHolde
 
     beforeEach(async function () {
       this.token = await ERC777.new('ERC777Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER);
-      this.registry = await ERC820Registry.at('0x820b586C8C28125366C998641B09DCbE7d4cBF06');
+      this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
 
       this.senderContract = await ERC777TokensSender.new('ERC777TokensSender', { from: tokenHolder });
       await this.registry.setManager(tokenHolder, this.senderContract.address, { from: tokenHolder });
-      await this.senderContract.setERC820Implementer({ from: tokenHolder });
+      await this.senderContract.setERC1820Implementer({ from: tokenHolder });
 
       this.recipientContract = await ERC777TokensRecipient.new('ERC777TokensRecipient', { from: recipient });
       await this.registry.setManager(recipient, this.recipientContract.address, { from: recipient });
-      await this.recipientContract.setERC820Implementer({ from: recipient });
+      await this.recipientContract.setERC1820Implementer({ from: recipient });
 
       await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
     });

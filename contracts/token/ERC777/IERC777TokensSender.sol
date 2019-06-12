@@ -2,7 +2,7 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity >=0.4.24;
+pragma solidity ^0.5.0;
 
 /**
  * @title IERC777TokensSender
@@ -15,8 +15,8 @@ interface IERC777TokensSender {
     address from,
     address to,
     uint value,
-    bytes data,
-    bytes operatorData
+    bytes calldata data,
+    bytes calldata operatorData
   ) external view returns(bool);
 
   function tokensToTransfer(
@@ -25,8 +25,8 @@ interface IERC777TokensSender {
     address from,
     address to,
     uint value,
-    bytes data,
-    bytes operatorData
+    bytes calldata data,
+    bytes calldata operatorData
   ) external;
 
 }
