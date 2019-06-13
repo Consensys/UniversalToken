@@ -1,8 +1,8 @@
-import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
+import { shouldFail } from 'openzeppelin-test-helpers';
 
 const ERC1400 = artifacts.require('ERC1400');
 const ERC1410 = artifacts.require('ERC1410Mock');
-const ERC820Registry = artifacts.require('ERC820Registry');
+const ERC1820Registry = artifacts.require('ERC1820Registry');
 const ERC777TokensSender = artifacts.require('ERC777TokensSenderMock');
 const ERC777TokensRecipient = artifacts.require('ERC777TokensRecipientMock');
 
@@ -36,7 +36,7 @@ const partition3 = '0x'.concat(partition3_short);
 const partitions = [partition1, partition2, partition3];
 const reversedPartitions = [partition3, partition1, partition2];
 
-const documentName = "0x446f63756d656e74204e616d6500000000000000000000000000000000000000";
+const documentName = '0x446f63756d656e74204e616d6500000000000000000000000000000000000000';
 
 // const ESC_A1 = '0xa1'; // Transfer Verified - On-Chain approval for restricted token
 const ESC_A2 = '0xa2'; // Transfer Verified - Off-Chain approval for restricted token
@@ -234,15 +234,15 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     const amount = 10 * localGranularity;
 
     before(async function () {
-      this.registry = await ERC820Registry.at('0x820b586C8C28125366C998641B09DCbE7d4cBF06');
+      this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
 
       this.senderContract = await ERC777TokensSender.new('ERC777TokensSender', { from: tokenHolder });
       await this.registry.setManager(tokenHolder, this.senderContract.address, { from: tokenHolder });
-      await this.senderContract.setERC820Implementer({ from: tokenHolder });
+      await this.senderContract.setERC1820Implementer({ from: tokenHolder });
 
       this.recipientContract = await ERC777TokensRecipient.new('ERC777TokensRecipient', { from: recipient });
       await this.registry.setManager(recipient, this.recipientContract.address, { from: recipient });
-      await this.recipientContract.setERC820Implementer({ from: recipient });
+      await this.recipientContract.setERC1820Implementer({ from: recipient });
     });
 
     beforeEach(async function () {
@@ -400,7 +400,6 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
         await shouldFail.reverting(this.token.setControllers([controller_alternative1, controller_alternative2], { from: unknown }));
       });
     });
-
   });
 
   // SET PARTITION CONTROLLERS
@@ -461,7 +460,6 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
         await shouldFail.reverting(this.token.setPartitionControllers(partition1, [controller_alternative1, controller_alternative2], { from: unknown }));
       });
     });
-
   });
 
   // SET CERTIFICATE SIGNERS
@@ -489,7 +487,6 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
         await shouldFail.reverting(this.token.setCertificateSigner(CERTIFICATE_SIGNER_ALTERNATIVE1, true, { from: unknown }));
       });
     });
-
   });
 
   // AUTHORIZE OPERATOR BY PARTITION
@@ -601,7 +598,6 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
       });
     });
   });
-
 
   // SET/GET DOCUMENT
 
@@ -1255,11 +1251,9 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
       });
     });
   });
-
 });
 
 contract('ERC1410', function ([owner, operator, controller, controller_alternative1, controller_alternative2, tokenHolder, recipient, unknown]) {
-
   // ERC1410 - REDEEM
 
   describe('ERC1410 - redeem', function () {
@@ -1286,5 +1280,4 @@ contract('ERC1410', function ([owner, operator, controller, controller_alternati
       await assertBalance(this.token, tokenHolder, 1000);
     });
   });
-
 });

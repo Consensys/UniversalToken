@@ -2,10 +2,11 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity >=0.4.24;
+pragma solidity ^0.5.0;
 
 import "./IERC1410.sol";
 import "../ERC777/ERC777.sol";
+
 
 /**
  * @title ERC1410
@@ -47,7 +48,7 @@ contract ERC1410 is IERC1410, ERC777 {
   /**
    * [ERC1410 CONSTRUCTOR]
    * @dev Initialize ERC1410 parameters + register
-   * the contract implementation in ERC820Registry.
+   * the contract implementation in ERC1820Registry.
    * @param name Name of the token.
    * @param symbol Symbol of the token.
    * @param granularity Granularity of the token.
@@ -57,12 +58,12 @@ contract ERC1410 is IERC1410, ERC777 {
    * redemption (Cf. CertificateController.sol).
    */
   constructor(
-    string name,
-    string symbol,
+    string memory name,
+    string memory symbol,
     uint256 granularity,
-    address[] controllers,
+    address[] memory controllers,
     address certificateSigner,
-    bytes32[] tokenDefaultPartitions
+    bytes32[] memory tokenDefaultPartitions
   )
     public
     ERC777(name, symbol, granularity, controllers, certificateSigner)
@@ -89,7 +90,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param tokenHolder Address for which the partitions index are returned.
    * @return Array of partitions index of 'tokenHolder'.
    */
-  function partitionsOf(address tokenHolder) external view returns (bytes32[]) {
+  function partitionsOf(address tokenHolder) external view returns (bytes32[] memory) {
     return _partitionsOf[tokenHolder];
   }
 
@@ -106,7 +107,7 @@ contract ERC1410 is IERC1410, ERC777 {
     bytes32 partition,
     address to,
     uint256 value,
-    bytes data
+    bytes calldata data
   )
     external
     isValidCertificate(data)
@@ -131,8 +132,8 @@ contract ERC1410 is IERC1410, ERC777 {
     address from,
     address to,
     uint256 value,
-    bytes data,
-    bytes operatorData
+    bytes calldata data,
+    bytes calldata operatorData
   )
     external
     isValidCertificate(operatorData)
@@ -152,7 +153,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param tokenHolder Address for which we want to know the default partitions.
    * @return Array of default partitions.
    */
-  function getDefaultPartitions(address tokenHolder) external view returns (bytes32[]) {
+  function getDefaultPartitions(address tokenHolder) external view returns (bytes32[] memory) {
     return _defaultPartitionsOf[tokenHolder];
   }
 
@@ -162,7 +163,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * Function used for ERC777 and ERC20 backwards compatibility.
    * @param partitions partitions to use by default when not specified.
    */
-  function setDefaultPartitions(bytes32[] partitions) external {
+  function setDefaultPartitions(bytes32[] calldata partitions) external {
     _defaultPartitionsOf[msg.sender] = partitions;
   }
 
@@ -173,7 +174,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param partition Name of the partition.
    * @return Array of controllers for partition.
    */
-  function controllersByPartition(bytes32 partition) external view returns (address[]) {
+  function controllersByPartition(bytes32 partition) external view returns (address[] memory) {
     return _controllersByPartition[partition];
   }
 
@@ -249,8 +250,8 @@ contract ERC1410 is IERC1410, ERC777 {
     address from,
     address to,
     uint256 value,
-    bytes data,
-    bytes operatorData
+    bytes memory data,
+    bytes memory operatorData
   )
     internal
     returns (bytes32)
@@ -301,7 +302,7 @@ contract ERC1410 is IERC1410, ERC777 {
 
     // If the total supply is zero, finds and deletes the partition.
     if(_totalSupplyByPartition[partition] == 0) {
-      for (i = 0; i < _totalPartitions.length; i++) {
+      for (uint i = 0; i < _totalPartitions.length; i++) {
         if(_totalPartitions[i] == partition) {
           _totalPartitions[i] = _totalPartitions[_totalPartitions.length - 1];
           delete _totalPartitions[_totalPartitions.length - 1];
@@ -344,7 +345,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
    * @return Destination partition.
    */
-  function _getDestinationPartition(bytes32 fromPartition, bytes data) internal pure returns(bytes32 toPartition) {
+  function _getDestinationPartition(bytes32 fromPartition, bytes memory data) internal pure returns(bytes32 toPartition) {
     bytes32 changePartitionFlag = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
     bytes32 flag;
     assembly {
@@ -365,7 +366,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param tokenHolder Address for which the default partition is returned.
    * @return Default partition.
    */
-  function _getDefaultPartitions(address tokenHolder) internal view returns(bytes32[]) {
+  function _getDefaultPartitions(address tokenHolder) internal view returns(bytes32[] memory) {
     if(_defaultPartitionsOf[tokenHolder].length != 0) {
       return _defaultPartitionsOf[tokenHolder];
     } else {
@@ -381,7 +382,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @dev Get list of existing partitions.
    * @return Array of all exisiting partitions.
    */
-  function totalPartitions() external view returns (bytes32[]) {
+  function totalPartitions() external view returns (bytes32[] memory) {
     return _totalPartitions;
   }
 
@@ -391,7 +392,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param partition Name of the partition.
    * @param operators Controller addresses.
    */
-   function _setPartitionControllers(bytes32 partition, address[] operators) internal {
+   function _setPartitionControllers(bytes32 partition, address[] memory operators) internal {
      for (uint i = 0; i<_controllersByPartition[partition].length; i++){
        _isControllerByPartition[partition][_controllersByPartition[partition][i]] = false;
      }
@@ -410,7 +411,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function transferWithData(address to, uint256 value, bytes data)
+  function transferWithData(address to, uint256 value, bytes calldata data)
     external
     isValidCertificate(data)
   {
@@ -426,7 +427,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @param data Information attached to the transfer, and intended for the token holder ('from'). [CAN CONTAIN THE DESTINATION PARTITION]
    * @param operatorData Information attached to the transfer by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
    */
-  function transferFromWithData(address from, address to, uint256 value, bytes data, bytes operatorData)
+  function transferFromWithData(address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData)
     external
     isValidCertificate(operatorData)
   {
@@ -441,14 +442,14 @@ contract ERC1410 is IERC1410, ERC777 {
    * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
    * @dev Empty function to erase ERC777 redeem() function since it doesn't handle partitions.
    */
-  function redeem(uint256 /*value*/, bytes /*data*/) external { // Comments to avoid compilation warnings for unused variables.
+  function redeem(uint256 /*value*/, bytes calldata /*data*/) external { // Comments to avoid compilation warnings for unused variables.
   }
 
   /**
    * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
    * @dev Empty function to erase ERC777 redeemFrom() function since it doesn't handle partitions.
    */
-  function redeemFrom(address /*from*/, uint256 /*value*/, bytes /*data*/, bytes /*operatorData*/) external { // Comments to avoid compilation warnings for unused variables.
+  function redeemFrom(address /*from*/, uint256 /*value*/, bytes calldata /*data*/, bytes calldata /*operatorData*/) external { // Comments to avoid compilation warnings for unused variables.
   }
 
   /**
@@ -466,8 +467,8 @@ contract ERC1410 is IERC1410, ERC777 {
     address from,
     address to,
     uint256 value,
-    bytes data,
-    bytes operatorData
+    bytes memory data,
+    bytes memory operatorData
   )
     internal
   {

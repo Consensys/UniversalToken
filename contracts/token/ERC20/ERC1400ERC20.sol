@@ -2,7 +2,7 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity >=0.4.24;
+pragma solidity ^0.5.0;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
@@ -32,7 +32,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
   /**
    * [ERC1400ERC20 CONSTRUCTOR]
    * @dev Initialize ERC71400ERC20 and CertificateController parameters + register
-   * the contract implementation in ERC820Registry.
+   * the contract implementation in ERC1820Registry.
    * @param name Name of the token.
    * @param symbol Symbol of the token.
    * @param granularity Granularity of the token.
@@ -42,17 +42,17 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * redemption (Cf. CertificateController.sol).
    */
   constructor(
-    string name,
-    string symbol,
+    string memory name,
+    string memory symbol,
     uint256 granularity,
-    address[] controllers,
+    address[] memory controllers,
     address certificateSigner,
-    bytes32[] tokenDefaultPartitions
+    bytes32[] memory tokenDefaultPartitions
   )
     public
     ERC1400(name, symbol, granularity, controllers, certificateSigner, tokenDefaultPartitions)
   {
-    setInterfaceImplementation("ERC20Token", this);
+    setInterfaceImplementation("ERC20Token", address(this));
   }
 
   /**
@@ -76,8 +76,8 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
     address from,
     address to,
     uint256 value,
-    bytes data,
-    bytes operatorData,
+    bytes memory data,
+    bytes memory operatorData,
     bool preventLocking
   )
     internal
@@ -97,7 +97,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @param data Information attached to the redemption.
    * @param operatorData Information attached to the redemption by the operator (if any).
    */
-  function _redeem(bytes32 partition, address operator, address from, uint256 value, bytes data, bytes operatorData) internal {
+  function _redeem(bytes32 partition, address operator, address from, uint256 value, bytes memory data, bytes memory operatorData) internal {
     ERC777._redeem(partition, operator, from, value, data, operatorData);
 
     emit Transfer(from, address(0), value);  //  ERC20 backwards compatibility
@@ -113,7 +113,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @param data Information attached to the issuance.
    * @param operatorData Information attached to the issuance by the operator (if any).
    */
-  function _issue(bytes32 partition, address operator, address to, uint256 value, bytes data, bytes operatorData) internal {
+  function _issue(bytes32 partition, address operator, address to, uint256 value, bytes memory data, bytes memory operatorData) internal {
     ERC777._issue(partition, operator, to, value, data, operatorData);
 
     emit Transfer(address(0), to, value); // ERC20 backwards compatibility

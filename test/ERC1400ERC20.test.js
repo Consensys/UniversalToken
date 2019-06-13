@@ -1,4 +1,4 @@
-import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
+import { shouldFail } from 'openzeppelin-test-helpers';
 
 const ERC1400ERC20 = artifacts.require('ERC1400ERC20');
 
@@ -55,7 +55,6 @@ const assertTotalSupply = async (_contract, _amount) => {
 };
 
 contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, recipient, unknown]) {
-
   beforeEach(async function () {
     this.token = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, partitions);
   });
@@ -132,7 +131,6 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
       assert.equal(logs[3].args.data, VALID_CERTIFICATE);
       assert.equal(logs[3].args.operatorData, null);
     });
-
   });
 
   // REDEEM
@@ -485,5 +483,4 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
       });
     });
   });
-
 });

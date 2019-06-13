@@ -1,16 +1,16 @@
-pragma solidity >=0.4.24;
+pragma solidity ^0.5.0;
 import "../token/ERC1410/ERC1410.sol";
 
 
 contract ERC1410Mock is ERC1410 {
 
   constructor(
-    string name,
-    string symbol,
+    string memory name,
+    string memory symbol,
     uint256 granularity,
-    address[] controllers,
+    address[] memory controllers,
     address certificateSigner,
-    bytes32[] tokenDefaultPartitions,
+    bytes32[] memory tokenDefaultPartitions,
     address tokenHolderMock,
     uint256 valueMock
   )

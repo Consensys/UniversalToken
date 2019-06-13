@@ -1,14 +1,14 @@
-pragma solidity >=0.4.24;
+pragma solidity ^0.5.0;
 import "../token/ERC777/ERC777Issuable.sol";
 
 
 contract ERC777Mock is ERC777Issuable {
 
   constructor(
-    string name,
-    string symbol,
+    string memory name,
+    string memory symbol,
     uint256 granularity,
-    address[] controllers,
+    address[] memory controllers,
     address certificateSigner
   )
     public
@@ -24,7 +24,7 @@ contract ERC777Mock is ERC777Issuable {
     _isControllable = false;
   }
 
-  function setControllers(address[] operators) external onlyOwner {
+  function setControllers(address[] calldata operators) external onlyOwner {
     _setControllers(operators);
   }
 
@@ -32,7 +32,7 @@ contract ERC777Mock is ERC777Issuable {
     return _isRegularAddress(adr);
   }
 
-  function redeemFromMock(address from, uint256 value, bytes data, bytes operatorData) external {
+  function redeemFromMock(address from, uint256 value, bytes calldata data, bytes calldata operatorData) external {
     _redeem("", msg.sender, from, value, data, operatorData);
   }
 
