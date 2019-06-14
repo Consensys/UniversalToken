@@ -27,7 +27,7 @@ interface IERC777 {
   function redeem(uint256 value, bytes calldata data) external; // 12/13
   function redeemFrom(address from, uint256 value, bytes calldata data, bytes calldata operatorData) external; // 13/13
 
-  event TransferWithData(
+  event TransferedWithData(
     address indexed operator,
     address indexed from,
     address indexed to,

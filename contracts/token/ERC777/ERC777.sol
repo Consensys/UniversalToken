@@ -312,7 +312,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
 
     _callRecipient(partition, operator, from, to, value, data, operatorData, preventLocking);
 
-    emit TransferWithData(operator, from, to, value, data, operatorData);
+    emit TransferedWithData(operator, from, to, value, data, operatorData);
   }
 
   /**
