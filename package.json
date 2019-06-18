@@ -7,10 +7,8 @@
     "tests"
   ],
   "scripts": {
-    "build:ERC1400ERC20": "solcpiler -i './contracts/token/ERC20/ERC1400ERC20.sol' --solc-version=\"v0.4.24+commit.e67f0147\" --output-artifacts-dir artifacts --insert-file-names imports",
-    "build:ERC1400": "solcpiler -i './contracts/*.sol' --solc-version=\"v0.4.24+commit.e67f0147\" --output-artifacts-dir artifacts --insert-file-names imports",
-    "build:ERC777": "solcpiler -i './contracts/token/ERC777/ERC777.sol' --solc-version=\"v0.4.24+commit.e67f0147\" --output-artifacts-dir artifacts --insert-file-names imports",
-    "build": "yarn run clean && yarn run build:ERC777 && yarn run build:ERC1400 && yarn run build:ERC1400ERC20",
+    "build:ERC1400ERC20": "sol-merger \"./contracts/token/ERC20/ERC1400ERC20.sol\" ./artifacts",
+    "build": "yarn run clean && yarn run build:ERC1400ERC20",
     "clean": "rm -rf artifacts",
     "coverage": "solidity-coverage",
     "env": "node setup.js",
@@ -70,7 +68,7 @@
     "lint-staged": "^8.0.4",
     "openzeppelin-test-helpers": "^0.1.2",
     "remix-ide": "^0.7.4",
-    "solcpiler": "1.0.0-beta.9",
+    "sol-merger": "0.1.4",
     "solidity-coverage": "git+https://github.com/leapdao/solidity-coverage#bb22d28edb700040ddb614bb2a4605f641383ced",
     "solium": "^1.1.8",
     "solium-plugin-zeppelin": "^0.0.2"
