@@ -165,7 +165,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @return A boolean that indicates if the operation was successful.
    */
   function transfer(address to, uint256 value) external isWhitelisted(to) returns (bool) {
-    _transferByDefaultPartitions(msg.sender, msg.sender, to, value, "", "");
+    _transferByDefaultPartitions(msg.sender, msg.sender, to, value, "", "", false);
     return true;
   }
 
@@ -188,7 +188,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
       _allowed[_from][msg.sender] = 0;
     }
 
-    _transferByDefaultPartitions(msg.sender, _from, to, value, "", "");
+    _transferByDefaultPartitions(msg.sender, _from, to, value, "", "", false);
     return true;
   }
 
