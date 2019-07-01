@@ -23,12 +23,14 @@ const INVALID_CERTIFICATE_SENDER = '0x110000000000000000000000000000000000000000
 const INVALID_CERTIFICATE_RECIPIENT = '0x2200000000000000000000000000000000000000000000000000000000000000';
 
 const partitionFlag = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'; // Flag to indicate a partition change
+const otherFlag = '0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd'; // Other flag
 const partition1_short = '5265736572766564000000000000000000000000000000000000000000000000'; // Reserved in hex
 const partition2_short = '4973737565640000000000000000000000000000000000000000000000000000'; // Issued in hex
 const partition3_short = '4c6f636b65640000000000000000000000000000000000000000000000000000'; // Locked in hex
 const changeToPartition1 = partitionFlag.concat(partition1_short);
 const changeToPartition2 = partitionFlag.concat(partition2_short);
 const changeToPartition3 = partitionFlag.concat(partition3_short);
+const doNotChangePartition = otherFlag.concat(partition2_short);
 const partition1 = '0x'.concat(partition1_short);
 const partition2 = '0x'.concat(partition2_short);
 const partition3 = '0x'.concat(partition3_short);
@@ -871,7 +873,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
             await assertBalanceOf(this.token, recipient, partition1, 0);
 
             await this.token.authorizeOperatorByPartition(partition1, operator, { from: tokenHolder });
-            await this.token.operatorTransferByPartition(partition1, tokenHolder, recipient, transferAmount, partition2, VALID_CERTIFICATE, { from: operator });
+            await this.token.operatorTransferByPartition(partition1, tokenHolder, recipient, transferAmount, doNotChangePartition, VALID_CERTIFICATE, { from: operator });
 
             await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
             await assertBalanceOf(this.token, recipient, partition1, transferAmount);

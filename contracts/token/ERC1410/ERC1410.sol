@@ -260,7 +260,7 @@ contract ERC1410 is IERC1410, ERC777 {
 
     bytes32 toPartition = fromPartition;
 
-    if(operatorData.length != 0 && data.length != 0) {
+    if(operatorData.length != 0 && data.length >= 64) {
       toPartition = _getDestinationPartition(fromPartition, data);
     }
 
