@@ -1260,10 +1260,14 @@ contract('ERC1410', function ([owner, operator, controller, controller_alternati
     beforeEach(async function () {
       this.token = await ERC1410.new('ERC1410Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions, tokenHolder, 1000);
     });
-    it('redeem function is disactivated', async function () {
+    // it('redeem function is disactivated', async function () {
+    //   await assertBalance(this.token, tokenHolder, 1000);
+    //   await this.token.redeem(500, VALID_CERTIFICATE, { from: tokenHolder });
+    //   await assertBalance(this.token, tokenHolder, 1000);
+    // });
+    it('reverts', async function () {
       await assertBalance(this.token, tokenHolder, 1000);
-      await this.token.redeem(500, VALID_CERTIFICATE, { from: tokenHolder });
-      await assertBalance(this.token, tokenHolder, 1000);
+      await shouldFail.reverting(this.token.redeem(500, VALID_CERTIFICATE, { from: tokenHolder }));
     });
   });
 
@@ -1273,11 +1277,16 @@ contract('ERC1410', function ([owner, operator, controller, controller_alternati
     beforeEach(async function () {
       this.token = await ERC1410.new('ERC1410Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions, tokenHolder, 1000);
     });
-    it('redeemFrom function is disactivated', async function () {
+    // it('redeemFrom function is disactivated', async function () {
+    //   await this.token.authorizeOperator(operator, { from: tokenHolder });
+    //   await assertBalance(this.token, tokenHolder, 1000);
+    //   await this.token.redeemFrom(tokenHolder, 500, ZERO_BYTE, VALID_CERTIFICATE, { from: operator });
+    //   await assertBalance(this.token, tokenHolder, 1000);
+    // });
+    it('reverts', async function () {
       await this.token.authorizeOperator(operator, { from: tokenHolder });
       await assertBalance(this.token, tokenHolder, 1000);
-      await this.token.redeemFrom(tokenHolder, 500, ZERO_BYTE, VALID_CERTIFICATE, { from: operator });
-      await assertBalance(this.token, tokenHolder, 1000);
+      await shouldFail.reverting(this.token.redeemFrom(tokenHolder, 500, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
     });
   });
 });

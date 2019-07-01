@@ -443,6 +443,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @dev Empty function to erase ERC777 redeem() function since it doesn't handle partitions.
    */
   function redeem(uint256 /*value*/, bytes calldata /*data*/) external { // Comments to avoid compilation warnings for unused variables.
+    revert("A8: Transfer Blocked - Token restriction");
   }
 
   /**
@@ -450,6 +451,7 @@ contract ERC1410 is IERC1410, ERC777 {
    * @dev Empty function to erase ERC777 redeemFrom() function since it doesn't handle partitions.
    */
   function redeemFrom(address /*from*/, uint256 /*value*/, bytes calldata /*data*/, bytes calldata /*operatorData*/) external { // Comments to avoid compilation warnings for unused variables.
+    revert("A8: Transfer Blocked - Token restriction");
   }
 
   /**
