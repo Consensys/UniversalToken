@@ -293,7 +293,6 @@ contract ERC1410 is IERC1410, ERC777 {
       for (uint i = 0; i < _partitionsOf[from].length; i++) {
         if(_partitionsOf[from][i] == partition) {
           _partitionsOf[from][i] = _partitionsOf[from][_partitionsOf[from].length - 1];
-          delete _partitionsOf[from][_partitionsOf[from].length - 1];
           _partitionsOf[from].length--;
           break;
         }
@@ -305,7 +304,6 @@ contract ERC1410 is IERC1410, ERC777 {
       for (uint i = 0; i < _totalPartitions.length; i++) {
         if(_totalPartitions[i] == partition) {
           _totalPartitions[i] = _totalPartitions[_totalPartitions.length - 1];
-          delete _totalPartitions[_totalPartitions.length - 1];
           _totalPartitions.length--;
           break;
         }
