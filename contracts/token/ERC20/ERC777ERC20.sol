@@ -150,7 +150,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    * @return A boolean that indicates if the operation was successful.
    */
   function approve(address spender, uint256 value) external returns (bool) {
-    require(spender != address(0), "A6: Transfer Blocked - Receiver not eligible");
+    require(spender != address(0), "A5:	Approval Blocked - Spender not eligible");
     _allowed[msg.sender][spender] = value;
     emit Approval(msg.sender, spender, value);
     return true;
