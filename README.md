@@ -1,18 +1,18 @@
-![dAuriel](images/dAurielLogo.png)
+![CoFi](images/CoFiLogo.png)
 
-## What is the Dauriel Network?
+## What is CoFi OS?
 
-Dauriel Network is an advanced institutional technology platform for issuing and exchanging tokenized financial assets, powered by the Ethereum blockchain. The security token implementations used by the platform are shared in this repository.
-Dauriel Network is a product created by ConsenSys.
+CoFi OS is an advanced institutional technology platform for issuing and exchanging tokenized financial assets, powered by the Ethereum blockchain. The security token implementations used by the platform are shared in this repository.
+CoFi OS is a product created by ConsenSys.
 
-Example of an asset issuance leveraging the Dauriel Network technology:
+Example of an asset issuance leveraging the CoFi OS technology:
 
-![daurielVideo](images/daurielVideo.png)
-https://www.youtube.com/watch?v=F7cAdPSXyqs
+![CoFiVideo](images/CoFiVideo.png)
+https://youtu.be/r2zvd7u5Uv0
 
 ## Content - Security token implementations (ERC777 and ERC1400), adapted for financial asset tokenization
 
-This repo contains security token smart contract implementations used by the Dauriel Network:
+This repo contains security token smart contract implementations used by CoFi OS:
 #### ERC777 implementation - Advanced token standard for asset transfers
 
  - Empowerment of operators with the ability to send tokens on behalf of other addresses.
@@ -36,14 +36,14 @@ The current capital market still needs to overcome a few pain points:
  - Once issued, the assets are mainly reserved for high-ticket investors.
  - Finally, those assets are not easily tradable, which strongly limits the secondary market possibilities.
 
-With the Dauriel Network, we want to tokenize the capital market to tackle those pain points. In the new system, we imagine:
+With CoFi OS, we want to tokenize the capital market to tackle those pain points. In the new system, we imagine:
  - An asset issuance will be faster, simpler but also cheaper than today.
  - This reduction of costs will allow us to onboard smaller ticket investors.
  - Globally, the tokenization removes constraints for more liquid and frictionless asset transfers, while keeping a strong control over the market, thus liberating the secondary market.
 
 The security token standards contained in this repository, combined to user-friendly interfaces, can be leveraged for financial asset issuance & management:
 
-![dAurielInterface](images/dAurielInterface.png)
+![CoFiInterface](images/CoFiInterface.png)
 
 ## Approach - Introduce a new transfer standard to provide issuers with strong control capabilities over their financial assets
 
@@ -57,23 +57,23 @@ function transfer(address recipient, uint256 value)
 ```
 All controls have to be hard-coded on-chain and are often limited to simple / binary checks e.g. checking whether an investor is blacklisted or not.
 
-The Dauriel Network makes use of more evolved / granular controls to secure transfers.
+CoFi OS makes use of more evolved / granular controls to secure transfers.
 Those controls can evolve quickly and require flexibility, which makes it difficult to hard-code them on-chain.
 
-### Dauriel transaction - A way to secure all transfers with a certificate generated off-chain by the issuer
+### CoFi transaction - A way to secure all transfers with a certificate generated off-chain by the issuer
 
 The use of an additional 'data' parameter in the transfer functions can enable more evolved / granular controls:
 ```
 function transferWithData(address recipient, uint256 value, bytes data)
 ```
-The Dauriel Network fosters to use this additional 'data' field (available in ERC777 and ERC1400 standards) to inject a certificate generated off-chain by the issuer.
+CoFi OS fosters to use this additional 'data' field (available in ERC777 and ERC1400 standards) to inject a certificate generated off-chain by the issuer.
 A token transfer shall be conditioned to the validity of the certificate, thus offering the issuer with strong control capabilities over its financial assets.
 
-![dAurielTransaction](images/dAurielTransaction.png)
+![CoFiTransaction](images/CoFiTransaction.png)
 
-### Dauriel certificate - A way to perform advanced conditional ownership
+### CoFi certificate - A way to perform advanced conditional ownership
 
-The Dauriel certificate contains:
+The CoFi certificate contains:
  - The function ID which ensures the certificate can’t be used on an other function.
  - The parameters which ensures the input parameters have been validated by the issuer.
  - A validity date which ensures the certificate can’t be used after validity date.
@@ -83,7 +83,7 @@ Finally the certificate is signed by the issuer which ensures it is authentic.
 
 The certificate enables the issuer to perform advanced conditional ownership, since he needs to be aware of all parameters of a function call before generating the associated certificate.
 
-![dAurielCertificate](images/dAurielCertificate.png)
+![CoFiCertificate](images/CoFiCertificate.png)
 
 PS: Since the ERC1400 standard is agnostic about the way to control certificate, we didn't include our certificate controller in this repository (a mock is used instead). In order to perform real advanced conditional ownership, a certificate controller called 'CertificateController.sol' shall be placed in folder '/contracts/CertificateController' instead of the mock placed there.
 
