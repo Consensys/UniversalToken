@@ -17,8 +17,12 @@ This repo contains security token smart contract implementations used by CoFi OS
 
  - Empowerment of operators with the ability to send tokens on behalf of other addresses.
  - Setup of send/receive hooks to offer token holders more control over their tokens.
- - Use of ER820([eips.ethereum.org/EIPS/eip-820](https://eips.ethereum.org/EIPS/eip-820)) to notify contracts and regular addresses when they receive tokens.
+ - Use of ERC1820([eips.ethereum.org/EIPS/eip-1820](http://eips.ethereum.org/EIPS/eip-1820)) to notify contracts and regular addresses when they receive tokens.
  - Backwards compatible with ERC20.
+
+ CAUTION: The token standard implementation contained in this repo is not 100% compliant with the official ERC777 interface. The purpose of this choice was to keep the ERC777 logic, while:
+  - Enhancing it with ERC1400-compliant hooks, supporting partitions (IERC1400TokensRecipient and IERC1400TokensSender instead of IERC777TokensRecipient and IERC777TokensSender)
+  - Renaming the functions for more consistency with ERC20 and ERC1400 function (ERC20-transfer, ERC777-transferWithData, ERC1400-transferByPartition)
 
 
 #### ERC1400 implementation - Partially fungible token standard
@@ -101,7 +105,7 @@ The official proposal can be found at: [eips.ethereum.org/EIPS/eip-777](https://
 We've performed a few updates compared to the official proposal, mainly to better fit with our implementation of ERC1400:
  - Introduction of the notion of 'controllers' (replacing defaultOperators) for better consistency with ERC1400 'controllers'.
  - Introduction of '_isControllable' property (set to 'false' by default for the ERC777, but set to 'true' for the ERC1400).
- - Update of IERC777TokensRecipient and IERC777TokensSender interfaces, by adding 'partition' parameters, in order to make the hooks ERC1400-compliant.
+ - Update of IERC777TokensRecipient and IERC777TokensSender interfaces, by adding 'partition' parameters, and renaming into IERC1400TokensRecipient and IERC1400TokensSender in order to make the hooks ERC1400-compliant.
  - Renaming of 'send' function (now 'transferWithData') and 'Sent' event (now 'TransferWithData') for better consistency with ERC1400 names + to avoid potential issues with blockchain tools (e.g. Truffle, etc.) considering 'send' as a reserved word.
  - Renaming of 'mint' function (now 'issue') and 'Minted' event (now 'Issued') for better consistency with ERC1400 names.
  - Renaming of 'burn' function (now 'redeem') and 'Burned' event (now 'Redeemed') for better consistency with ERC1400 names.

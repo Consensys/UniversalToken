@@ -12,8 +12,8 @@ import "erc1820/contracts/ERC1820Client.sol";
 import "../../CertificateController/CertificateController.sol";
 
 import "./IERC777.sol";
-import "./IERC777TokensSender.sol";
-import "./IERC777TokensRecipient.sol";
+import "./IERC1400TokensSender.sol";
+import "./IERC1400TokensRecipient.sol";
 
 
 /**
@@ -75,7 +75,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
 
     _setControllers(controllers);
 
-    setInterfaceImplementation("ERC777Token", address(this));
+    setInterfaceImplementation("ERC777LikeToken", address(this));
   }
 
   /********************** ERC777 EXTERNAL FUNCTIONS ***************************/
@@ -343,7 +343,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
 
   /**
    * [INTERNAL]
-   * @dev Check for 'ERC777TokensSender' hook on the sender and call it.
+   * @dev Check for 'ERC1400TokensSender' hook on the sender and call it.
    * May throw according to 'preventLocking'.
    * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
    * @param operator Address which triggered the balance decrease (through transfer or redemption).
@@ -365,16 +365,16 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
     internal
   {
     address senderImplementation;
-    senderImplementation = interfaceAddr(from, "ERC777TokensSender");
+    senderImplementation = interfaceAddr(from, "ERC1400TokensSender");
 
     if (senderImplementation != address(0)) {
-      IERC777TokensSender(senderImplementation).tokensToTransfer(partition, operator, from, to, value, data, operatorData);
+      IERC1400TokensSender(senderImplementation).tokensToTransfer(partition, operator, from, to, value, data, operatorData);
     }
   }
 
   /**
    * [INTERNAL]
-   * @dev Check for 'ERC777TokensRecipient' hook on the recipient and call it.
+   * @dev Check for 'ERC1400TokensRecipient' hook on the recipient and call it.
    * May throw according to 'preventLocking'.
    * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
    * @param operator Address which triggered the balance increase (through transfer or issuance).
@@ -384,7 +384,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
    * @param data Extra information, intended for the token holder ('from').
    * @param operatorData Extra information attached by the operator (if any).
    * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
-   * implementing 'ERC777TokensRecipient'.
+   * implementing 'ERC1400TokensRecipient'.
    * ERC777 native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
    * functions SHOULD set this parameter to 'false'.
    */
@@ -401,10 +401,10 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
     internal
   {
     address recipientImplementation;
-    recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
+    recipientImplementation = interfaceAddr(to, "ERC1400TokensRecipient");
 
     if (recipientImplementation != address(0)) {
-      IERC777TokensRecipient(recipientImplementation).tokensReceived(partition, operator, from, to, value, data, operatorData);
+      IERC1400TokensRecipient(recipientImplementation).tokensReceived(partition, operator, from, to, value, data, operatorData);
     } else if (preventLocking) {
       require(_isRegularAddress(to), "A6: Transfer Blocked - Receiver not eligible");
     }

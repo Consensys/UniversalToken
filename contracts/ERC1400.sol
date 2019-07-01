@@ -250,15 +250,15 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
      address senderImplementation;
      address recipientImplementation;
-     senderImplementation = interfaceAddr(from, "ERC777TokensSender");
-     recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
+     senderImplementation = interfaceAddr(from, "ERC1400TokensSender");
+     recipientImplementation = interfaceAddr(to, "ERC1400TokensRecipient");
 
      if((senderImplementation != address(0))
-       && !IERC777TokensSender(senderImplementation).canTransfer(partition, from, to, value, data, operatorData))
+       && !IERC1400TokensSender(senderImplementation).canTransfer(partition, from, to, value, data, operatorData))
        return(hex"A5", "", partition); // Transfer Blocked - Sender not eligible
 
      if((recipientImplementation != address(0))
-       && !IERC777TokensRecipient(recipientImplementation).canReceive(partition, from, to, value, data, operatorData))
+       && !IERC1400TokensRecipient(recipientImplementation).canReceive(partition, from, to, value, data, operatorData))
        return(hex"A6", "", partition); // Transfer Blocked - Receiver not eligible
 
      if(!_isMultiple(value))
