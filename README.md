@@ -123,7 +123,7 @@ interface IERC777 {
   function controllers() external view returns (address[]);
   function authorizeOperator(address operator) external;
   function revokeOperator(address operator) external;
-  function isOperatorFor(address operator, address tokenHolder) external view returns (bool);
+  function isOperator(address operator, address tokenHolder) external view returns (bool);
 
   function transferWithData(address to, uint256 value, bytes data) external;
   function transferFromWithData(address from, address to, uint256 value, bytes data, bytes operatorData) external;

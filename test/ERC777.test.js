@@ -115,9 +115,9 @@ contract('ERC777 without hooks', function ([owner, operator, controller, control
     describe('authorizeOperator', function () {
       describe('when sender authorizes an operator', function () {
         it('authorizes the operator', async function () {
-          assert.isTrue(!(await this.token.isOperatorFor(operator, tokenHolder)));
+          assert.isTrue(!(await this.token.isOperator(operator, tokenHolder)));
           await this.token.authorizeOperator(operator, { from: tokenHolder });
-          assert.isTrue(await this.token.isOperatorFor(operator, tokenHolder));
+          assert.isTrue(await this.token.isOperator(operator, tokenHolder));
         });
         it('emits a authorized event', async function () {
           const { logs } = await this.token.authorizeOperator(operator, { from: tokenHolder });
@@ -133,13 +133,13 @@ contract('ERC777 without hooks', function ([owner, operator, controller, control
     describe('revokeOperator', function () {
       describe('when sender revokes an operator', function () {
         it('revokes the operator (when operator is not the controller)', async function () {
-          assert.isTrue(!(await this.token.isOperatorFor(operator, tokenHolder)));
+          assert.isTrue(!(await this.token.isOperator(operator, tokenHolder)));
           await this.token.authorizeOperator(operator, { from: tokenHolder });
-          assert.isTrue(await this.token.isOperatorFor(operator, tokenHolder));
+          assert.isTrue(await this.token.isOperator(operator, tokenHolder));
 
           await this.token.revokeOperator(operator, { from: tokenHolder });
 
-          assert.isTrue(!(await this.token.isOperatorFor(operator, tokenHolder)));
+          assert.isTrue(!(await this.token.isOperator(operator, tokenHolder)));
         });
         it('emits a revoked event', async function () {
           const { logs } = await this.token.revokeOperator(controller, { from: tokenHolder });
@@ -152,17 +152,17 @@ contract('ERC777 without hooks', function ([owner, operator, controller, control
       });
     });
 
-    describe('isOperatorFor', function () {
+    describe('isOperator', function () {
       it('when operator is tokenHolder', async function () {
-        assert.isTrue(await this.token.isOperatorFor(tokenHolder, tokenHolder));
+        assert.isTrue(await this.token.isOperator(tokenHolder, tokenHolder));
       });
       it('when operator is authorized by tokenHolder', async function () {
         await this.token.authorizeOperator(operator, { from: tokenHolder });
-        assert.isTrue(await this.token.isOperatorFor(operator, tokenHolder));
+        assert.isTrue(await this.token.isOperator(operator, tokenHolder));
       });
       it('when is a revoked operator', async function () {
         await this.token.revokeOperator(controller, { from: tokenHolder });
-        assert.isTrue(!(await this.token.isOperatorFor(controller, tokenHolder)));
+        assert.isTrue(!(await this.token.isOperator(controller, tokenHolder)));
       });
     });
 
@@ -174,25 +174,25 @@ contract('ERC777 without hooks', function ([owner, operator, controller, control
           const controllers1 = await this.token.controllers();
           assert.equal(controllers1.length, 1);
           assert.equal(controllers1[0], controller);
-          assert.isTrue(!(await this.token.isOperatorFor(controller, unknown)));
-          assert.isTrue(!(await this.token.isOperatorFor(controller_alternative1, unknown)));
-          assert.isTrue(!(await this.token.isOperatorFor(controller_alternative2, unknown)));
+          assert.isTrue(!(await this.token.isOperator(controller, unknown)));
+          assert.isTrue(!(await this.token.isOperator(controller_alternative1, unknown)));
+          assert.isTrue(!(await this.token.isOperator(controller_alternative2, unknown)));
           await this.token.setControllable(true, { from: owner });
-          assert.isTrue(await this.token.isOperatorFor(controller, unknown));
-          assert.isTrue(!(await this.token.isOperatorFor(controller_alternative1, unknown)));
-          assert.isTrue(!(await this.token.isOperatorFor(controller_alternative2, unknown)));
+          assert.isTrue(await this.token.isOperator(controller, unknown));
+          assert.isTrue(!(await this.token.isOperator(controller_alternative1, unknown)));
+          assert.isTrue(!(await this.token.isOperator(controller_alternative2, unknown)));
           await this.token.setControllers([controller_alternative1, controller_alternative2], { from: owner });
           const controllers2 = await this.token.controllers();
           assert.equal(controllers2.length, 2);
           assert.equal(controllers2[0], controller_alternative1);
           assert.equal(controllers2[1], controller_alternative2);
-          assert.isTrue(!(await this.token.isOperatorFor(controller, unknown)));
-          assert.isTrue(await this.token.isOperatorFor(controller_alternative1, unknown));
-          assert.isTrue(await this.token.isOperatorFor(controller_alternative2, unknown));
+          assert.isTrue(!(await this.token.isOperator(controller, unknown)));
+          assert.isTrue(await this.token.isOperator(controller_alternative1, unknown));
+          assert.isTrue(await this.token.isOperator(controller_alternative2, unknown));
           await this.token.setControllable(false, { from: owner });
-          assert.isTrue(!(await this.token.isOperatorFor(controller_alternative1, unknown)));
-          assert.isTrue(!(await this.token.isOperatorFor(controller_alternative1, unknown)));
-          assert.isTrue(!(await this.token.isOperatorFor(controller_alternative2, unknown)));
+          assert.isTrue(!(await this.token.isOperator(controller_alternative1, unknown)));
+          assert.isTrue(!(await this.token.isOperator(controller_alternative1, unknown)));
+          assert.isTrue(!(await this.token.isOperator(controller_alternative2, unknown)));
         });
       });
       describe('when the caller is not the contract owner', function () {

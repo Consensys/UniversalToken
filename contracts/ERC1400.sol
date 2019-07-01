@@ -420,7 +420,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperator(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
     _redeemByDefaultPartitions(msg.sender, _from, value, data, operatorData);
   }

@@ -178,7 +178,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    */
   function transferFrom(address from, address to, uint256 value) external isWhitelisted(to) returns (bool) {
     address _from = (from == address(0)) ? msg.sender : from;
-    require( _isOperatorFor(msg.sender, _from)
+    require( _isOperator(msg.sender, _from)
       || (value <= _allowed[_from][msg.sender]), "A7: Transfer Blocked - Identity restriction");
 
     if(_allowed[_from][msg.sender] >= value) {
