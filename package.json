@@ -1,7 +1,7 @@
 {
   "name": "ERC1400",
   "version": "0.1.0-dev",
-  "description": "dAuriel's ERC1400 implementation",
+  "description": "CoFi's ERC1400 implementation",
   "files": [
     "contracts",
     "tests"
