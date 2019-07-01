@@ -142,6 +142,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
    * @param operator Address to set as an operator for 'msg.sender'.
    */
   function authorizeOperator(address operator) external {
+    require(operator != msg.sender);
     _authorizedOperator[operator][msg.sender] = true;
     emit AuthorizedOperator(operator, msg.sender);
   }
@@ -153,6 +154,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
    * @param operator Address to rescind as an operator for 'msg.sender'.
    */
   function revokeOperator(address operator) external {
+    require(operator != msg.sender);
     _authorizedOperator[operator][msg.sender] = false;
     emit RevokedOperator(operator, msg.sender);
   }
