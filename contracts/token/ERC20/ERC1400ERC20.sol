@@ -178,17 +178,16 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @return A boolean that indicates if the operation was successful.
    */
   function transferFrom(address from, address to, uint256 value) external isWhitelisted(to) returns (bool) {
-    address _from = (from == address(0)) ? msg.sender : from;
-    require( _isOperatorFor(msg.sender, _from)
-      || (value <= _allowed[_from][msg.sender]), "A7: Transfer Blocked - Identity restriction");
+    require( _isOperatorFor(msg.sender, from)
+      || (value <= _allowed[from][msg.sender]), "A7: Transfer Blocked - Identity restriction");
 
-    if(_allowed[_from][msg.sender] >= value) {
-      _allowed[_from][msg.sender] = _allowed[_from][msg.sender].sub(value);
+    if(_allowed[from][msg.sender] >= value) {
+      _allowed[from][msg.sender] = _allowed[from][msg.sender].sub(value);
     } else {
-      _allowed[_from][msg.sender] = 0;
+      _allowed[from][msg.sender] = 0;
     }
 
-    _transferByDefaultPartitions(msg.sender, _from, to, value, "", "");
+    _transferByDefaultPartitions(msg.sender, from, to, value, "", "");
     return true;
   }
 

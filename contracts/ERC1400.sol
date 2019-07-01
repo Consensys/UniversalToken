@@ -157,10 +157,9 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     external
     isValidCertificate(operatorData)
   {
-    address _from = (tokenHolder == address(0)) ? msg.sender : tokenHolder;
-    require(_isOperatorForPartition(partition, msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperatorForPartition(partition, msg.sender, tokenHolder), "A7: Transfer Blocked - Identity restriction");
 
-    _redeemByPartition(partition, msg.sender, _from, value, data, operatorData);
+    _redeemByPartition(partition, msg.sender, tokenHolder, value, data, operatorData);
   }
 
   /**
@@ -211,8 +210,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     if(!_checkCertificate(operatorData, 0, 0x8c0dee9c)) { // 4 first bytes of keccak256(operatorTransferByPartition(bytes32,address,address,uint256,bytes,bytes))
       return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
     } else {
-      address _from = (from == address(0)) ? msg.sender : from;
-      return _canTransfer(partition, msg.sender, _from, to, value, data, operatorData);
+      return _canTransfer(partition, msg.sender, from, to, value, data, operatorData);
     }
   }
 
@@ -418,11 +416,9 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     external
     isValidCertificate(operatorData)
   {
-    address _from = (from == address(0)) ? msg.sender : from;
+    require(_isOperatorFor(msg.sender, from), "A7: Transfer Blocked - Identity restriction");
 
-    require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
-
-    _redeemByDefaultPartitions(msg.sender, _from, value, data, operatorData);
+    _redeemByDefaultPartitions(msg.sender, from, value, data, operatorData);
   }
 
   /**

@@ -139,10 +139,9 @@ contract ERC1410 is IERC1410, ERC777 {
     isValidCertificate(operatorData)
     returns (bytes32)
   {
-    address _from = (from == address(0)) ? msg.sender : from;
-    require(_isOperatorForPartition(partition, msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperatorForPartition(partition, msg.sender, from), "A7: Transfer Blocked - Identity restriction");
 
-    return _transferByPartition(partition, msg.sender, _from, to, value, data, operatorData);
+    return _transferByPartition(partition, msg.sender, from, to, value, data, operatorData);
   }
 
   /**
@@ -431,11 +430,9 @@ contract ERC1410 is IERC1410, ERC777 {
     external
     isValidCertificate(operatorData)
   {
-    address _from = (from == address(0)) ? msg.sender : from;
+    require(_isOperatorFor(msg.sender, from), "A7: Transfer Blocked - Identity restriction");
 
-    require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
-
-    _transferByDefaultPartitions(msg.sender, _from, to, value, data, operatorData);
+    _transferByDefaultPartitions(msg.sender, from, to, value, data, operatorData);
   }
 
   /**

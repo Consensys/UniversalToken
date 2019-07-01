@@ -195,11 +195,9 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
     external
     isValidCertificate(operatorData)
   {
-    address _from = (from == address(0)) ? msg.sender : from;
+    require(_isOperatorFor(msg.sender, from), "A7: Transfer Blocked - Identity restriction");
 
-    require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
-
-    _transferWithData("", msg.sender, _from, to, value, data, operatorData, true);
+    _transferWithData("", msg.sender, from, to, value, data, operatorData, true);
   }
 
   /**
@@ -227,11 +225,9 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
     external
     isValidCertificate(operatorData)
   {
-    address _from = (from == address(0)) ? msg.sender : from;
+    require(_isOperatorFor(msg.sender, from), "A7: Transfer Blocked - Identity restriction");
 
-    require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
-
-    _redeem("", msg.sender, _from, value, data, operatorData);
+    _redeem("", msg.sender, from, value, data, operatorData);
   }
 
   /********************** ERC777 INTERNAL FUNCTIONS ***************************/

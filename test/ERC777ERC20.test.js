@@ -311,22 +311,6 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
                 });
               });
 
-              describe('when the sender has enough balance + the sender is not specified', function () {
-                const amount = 500;
-
-                it('transfers the requested amount from operator address', async function () {
-                  await this.token.setWhitelisted(operator, true, { from: owner });
-                  await this.token.transfer(operator, approvedAmount, { from: tokenHolder });
-
-                  await this.token.transferFrom(ZERO_ADDRESS, to, amount, { from: operator });
-                  const senderBalance = await this.token.balanceOf(operator);
-                  assert.equal(senderBalance, approvedAmount - amount);
-
-                  const recipientBalance = await this.token.balanceOf(to);
-                  assert.equal(recipientBalance, amount);
-                });
-              });
-
               describe('when the sender has enough balance', function () {
                 const amount = 500;
 
