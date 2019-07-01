@@ -27,11 +27,8 @@ contract ERC1410 is IERC1410, ERC777 {
   // Mapping from (tokenHolder, partition) to balance of corresponding partition.
   mapping (address => mapping (bytes32 => uint256)) internal _balanceOfByPartition;
 
-  // Mapping from tokenHolder to their default partitions (for ERC777 and ERC20 compatibility).
-  mapping (address => bytes32[]) internal _defaultPartitionsOf;
-
   // List of token default partitions (for ERC20 compatibility).
-  bytes32[] internal _tokenDefaultPartitions;
+  bytes32[] internal _defaultPartitions;
   /****************************************************************************/
 
   /**************** Mappings to find partition operators ************************/
@@ -63,12 +60,12 @@ contract ERC1410 is IERC1410, ERC777 {
     uint256 granularity,
     address[] memory controllers,
     address certificateSigner,
-    bytes32[] memory tokenDefaultPartitions
+    bytes32[] memory defaultPartitions
   )
     public
     ERC777(name, symbol, granularity, controllers, certificateSigner)
   {
-    _tokenDefaultPartitions = tokenDefaultPartitions;
+    _defaultPartitions = defaultPartitions;
   }
 
   /********************** ERC1410 EXTERNAL FUNCTIONS **************************/
@@ -150,11 +147,10 @@ contract ERC1410 is IERC1410, ERC777 {
    * @dev Get default partitions to transfer from.
    * Function used for ERC777 and ERC20 backwards compatibility.
    * For example, a security token may return the bytes32("unrestricted").
-   * @param tokenHolder Address for which we want to know the default partitions.
    * @return Array of default partitions.
    */
-  function getDefaultPartitions(address tokenHolder) external view returns (bytes32[] memory) {
-    return _defaultPartitionsOf[tokenHolder];
+  function getDefaultPartitions() external view returns (bytes32[] memory) {
+    return _defaultPartitions;
   }
 
   /**
@@ -163,8 +159,8 @@ contract ERC1410 is IERC1410, ERC777 {
    * Function used for ERC777 and ERC20 backwards compatibility.
    * @param partitions partitions to use by default when not specified.
    */
-  function setDefaultPartitions(bytes32[] calldata partitions) external {
-    _defaultPartitionsOf[msg.sender] = partitions;
+  function setDefaultPartitions(bytes32[] calldata partitions) external onlyOwner {
+    _defaultPartitions = partitions;
   }
 
   /**
@@ -360,21 +356,6 @@ contract ERC1410 is IERC1410, ERC777 {
     }
   }
 
-  /**
-   * [INTERNAL]
-   * @dev Get the sender's default partition if setup, or the global default partition if not.
-   * @param tokenHolder Address for which the default partition is returned.
-   * @return Default partition.
-   */
-  function _getDefaultPartitions(address tokenHolder) internal view returns(bytes32[] memory) {
-    if(_defaultPartitionsOf[tokenHolder].length != 0) {
-      return _defaultPartitionsOf[tokenHolder];
-    } else {
-      return _tokenDefaultPartitions;
-    }
-  }
-
-
   /********************* ERC1410 OPTIONAL FUNCTIONS ***************************/
 
   /**
@@ -472,20 +453,19 @@ contract ERC1410 is IERC1410, ERC777 {
   )
     internal
   {
-    bytes32[] memory _partitions = _getDefaultPartitions(from);
-    require(_partitions.length != 0, "A8: Transfer Blocked - Token restriction");
+    require(_defaultPartitions.length != 0, "A8: Transfer Blocked - Token restriction");
 
     uint256 _remainingValue = value;
     uint256 _localBalance;
 
-    for (uint i = 0; i < _partitions.length; i++) {
-      _localBalance = _balanceOfByPartition[from][_partitions[i]];
+    for (uint i = 0; i < _defaultPartitions.length; i++) {
+      _localBalance = _balanceOfByPartition[from][_defaultPartitions[i]];
       if(_remainingValue <= _localBalance) {
-        _transferByPartition(_partitions[i], operator, from, to, _remainingValue, data, operatorData);
+        _transferByPartition(_defaultPartitions[i], operator, from, to, _remainingValue, data, operatorData);
         _remainingValue = 0;
         break;
       } else {
-        _transferByPartition(_partitions[i], operator, from, to, _localBalance, data, operatorData);
+        _transferByPartition(_defaultPartitions[i], operator, from, to, _localBalance, data, operatorData);
         _remainingValue = _remainingValue - _localBalance;
       }
     }

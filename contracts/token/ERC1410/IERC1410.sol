@@ -19,7 +19,7 @@ interface IERC1410 {
     function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData) external returns (bytes32); // 4/10
 
     // Default Partition Management
-    function getDefaultPartitions(address tokenHolder) external view returns (bytes32[] memory); // 5/10
+    function getDefaultPartitions() external view returns (bytes32[] memory); // 5/10
     function setDefaultPartitions(bytes32[] calldata partitions) external; // 6/10
 
     // Operators
