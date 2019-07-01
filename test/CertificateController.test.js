@@ -1,18 +1,16 @@
-import shouldFail from 'openzeppelin-solidity/test/helpers/shouldFail.js';
+import { shouldFail } from 'openzeppelin-test-helpers';
 
 const CertificateController = artifacts.require('./ControlledMock.sol');
 
 const CERTIFICATE_SIGNER = '0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 
-const exampleUint = 5;
-const exampleByte = '0x5265736572766564000000000000000000000000000000000000000000000000';
+// const exampleUint = 5;
+// const exampleByte = '0x5265736572766564000000000000000000000000000000000000000000000000';
 
+// const contractAddress = '0x820b586C8C28125366C998641B09DCbE7d4cBF06';
 
-const contractAddress = "0x820b586C8C28125366C998641B09DCbE7d4cBF06";
-
-contract('CertificateController', function ([owner, operator, controller, unknown]) {
-
+contract('CertificateController', ([owner, operator, controller, unknown]) => {
   describe('deployment', function () {
     describe('when the certificate signer address is valid', function () {
       it('deploys the contract', async function () {
@@ -22,7 +20,10 @@ contract('CertificateController', function ([owner, operator, controller, unknow
     });
     describe('when the certificate signer address is not valid', function () {
       it('reverts', async function () {
-        await shouldFail.reverting(CertificateController.new(ZERO_ADDRESS));
+        await shouldFail.reverting.withMessage(
+          CertificateController.new(ZERO_ADDRESS),
+          'Action Blocked - Not a valid address'
+        );
       });
     });
   });
@@ -50,16 +51,24 @@ contract('CertificateController', function ([owner, operator, controller, unknow
       });
       describe('when the certificate signer address is not valid', function () {
         it('reverts', async function () {
-          await shouldFail.reverting(this.controllerMock.setCertificateSigner(ZERO_ADDRESS, true, { from: owner }));
+          await shouldFail.reverting.withMessage(
+            this.controllerMock.setCertificateSigner(ZERO_ADDRESS, true, { from: owner }),
+            'Action Blocked - Not a valid address'
+          );
         });
         it('reverts', async function () {
-          await shouldFail.reverting(this.controllerMock.setCertificateSigner(ZERO_ADDRESS, false, { from: owner }));
+          await shouldFail.reverting.withMessage(
+            this.controllerMock.setCertificateSigner(ZERO_ADDRESS, false, { from: owner }),
+            'Action Blocked - Not a valid address'
+          );
         });
       });
     });
     describe('when the sender is not the contract owner', function () {
       it('reverts', async function () {
-        await shouldFail.reverting(this.controllerMock.setCertificateSigner(operator, true, { from: unknown }));
+        await shouldFail.reverting(
+          this.controllerMock.setCertificateSigner(operator, true, { from: unknown })
+        );
       });
     });
   });
@@ -82,5 +91,4 @@ contract('CertificateController', function ([owner, operator, controller, unknow
       });
     });
   });
-
 });
