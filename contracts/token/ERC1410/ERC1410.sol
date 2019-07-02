@@ -18,11 +18,17 @@ contract ERC1410 is IERC1410, ERC777 {
   // List of partitions.
   bytes32[] internal _totalPartitions;
 
+  // Mapping from partition to their index.
+  mapping (bytes32 => uint256) internal _indexOfTotalPartitions;
+
   // Mapping from partition to global balance of corresponding partition.
   mapping (bytes32 => uint256) internal _totalSupplyByPartition;
 
   // Mapping from tokenHolder to their partitions.
   mapping (address => bytes32[]) internal _partitionsOf;
+  
+  // Mapping from (tokenHolder, partition) to their index.
+  mapping (address => mapping (bytes32 => uint256)) internal _indexOfPartitionsOf;
 
   // Mapping from (tokenHolder, partition) to balance of corresponding partition.
   mapping (address => mapping (bytes32 => uint256)) internal _balanceOfByPartition;
@@ -290,24 +296,31 @@ contract ERC1410 is IERC1410, ERC777 {
 
     // If the balance of the TokenHolder's partition is zero, finds and deletes the partition.
     if(_balanceOfByPartition[from][partition] == 0) {
-      for (uint i = 0; i < _partitionsOf[from].length; i++) {
-        if(_partitionsOf[from][i] == partition) {
-          _partitionsOf[from][i] = _partitionsOf[from][_partitionsOf[from].length - 1];
-          _partitionsOf[from].length--;
-          break;
-        }
-      }
+      uint256 index = _indexOfPartitionsOf[from][partition];
+      require(index > 0);
+
+      // move the last item into the index being vacated
+      bytes32 lastValue = _partitionsOf[from][_partitionsOf[from].length - 1];
+      _partitionsOf[from][index - 1] = lastValue;  // adjust for 1-based indexing
+      _indexOfPartitionsOf[from][lastValue] = index;
+
+      _partitionsOf[from].length -= 1;
+      _indexOfPartitionsOf[from][partition] = 0;
     }
+
 
     // If the total supply is zero, finds and deletes the partition.
     if(_totalSupplyByPartition[partition] == 0) {
-      for (uint i = 0; i < _totalPartitions.length; i++) {
-        if(_totalPartitions[i] == partition) {
-          _totalPartitions[i] = _totalPartitions[_totalPartitions.length - 1];
-          _totalPartitions.length--;
-          break;
-        }
-      }
+      uint256 index = _indexOfTotalPartitions[partition];
+      require(index > 0);
+
+      // move the last item into the index being vacated
+      bytes32 lastValue = _totalPartitions[_totalPartitions.length - 1];
+      _totalPartitions[index - 1] = lastValue; // adjust for 1-based indexing
+      _indexOfTotalPartitions[lastValue] = index;
+
+      _totalPartitions.length -= 1;
+      _indexOfTotalPartitions[partition] = 0;
     }
   }
 
@@ -320,13 +333,15 @@ contract ERC1410 is IERC1410, ERC777 {
    */
   function _addTokenToPartition(address to, bytes32 partition, uint256 value) internal {
     if(value != 0) {
-      if(_balanceOfByPartition[to][partition] == 0) {
+      if (_indexOfPartitionsOf[to][partition] == 0) {
         _partitionsOf[to].push(partition);
+        _indexOfPartitionsOf[to][partition] = _partitionsOf[to].length;
       }
       _balanceOfByPartition[to][partition] = _balanceOfByPartition[to][partition].add(value);
 
-      if(_totalSupplyByPartition[partition] == 0) {
+      if (_indexOfTotalPartitions[partition] == 0) {
         _totalPartitions.push(partition);
+        _indexOfTotalPartitions[partition] = _totalPartitions.length;
       }
       _totalSupplyByPartition[partition] = _totalSupplyByPartition[partition].add(value);
     }
