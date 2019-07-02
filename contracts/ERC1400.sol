@@ -181,7 +181,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     view
     returns (byte, bytes32, bytes32)
   {
-    if(!_checkCertificate(data, 0, bytes4(this.transferByPartition.selector))) { // 0xf3d490db: 4 first bytes of keccak256(transferByPartition(bytes32,address,uint256,bytes))
+    if(!_checkCertificate(data, 0, this.transferByPartition.selector)) { // 0xf3d490db: 4 first bytes of keccak256(transferByPartition(bytes32,address,uint256,bytes))
       return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
     } else {
       return _canTransfer(partition, msg.sender, msg.sender, to, value, data, "");
