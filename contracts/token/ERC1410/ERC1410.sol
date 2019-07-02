@@ -26,7 +26,7 @@ contract ERC1410 is IERC1410, ERC777 {
 
   // Mapping from tokenHolder to their partitions.
   mapping (address => bytes32[]) internal _partitionsOf;
-  
+
   // Mapping from (tokenHolder, partition) to their index.
   mapping (address => mapping (bytes32 => uint256)) internal _indexOfPartitionsOf;
 
@@ -294,6 +294,20 @@ contract ERC1410 is IERC1410, ERC777 {
     _balanceOfByPartition[from][partition] = _balanceOfByPartition[from][partition].sub(value);
     _totalSupplyByPartition[partition] = _totalSupplyByPartition[partition].sub(value);
 
+    // If the total supply is zero, finds and deletes the partition.
+    if(_totalSupplyByPartition[partition] == 0) {
+      uint256 index = _indexOfTotalPartitions[partition];
+      require(index > 0);
+
+      // move the last item into the index being vacated
+      bytes32 lastValue = _totalPartitions[_totalPartitions.length - 1];
+      _totalPartitions[index - 1] = lastValue; // adjust for 1-based indexing
+      _indexOfTotalPartitions[lastValue] = index;
+
+      _totalPartitions.length -= 1;
+      _indexOfTotalPartitions[partition] = 0;
+    }
+    
     // If the balance of the TokenHolder's partition is zero, finds and deletes the partition.
     if(_balanceOfByPartition[from][partition] == 0) {
       uint256 index = _indexOfPartitionsOf[from][partition];
@@ -308,20 +322,6 @@ contract ERC1410 is IERC1410, ERC777 {
       _indexOfPartitionsOf[from][partition] = 0;
     }
 
-
-    // If the total supply is zero, finds and deletes the partition.
-    if(_totalSupplyByPartition[partition] == 0) {
-      uint256 index = _indexOfTotalPartitions[partition];
-      require(index > 0);
-
-      // move the last item into the index being vacated
-      bytes32 lastValue = _totalPartitions[_totalPartitions.length - 1];
-      _totalPartitions[index - 1] = lastValue; // adjust for 1-based indexing
-      _indexOfTotalPartitions[lastValue] = index;
-
-      _totalPartitions.length -= 1;
-      _indexOfTotalPartitions[partition] = 0;
-    }
   }
 
   /**

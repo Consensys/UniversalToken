@@ -737,9 +737,15 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
         assertBurnEvent(logs, partition1, tokenHolder, tokenHolder, redeemAmount, VALID_CERTIFICATE, null);
       });
     });
-    describe('when the redeemer has enough balance for this partition', function () {
+    describe('when the redeemer does not have enough balance for this partition', function () {
       it('reverts', async function () {
         await shouldFail.reverting(this.token.redeemByPartition(partition2, redeemAmount, VALID_CERTIFICATE, { from: tokenHolder }));
+      });
+    });
+    describe('special case (_removeTokenFromPartition shall revert)', function () {
+      it('reverts', async function () {
+        await this.token.issueByPartition(partition2, owner, issuanceAmount, VALID_CERTIFICATE, { from: owner });
+        await shouldFail.reverting(this.token.redeemByPartition(partition2, 0, VALID_CERTIFICATE, { from: tokenHolder }));
       });
     });
   });
