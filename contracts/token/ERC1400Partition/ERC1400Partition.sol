@@ -4,15 +4,15 @@
  */
 pragma solidity ^0.5.0;
 
-import "./IERC1410.sol";
-import "../ERC777/ERC777.sol";
+import "./IERC1400Partition.sol";
+import "../ERC1400Raw/ERC1400Raw.sol";
 
 
 /**
- * @title ERC1410
- * @dev ERC1410 logic
+ * @title ERC1400Partition
+ * @dev ERC1400Partition logic
  */
-contract ERC1410 is IERC1410, ERC777 {
+contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
 
   /******************** Mappings to find partition ******************************/
   // List of partitions.
@@ -27,7 +27,7 @@ contract ERC1410 is IERC1410, ERC777 {
   // Mapping from (tokenHolder, partition) to balance of corresponding partition.
   mapping (address => mapping (bytes32 => uint256)) internal _balanceOfByPartition;
 
-  // Mapping from tokenHolder to their default partitions (for ERC777 and ERC20 compatibility).
+  // Mapping from tokenHolder to their default partitions (for ERC1400Raw and ERC20 compatibility).
   mapping (address => bytes32[]) internal _defaultPartitionsOf;
 
   // List of token default partitions (for ERC20 compatibility).
@@ -46,8 +46,8 @@ contract ERC1410 is IERC1410, ERC777 {
   /****************************************************************************/
 
   /**
-   * [ERC1410 CONSTRUCTOR]
-   * @dev Initialize ERC1410 parameters + register
+   * [ERC1400Partition CONSTRUCTOR]
+   * @dev Initialize ERC1400Partition parameters + register
    * the contract implementation in ERC1820Registry.
    * @param name Name of the token.
    * @param symbol Symbol of the token.
@@ -66,15 +66,15 @@ contract ERC1410 is IERC1410, ERC777 {
     bytes32[] memory tokenDefaultPartitions
   )
     public
-    ERC777(name, symbol, granularity, controllers, certificateSigner)
+    ERC1400Raw(name, symbol, granularity, controllers, certificateSigner)
   {
     _tokenDefaultPartitions = tokenDefaultPartitions;
   }
 
-  /********************** ERC1410 EXTERNAL FUNCTIONS **************************/
+  /********************** ERC1400Partition EXTERNAL FUNCTIONS **************************/
 
   /**
-   * [ERC1410 INTERFACE (1/10)]
+   * [ERC1400Partition INTERFACE (1/10)]
    * @dev Get balance of a tokenholder for a specific partition.
    * @param partition Name of the partition.
    * @param tokenHolder Address for which the balance is returned.
@@ -85,7 +85,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (2/10)]
+   * [ERC1400Partition INTERFACE (2/10)]
    * @dev Get partitions index of a tokenholder.
    * @param tokenHolder Address for which the partitions index are returned.
    * @return Array of partitions index of 'tokenHolder'.
@@ -95,7 +95,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (3/10)]
+   * [ERC1400Partition INTERFACE (3/10)]
    * @dev Transfer tokens from a specific partition.
    * @param partition Name of the partition.
    * @param to Token recipient.
@@ -117,7 +117,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (4/10)]
+   * [ERC1400Partition INTERFACE (4/10)]
    * @dev Transfer tokens from a specific partition through an operator.
    * @param partition Name of the partition.
    * @param from Token holder.
@@ -146,9 +146,9 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (5/10)]
+   * [ERC1400Partition INTERFACE (5/10)]
    * @dev Get default partitions to transfer from.
-   * Function used for ERC777 and ERC20 backwards compatibility.
+   * Function used for ERC1400Raw and ERC20 backwards compatibility.
    * For example, a security token may return the bytes32("unrestricted").
    * @param tokenHolder Address for which we want to know the default partitions.
    * @return Array of default partitions.
@@ -158,9 +158,9 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (6/10)]
+   * [ERC1400Partition INTERFACE (6/10)]
    * @dev Set default partitions to transfer from.
-   * Function used for ERC777 and ERC20 backwards compatibility.
+   * Function used for ERC1400Raw and ERC20 backwards compatibility.
    * @param partitions partitions to use by default when not specified.
    */
   function setDefaultPartitions(bytes32[] calldata partitions) external {
@@ -168,9 +168,9 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (7/10)]
+   * [ERC1400Partition INTERFACE (7/10)]
    * @dev Get controllers for a given partition.
-   * Function used for ERC777 and ERC20 backwards compatibility.
+   * Function used for ERC1400Raw and ERC20 backwards compatibility.
    * @param partition Name of the partition.
    * @return Array of controllers for partition.
    */
@@ -179,7 +179,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (8/10)]
+   * [ERC1400Partition INTERFACE (8/10)]
    * @dev Set 'operator' as an operator for 'msg.sender' for a given partition.
    * @param partition Name of the partition.
    * @param operator Address to set as an operator for 'msg.sender'.
@@ -190,7 +190,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (9/10)]
+   * [ERC1400Partition INTERFACE (9/10)]
    * @dev Remove the right of the operator address to be an operator on a given
    * partition for 'msg.sender' and to transfer and redeem tokens on its behalf.
    * @param partition Name of the partition.
@@ -202,7 +202,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [ERC1410 INTERFACE (10/10)]
+   * [ERC1400Partition INTERFACE (10/10)]
    * @dev Indicate whether the operator address is an operator of the tokenHolder
    * address for the given partition.
    * @param partition Name of the partition.
@@ -214,7 +214,7 @@ contract ERC1410 is IERC1410, ERC777 {
     return _isOperatorForPartition(partition, operator, tokenHolder);
   }
 
-  /********************** ERC1410 INTERNAL FUNCTIONS **************************/
+  /********************** ERC1400Partition INTERNAL FUNCTIONS **************************/
 
   /**
    * [INTERNAL]
@@ -375,10 +375,10 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
 
-  /********************* ERC1410 OPTIONAL FUNCTIONS ***************************/
+  /********************* ERC1400Partition OPTIONAL FUNCTIONS ***************************/
 
   /**
-   * [NOT MANDATORY FOR ERC1410 STANDARD]
+   * [NOT MANDATORY FOR ERC1400Partition STANDARD]
    * @dev Get list of existing partitions.
    * @return Array of all exisiting partitions.
    */
@@ -387,7 +387,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [NOT MANDATORY FOR ERC1410 STANDARD][SHALL BE CALLED ONLY FROM ERC1400]
+   * [NOT MANDATORY FOR ERC1400Partition STANDARD][SHALL BE CALLED ONLY FROM ERC1400]
    * @dev Set list of token partition controllers.
    * @param partition Name of the partition.
    * @param operators Controller addresses.
@@ -402,10 +402,10 @@ contract ERC1410 is IERC1410, ERC777 {
      _controllersByPartition[partition] = operators;
    }
 
-  /************** ERC777 BACKWARDS RETROCOMPATIBILITY *************************/
+  /************** ERC1400Raw BACKWARDS RETROCOMPATIBILITY *************************/
 
   /**
-   * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
+   * [NOT MANDATORY FOR ERC1400Partition STANDARD][OVERRIDES ERC1400Raw METHOD]
    * @dev Transfer the value of tokens from the address 'msg.sender' to the address 'to'.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
@@ -419,7 +419,7 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
+   * [NOT MANDATORY FOR ERC1400Partition STANDARD][OVERRIDES ERC1400Raw METHOD]
    * @dev Transfer the value of tokens on behalf of the address from to the address to.
    * @param from Token holder (or 'address(0)'' to set from to 'msg.sender').
    * @param to Token recipient.
@@ -439,21 +439,21 @@ contract ERC1410 is IERC1410, ERC777 {
   }
 
   /**
-   * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
-   * @dev Empty function to erase ERC777 redeem() function since it doesn't handle partitions.
+   * [NOT MANDATORY FOR ERC1400Partition STANDARD][OVERRIDES ERC1400Raw METHOD]
+   * @dev Empty function to erase ERC1400Raw redeem() function since it doesn't handle partitions.
    */
   function redeem(uint256 /*value*/, bytes calldata /*data*/) external { // Comments to avoid compilation warnings for unused variables.
   }
 
   /**
-   * [NOT MANDATORY FOR ERC1410 STANDARD][OVERRIDES ERC777 METHOD]
-   * @dev Empty function to erase ERC777 redeemFrom() function since it doesn't handle partitions.
+   * [NOT MANDATORY FOR ERC1400Partition STANDARD][OVERRIDES ERC1400Raw METHOD]
+   * @dev Empty function to erase ERC1400Raw redeemFrom() function since it doesn't handle partitions.
    */
   function redeemFrom(address /*from*/, uint256 /*value*/, bytes calldata /*data*/, bytes calldata /*operatorData*/) external { // Comments to avoid compilation warnings for unused variables.
   }
 
   /**
-   * [NOT MANDATORY FOR ERC1410 STANDARD]
+   * [NOT MANDATORY FOR ERC1400Partition STANDARD]
    * @dev Transfer tokens from default partitions.
    * @param operator The address performing the transfer.
    * @param from Token holder.

@@ -330,7 +330,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
       });
       describe('when the amount is not a multiple of the granularity', function () {
         it('reverts', async function () {
-          this.token = await ERC1400ERC20.new('ERC777Token', 'DAU', 2, [], CERTIFICATE_SIGNER, partitions);
+          this.token = await ERC1400ERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, partitions);
           await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
           await this.token.setDefaultPartitions([partition1, partition2, partition3], { from: tokenHolder });
           await shouldFail.reverting(this.token.transfer(to, 3, { from: tokenHolder }));
@@ -446,7 +446,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
         });
         describe('when the amount is not a multiple of the granularity', function () {
           it('reverts', async function () {
-            this.token = await ERC1400ERC20.new('ERC777Token', 'DAU', 2, [], CERTIFICATE_SIGNER, partitions);
+            this.token = await ERC1400ERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, partitions);
             await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
             await this.token.setDefaultPartitions([partition1, partition2, partition3], { from: tokenHolder });
             await shouldFail.reverting(this.token.transferFrom(tokenHolder, to, 3, { from: operator }));
