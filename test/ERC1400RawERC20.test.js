@@ -1,6 +1,6 @@
 import { shouldFail } from 'openzeppelin-test-helpers';
 
-const ERC777ERC20 = artifacts.require('ERC777ERC20');
+const ERC1400RawERC20 = artifacts.require('ERC1400RawERC20');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTE = '0x';
@@ -11,12 +11,12 @@ const VALID_CERTIFICATE = '0x100000000000000000000000000000000000000000000000000
 
 const initialSupply = 1000000000;
 
-contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, recipient, unknown]) {
+contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder, recipient, unknown]) {
   // ERC20 RETROCOMPATIBILITY
 
   describe('ERC20 retrocompatibility', function () {
     beforeEach(async function () {
-      this.token = await ERC777ERC20.new('ERC777ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER);
+      this.token = await ERC1400RawERC20.new('ERC1400RawERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER);
     });
 
     // SETWHITELISTED
@@ -213,10 +213,11 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
       const to = recipient;
       beforeEach(async function () {
         await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
+        await this.token.setWhitelisted(tokenHolder, true, { from: owner });
         await this.token.setWhitelisted(to, true, { from: owner });
       });
 
-      describe('when the recipient is whitelisted', function () {
+      describe('when the sender and the recipient are whitelisted', function () {
         describe('when the amount is a multiple of the granularity', function () {
           describe('when the recipient is not the zero address', function () {
             describe('when the sender does not have enough balance', function () {
@@ -270,10 +271,18 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
         });
         describe('when the amount is not a multiple of the granularity', function () {
           it('reverts', async function () {
-            this.token = await ERC777ERC20.new('ERC777Token', 'DAU', 2, [], CERTIFICATE_SIGNER);
+            this.token = await ERC1400RawERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER);
             await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
             await shouldFail.reverting(this.token.transfer(to, 3, { from: tokenHolder }));
           });
+        });
+      });
+      describe('when the sender is not whitelisted', function () {
+        const amount = initialSupply;
+
+        it('reverts', async function () {
+          await this.token.setWhitelisted(tokenHolder, false, { from: owner });
+          await shouldFail.reverting(this.token.transfer(to, amount, { from: tokenHolder }));
         });
       });
       describe('when the recipient is not whitelisted', function () {
@@ -293,6 +302,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
       const approvedAmount = 10000;
       beforeEach(async function () {
         await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
+        await this.token.setWhitelisted(tokenHolder, true, { from: owner });
         await this.token.setWhitelisted(to, true, { from: owner });
       });
 
@@ -357,7 +367,7 @@ contract('ERC777ERC20', function ([owner, operator, controller, tokenHolder, rec
           });
           describe('when the amount is not a multiple of the granularity', function () {
             it('reverts', async function () {
-              this.token = await ERC777ERC20.new('ERC777Token', 'DAU', 2, [], CERTIFICATE_SIGNER);
+              this.token = await ERC1400RawERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER);
               await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
               await shouldFail.reverting(this.token.transferFrom(tokenHolder, to, 3, { from: operator }));
             });

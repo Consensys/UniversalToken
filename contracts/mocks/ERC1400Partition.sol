@@ -1,8 +1,8 @@
 pragma solidity ^0.5.0;
-import "../token/ERC1410/ERC1410.sol";
+import "../token/ERC1400Partition/ERC1400Partition.sol";
 
 
-contract ERC1410Mock is ERC1410 {
+contract ERC1400PartitionMock is ERC1400Partition {
 
   constructor(
     string memory name,
@@ -15,7 +15,7 @@ contract ERC1410Mock is ERC1410 {
     uint256 valueMock
   )
     public
-    ERC1410(name, symbol, granularity, controllers, certificateSigner, tokenDefaultPartitions)
+    ERC1400Partition(name, symbol, granularity, controllers, certificateSigner, tokenDefaultPartitions)
   {
     _issue("", msg.sender, tokenHolderMock, valueMock, "", "");
   }

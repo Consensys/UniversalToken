@@ -92,7 +92,6 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
     const amount = 10;
     beforeEach(async function () {
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
-      await this.token.setDefaultPartitions([partition1, partition2, partition3], { from: tokenHolder });
     });
     it('transfers the requested amount', async function () {
       await this.token.transferWithData(to, amount, VALID_CERTIFICATE, { from: tokenHolder });
@@ -139,7 +138,6 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
     const redeemAmount = 300;
     beforeEach(async function () {
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
-      await this.token.setDefaultPartitions([partition1, partition2, partition3], { from: tokenHolder });
     });
     it('redeems the requested amount', async function () {
       await this.token.redeemByPartition(partition1, redeemAmount, VALID_CERTIFICATE, { from: tokenHolder });
@@ -261,12 +259,12 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
   describe('transfer', function () {
     const to = recipient;
     beforeEach(async function () {
+      await this.token.setWhitelisted(tokenHolder, true, { from: owner });
       await this.token.setWhitelisted(to, true, { from: owner });
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
-      await this.token.setDefaultPartitions([partition1, partition2, partition3], { from: tokenHolder });
     });
 
-    describe('when the recipient is whitelisted', function () {
+    describe('when the sender and the recipient are whitelisted', function () {
       describe('when the amount is a multiple of the granularity', function () {
         describe('when the recipient is not the zero address', function () {
           describe('when the sender does not have enough balance', function () {
@@ -330,11 +328,18 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
       });
       describe('when the amount is not a multiple of the granularity', function () {
         it('reverts', async function () {
-          this.token = await ERC1400ERC20.new('ERC777Token', 'DAU', 2, [], CERTIFICATE_SIGNER, partitions);
+          this.token = await ERC1400ERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, partitions);
           await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
-          await this.token.setDefaultPartitions([partition1, partition2, partition3], { from: tokenHolder });
           await shouldFail.reverting(this.token.transfer(to, 3, { from: tokenHolder }));
         });
+      });
+    });
+    describe('when the sender is not whitelisted', function () {
+      const amount = issuanceAmount;
+
+      it('reverts', async function () {
+        await this.token.setWhitelisted(tokenHolder, false, { from: owner });
+        await shouldFail.reverting(this.token.transfer(to, amount, { from: tokenHolder }));
       });
     });
     describe('when the recipient is not whitelisted', function () {
@@ -353,13 +358,12 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
     const to = recipient;
     const approvedAmount = 10000;
     beforeEach(async function () {
+      await this.token.setWhitelisted(tokenHolder, true, { from: owner });
       await this.token.setWhitelisted(to, true, { from: owner });
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
-      await this.token.setDefaultPartitions([partition1, partition2, partition3], { from: tokenHolder });
-      await this.token.setDefaultPartitions([partition1, partition2, partition3], { from: operator });
     });
 
-    describe('when the recipient is whitelisted', function () {
+    describe('when the sender and the recipient are whitelisted', function () {
       describe('when the operator is approved', function () {
         beforeEach(async function () {
           // await this.token.authorizeOperator(operator, { from: tokenHolder});
@@ -430,9 +434,8 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
         });
         describe('when the amount is not a multiple of the granularity', function () {
           it('reverts', async function () {
-            this.token = await ERC1400ERC20.new('ERC777Token', 'DAU', 2, [], CERTIFICATE_SIGNER, partitions);
+            this.token = await ERC1400ERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, partitions);
             await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
-            await this.token.setDefaultPartitions([partition1, partition2, partition3], { from: tokenHolder });
             await shouldFail.reverting(this.token.transferFrom(tokenHolder, to, 3, { from: operator }));
           });
         });
@@ -457,6 +460,13 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
             await shouldFail.reverting(this.token.transferFrom(tokenHolder, to, amount, { from: operator }));
           });
         });
+      });
+    });
+    describe('when the sender is not whitelisted', function () {
+      const amount = approvedAmount;
+      it('reverts', async function () {
+        await this.token.setWhitelisted(tokenHolder, false, { from: owner });
+        await shouldFail.reverting(this.token.transferFrom(tokenHolder, to, amount, { from: operator }));
       });
     });
     describe('when the recipient is not whitelisted', function () {
