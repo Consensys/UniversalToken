@@ -11,16 +11,16 @@ import "erc1820/contracts/ERC1820Client.sol";
 
 import "../../CertificateController/CertificateController.sol";
 
-import "./IERC777.sol";
-import "./IERC777TokensSender.sol";
-import "./IERC777TokensRecipient.sol";
+import "./IERC1400Raw.sol";
+import "./IERC1400TokensSender.sol";
+import "./IERC1400TokensRecipient.sol";
 
 
 /**
- * @title ERC777
- * @dev ERC777 logic
+ * @title ERC1400Raw
+ * @dev ERC1400Raw logic
  */
-contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, ReentrancyGuard {
+contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateController, ReentrancyGuard {
   using SafeMath for uint256;
 
   string internal _name;
@@ -46,8 +46,8 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
   /****************************************************************************/
 
   /**
-   * [ERC777 CONSTRUCTOR]
-   * @dev Initialize ERC777 and CertificateController parameters + register
+   * [ERC1400Raw CONSTRUCTOR]
+   * @dev Initialize ERC1400Raw and CertificateController parameters + register
    * the contract implementation in ERC1820Registry.
    * @param name Name of the token.
    * @param symbol Symbol of the token.
@@ -74,14 +74,12 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
     _granularity = granularity;
 
     _setControllers(controllers);
-
-    setInterfaceImplementation("ERC777Token", address(this));
   }
 
-  /********************** ERC777 EXTERNAL FUNCTIONS ***************************/
+  /********************** ERC1400Raw EXTERNAL FUNCTIONS ***************************/
 
   /**
-   * [ERC777 INTERFACE (1/13)]
+   * [ERC1400Raw INTERFACE (1/13)]
    * @dev Get the name of the token, e.g., "MyToken".
    * @return Name of the token.
    */
@@ -90,7 +88,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
   }
 
   /**
-   * [ERC777 INTERFACE (2/13)]
+   * [ERC1400Raw INTERFACE (2/13)]
    * @dev Get the symbol of the token, e.g., "MYT".
    * @return Symbol of the token.
    */
@@ -99,7 +97,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
   }
 
   /**
-   * [ERC777 INTERFACE (3/13)]
+   * [ERC1400Raw INTERFACE (3/13)]
    * @dev Get the total number of issued tokens.
    * @return Total supply of tokens currently in circulation.
    */
@@ -108,7 +106,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
   }
 
   /**
-   * [ERC777 INTERFACE (4/13)]
+   * [ERC1400Raw INTERFACE (4/13)]
    * @dev Get the balance of the account with address 'tokenHolder'.
    * @param tokenHolder Address for which the balance is returned.
    * @return Amount of token held by 'tokenHolder' in the token contract.
@@ -118,7 +116,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
   }
 
   /**
-   * [ERC777 INTERFACE (5/13)]
+   * [ERC1400Raw INTERFACE (5/13)]
    * @dev Get the smallest part of the token that’s not divisible.
    * @return The smallest non-divisible part of the token.
    */
@@ -127,7 +125,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
   }
 
   /**
-   * [ERC777 INTERFACE (6/13)]
+   * [ERC1400Raw INTERFACE (6/13)]
    * @dev Get the list of controllers as defined by the token contract.
    * @return List of addresses of all the controllers.
    */
@@ -136,40 +134,42 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
   }
 
   /**
-   * [ERC777 INTERFACE (7/13)]
+   * [ERC1400Raw INTERFACE (7/13)]
    * @dev Set a third party operator address as an operator of 'msg.sender' to transfer
    * and redeem tokens on its behalf.
    * @param operator Address to set as an operator for 'msg.sender'.
    */
   function authorizeOperator(address operator) external {
+    require(operator != msg.sender);
     _authorizedOperator[operator][msg.sender] = true;
     emit AuthorizedOperator(operator, msg.sender);
   }
 
   /**
-   * [ERC777 INTERFACE (8/13)]
+   * [ERC1400Raw INTERFACE (8/13)]
    * @dev Remove the right of the operator address to be an operator for 'msg.sender'
    * and to transfer and redeem tokens on its behalf.
    * @param operator Address to rescind as an operator for 'msg.sender'.
    */
   function revokeOperator(address operator) external {
+    require(operator != msg.sender);
     _authorizedOperator[operator][msg.sender] = false;
     emit RevokedOperator(operator, msg.sender);
   }
 
   /**
-   * [ERC777 INTERFACE (9/13)]
+   * [ERC1400Raw INTERFACE (9/13)]
    * @dev Indicate whether the operator address is an operator of the tokenHolder address.
    * @param operator Address which may be an operator of tokenHolder.
    * @param tokenHolder Address of a token holder which may have the operator address as an operator.
    * @return 'true' if operator is an operator of 'tokenHolder' and 'false' otherwise.
    */
-  function isOperatorFor(address operator, address tokenHolder) external view returns (bool) {
-    return _isOperatorFor(operator, tokenHolder);
+  function isOperator(address operator, address tokenHolder) external view returns (bool) {
+    return _isOperator(operator, tokenHolder);
   }
 
   /**
-   * [ERC777 INTERFACE (10/13)]
+   * [ERC1400Raw INTERFACE (10/13)]
    * @dev Transfer the amount of tokens from the address 'msg.sender' to the address 'to'.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
@@ -183,7 +183,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
   }
 
   /**
-   * [ERC777 INTERFACE (11/13)]
+   * [ERC1400Raw INTERFACE (11/13)]
    * @dev Transfer the amount of tokens on behalf of the address 'from' to the address 'to'.
    * @param from Token holder (or 'address(0)' to set from to 'msg.sender').
    * @param to Token recipient.
@@ -197,13 +197,13 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperator(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
     _transferWithData("", msg.sender, _from, to, value, data, operatorData, true);
   }
 
   /**
-   * [ERC777 INTERFACE (12/13)]
+   * [ERC1400Raw INTERFACE (12/13)]
    * @dev Redeem the amount of tokens from the address 'msg.sender'.
    * @param value Number of tokens to redeem.
    * @param data Information attached to the redemption, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
@@ -216,7 +216,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
   }
 
   /**
-   * [ERC777 INTERFACE (13/13)]
+   * [ERC1400Raw INTERFACE (13/13)]
    * @dev Redeem the amount of tokens on behalf of the address from.
    * @param from Token holder whose tokens will be redeemed (or address(0) to set from to msg.sender).
    * @param value Number of tokens to redeem.
@@ -229,12 +229,12 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperator(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
     _redeem("", msg.sender, _from, value, data, operatorData);
   }
 
-  /********************** ERC777 INTERNAL FUNCTIONS ***************************/
+  /********************** ERC1400Raw INTERNAL FUNCTIONS ***************************/
 
   /**
    * [INTERNAL]
@@ -266,7 +266,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
    * @param tokenHolder Address of a token holder which may have the 'operator' address as an operator.
    * @return 'true' if 'operator' is an operator of 'tokenHolder' and 'false' otherwise.
    */
-  function _isOperatorFor(address operator, address tokenHolder) internal view returns (bool) {
+  function _isOperator(address operator, address tokenHolder) internal view returns (bool) {
     return (operator == tokenHolder
       || _authorizedOperator[operator][tokenHolder]
       || (_isControllable && _isController[operator])
@@ -276,7 +276,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
    /**
     * [INTERNAL]
     * @dev Perform the transfer of tokens.
-    * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
+    * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
     * @param operator The address performing the transfer.
     * @param from Token holder.
     * @param to Token recipient.
@@ -285,7 +285,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
     * @param operatorData Information attached to the transfer by the operator (if any)..
     * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
     * implementing 'erc777tokenHolder'.
-    * ERC777 native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
+    * ERC1400Raw native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
     * functions SHOULD set this parameter to 'false'.
     */
   function _transferWithData(
@@ -318,7 +318,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
   /**
    * [INTERNAL]
    * @dev Perform the token redemption.
-   * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
+   * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator The address performing the redemption.
    * @param from Token holder whose tokens will be redeemed.
    * @param value Number of tokens to redeem.
@@ -343,9 +343,9 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
 
   /**
    * [INTERNAL]
-   * @dev Check for 'ERC777TokensSender' hook on the sender and call it.
+   * @dev Check for 'ERC1400TokensSender' hook on the sender and call it.
    * May throw according to 'preventLocking'.
-   * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
+   * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator Address which triggered the balance decrease (through transfer or redemption).
    * @param from Token holder.
    * @param to Token recipient for a transfer and 0x for a redemption.
@@ -365,18 +365,18 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
     internal
   {
     address senderImplementation;
-    senderImplementation = interfaceAddr(from, "ERC777TokensSender");
+    senderImplementation = interfaceAddr(from, "ERC1400TokensSender");
 
     if (senderImplementation != address(0)) {
-      IERC777TokensSender(senderImplementation).tokensToTransfer(partition, operator, from, to, value, data, operatorData);
+      IERC1400TokensSender(senderImplementation).tokensToTransfer(partition, operator, from, to, value, data, operatorData);
     }
   }
 
   /**
    * [INTERNAL]
-   * @dev Check for 'ERC777TokensRecipient' hook on the recipient and call it.
+   * @dev Check for 'ERC1400TokensRecipient' hook on the recipient and call it.
    * May throw according to 'preventLocking'.
-   * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
+   * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator Address which triggered the balance increase (through transfer or issuance).
    * @param from Token holder for a transfer and 0x for an issuance.
    * @param to Token recipient.
@@ -384,8 +384,8 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
    * @param data Extra information, intended for the token holder ('from').
    * @param operatorData Extra information attached by the operator (if any).
    * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
-   * implementing 'ERC777TokensRecipient'.
-   * ERC777 native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
+   * implementing 'ERC1400TokensRecipient'.
+   * ERC1400Raw native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
    * functions SHOULD set this parameter to 'false'.
    */
   function _callRecipient(
@@ -401,10 +401,10 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
     internal
   {
     address recipientImplementation;
-    recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
+    recipientImplementation = interfaceAddr(to, "ERC1400TokensRecipient");
 
     if (recipientImplementation != address(0)) {
-      IERC777TokensRecipient(recipientImplementation).tokensReceived(partition, operator, from, to, value, data, operatorData);
+      IERC1400TokensRecipient(recipientImplementation).tokensReceived(partition, operator, from, to, value, data, operatorData);
     } else if (preventLocking) {
       require(_isRegularAddress(to), "A6: Transfer Blocked - Receiver not eligible");
     }
@@ -413,7 +413,7 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
   /**
    * [INTERNAL]
    * @dev Perform the issuance of tokens.
-   * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
+   * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator Address which triggered the issuance.
    * @param to Token recipient.
    * @param value Number of tokens issued.
@@ -432,10 +432,10 @@ contract ERC777 is IERC777, Ownable, ERC1820Client, CertificateController, Reent
     emit Issued(operator, to, value, data, operatorData);
   }
 
-  /********************** ERC777 OPTIONAL FUNCTIONS ***************************/
+  /********************** ERC1400Raw OPTIONAL FUNCTIONS ***************************/
 
   /**
-   * [NOT MANDATORY FOR ERC777 STANDARD]
+   * [NOT MANDATORY FOR ERC1400Raw STANDARD]
    * @dev Set list of token controllers.
    * @param operators Controller addresses.
    */
