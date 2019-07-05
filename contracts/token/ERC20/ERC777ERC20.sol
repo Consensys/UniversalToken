@@ -24,8 +24,9 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   /**
    * @dev Modifier to verify if sender and recipient are whitelisted.
    */
-  modifier isWhitelisted(address recipient) {
-    require(_whitelisted[recipient], "A3: Transfer Blocked - Sender lockup period not ended");
+  modifier areWhitelisted(address sender, address recipient) {
+    require(_whitelisted[sender], "A5: Transfer Blocked - Sender not eligible");
+    require(_whitelisted[recipient], "A6:	Transfer Blocked - Receiver not eligible");
     _;
   }
 
@@ -163,7 +164,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    * @param value The amount to be transferred.
    * @return A boolean that indicates if the operation was successful.
    */
-  function transfer(address to, uint256 value) external isWhitelisted(to) returns (bool) {
+  function transfer(address to, uint256 value) external areWhitelisted(msg.sender, to) returns (bool) {
     _transferWithData("", msg.sender, msg.sender, to, value, "", "", false);
     return true;
   }
@@ -176,18 +177,17 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    * @param value The amount of tokens to be transferred.
    * @return A boolean that indicates if the operation was successful.
    */
-  function transferFrom(address from, address to, uint256 value) external isWhitelisted(to) returns (bool) {
-    address _from = (from == address(0)) ? msg.sender : from;
-    require( _isOperatorFor(msg.sender, _from)
-      || (value <= _allowed[_from][msg.sender]), "A7: Transfer Blocked - Identity restriction");
+  function transferFrom(address from, address to, uint256 value) external areWhitelisted(from, to) returns (bool) {
+    require( _isOperatorFor(msg.sender, from)
+      || (value <= _allowed[from][msg.sender]), "A7: Transfer Blocked - Identity restriction");
 
-    if(_allowed[_from][msg.sender] >= value) {
-      _allowed[_from][msg.sender] = _allowed[_from][msg.sender].sub(value);
+    if(_allowed[from][msg.sender] >= value) {
+      _allowed[from][msg.sender] = _allowed[from][msg.sender].sub(value);
     } else {
-      _allowed[_from][msg.sender] = 0;
+      _allowed[from][msg.sender] = 0;
     }
 
-    _transferWithData("", msg.sender, _from, to, value, "", "", false);
+    _transferWithData("", msg.sender, from, to, value, "", "", false);
     return true;
   }
 
