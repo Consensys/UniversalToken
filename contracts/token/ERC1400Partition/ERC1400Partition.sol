@@ -424,6 +424,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
    * @dev Empty function to erase ERC1400Raw redeem() function since it doesn't handle partitions.
    */
   function redeem(uint256 /*value*/, bytes calldata /*data*/) external { // Comments to avoid compilation warnings for unused variables.
+    revert("A8: Transfer Blocked - Token restriction");
   }
 
   /**
@@ -431,6 +432,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
    * @dev Empty function to erase ERC1400Raw redeemFrom() function since it doesn't handle partitions.
    */
   function redeemFrom(address /*from*/, uint256 /*value*/, bytes calldata /*data*/, bytes calldata /*operatorData*/) external { // Comments to avoid compilation warnings for unused variables.
+    revert("A8: Transfer Blocked - Token restriction");
   }
 
   /**
