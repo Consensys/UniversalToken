@@ -11,7 +11,7 @@ contract CertificateController {
   /* mapping(address => uint256) internal _checkCount; */
 
   // A nonce used to ensure a certificate can be used only once
-  mapping(bytes => bool) internal _usedCertificate;
+  mapping(bytes32 => bool) internal _usedCertificate;
 
   event Used(address sender);
 
@@ -29,7 +29,12 @@ contract CertificateController {
       "A3: Transfer Blocked - Sender lockup period not ended"
     );
 
-    _usedCertificate[data] = true; // Use certificate
+    bytes32 salt;
+    assembly {
+      salt := mload(add(data, 0x20))
+    }
+
+    _usedCertificate[salt] = true; // Use certificate
 
     emit Used(msg.sender);
     _;
@@ -45,7 +50,12 @@ contract CertificateController {
       "A3: Transfer Blocked - Sender lockup period not ended"
     );
 
-    _isUsedCertificate[data] = true; // Use certificate
+    bytes32 salt;
+    assembly {
+      salt := mload(add(data, 0x20))
+    }
+
+    _usedCertificate[salt] = true; // Use certificate
 
     emit Used(msg.sender);
     _;
@@ -53,11 +63,11 @@ contract CertificateController {
 
   /**
    * @dev Get state of certificate (used or not).
-   * @param data Certificate whose validity is being checked.
+   * @param salt First 32 bytes of certificate whose validity is being checked.
    * @return bool 'true' if certificate is already used, 'false' if not.
    */
-  function isUsedCertificate(bytes calldata data) external view returns (bool) {
-    return _usedCertificate[data];
+  function isUsedCertificate(bytes32 salt) external view returns (bool) {
+    return _usedCertificate[salt];
   }
 
   /**
@@ -149,7 +159,7 @@ contract CertificateController {
       bytes32 hash = keccak256(pack);
 
       // Check if certificate match expected transactions parameters
-      if (_certificateSigners[ecrecover(hash, v, r, s)] && !_usedCertificate[data]) {
+      if (_certificateSigners[ecrecover(hash, v, r, s)] && !_usedCertificate[salt]) {
         return true;
       }
     }
