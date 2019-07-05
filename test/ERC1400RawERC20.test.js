@@ -213,10 +213,11 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
       const to = recipient;
       beforeEach(async function () {
         await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
+        await this.token.setWhitelisted(tokenHolder, true, { from: owner });
         await this.token.setWhitelisted(to, true, { from: owner });
       });
 
-      describe('when the recipient is whitelisted', function () {
+      describe('when the sender and the recipient are whitelisted', function () {
         describe('when the amount is a multiple of the granularity', function () {
           describe('when the recipient is not the zero address', function () {
             describe('when the sender does not have enough balance', function () {
@@ -276,6 +277,14 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
           });
         });
       });
+      describe('when the sender is not whitelisted', function () {
+        const amount = initialSupply;
+
+        it('reverts', async function () {
+          await this.token.setWhitelisted(tokenHolder, false, { from: owner });
+          await shouldFail.reverting(this.token.transfer(to, amount, { from: tokenHolder }));
+        });
+      });
       describe('when the recipient is not whitelisted', function () {
         const amount = initialSupply;
 
@@ -293,6 +302,7 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
       const approvedAmount = 10000;
       beforeEach(async function () {
         await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
+        await this.token.setWhitelisted(tokenHolder, true, { from: owner });
         await this.token.setWhitelisted(to, true, { from: owner });
       });
 
@@ -308,22 +318,6 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
 
                 it('reverts', async function () {
                   await shouldFail.reverting(this.token.transferFrom(tokenHolder, to, amount, { from: operator }));
-                });
-              });
-
-              describe('when the sender has enough balance + the sender is not specified', function () {
-                const amount = 500;
-
-                it('transfers the requested amount from operator address', async function () {
-                  await this.token.setWhitelisted(operator, true, { from: owner });
-                  await this.token.transfer(operator, approvedAmount, { from: tokenHolder });
-
-                  await this.token.transferFrom(ZERO_ADDRESS, to, amount, { from: operator });
-                  const senderBalance = await this.token.balanceOf(operator);
-                  assert.equal(senderBalance, approvedAmount - amount);
-
-                  const recipientBalance = await this.token.balanceOf(to);
-                  assert.equal(recipientBalance, amount);
                 });
               });
 

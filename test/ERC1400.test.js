@@ -54,7 +54,7 @@ var totalSupply;
 var balance;
 var balanceByPartition;
 
-var tokenDefaultPartitions;
+var defaultPartitions;
 
 const assertTransferEvent = (
   _logs,
@@ -337,24 +337,6 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     });
   });
 
-  // SETDEFAULTPARTITIONS
-
-  describe('setDefaultPartitions', function () {
-    beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
-    });
-    it('sets defaults partition', async function () {
-      await this.token.setDefaultPartitions([partition1, partition2, partition3], { from: tokenHolder });
-
-      const defaultPartitions = await this.token.getDefaultPartitions(tokenHolder);
-
-      assert.equal(defaultPartitions.length, 3);
-      assert.equal(defaultPartitions[0], partition1); // dAuriel1 in hex
-      assert.equal(defaultPartitions[1], partition2); // dAuriel2 in hex
-      assert.equal(defaultPartitions[2], partition3); // dAuriel3 in hex
-    });
-  });
-
   // AUTHORIZE OPERATOR BY PARTITION
 
   describe('authorizeOperatorByPartition', function () {
@@ -554,7 +536,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     });
   });
 
-  // CONTROLLERS
+  // CONTROLLERSBYPARTITION
 
   describe('controllersByPartition', function () {
     beforeEach(async function () {
@@ -573,28 +555,28 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
   });
 
   // SET/GET TOKEN DEFAULT PARTITIONS
-  describe('tokenDefaultPartitions', function () {
+  describe('defaultPartitions', function () {
     beforeEach(async function () {
       this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
-      tokenDefaultPartitions = await this.token.getTokenDefaultPartitions();
-      assert.equal(tokenDefaultPartitions.length, 3);
-      assert.equal(tokenDefaultPartitions[0], partition1);
-      assert.equal(tokenDefaultPartitions[1], partition2);
-      assert.equal(tokenDefaultPartitions[2], partition3);
+      defaultPartitions = await this.token.getDefaultPartitions();
+      assert.equal(defaultPartitions.length, 3);
+      assert.equal(defaultPartitions[0], partition1);
+      assert.equal(defaultPartitions[1], partition2);
+      assert.equal(defaultPartitions[2], partition3);
     });
     describe('when the sender is the contract owner', function () {
       it('sets the list of token default partitions', async function () {
-        await this.token.setTokenDefaultPartitions(reversedPartitions, { from: owner });
-        tokenDefaultPartitions = await this.token.getTokenDefaultPartitions();
-        assert.equal(tokenDefaultPartitions.length, 3);
-        assert.equal(tokenDefaultPartitions[0], partition3);
-        assert.equal(tokenDefaultPartitions[1], partition1);
-        assert.equal(tokenDefaultPartitions[2], partition2);
+        await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
+        defaultPartitions = await this.token.getDefaultPartitions();
+        assert.equal(defaultPartitions.length, 3);
+        assert.equal(defaultPartitions[0], partition3);
+        assert.equal(defaultPartitions[1], partition1);
+        assert.equal(defaultPartitions[2], partition2);
       });
     });
     describe('when the sender is not the contract owner', function () {
       it('reverts', async function () {
-        await shouldFail.reverting(this.token.setTokenDefaultPartitions(reversedPartitions, { from: unknown }));
+        await shouldFail.reverting(this.token.setDefaultPartitions(reversedPartitions, { from: unknown }));
       });
     });
   });
@@ -1029,7 +1011,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
   // TRANSFERWITHDATA
 
   describe('transferWithData', function () {
-    describe('when tokenDefaultPartitions have been defined', function () {
+    describe('when defaultPartitions have been defined', function () {
       beforeEach(async function () {
         this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
         await issueOnMultiplePartitions(this.token, owner, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
@@ -1037,7 +1019,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
       describe('when the sender has enough balance for those default partitions', function () {
         describe('when the sender has defined custom default partitions', function () {
           it('transfers the requested amount', async function () {
-            await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+            await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
             await assertBalances(this.token, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
 
             await this.token.transferWithData(recipient, 2.5 * issuanceAmount, VALID_CERTIFICATE, { from: tokenHolder });
@@ -1046,7 +1028,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
             await assertBalances(this.token, recipient, partitions, [issuanceAmount, 0.5 * issuanceAmount, issuanceAmount]);
           });
           it('emits a sent event', async function () {
-            await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+            await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
             const { logs } = await this.token.transferWithData(recipient, 2.5 * issuanceAmount, VALID_CERTIFICATE, { from: tokenHolder });
 
             assert.equal(logs.length, 1 + 2 * partitions.length);
@@ -1069,12 +1051,12 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
       });
       describe('when the sender does not have enough balance for those default partitions', function () {
         it('reverts', async function () {
-          await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+          await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
           await shouldFail.reverting(this.token.transferWithData(recipient, 3.5 * issuanceAmount, VALID_CERTIFICATE, { from: tokenHolder }));
         });
       });
     });
-    describe('when tokenDefaultPartitions have not been defined', function () {
+    describe('when defaultPartitions have not been defined', function () {
       it('reverts', async function () {
         this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, []);
         await issueOnMultiplePartitions(this.token, owner, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
@@ -1097,7 +1079,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
       describe('when defaultPartitions have been defined', function () {
         describe('when the sender has enough balance for those default partitions', function () {
           it('transfers the requested amount (when sender is specified)', async function () {
-            await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+            await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
             await assertBalances(this.token, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
 
             await this.token.transferFromWithData(tokenHolder, recipient, 2.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator });
@@ -1106,7 +1088,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
             await assertBalances(this.token, recipient, partitions, [issuanceAmount, 0.5 * issuanceAmount, issuanceAmount]);
           });
           it('transfers the requested amount (when sender is not specified)', async function () {
-            await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+            await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
             await assertBalances(this.token, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
 
             await this.token.transferFromWithData(ZERO_ADDRESS, recipient, 2.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: tokenHolder });
@@ -1115,7 +1097,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
             await assertBalances(this.token, recipient, partitions, [issuanceAmount, 0.5 * issuanceAmount, issuanceAmount]);
           });
           it('emits a sent event', async function () {
-            await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+            await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
             const { logs } = await this.token.transferFromWithData(tokenHolder, recipient, 2.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator });
 
             assert.equal(logs.length, 1 + 2 * partitions.length);
@@ -1127,21 +1109,21 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
         });
         describe('when the sender does not have enough balance for those default partitions', function () {
           it('reverts', async function () {
-            await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+            await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
             await shouldFail.reverting(this.token.transferFromWithData(tokenHolder, recipient, 3.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
           });
         });
       });
       describe('when defaultPartitions have not been defined', function () {
         it('reverts', async function () {
-          await this.token.setTokenDefaultPartitions([], { from: owner });
+          await this.token.setDefaultPartitions([], { from: owner });
           await shouldFail.reverting(this.token.transferFromWithData(tokenHolder, recipient, 2.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
         });
       });
     });
     describe('when the operator is not approved', function () {
       it('reverts', async function () {
-        await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+        await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
         await shouldFail.reverting(this.token.transferFromWithData(tokenHolder, recipient, 2.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
       });
     });
@@ -1157,7 +1139,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     describe('when defaultPartitions have been defined', function () {
       describe('when the sender has enough balance for those default partitions', function () {
         it('redeeems the requested amount', async function () {
-          await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+          await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
           await assertBalances(this.token, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
 
           await this.token.redeem(2.5 * issuanceAmount, VALID_CERTIFICATE, { from: tokenHolder });
@@ -1165,7 +1147,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
           await assertBalances(this.token, tokenHolder, partitions, [0, 0.5 * issuanceAmount, 0]);
         });
         it('emits a redeemedByPartition events', async function () {
-          await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+          await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
           const { logs } = await this.token.redeem(2.5 * issuanceAmount, VALID_CERTIFICATE, { from: tokenHolder });
 
           assert.equal(logs.length, 1 + 2 * partitions.length);
@@ -1177,14 +1159,14 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
       });
       describe('when the sender does not have enough balance for those default partitions', function () {
         it('reverts', async function () {
-          await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+          await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
           await shouldFail.reverting(this.token.redeem(3.5 * issuanceAmount, VALID_CERTIFICATE, { from: tokenHolder }));
         });
       });
     });
     describe('when defaultPartitions have not been defined', function () {
       it('reverts', async function () {
-        await this.token.setTokenDefaultPartitions([], { from: owner });
+        await this.token.setDefaultPartitions([], { from: owner });
         await shouldFail.reverting(this.token.redeem(2.5 * issuanceAmount, VALID_CERTIFICATE, { from: tokenHolder }));
       });
     });
@@ -1204,7 +1186,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
       describe('when defaultPartitions have been defined', function () {
         describe('when the sender has enough balance for those default partitions', function () {
           it('redeems the requested amount (when sender is specified)', async function () {
-            await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+            await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
             await assertBalances(this.token, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
 
             await this.token.redeemFrom(tokenHolder, 2.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator });
@@ -1212,7 +1194,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
             await assertBalances(this.token, tokenHolder, partitions, [0, 0.5 * issuanceAmount, 0]);
           });
           it('redeems the requested amount (when sender is not specified)', async function () {
-            await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+            await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
             await assertBalances(this.token, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
 
             await this.token.redeemFrom(ZERO_ADDRESS, 2.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: tokenHolder });
@@ -1220,7 +1202,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
             await assertBalances(this.token, tokenHolder, partitions, [0, 0.5 * issuanceAmount, 0]);
           });
           it('emits redeemedByPartition events', async function () {
-            await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+            await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
             const { logs } = await this.token.redeemFrom(tokenHolder, 2.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator });
 
             assert.equal(logs.length, 1 + 2 * partitions.length);
@@ -1232,21 +1214,21 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
         });
         describe('when the sender does not have enough balance for those default partitions', function () {
           it('reverts', async function () {
-            await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+            await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
             await shouldFail.reverting(this.token.redeemFrom(tokenHolder, 3.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
           });
         });
       });
       describe('when defaultPartitions have not been defined', function () {
         it('reverts', async function () {
-          await this.token.setTokenDefaultPartitions([], { from: owner });
+          await this.token.setDefaultPartitions([], { from: owner });
           await shouldFail.reverting(this.token.redeemFrom(tokenHolder, 2.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
         });
       });
     });
     describe('when the operator is not approved', function () {
       it('reverts', async function () {
-        await this.token.setDefaultPartitions(reversedPartitions, { from: tokenHolder });
+        await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
         await shouldFail.reverting(this.token.redeemFrom(tokenHolder, 2.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
       });
     });

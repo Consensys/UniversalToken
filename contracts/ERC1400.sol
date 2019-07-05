@@ -53,10 +53,10 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
     uint256 granularity,
     address[] memory controllers,
     address certificateSigner,
-    bytes32[] memory tokenDefaultPartitions
+    bytes32[] memory defaultPartitions
   )
     public
-    ERC1400Partition(name, symbol, granularity, controllers, certificateSigner, tokenDefaultPartitions)
+    ERC1400Partition(name, symbol, granularity, controllers, certificateSigner, defaultPartitions)
   {
     setInterfaceImplementation("ERC1400Token", address(this));
     _isControllable = true;
@@ -371,27 +371,6 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
 
   /************* ERC1400Partition/ERC1400Raw BACKWARDS RETROCOMPATIBILITY ******************/
 
-  /**
-   * [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Get token default partitions to send from.
-   * Function used for ERC1400Raw and ERC20 backwards compatibility.
-   * For example, a security token may return the bytes32("unrestricted").
-   * @return Default partitions.
-   */
-  function getTokenDefaultPartitions() external view returns (bytes32[] memory) {
-    return _tokenDefaultPartitions;
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Set token default partitions to send from.
-   * Function used for ERC1400Raw and ERC20 backwards compatibility.
-   * @param defaultPartitions Partitions to use by default when not specified.
-   */
-  function setTokenDefaultPartitions(bytes32[] calldata defaultPartitions) external onlyOwner {
-    _tokenDefaultPartitions = defaultPartitions;
-  }
-
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC1400Partition METHOD]
@@ -443,20 +422,19 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
   )
     internal
   {
-    bytes32[] memory _partitions = _getDefaultPartitions(from);
-    require(_partitions.length != 0, "A8: Transfer Blocked - Token restriction");
+    require(_defaultPartitions.length != 0, "A8: Transfer Blocked - Token restriction");
 
     uint256 _remainingValue = value;
     uint256 _localBalance;
 
-    for (uint i = 0; i < _partitions.length; i++) {
-      _localBalance = _balanceOfByPartition[from][_partitions[i]];
+    for (uint i = 0; i < _defaultPartitions.length; i++) {
+      _localBalance = _balanceOfByPartition[from][_defaultPartitions[i]];
       if(_remainingValue <= _localBalance) {
-        _redeemByPartition(_partitions[i], operator, from, _remainingValue, data, operatorData);
+        _redeemByPartition(_defaultPartitions[i], operator, from, _remainingValue, data, operatorData);
         _remainingValue = 0;
         break;
       } else {
-        _redeemByPartition(_partitions[i], operator, from, _localBalance, data, operatorData);
+        _redeemByPartition(_defaultPartitions[i], operator, from, _localBalance, data, operatorData);
         _remainingValue = _remainingValue - _localBalance;
       }
     }
