@@ -164,8 +164,8 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
    * @param tokenHolder Address of a token holder which may have the operator address as an operator.
    * @return 'true' if operator is an operator of 'tokenHolder' and 'false' otherwise.
    */
-  function isOperatorFor(address operator, address tokenHolder) external view returns (bool) {
-    return _isOperatorFor(operator, tokenHolder);
+  function isOperator(address operator, address tokenHolder) external view returns (bool) {
+    return _isOperator(operator, tokenHolder);
   }
 
   /**
@@ -197,7 +197,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperator(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
     _transferWithData("", msg.sender, _from, to, value, data, operatorData, true);
   }
@@ -229,7 +229,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperator(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
     _redeem("", msg.sender, _from, value, data, operatorData);
   }
@@ -266,7 +266,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
    * @param tokenHolder Address of a token holder which may have the 'operator' address as an operator.
    * @return 'true' if 'operator' is an operator of 'tokenHolder' and 'false' otherwise.
    */
-  function _isOperatorFor(address operator, address tokenHolder) internal view returns (bool) {
+  function _isOperator(address operator, address tokenHolder) internal view returns (bool) {
     return (operator == tokenHolder
       || _authorizedOperator[operator][tokenHolder]
       || (_isControllable && _isController[operator])

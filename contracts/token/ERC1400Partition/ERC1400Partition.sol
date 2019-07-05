@@ -222,7 +222,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
    * @return 'true' if 'operator' is an operator of 'tokenHolder' for partition 'partition' and 'false' otherwise.
    */
    function _isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) internal view returns (bool) {
-     return (_isOperatorFor(operator, tokenHolder)
+     return (_isOperator(operator, tokenHolder)
        || _authorizedOperatorByPartition[tokenHolder][partition][operator]
        || (_isControllable && _isControllerByPartition[partition][operator])
      );
@@ -417,7 +417,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
   {
     address _from = (from == address(0)) ? msg.sender : from;
 
-    require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperator(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
     _transferByDefaultPartitions(msg.sender, _from, to, value, data, operatorData, true);
   }

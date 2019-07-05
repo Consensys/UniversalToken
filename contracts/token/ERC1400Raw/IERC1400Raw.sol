@@ -19,7 +19,7 @@ interface IERC1400Raw {
   function controllers() external view returns (address[] memory); // 6/13
   function authorizeOperator(address operator) external; // 7/13
   function revokeOperator(address operator) external; // 8/13
-  function isOperatorFor(address operator, address tokenHolder) external view returns (bool); // 9/13
+  function isOperator(address operator, address tokenHolder) external view returns (bool); // 9/13
 
   function transferWithData(address to, uint256 value, bytes calldata data) external; // 10/13
   function transferFromWithData(address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData) external; // 11/13
