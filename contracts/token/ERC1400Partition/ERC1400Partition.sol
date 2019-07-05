@@ -256,7 +256,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
 
     bytes32 toPartition = fromPartition;
 
-    if(operatorData.length != 0 && data.length != 0) {
+    if(operatorData.length != 0 && data.length >= 64) {
       toPartition = _getDestinationPartition(fromPartition, data);
     }
 
