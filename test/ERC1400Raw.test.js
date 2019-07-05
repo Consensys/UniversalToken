@@ -128,6 +128,11 @@ contract('ERC1400Raw without hooks', function ([owner, operator, controller, con
           assert.equal(logs[0].args.tokenHolder, tokenHolder);
         });
       });
+      describe('when sender authorizes himself', function () {
+        it('reverts', async function () {
+          await shouldFail.reverting(this.token.authorizeOperator(tokenHolder, { from: tokenHolder }));
+        });
+      });
     });
 
     describe('revokeOperator', function () {
@@ -148,6 +153,11 @@ contract('ERC1400Raw without hooks', function ([owner, operator, controller, con
           assert.equal(logs[0].event, 'RevokedOperator');
           assert.equal(logs[0].args.operator, controller);
           assert.equal(logs[0].args.tokenHolder, tokenHolder);
+        });
+      });
+      describe('when sender revokes himself', function () {
+        it('reverts', async function () {
+          await shouldFail.reverting(this.token.revokeOperator(tokenHolder, { from: tokenHolder }));
         });
       });
     });
