@@ -110,7 +110,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     isValidCertificate(data)
     returns (bytes32)
   {
-    return _transferByPartition(partition, msg.sender, msg.sender, to, value, data, "");
+    return _transferByPartition(partition, msg.sender, msg.sender, to, value, data, "", true);
   }
 
   /**
@@ -139,7 +139,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     address _from = (from == address(0)) ? msg.sender : from;
     require(_isOperatorForPartition(partition, msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
-    return _transferByPartition(partition, msg.sender, _from, to, value, data, operatorData);
+    return _transferByPartition(partition, msg.sender, _from, to, value, data, operatorData, true);
   }
 
   /**
@@ -238,6 +238,8 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
    * @param operatorData Information attached to the transfer, by the operator (if any).
+   * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
+   * implementing 'erc777tokenHolder'.
    * @return Destination partition.
    */
   function _transferByPartition(
@@ -247,7 +249,8 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     address to,
     uint256 value,
     bytes memory data,
-    bytes memory operatorData
+    bytes memory operatorData,
+    bool preventLocking
   )
     internal
     returns (bytes32)
@@ -261,7 +264,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     }
 
     _removeTokenFromPartition(from, fromPartition, value);
-    _transferWithData(fromPartition, operator, from, to, value, data, operatorData, true);
+    _transferWithData(fromPartition, operator, from, to, value, data, operatorData, preventLocking);
     _addTokenToPartition(to, toPartition, value);
 
     emit TransferByPartition(fromPartition, operator, from, to, value, data, operatorData);
@@ -396,7 +399,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     external
     isValidCertificate(data)
   {
-    _transferByDefaultPartitions(msg.sender, msg.sender, to, value, data, "");
+    _transferByDefaultPartitions(msg.sender, msg.sender, to, value, data, "", true);
   }
 
   /**
@@ -416,7 +419,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
 
     require(_isOperatorFor(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
 
-    _transferByDefaultPartitions(msg.sender, _from, to, value, data, operatorData);
+    _transferByDefaultPartitions(msg.sender, _from, to, value, data, operatorData, true);
   }
 
   /**
@@ -442,6 +445,8 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer, and intended for the token holder ('from') [CAN CONTAIN THE DESTINATION PARTITION].
    * @param operatorData Information attached to the transfer by the operator (if any).
+   * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
+   * implementing 'erc777tokenHolder'.
    */
   function _transferByDefaultPartitions(
     address operator,
@@ -449,7 +454,8 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     address to,
     uint256 value,
     bytes memory data,
-    bytes memory operatorData
+    bytes memory operatorData,
+    bool preventLocking
   )
     internal
   {
@@ -461,11 +467,11 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     for (uint i = 0; i < _defaultPartitions.length; i++) {
       _localBalance = _balanceOfByPartition[from][_defaultPartitions[i]];
       if(_remainingValue <= _localBalance) {
-        _transferByPartition(_defaultPartitions[i], operator, from, to, _remainingValue, data, operatorData);
+        _transferByPartition(_defaultPartitions[i], operator, from, to, _remainingValue, data, operatorData, preventLocking);
         _remainingValue = 0;
         break;
       } else {
-        _transferByPartition(_defaultPartitions[i], operator, from, to, _localBalance, data, operatorData);
+        _transferByPartition(_defaultPartitions[i], operator, from, to, _localBalance, data, operatorData, preventLocking);
         _remainingValue = _remainingValue - _localBalance;
       }
     }
