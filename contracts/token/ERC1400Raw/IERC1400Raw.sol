@@ -5,10 +5,10 @@
 pragma solidity ^0.5.0;
 
 /**
- * @title IERC777 token standard
- * @dev ERC777 interface
+ * @title IERC1400Raw token standard
+ * @dev ERC1400Raw interface
  */
-interface IERC777 {
+interface IERC1400Raw {
 
   function name() external view returns (string memory); // 1/13
   function symbol() external view returns (string memory); // 2/13
