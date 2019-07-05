@@ -6,14 +6,14 @@ pragma solidity ^0.5.0;
 
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import "../ERC777/ERC777Issuable.sol";
+import "../ERC1400Raw/ERC1400RawIssuable.sol";
 
 
 /**
- * @title ERC777ERC20
- * @dev ERC777 with ERC20 retrocompatibility
+ * @title ERC1400RawERC20
+ * @dev ERC1400Raw with ERC20 retrocompatibility
  */
-contract ERC777ERC20 is IERC20, ERC777Issuable {
+contract ERC1400RawERC20 is IERC20, ERC1400RawIssuable {
 
   // Mapping from (tokenHolder, spender) to allowed value.
   mapping (address => mapping (address => uint256)) internal _allowed;
@@ -24,14 +24,15 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   /**
    * @dev Modifier to verify if sender and recipient are whitelisted.
    */
-  modifier isWhitelisted(address recipient) {
-    require(_whitelisted[recipient], "A3: Transfer Blocked - Sender lockup period not ended");
+  modifier areWhitelisted(address sender, address recipient) {
+    require(_whitelisted[sender], "A5: Transfer Blocked - Sender not eligible");
+    require(_whitelisted[recipient], "A6:	Transfer Blocked - Receiver not eligible");
     _;
   }
 
   /**
-   * [ERC777ERC20 CONSTRUCTOR]
-   * @dev Initialize ERC777ERC20 and CertificateController parameters + register
+   * [ERC1400RawERC20 CONSTRUCTOR]
+   * @dev Initialize ERC1400RawERC20 and CertificateController parameters + register
    * the contract implementation in ERC1820Registry.
    * @param name Name of the token.
    * @param symbol Symbol of the token.
@@ -49,15 +50,15 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
     address certificateSigner
   )
     public
-    ERC777(name, symbol, granularity, controllers, certificateSigner)
+    ERC1400Raw(name, symbol, granularity, controllers, certificateSigner)
   {
     setInterfaceImplementation("ERC20Token", address(this));
   }
 
   /**
-   * [OVERRIDES ERC777 METHOD]
+   * [OVERRIDES ERC1400Raw METHOD]
    * @dev Perform the transfer of tokens.
-   * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
+   * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator The address performing the transfer.
    * @param from Token holder.
    * @param to Token recipient.
@@ -66,7 +67,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    * @param operatorData Information attached to the transfer by the operator (if any).
    * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
    * implementing 'erc777tokenHolder'.
-   * ERC777 native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
+   * ERC1400Raw native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
    * functions SHOULD set this parameter to 'false'.
    */
   function _transferWithData(
@@ -81,15 +82,15 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   )
    internal
   {
-    ERC777._transferWithData(partition, operator, from, to, value, data, operatorData, preventLocking);
+    ERC1400Raw._transferWithData(partition, operator, from, to, value, data, operatorData, preventLocking);
 
     emit Transfer(from, to, value);
   }
 
   /**
-   * [OVERRIDES ERC777 METHOD]
+   * [OVERRIDES ERC1400Raw METHOD]
    * @dev Perform the token redemption.
-   * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
+   * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator The address performing the redemption.
    * @param from Token holder whose tokens will be redeemed.
    * @param value Number of tokens to redeem.
@@ -97,15 +98,15 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    * @param operatorData Information attached to the redemption by the operator (if any).
    */
   function _redeem(bytes32 partition, address operator, address from, uint256 value, bytes memory data, bytes memory operatorData) internal {
-    ERC777._redeem(partition, operator, from, value, data, operatorData);
+    ERC1400Raw._redeem(partition, operator, from, value, data, operatorData);
 
     emit Transfer(from, address(0), value);  //  ERC20 backwards compatibility
   }
 
   /**
-   * [OVERRIDES ERC777 METHOD]
+   * [OVERRIDES ERC1400Raw METHOD]
    * @dev Perform the issuance of tokens.
-   * @param partition Name of the partition (bytes32 to be left empty for ERC777 transfer).
+   * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator Address which triggered the issuance.
    * @param to Token recipient.
    * @param value Number of tokens issued.
@@ -113,22 +114,22 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    * @param operatorData Information attached to the issued by the operator (if any).
    */
   function _issue(bytes32 partition, address operator, address to, uint256 value, bytes memory data, bytes memory operatorData) internal {
-    ERC777._issue(partition, operator, to, value, data, operatorData);
+    ERC1400Raw._issue(partition, operator, to, value, data, operatorData);
 
     emit Transfer(address(0), to, value); // ERC20 backwards compatibility
   }
 
   /**
-   * [OVERRIDES ERC777 METHOD]
+   * [OVERRIDES ERC1400Raw METHOD]
    * @dev Get the number of decimals of the token.
-   * @return The number of decimals of the token. For Backwards compatibility, decimals are forced to 18 in ERC777.
+   * @return The number of decimals of the token. For Backwards compatibility, decimals are forced to 18 in ERC1400Raw.
    */
   function decimals() external pure returns(uint8) {
     return uint8(18);
   }
 
   /**
-   * [NOT MANDATORY FOR ERC777 STANDARD]
+   * [NOT MANDATORY FOR ERC1400Raw STANDARD]
    * @dev Check the amount of tokens that an owner allowed to a spender.
    * @param owner address The address which owns the funds.
    * @param spender address The address which will spend the funds.
@@ -139,7 +140,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   }
 
   /**
-   * [NOT MANDATORY FOR ERC777 STANDARD]
+   * [NOT MANDATORY FOR ERC1400Raw STANDARD]
    * @dev Approve the passed address to spend the specified amount of tokens on behalf of 'msg.sender'.
    * Beware that changing an allowance with this method brings the risk that someone may use both the old
    * and the new allowance by unfortunate transaction ordering. One possible solution to mitigate this
@@ -150,51 +151,50 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
    * @return A boolean that indicates if the operation was successful.
    */
   function approve(address spender, uint256 value) external returns (bool) {
-    require(spender != address(0), "A6: Transfer Blocked - Receiver not eligible");
+    require(spender != address(0), "A5:	Approval Blocked - Spender not eligible");
     _allowed[msg.sender][spender] = value;
     emit Approval(msg.sender, spender, value);
     return true;
   }
 
   /**
-   * [NOT MANDATORY FOR ERC777 STANDARD]
+   * [NOT MANDATORY FOR ERC1400Raw STANDARD]
    * @dev Transfer token for a specified address.
    * @param to The address to transfer to.
    * @param value The amount to be transferred.
    * @return A boolean that indicates if the operation was successful.
    */
-  function transfer(address to, uint256 value) external isWhitelisted(to) returns (bool) {
+  function transfer(address to, uint256 value) external areWhitelisted(msg.sender, to) returns (bool) {
     _transferWithData("", msg.sender, msg.sender, to, value, "", "", false);
     return true;
   }
 
   /**
-   * [NOT MANDATORY FOR ERC777 STANDARD]
+   * [NOT MANDATORY FOR ERC1400Raw STANDARD]
    * @dev Transfer tokens from one address to another.
    * @param from The address which you want to transfer tokens from.
    * @param to The address which you want to transfer to.
    * @param value The amount of tokens to be transferred.
    * @return A boolean that indicates if the operation was successful.
    */
-  function transferFrom(address from, address to, uint256 value) external isWhitelisted(to) returns (bool) {
-    address _from = (from == address(0)) ? msg.sender : from;
-    require( _isOperatorFor(msg.sender, _from)
-      || (value <= _allowed[_from][msg.sender]), "A7: Transfer Blocked - Identity restriction");
+  function transferFrom(address from, address to, uint256 value) external areWhitelisted(from, to) returns (bool) {
+    require( _isOperator(msg.sender, from)
+      || (value <= _allowed[from][msg.sender]), "A7: Transfer Blocked - Identity restriction");
 
-    if(_allowed[_from][msg.sender] >= value) {
-      _allowed[_from][msg.sender] = _allowed[_from][msg.sender].sub(value);
+    if(_allowed[from][msg.sender] >= value) {
+      _allowed[from][msg.sender] = _allowed[from][msg.sender].sub(value);
     } else {
-      _allowed[_from][msg.sender] = 0;
+      _allowed[from][msg.sender] = 0;
     }
 
-    _transferWithData("", msg.sender, _from, to, value, "", "", false);
+    _transferWithData("", msg.sender, from, to, value, "", "", false);
     return true;
   }
 
-  /***************** ERC777ERC20 OPTIONAL FUNCTIONS ***************************/
+  /***************** ERC1400RawERC20 OPTIONAL FUNCTIONS ***************************/
 
   /**
-   * [NOT MANDATORY FOR ERC777ERC20 STANDARD]
+   * [NOT MANDATORY FOR ERC1400RawERC20 STANDARD]
    * @dev Get whitelisted status for a tokenHolder.
    * @param tokenHolder Address whom to check the whitelisted status for.
    * @return bool 'true' if tokenHolder is whitelisted, 'false' if not.
@@ -204,7 +204,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   }
 
   /**
-   * [NOT MANDATORY FOR ERC777ERC20 STANDARD]
+   * [NOT MANDATORY FOR ERC1400RawERC20 STANDARD]
    * @dev Set whitelisted status for a tokenHolder.
    * @param tokenHolder Address to add/remove from whitelist.
    * @param authorized 'true' if tokenHolder shall be added to whitelist, 'false' if not.
@@ -214,7 +214,7 @@ contract ERC777ERC20 is IERC20, ERC777Issuable {
   }
 
   /**
-   * [NOT MANDATORY FOR ERC777ERC20 STANDARD]
+   * [NOT MANDATORY FOR ERC1400RawERC20 STANDARD]
    * @dev Set whitelisted status for a tokenHolder.
    * @param tokenHolder Address to add/remove from whitelist.
    * @param authorized 'true' if tokenHolder shall be added to whitelist, 'false' if not.
