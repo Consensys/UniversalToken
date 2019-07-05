@@ -1,8 +1,8 @@
 pragma solidity ^0.5.0;
-import "../token/ERC777/ERC777Issuable.sol";
+import "../token/ERC1400Raw/ERC1400RawIssuable.sol";
 
 
-contract ERC777Mock is ERC777Issuable {
+contract ERC1400RawMock is ERC1400RawIssuable {
 
   constructor(
     string memory name,
@@ -12,7 +12,7 @@ contract ERC777Mock is ERC777Issuable {
     address certificateSigner
   )
     public
-    ERC777(name, symbol, granularity, controllers, certificateSigner)
+    ERC1400Raw(name, symbol, granularity, controllers, certificateSigner)
   {
   }
 

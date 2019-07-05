@@ -7,14 +7,14 @@ pragma solidity ^0.5.0;
 import "openzeppelin-solidity/contracts/access/roles/MinterRole.sol";
 
 import "./IERC1400.sol";
-import "./token/ERC1410/ERC1410.sol";
+import "./token/ERC1400Partition/ERC1400Partition.sol";
 
 
 /**
  * @title ERC1400
  * @dev ERC1400 logic
  */
-contract ERC1400 is IERC1400, ERC1410, MinterRole {
+contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
 
   struct Doc {
     string docURI;
@@ -56,7 +56,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     bytes32[] memory defaultPartitions
   )
     public
-    ERC1410(name, symbol, granularity, controllers, certificateSigner, defaultPartitions)
+    ERC1400Partition(name, symbol, granularity, controllers, certificateSigner, defaultPartitions)
   {
     setInterfaceImplementation("ERC1400Token", address(this));
     _isControllable = true;
@@ -250,15 +250,15 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
 
      address senderImplementation;
      address recipientImplementation;
-     senderImplementation = interfaceAddr(from, "ERC777TokensSender");
-     recipientImplementation = interfaceAddr(to, "ERC777TokensRecipient");
+     senderImplementation = interfaceAddr(from, "ERC1400TokensSender");
+     recipientImplementation = interfaceAddr(to, "ERC1400TokensRecipient");
 
      if((senderImplementation != address(0))
-       && !IERC777TokensSender(senderImplementation).canTransfer(partition, from, to, value, data, operatorData))
+       && !IERC1400TokensSender(senderImplementation).canTransfer(partition, from, to, value, data, operatorData))
        return(hex"A5", "", partition); // Transfer Blocked - Sender not eligible
 
      if((recipientImplementation != address(0))
-       && !IERC777TokensRecipient(recipientImplementation).canReceive(partition, from, to, value, data, operatorData))
+       && !IERC1400TokensRecipient(recipientImplementation).canReceive(partition, from, to, value, data, operatorData))
        return(hex"A6", "", partition); // Transfer Blocked - Receiver not eligible
 
      if(!_isMultiple(value))
@@ -369,10 +369,11 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
     _setCertificateSigner(operator, authorized);
   }
 
-  /************* ERC1410/ERC777 BACKWARDS RETROCOMPATIBILITY ******************/
+  /************* ERC1400Partition/ERC1400Raw BACKWARDS RETROCOMPATIBILITY ******************/
+
 
   /**
-   * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC1410 METHOD]
+   * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC1400Partition METHOD]
    * @dev Redeem the value of tokens from the address 'msg.sender'.
    * @param value Number of tokens to redeem.
    * @param data Information attached to the redemption, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
@@ -385,7 +386,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   }
 
   /**
-   * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC1410 METHOD]
+   * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC1400Partition METHOD]
    * @dev Redeem the value of tokens on behalf of the address 'from'.
    * @param from Token holder whose tokens will be redeemed (or 'address(0)' to set from to 'msg.sender').
    * @param value Number of tokens to redeem.
@@ -404,7 +405,7 @@ contract ERC1400 is IERC1400, ERC1410, MinterRole {
   }
 
   /**
-  * [NOT MANDATORY FOR ERC1410 STANDARD]
+  * [NOT MANDATORY FOR ERC1400Partition STANDARD]
    * @dev Redeem tokens from a default partitions.
    * @param operator The address performing the redeem.
    * @param from Token holder.

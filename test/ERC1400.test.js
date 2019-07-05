@@ -1,10 +1,10 @@
 import { shouldFail } from 'openzeppelin-test-helpers';
 
 const ERC1400 = artifacts.require('ERC1400');
-const ERC1410 = artifacts.require('ERC1410Mock');
+const ERC1400Partition = artifacts.require('ERC1400PartitionMock');
 const ERC1820Registry = artifacts.require('ERC1820Registry');
-const ERC777TokensSender = artifacts.require('ERC777TokensSenderMock');
-const ERC777TokensRecipient = artifacts.require('ERC777TokensRecipientMock');
+const ERC1400TokensSender = artifacts.require('ERC1400TokensSenderMock');
+const ERC1400TokensRecipient = artifacts.require('ERC1400TokensRecipientMock');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTE = '0x';
@@ -236,17 +236,17 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     before(async function () {
       this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
 
-      this.senderContract = await ERC777TokensSender.new('ERC777TokensSender', { from: tokenHolder });
+      this.senderContract = await ERC1400TokensSender.new('ERC1400TokensSender', { from: tokenHolder });
       await this.registry.setManager(tokenHolder, this.senderContract.address, { from: tokenHolder });
       await this.senderContract.setERC1820Implementer({ from: tokenHolder });
 
-      this.recipientContract = await ERC777TokensRecipient.new('ERC777TokensRecipient', { from: recipient });
+      this.recipientContract = await ERC1400TokensRecipient.new('ERC1400TokensRecipient', { from: recipient });
       await this.registry.setManager(recipient, this.recipientContract.address, { from: recipient });
       await this.recipientContract.setERC1820Implementer({ from: recipient });
     });
 
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1410Token', 'DAU', localGranularity, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400PartitionToken', 'DAU', localGranularity, [controller], CERTIFICATE_SIGNER, partitions);
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
     });
 
@@ -536,7 +536,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     });
   });
 
-  // CONTROLLERS
+  // CONTROLLERSBYPARTITION
 
   describe('controllersByPartition', function () {
     beforeEach(async function () {
@@ -1235,12 +1235,12 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
   });
 });
 
-contract('ERC1410', function ([owner, operator, controller, controller_alternative1, controller_alternative2, tokenHolder, recipient, unknown]) {
-  // ERC1410 - REDEEM
+contract('ERC1400Partition', function ([owner, operator, controller, controller_alternative1, controller_alternative2, tokenHolder, recipient, unknown]) {
+  // ERC1400Partition - REDEEM
 
-  describe('ERC1410 - redeem', function () {
+  describe('ERC1400Partition - redeem', function () {
     beforeEach(async function () {
-      this.token = await ERC1410.new('ERC1410Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions, tokenHolder, 1000);
+      this.token = await ERC1400Partition.new('ERC1400PartitionToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions, tokenHolder, 1000);
     });
     it('redeem function is disactivated', async function () {
       await assertBalance(this.token, tokenHolder, 1000);
@@ -1249,11 +1249,11 @@ contract('ERC1410', function ([owner, operator, controller, controller_alternati
     });
   });
 
-  // ERC1410 - REDEEMFROM
+  // ERC1400Partition - REDEEMFROM
 
-  describe('ERC1410 - redeemFrom', function () {
+  describe('ERC1400Partition - redeemFrom', function () {
     beforeEach(async function () {
-      this.token = await ERC1410.new('ERC1410Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions, tokenHolder, 1000);
+      this.token = await ERC1400Partition.new('ERC1400PartitionToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions, tokenHolder, 1000);
     });
     it('redeemFrom function is disactivated', async function () {
       await this.token.authorizeOperator(operator, { from: tokenHolder });

@@ -5,10 +5,10 @@
 pragma solidity ^0.5.0;
 
 /**
- * @title IERC1410 partially fungible token standard
- * @dev ERC1410 interface
+ * @title IERC1400Partition partially fungible token standard
+ * @dev ERC1400Partition interface
  */
-interface IERC1410 {
+interface IERC1400Partition {
 
     // Token Information
     function balanceOfByPartition(bytes32 partition, address tokenHolder) external view returns (uint256); // 1/10
