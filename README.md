@@ -10,24 +10,41 @@ Example of an asset issuance leveraging the CoFi OS technology:
 ![CoFiVideo](images/CoFiVideo.png)
 https://youtu.be/r2zvd7u5Uv0
 
-## Content - Security token implementations (ERC777 and ERC1400), adapted for financial asset tokenization
+## Content - Security token implementations, adapted for financial asset tokenization: ERC777 (ERC1400Raw) and ERC1400
 
 This repo contains security token smart contract implementations used by CoFi OS:
-#### ERC777 implementation - Advanced token standard for asset transfers
+#### ERC777 (ERC1400Raw) implementation - Advanced token standard for asset transfers
 
  - Empowerment of operators with the ability to send tokens on behalf of other addresses.
  - Setup of send/receive hooks to offer token holders more control over their tokens.
- - Use of ER820([eips.ethereum.org/EIPS/eip-820](https://eips.ethereum.org/EIPS/eip-820)) to notify contracts and regular addresses when they receive tokens.
+ - Use of ERC1820([eips.ethereum.org/EIPS/eip-1820](http://eips.ethereum.org/EIPS/eip-1820)) to notify contracts and regular addresses when they receive tokens.
  - Backwards compatible with ERC20.
+
+ WARNING - NAMING:
+ The token standard implementation contained in this repo was renamed ERC1400Raw (instead of ERC777) as it is not 100% compliant with the official ERC777 interface. Indeed, it implements the same logic as ERC777 but functions have been renamed to better fit with the ERC1400 interface:
+ - defaultOperators --> controllers
+ - isOperatorFor --> isOperator
+ - send --> transferWithData
+ - operatorSend --> transferFromWithData
+ - burn --> redeem
+ - operatorBurn --> redeemFrom
+ - mint --> issue
+ - Sent event --> TransferWithData event
+ - Minted event --> Issued event
+ - Burned event --> Redeemed event
+
+ Furthermore, the hooks have been enhanced to support partitions and become ERC1400-compliant:
+ - IERC777TokensSender --> IERC1400TokensSender
+ - IERC777TokensRecipient --> IERC1400TokensRecipient
 
 
 #### ERC1400 implementation - Partially fungible token standard
 
  - Differentiated ownership / transparent restrictions.
  - Controller operations (force transfer).
- - On-chain restriction checking with error signalling, off-chain data injection for transfer restrictions and issuance / redemption semantics.
+ - On-chain restriction checking with error signaling, off-chain data injection for transfer restrictions and issuance / redemption semantics.
  - Document management.
- - Backwards compatible with ERC20 and ERC777.
+ - Backwards compatible with ERC20.
 
 ## Objective - Financial asset issuance & management
 
@@ -66,7 +83,7 @@ The use of an additional 'data' parameter in the transfer functions can enable m
 ```
 function transferWithData(address recipient, uint256 value, bytes data)
 ```
-CoFi OS fosters to use this additional 'data' field (available in ERC777 and ERC1400 standards) to inject a certificate generated off-chain by the issuer.
+CoFi OS fosters to use this additional 'data' field, available in ERC777 (ERC1400Raw) and ERC1400 standards, in order to inject a certificate generated off-chain by the issuer.
 A token transfer shall be conditioned to the validity of the certificate, thus offering the issuer with strong control capabilities over its financial assets.
 
 ![CoFiTransaction](images/CoFiTransaction.png)
@@ -89,9 +106,9 @@ PS: Since the ERC1400 standard is agnostic about the way to control certificate,
 
 ## Detailed presentation - Standards description & implementation choices
 
-### ERC777
+### ERC777 (ERC1400Raw)
 
-The [ERC777](contracts/token/ERC777/ERC777.sol) is an advanced token standard adapted for regulated asset transfers, since it allows to inject data (i.e. our certificate) in the transfer transactions:
+The [ERC777 (ERC1400Raw)](contracts/token/ERC1400Raw/ERC1400Raw.sol) is an advanced token standard adapted for regulated asset transfers, since it allows to inject data (i.e. our certificate) in the transfer transactions:
 ```
 function transferWithData(address recipient, uint256 value, bytes data)
 ```
@@ -100,19 +117,19 @@ The official proposal can be found at: [eips.ethereum.org/EIPS/eip-777](https://
 
 We've performed a few updates compared to the official proposal, mainly to better fit with our implementation of ERC1400:
  - Introduction of the notion of 'controllers' (replacing defaultOperators) for better consistency with ERC1400 'controllers'.
- - Introduction of '_isControllable' property (set to 'false' by default for the ERC777, but set to 'true' for the ERC1400).
- - Update of IERC777TokensRecipient and IERC777TokensSender interfaces, by adding 'partition' parameters, in order to make the hooks ERC1400-compliant.
+ - Introduction of '_isControllable' property (set to 'false' by default for the ERC777 (ERC1400Raw), but set to 'true' for the ERC1400).
+ - Update of IERC777TokensRecipient and IERC777TokensSender interfaces, by adding 'partition' parameters, and renaming into IERC1400TokensRecipient and IERC1400TokensSender in order to make the hooks ERC1400-compliant.
  - Renaming of 'send' function (now 'transferWithData') and 'Sent' event (now 'TransferWithData') for better consistency with ERC1400 names + to avoid potential issues with blockchain tools (e.g. Truffle, etc.) considering 'send' as a reserved word.
  - Renaming of 'mint' function (now 'issue') and 'Minted' event (now 'Issued') for better consistency with ERC1400 names.
  - Renaming of 'burn' function (now 'redeem') and 'Burned' event (now 'Redeemed') for better consistency with ERC1400 names.
  - Renaming of 'operatorBurn' function (now 'redeemFrom') for better consistency with ERC1400 names.
 
-ERC777 can be made compatible with ERC20 (see [ERC777ERC20.sol](contracts/token/ERC20/ERC777ERC20.sol)).
+ERC777 (ERC1400Raw) can be made compatible with ERC20 (see [ERC1400RawERC20.sol](contracts/token/ERC20/ERC1400RawERC20.sol)).
 This backwards compatibility property offers interoperability, as ERC20 tokens are compatible with most existing exchange platforms.
 
-It implements the [following interface](contracts/token/ERC777/IERC777.sol):
+It implements the [following interface](contracts/token/ERC1400Raw/IERC1400Raw.sol):
 ```
-interface IERC777 {
+interface IERC1400Raw {
 
   function name() external view returns (string);
   function symbol() external view returns (string);
@@ -123,7 +140,7 @@ interface IERC777 {
   function controllers() external view returns (address[]);
   function authorizeOperator(address operator) external;
   function revokeOperator(address operator) external;
-  function isOperatorFor(address operator, address tokenHolder) external view returns (bool);
+  function isOperator(address operator, address tokenHolder) external view returns (bool);
 
   function transferWithData(address to, uint256 value, bytes data) external;
   function transferFromWithData(address from, address to, uint256 value, bytes data, bytes operatorData) external;
@@ -149,23 +166,23 @@ interface IERC777 {
 
 ### ERC1400
 
-The [ERC1400](contracts/ERC1400.sol) has an additional feature on top of ERC777 properties: the partial fungibility property.
+The [ERC1400](contracts/ERC1400.sol) has an additional feature on top of ERC777 (ERC1400Raw) properties: the partial fungibility property.
 This property allows to perform corporate actions, like mergers and acquisitions, which is essential for financial assets.
 
 The original submission with discussion can be found at: [github.com/ethereum/EIPs/issues/1411](https://github.com/ethereum/EIPs/issues/1411).
 
 We've performed a few updates compared to the original submission, mainly to fit with business requirements + to save gas cost of contract deployment:
- - Compatibility with ERC777 as all ERC777 properties are business requirements for financial asset tokenization (incl. send/receive hooks and ERC1820 which are used to ensure transfer atomicity).
+ - Compatibility with ERC777 (ERC1400Raw) as all ERC777 (ERC1400Raw) properties are business requirements for financial asset tokenization (incl. send/receive hooks and ERC1820 which are used to ensure transfer atomicity).
  - Modification of view functions ('canTransferByPartition', 'canOperatorTransferByPartition') as consequence of our certificate design choice: the view functions need to have the exact same parameters as 'transferByPartition' and 'operatorTransferByPartition' in order to be in measure to confirm the certificate's validity.
- - Removal of controller functions ('controllerTransfer' and 'controllerRedeem') and events ('ControllerTransfer' and 'ControllerRedemption') to save gas cost of contract deployment. Those controller functionnalities have been included in 'transferByPartition' and 'redeemByPartition' functions instead.
- - Split of ERC1400 functions into 2 interfaces (IERC1410 for asset transfer logic + IERC1400 for asset issuance/redemption logic) for better readability.
+ - Removal of controller functions ('controllerTransfer' and 'controllerRedeem') and events ('ControllerTransfer' and 'ControllerRedemption') to save gas cost of contract deployment. Those controller functionalities have been included in 'transferByPartition' and 'redeemByPartition' functions instead.
+ - Split of ERC1400 functions into 2 interfaces (IERC1400Partition for asset transfer logic + IERC1400 for asset issuance/redemption logic) for better readability.
 
-ERC1400 is compatible with ERC777 and can be made compatible with ERC20 (see [ERC1400ERC20.sol](contracts/token/ERC20/ERC1400ERC20.sol)).
+ERC1400 is compatible with ERC777 (ERC1400Raw) and can be made compatible with ERC20 (see [ERC1400ERC20.sol](contracts/token/ERC20/ERC1400ERC20.sol)).
 This backwards compatibility property offers interoperability, as ERC20 tokens are compatible with most existing exchange platforms.
 
-The standard implements the following interfaces: [IERC1410](contracts/token/ERC1410/IERC1410.sol) + [IERC1400](contracts/IERC1400.sol):
+The standard implements the following interfaces: [IERC1400Partition](contracts/token/ERC1400Partition/IERC1400Partition.sol) + [IERC1400](contracts/IERC1400.sol):
 ```
-interface IERC1410 {
+interface IERC1400Partition {
 
     // Token Information
     function balanceOfByPartition(bytes32 partition, address tokenHolder) external view returns (uint256);

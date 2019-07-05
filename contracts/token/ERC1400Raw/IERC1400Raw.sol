@@ -5,10 +5,10 @@
 pragma solidity ^0.5.0;
 
 /**
- * @title IERC777 token standard
- * @dev ERC777 interface
+ * @title IERC1400Raw token standard
+ * @dev ERC1400Raw interface
  */
-interface IERC777 {
+interface IERC1400Raw {
 
   function name() external view returns (string memory); // 1/13
   function symbol() external view returns (string memory); // 2/13
@@ -19,7 +19,7 @@ interface IERC777 {
   function controllers() external view returns (address[] memory); // 6/13
   function authorizeOperator(address operator) external; // 7/13
   function revokeOperator(address operator) external; // 8/13
-  function isOperatorFor(address operator, address tokenHolder) external view returns (bool); // 9/13
+  function isOperator(address operator, address tokenHolder) external view returns (bool); // 9/13
 
   function transferWithData(address to, uint256 value, bytes calldata data) external; // 10/13
   function transferFromWithData(address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData) external; // 11/13

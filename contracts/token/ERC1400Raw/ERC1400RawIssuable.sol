@@ -1,17 +1,17 @@
 pragma solidity ^0.5.0;
 
-import "./ERC777.sol";
+import "./ERC1400Raw.sol";
 import "openzeppelin-solidity/contracts/access/roles/MinterRole.sol";
 
 
 /**
- * @title ERC777Issuable
- * @dev ERC777 issuance logic
+ * @title ERC1400RawIssuable
+ * @dev ERC1400Raw issuance logic
  */
-contract ERC777Issuable is ERC777, MinterRole {
+contract ERC1400RawIssuable is ERC1400Raw, MinterRole {
 
   /**
-   * [NOT MANDATORY FOR ERC777 STANDARD]
+   * [NOT MANDATORY FOR ERC1400Raw STANDARD]
    * @dev Issue the amout of tokens for the recipient 'to'.
    * @param to Token recipient.
    * @param value Number of tokens issued.
