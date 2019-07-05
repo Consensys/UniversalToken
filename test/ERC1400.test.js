@@ -831,7 +831,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     describe('when the sender is an operator for this partition', function () {
       describe('when the sender has enough balance for this partition', function () {
         describe('when partition does not change', function () {
-          it('transfers the requested amount (when sender is specified)', async function () {
+          it('transfers the requested amount', async function () {
             await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount);
             await assertBalanceOf(this.token, recipient, partition1, 0);
 
@@ -841,16 +841,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
             await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
             await assertBalanceOf(this.token, recipient, partition1, transferAmount);
           });
-          it('transfers the requested amount (when sender is not specified)', async function () {
-            await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount);
-            await assertBalanceOf(this.token, recipient, partition1, 0);
-
-            await this.token.operatorTransferByPartition(partition1, ZERO_ADDRESS, recipient, transferAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: tokenHolder });
-
-            await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
-            await assertBalanceOf(this.token, recipient, partition1, transferAmount);
-          });
-          it('transfers the requested amount with attached data (without changePartition flage)', async function () {
+          it('transfers the requested amount with attached data (without changePartition flag)', async function () {
             await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount);
             await assertBalanceOf(this.token, recipient, partition1, 0);
 
@@ -880,24 +871,13 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
             await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
             await assertBalanceOf(this.token, recipient, partition2, transferAmount);
           });
-          it('converts the requested amount (when sender is specified)', async function () {
+          it('converts the requested amount', async function () {
             await assertBalance(this.token, tokenHolder, issuanceAmount);
             await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount);
             await assertBalanceOfByPartition(this.token, tokenHolder, partition2, 0);
 
             await this.token.authorizeOperatorByPartition(partition1, operator, { from: tokenHolder });
             await this.token.operatorTransferByPartition(partition1, tokenHolder, tokenHolder, transferAmount, changeToPartition2, VALID_CERTIFICATE, { from: operator });
-
-            await assertBalance(this.token, tokenHolder, issuanceAmount);
-            await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
-            await assertBalanceOfByPartition(this.token, tokenHolder, partition2, transferAmount);
-          });
-          it('converts the requested amount (when sender is not specified)', async function () {
-            await assertBalance(this.token, tokenHolder, issuanceAmount);
-            await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount);
-            await assertBalanceOfByPartition(this.token, tokenHolder, partition2, 0);
-
-            await this.token.operatorTransferByPartition(partition1, ZERO_ADDRESS, tokenHolder, transferAmount, changeToPartition2, VALID_CERTIFICATE, { from: tokenHolder });
 
             await assertBalance(this.token, tokenHolder, issuanceAmount);
             await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
@@ -1080,20 +1060,11 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
       });
       describe('when defaultPartitions have been defined', function () {
         describe('when the sender has enough balance for those default partitions', function () {
-          it('transfers the requested amount (when sender is specified)', async function () {
+          it('transfers the requested amount', async function () {
             await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
             await assertBalances(this.token, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
 
             await this.token.transferFromWithData(tokenHolder, recipient, 2.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator });
-
-            await assertBalances(this.token, tokenHolder, partitions, [0, 0.5 * issuanceAmount, 0]);
-            await assertBalances(this.token, recipient, partitions, [issuanceAmount, 0.5 * issuanceAmount, issuanceAmount]);
-          });
-          it('transfers the requested amount (when sender is not specified)', async function () {
-            await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
-            await assertBalances(this.token, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
-
-            await this.token.transferFromWithData(ZERO_ADDRESS, recipient, 2.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: tokenHolder });
 
             await assertBalances(this.token, tokenHolder, partitions, [0, 0.5 * issuanceAmount, 0]);
             await assertBalances(this.token, recipient, partitions, [issuanceAmount, 0.5 * issuanceAmount, issuanceAmount]);
@@ -1187,19 +1158,11 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
       });
       describe('when defaultPartitions have been defined', function () {
         describe('when the sender has enough balance for those default partitions', function () {
-          it('redeems the requested amount (when sender is specified)', async function () {
+          it('redeems the requested amount', async function () {
             await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
             await assertBalances(this.token, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
 
             await this.token.redeemFrom(tokenHolder, 2.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator });
-
-            await assertBalances(this.token, tokenHolder, partitions, [0, 0.5 * issuanceAmount, 0]);
-          });
-          it('redeems the requested amount (when sender is not specified)', async function () {
-            await this.token.setDefaultPartitions(reversedPartitions, { from: owner });
-            await assertBalances(this.token, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
-
-            await this.token.redeemFrom(ZERO_ADDRESS, 2.5 * issuanceAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: tokenHolder });
 
             await assertBalances(this.token, tokenHolder, partitions, [0, 0.5 * issuanceAmount, 0]);
           });

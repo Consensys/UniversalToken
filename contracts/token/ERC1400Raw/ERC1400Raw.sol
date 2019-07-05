@@ -195,11 +195,9 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     external
     isValidCertificate(operatorData)
   {
-    address _from = (from == address(0)) ? msg.sender : from;
+    require(_isOperator(msg.sender, from), "A7: Transfer Blocked - Identity restriction");
 
-    require(_isOperator(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
-
-    _transferWithData("", msg.sender, _from, to, value, data, operatorData, true);
+    _transferWithData("", msg.sender, from, to, value, data, operatorData, true);
   }
 
   /**
@@ -227,11 +225,9 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     external
     isValidCertificate(operatorData)
   {
-    address _from = (from == address(0)) ? msg.sender : from;
+    require(_isOperator(msg.sender, from), "A7: Transfer Blocked - Identity restriction");
 
-    require(_isOperator(msg.sender, _from), "A7: Transfer Blocked - Identity restriction");
-
-    _redeem("", msg.sender, _from, value, data, operatorData);
+    _redeem("", msg.sender, from, value, data, operatorData);
   }
 
   /********************** ERC1400Raw INTERNAL FUNCTIONS ***************************/

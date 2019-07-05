@@ -347,20 +347,6 @@ contract('ERC1400Raw without hooks', function ([owner, operator, controller, con
         });
         describe('when the amount is a multiple of the granularity', function () {
           describe('when the recipient is not the zero address', function () {
-            describe('when the sender has enough balance + the sender is not specified', function () {
-              const amount = initialSupply;
-
-              it('transfers the requested amount from operator address', async function () {
-                await this.token.transferWithData(operator, amount, VALID_CERTIFICATE, { from: tokenHolder });
-
-                await this.token.transferFromWithData(ZERO_ADDRESS, to, amount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator });
-                const senderBalance = await this.token.balanceOf(operator);
-                assert.equal(senderBalance, initialSupply - amount);
-
-                const recipientBalance = await this.token.balanceOf(to);
-                assert.equal(recipientBalance, amount);
-              });
-            });
 
             describe('when the sender has enough balance', function () {
               const amount = initialSupply;
@@ -492,18 +478,6 @@ contract('ERC1400Raw without hooks', function ([owner, operator, controller, con
 
             it('reverts', async function () {
               await shouldFail.reverting(this.token.redeemFrom(tokenHolder, amount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
-            });
-          });
-
-          describe('when the redeemer has enough balance + the redeemer is not specified', function () {
-            const amount = initialSupply;
-
-            it('redeems the requested amount from operator address', async function () {
-              await this.token.transferWithData(operator, amount, VALID_CERTIFICATE, { from: tokenHolder });
-
-              await this.token.redeemFrom(ZERO_ADDRESS, amount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator });
-              const senderBalance = await this.token.balanceOf(operator);
-              assert.equal(senderBalance, initialSupply - amount);
             });
           });
 
