@@ -305,7 +305,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
       _totalPartitions.length -= 1;
       _indexOfTotalPartitions[partition] = 0;
     }
-    
+
     // If the balance of the TokenHolder's partition is zero, finds and deletes the partition.
     if(_balanceOfByPartition[from][partition] == 0) {
       uint256 index = _indexOfPartitionsOf[from][partition];
@@ -371,7 +371,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     }
   }
 
-  /********************* ERC1410 OPTIONAL FUNCTIONS ***************************/
+  /********************* ERC1400Partition OPTIONAL FUNCTIONS ***************************/
 
   /**
    * [NOT MANDATORY FOR ERC1400Partition STANDARD]

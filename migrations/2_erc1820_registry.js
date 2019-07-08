@@ -10,7 +10,7 @@ module.exports = async function (deployer, network, accounts) {
   web3.eth.sendSignedTransaction(rawTx).then((res) => {
     console.log('\n   > ERC1820 deployment: Success -->', res.contractAddress);
   }).catch((err) => {
-    if (err.message.search('the tx doesn\'t have the correct nonce') >= 0) {
+    if (err.message.search(/the tx doesn\'t have the correct nonce|nonce is too low/g) >= 0) {
       console.log('\n   > ERC1820 deployment: Invalid nonce, probably already deployed');
     } else {
       console.log('\n   > ERC1820 deployment: Unknown error', err);

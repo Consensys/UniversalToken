@@ -10,6 +10,11 @@ Example of an asset issuance leveraging the CoFi OS technology:
 ![CoFiVideo](images/CoFiVideo.png)
 https://youtu.be/r2zvd7u5Uv0
 
+
+Slide deck presenting ERC1400 features:
+![ERC1400](images/ERC1400.png)
+https://docs.google.com/presentation/d/e/2PACX-1vS6pUx-VjdwSfELQwFVlXzq3Ekvxa9wpGTrNJqkp6-CnHxBPecjTEcVq21V6Nsbc-Bp4yq4dZTtp6Kn/pub?start=false&loop=false&delayms=3000
+
 ## Content - Security token implementations, adapted for financial asset tokenization: ERC777 (ERC1400Raw) and ERC1400
 
 This repo contains security token smart contract implementations used by CoFi OS:
