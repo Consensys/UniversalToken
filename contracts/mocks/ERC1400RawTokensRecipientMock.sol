@@ -39,7 +39,7 @@ contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implement
   ) // Comments to avoid compilation warnings for unused variables.
     external
   {
-    require(_canReceive(from, to, value, data), "A6: Transfer Blocked - Receiver not eligible");
+    require(_canReceive(from, to, value, data), "A6"); // Transfer Blocked - Receiver not eligible
   }
 
   function _canReceive(

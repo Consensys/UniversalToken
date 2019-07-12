@@ -142,7 +142,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     isValidCertificate(operatorData)
     returns (bytes32)
   {
-    require(_isOperatorForPartition(partition, msg.sender, from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperatorForPartition(partition, msg.sender, from), "A7"); // Transfer Blocked - Identity restriction
 
     return _transferByPartition(partition, msg.sender, from, to, value, data, operatorData, true);
   }
@@ -260,7 +260,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     internal
     returns (bytes32)
   {
-    require(_balanceOfByPartition[from][fromPartition] >= value, "A4: Transfer Blocked - Sender balance insufficient"); // ensure enough funds
+    require(_balanceOfByPartition[from][fromPartition] >= value, "A4"); // Transfer Blocked - Sender balance insufficient
 
     bytes32 toPartition = fromPartition;
 
@@ -295,7 +295,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     // If the total supply is zero, finds and deletes the partition.
     if(_totalSupplyByPartition[partition] == 0) {
       uint256 index1 = _indexOfTotalPartitions[partition];
-      require(index1 > 0);
+      require(index1 > 0, "A8"); // Transfer Blocked - Token restriction
 
       // move the last item into the index being vacated
       bytes32 lastValue = _totalPartitions[_totalPartitions.length - 1];
@@ -309,7 +309,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     // If the balance of the TokenHolder's partition is zero, finds and deletes the partition.
     if(_balanceOfByPartition[from][partition] == 0) {
       uint256 index2 = _indexOfPartitionsOf[from][partition];
-      require(index2 > 0);
+      require(index2 > 0, "A8"); // Transfer Blocked - Token restriction
 
       // move the last item into the index being vacated
       bytes32 lastValue = _partitionsOf[from][_partitionsOf[from].length - 1];
@@ -427,7 +427,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     external
     isValidCertificate(operatorData)
   {
-    require(_isOperator(msg.sender, from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperator(msg.sender, from), "A7"); // Transfer Blocked - Identity restriction
 
     _transferByDefaultPartitions(msg.sender, from, to, value, data, operatorData, true);
   }
@@ -471,7 +471,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
   )
     internal
   {
-    require(_defaultPartitions.length != 0, "A8: Transfer Blocked - Token restriction");
+    require(_defaultPartitions.length != 0, "A8"); // Transfer Blocked - Token restriction
 
     uint256 _remainingValue = value;
     uint256 _localBalance;
@@ -488,6 +488,6 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
       }
     }
 
-    require(_remainingValue == 0, "A8: Transfer Blocked - Token restriction");
+    require(_remainingValue == 0, "A8"); // Transfer Blocked - Token restriction
   }
 }

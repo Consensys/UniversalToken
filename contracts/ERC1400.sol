@@ -31,7 +31,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
    * @dev Modifier to verify if token is issuable.
    */
   modifier issuableToken() {
-    require(_isIssuable, "A8, Transfer Blocked - Token restriction");
+    require(_isIssuable, "A8"); // Transfer Blocked - Token restriction
     _;
   }
 
@@ -72,7 +72,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
    * @return Requested document + document hash.
    */
   function getDocument(bytes32 name) external view returns (string memory, bytes32) {
-    require(bytes(_documents[name].docURI).length != 0, "Action Blocked - Empty document");
+    require(bytes(_documents[name].docURI).length != 0); // Action Blocked - Empty document
     return (
       _documents[name].docURI,
       _documents[name].docHash
@@ -157,7 +157,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
     external
     isValidCertificate(operatorData)
   {
-    require(_isOperatorForPartition(partition, msg.sender, tokenHolder), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperatorForPartition(partition, msg.sender, tokenHolder), "A7"); // Transfer Blocked - Identity restriction
 
     _redeemByPartition(partition, msg.sender, tokenHolder, value, data, operatorData);
   }
@@ -311,7 +311,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
   )
     internal
   {
-    require(_balanceOfByPartition[from][fromPartition] >= value, "A4: Transfer Blocked - Sender balance insufficient");
+    require(_balanceOfByPartition[from][fromPartition] >= value, "A4"); // Transfer Blocked - Sender balance insufficient
 
     _removeTokenFromPartition(from, fromPartition, value);
     _redeem(fromPartition, operator, from, value, data, operatorData);
@@ -395,7 +395,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
     external
     isValidCertificate(operatorData)
   {
-    require(_isOperator(msg.sender, from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperator(msg.sender, from), "A7"); // Transfer Blocked - Identity restriction
 
     _redeemByDefaultPartitions(msg.sender, from, value, data, operatorData);
   }
@@ -418,7 +418,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
   )
     internal
   {
-    require(_defaultPartitions.length != 0, "A8: Transfer Blocked - Token restriction");
+    require(_defaultPartitions.length != 0, "A8"); // Transfer Blocked - Token restriction
 
     uint256 _remainingValue = value;
     uint256 _localBalance;
@@ -435,7 +435,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
       }
     }
 
-    require(_remainingValue == 0, "A8: Transfer Blocked - Token restriction");
+    require(_remainingValue == 0, "A8"); // Transfer Blocked - Token restriction
   }
 
 }

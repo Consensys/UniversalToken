@@ -25,8 +25,8 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @dev Modifier to verify if sender and recipient are whitelisted.
    */
   modifier areWhitelisted(address sender, address recipient) {
-    require(_whitelisted[sender], "A5: Transfer Blocked - Sender not eligible");
-    require(_whitelisted[recipient], "A6:	Transfer Blocked - Receiver not eligible");
+    require(_whitelisted[sender], "A5"); // Transfer Blocked - Sender not eligible
+    require(_whitelisted[recipient], "A6"); // Transfer Blocked - Receiver not eligible
     _;
   }
 
@@ -152,7 +152,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @return A boolean that indicates if the operation was successful.
    */
   function approve(address spender, uint256 value) external returns (bool) {
-    require(spender != address(0), "A5: Transfer Blocked - Sender not eligible");
+    require(spender != address(0), "A5"); // Transfer Blocked - Sender not eligible
     _allowed[msg.sender][spender] = value;
     emit Approval(msg.sender, spender, value);
     return true;
@@ -180,7 +180,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    */
   function transferFrom(address from, address to, uint256 value) external areWhitelisted(from, to) returns (bool) {
     require( _isOperator(msg.sender, from)
-      || (value <= _allowed[from][msg.sender]), "A7: Transfer Blocked - Identity restriction");
+      || (value <= _allowed[from][msg.sender]), "A7"); // Transfer Blocked - Identity restriction
 
     if(_allowed[from][msg.sender] >= value) {
       _allowed[from][msg.sender] = _allowed[from][msg.sender].sub(value);
@@ -221,7 +221,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @param authorized 'true' if tokenHolder shall be added to whitelist, 'false' if not.
    */
   function _setWhitelisted(address tokenHolder, bool authorized) internal {
-    require(tokenHolder != address(0), "Action Blocked - Not a valid address");
+    require(tokenHolder != address(0)); // Action Blocked - Not a valid address
     _whitelisted[tokenHolder] = authorized;
   }
 

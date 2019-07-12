@@ -39,7 +39,7 @@ contract ERC1400TokensSenderMock is IERC1400TokensSender, ERC1820ImplementerMock
   ) // Comments to avoid compilation warnings for unused variables.
     external
   {
-    require(_canTransfer(from, to, value, data), "A5:	Transfer Blocked - Sender not eligible");
+    require(_canTransfer(from, to, value, data), "A5"); // Transfer Blocked - Sender not eligible
   }
 
   function _canTransfer(

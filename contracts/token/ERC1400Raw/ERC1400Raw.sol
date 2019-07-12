@@ -70,7 +70,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     _name = name;
     _symbol = symbol;
     _totalSupply = 0;
-    require(granularity >= 1, "Constructor Blocked - Token granularity can not be lower than 1");
+    require(granularity >= 1); // Constructor Blocked - Token granularity can not be lower than 1
     _granularity = granularity;
 
     _setControllers(controllers);
@@ -195,7 +195,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     external
     isValidCertificate(operatorData)
   {
-    require(_isOperator(msg.sender, from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperator(msg.sender, from), "A7"); // Transfer Blocked - Identity restriction
 
     _transferWithData("", msg.sender, from, to, value, data, operatorData, true);
   }
@@ -225,7 +225,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     external
     isValidCertificate(operatorData)
   {
-    require(_isOperator(msg.sender, from), "A7: Transfer Blocked - Identity restriction");
+    require(_isOperator(msg.sender, from), "A7"); // Transfer Blocked - Identity restriction
 
     _redeem("", msg.sender, from, value, data, operatorData);
   }
@@ -297,9 +297,9 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     internal
     nonReentrant
   {
-    require(_isMultiple(value), "A9: Transfer Blocked - Token granularity");
-    require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");
-    require(_balances[from] >= value, "A4: Transfer Blocked - Sender balance insufficient");
+    require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
+    require(to != address(0), "A6"); // Transfer Blocked - Receiver not eligible
+    require(_balances[from] >= value, "A4"); // Transfer Blocked - Sender balance insufficient
 
     _callSender(partition, operator, from, to, value, data, operatorData);
 
@@ -325,9 +325,9 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     internal
     nonReentrant
   {
-    require(_isMultiple(value), "A9: Transfer Blocked - Token granularity");
-    require(from != address(0), "A5: Transfer Blocked - Sender not eligible");
-    require(_balances[from] >= value, "A4: Transfer Blocked - Sender balance insufficient");
+    require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
+    require(from != address(0), "A5"); // Transfer Blocked - Sender not eligible
+    require(_balances[from] >= value, "A4"); // Transfer Blocked - Sender balance insufficient
 
     _callSender(partition, operator, from, address(0), value, data, operatorData);
 
@@ -402,7 +402,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     if (recipientImplementation != address(0)) {
       IERC1400TokensRecipient(recipientImplementation).tokensReceived(partition, operator, from, to, value, data, operatorData);
     } else if (preventLocking) {
-      require(_isRegularAddress(to), "A6: Transfer Blocked - Receiver not eligible");
+      require(_isRegularAddress(to), "A6"); // Transfer Blocked - Receiver not eligible
     }
   }
 
@@ -417,8 +417,8 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
    * @param operatorData Information attached to the issuance by the operator (if any).
    */
   function _issue(bytes32 partition, address operator, address to, uint256 value, bytes memory data, bytes memory operatorData) internal nonReentrant {
-    require(_isMultiple(value), "A9: Transfer Blocked - Token granularity");
-    require(to != address(0), "A6: Transfer Blocked - Receiver not eligible");
+    require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
+    require(to != address(0), "A6"); // Transfer Blocked - Receiver not eligible
 
     _totalSupply = _totalSupply.add(value);
     _balances[to] = _balances[to].add(value);
