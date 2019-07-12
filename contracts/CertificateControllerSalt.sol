@@ -24,10 +24,7 @@ contract CertificateController {
    */
   modifier isValidCertificate(bytes memory data) {
 
-    require(
-      _certificateSigners[msg.sender] || _checkCertificate(data, 0, 0x00000000),
-      "A3: Transfer Blocked - Sender lockup period not ended"
-    );
+    require(_certificateSigners[msg.sender] || _checkCertificate(data, 0, 0x00000000), "A3"); // Transfer Blocked - Sender lockup period not ended
 
     bytes32 salt;
     assembly {
@@ -45,10 +42,7 @@ contract CertificateController {
    */
   /* modifier isValidPayableCertificate(bytes memory data) {
 
-    require(
-      _certificateSigners[msg.sender] || _checkCertificate(data, msg.value, 0x00000000),
-      "A3: Transfer Blocked - Sender lockup period not ended"
-    );
+    require(_certificateSigners[msg.sender] || _checkCertificate(data, msg.value, 0x00000000), "A3"); // Transfer Blocked - Sender lockup period not ended
 
     bytes32 salt;
     assembly {
@@ -76,7 +70,7 @@ contract CertificateController {
    * @param authorized 'true' if operator shall be accepted as certificate signer, 'false' if not.
    */
   function _setCertificateSigner(address operator, bool authorized) internal {
-    require(operator != address(0), "Action Blocked - Not a valid address");
+    require(operator != address(0)); // Action Blocked - Not a valid address
     _certificateSigners[operator] = authorized;
   }
 
