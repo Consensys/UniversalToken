@@ -22,7 +22,7 @@ contract('CertificateController', ([owner, operator, controller, unknown]) => {
       it('reverts', async function () {
         await shouldFail.reverting.withMessage(
           CertificateController.new(ZERO_ADDRESS),
-          'Action Blocked - Not a valid address'
+          '' // Action Blocked - Not a valid address
         );
       });
     });
@@ -53,13 +53,13 @@ contract('CertificateController', ([owner, operator, controller, unknown]) => {
         it('reverts', async function () {
           await shouldFail.reverting.withMessage(
             this.controllerMock.setCertificateSigner(ZERO_ADDRESS, true, { from: owner }),
-            'Action Blocked - Not a valid address'
+            '' // Action Blocked - Not a valid address
           );
         });
         it('reverts', async function () {
           await shouldFail.reverting.withMessage(
             this.controllerMock.setCertificateSigner(ZERO_ADDRESS, false, { from: owner }),
-            'Action Blocked - Not a valid address'
+            '' // Action Blocked - Not a valid address
           );
         });
       });
