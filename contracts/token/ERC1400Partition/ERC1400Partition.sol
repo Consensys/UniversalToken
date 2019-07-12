@@ -294,13 +294,13 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
 
     // If the total supply is zero, finds and deletes the partition.
     if(_totalSupplyByPartition[partition] == 0) {
-      uint256 index = _indexOfTotalPartitions[partition];
-      require(index > 0);
+      uint256 index1 = _indexOfTotalPartitions[partition];
+      require(index1 > 0);
 
       // move the last item into the index being vacated
       bytes32 lastValue = _totalPartitions[_totalPartitions.length - 1];
-      _totalPartitions[index - 1] = lastValue; // adjust for 1-based indexing
-      _indexOfTotalPartitions[lastValue] = index;
+      _totalPartitions[index1 - 1] = lastValue; // adjust for 1-based indexing
+      _indexOfTotalPartitions[lastValue] = index1;
 
       _totalPartitions.length -= 1;
       _indexOfTotalPartitions[partition] = 0;
@@ -308,13 +308,13 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
 
     // If the balance of the TokenHolder's partition is zero, finds and deletes the partition.
     if(_balanceOfByPartition[from][partition] == 0) {
-      uint256 index = _indexOfPartitionsOf[from][partition];
-      require(index > 0);
+      uint256 index2 = _indexOfPartitionsOf[from][partition];
+      require(index2 > 0);
 
       // move the last item into the index being vacated
       bytes32 lastValue = _partitionsOf[from][_partitionsOf[from].length - 1];
-      _partitionsOf[from][index - 1] = lastValue;  // adjust for 1-based indexing
-      _indexOfPartitionsOf[from][lastValue] = index;
+      _partitionsOf[from][index2 - 1] = lastValue;  // adjust for 1-based indexing
+      _indexOfPartitionsOf[from][lastValue] = index2;
 
       _partitionsOf[from].length -= 1;
       _indexOfPartitionsOf[from][partition] = 0;
@@ -482,7 +482,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
         _transferByPartition(_defaultPartitions[i], operator, from, to, _remainingValue, data, operatorData, preventLocking);
         _remainingValue = 0;
         break;
-      } else {
+      } else if (_localBalance != 0) {
         _transferByPartition(_defaultPartitions[i], operator, from, to, _localBalance, data, operatorData, preventLocking);
         _remainingValue = _remainingValue - _localBalance;
       }

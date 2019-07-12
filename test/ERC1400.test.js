@@ -799,23 +799,31 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     });
 
     describe('when the sender has enough balance for this partition', function () {
-      it('transfers the requested amount', async function () {
-        await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount);
-        await assertBalanceOf(this.token, recipient, partition1, 0);
+      describe('when the transfer amount is not equal to 0', function () {
+        it('transfers the requested amount', async function () {
+          await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount);
+          await assertBalanceOf(this.token, recipient, partition1, 0);
 
-        await this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder });
-        await this.token.transferByPartition(partition1, recipient, 0, VALID_CERTIFICATE, { from: tokenHolder });
+          await this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder });
+          await this.token.transferByPartition(partition1, recipient, 0, VALID_CERTIFICATE, { from: tokenHolder });
 
-        await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
-        await assertBalanceOf(this.token, recipient, partition1, transferAmount);
+          await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
+          await assertBalanceOf(this.token, recipient, partition1, transferAmount);
+        });
+        it('emits a TransferByPartition event', async function () {
+          const { logs } = await this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder });
+
+          assert.equal(logs.length, 3);
+
+          assertTransferEvent(logs, partition1, tokenHolder, tokenHolder, recipient, transferAmount, VALID_CERTIFICATE, null);
+        });
       });
-      it('emits a TransferByPartition event', async function () {
-        const { logs } = await this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder });
-
-        assert.equal(logs.length, 3);
-
-        assertTransferEvent(logs, partition1, tokenHolder, tokenHolder, recipient, transferAmount, VALID_CERTIFICATE, null);
+      describe('when the transfer amount is equal to 0', function () {
+        it('reverts', async function () {
+          await shouldFail.reverting(this.token.transferByPartition(partition2, recipient, 0, VALID_CERTIFICATE, { from: tokenHolder }));
+        });
       });
+
     });
     describe('when the sender does not have enough balance for this partition', function () {
       it('reverts', async function () {
@@ -1050,6 +1058,35 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
         await issueOnMultiplePartitions(this.token, owner, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
         await shouldFail.reverting(this.token.transferWithData(recipient, 2.5 * issuanceAmount, VALID_CERTIFICATE, { from: tokenHolder }));
       });
+    });
+  });
+
+  // TRANSFERBYDEFAULTPARTITION
+
+  describe('_transferByDefaultPartitions', function () {
+    beforeEach(async function () {
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+    });
+    describe('when the sender has enough balance for those default partitions', function () {
+      it('transfers the requested amount (scenario1)', async function () {
+        await this.token.issueByPartition(partitions[0], tokenHolder, 2*issuanceAmount, VALID_CERTIFICATE, { from: owner });
+        await this.token.issueByPartition(partitions[2], tokenHolder, 2*issuanceAmount, VALID_CERTIFICATE, { from: owner });
+        await this.token.setDefaultPartitions(partitions, { from: owner });
+        await assertBalances(this.token, tokenHolder, partitions, [2*issuanceAmount, 0, 2*issuanceAmount]);
+        await this.token.transferWithData(recipient, 2.5 * issuanceAmount, VALID_CERTIFICATE, { from: tokenHolder });
+        await assertBalances(this.token, tokenHolder, partitions, [0, 0, 1.5*issuanceAmount]);
+        await assertBalances(this.token, recipient, partitions, [2*issuanceAmount, 0, 0.5*issuanceAmount]);
+      });
+      it('transfers the requested amount (scenario2)', async function () {
+        await this.token.issueByPartition(partitions[0], tokenHolder, 2*issuanceAmount, VALID_CERTIFICATE, { from: owner });
+        await this.token.issueByPartition(partitions[1], tokenHolder, 2*issuanceAmount, VALID_CERTIFICATE, { from: owner });
+        await this.token.setDefaultPartitions(partitions, { from: owner });
+        await assertBalances(this.token, tokenHolder, partitions, [2*issuanceAmount, 2*issuanceAmount, 0]);
+        await this.token.transferWithData(recipient, 2.5 * issuanceAmount, VALID_CERTIFICATE, { from: tokenHolder });
+        await assertBalances(this.token, tokenHolder, partitions, [0, 1.5*issuanceAmount, 0]);
+        await assertBalances(this.token, recipient, partitions, [2*issuanceAmount, 0.5*issuanceAmount, 0]);
+      });
+
     });
   });
 

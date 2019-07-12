@@ -69,7 +69,7 @@
     "openzeppelin-test-helpers": "^0.1.2",
     "remix-ide": "^0.7.4",
     "sol-merger": "0.1.4",
-    "solidity-coverage": "git+https://github.com/leapdao/solidity-coverage#bb22d28edb700040ddb614bb2a4605f641383ced",
+    "solidity-coverage": "0.6.0",
     "solium": "^1.1.8",
     "solium-plugin-zeppelin": "^0.0.2"
   },
