@@ -594,15 +594,15 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     });
 
     describe('setDocument', function () {
-      describe('when sender is the contract owner', function () {
+      describe('when sender is a controller', function () {
         it('attaches the document to the token', async function () {
-          await this.token.setDocument(documentName, documentURI, documentHash, { from: owner });
+          await this.token.setDocument(documentName, documentURI, documentHash, { from: controller });
           const doc = await this.token.getDocument(documentName);
           assert.equal(documentURI, doc[0]);
           assert.equal(documentHash, doc[1]);
         });
         it('emits a docuemnt event', async function () {
-          const { logs } = await this.token.setDocument(documentName, documentURI, documentHash, { from: owner });
+          const { logs } = await this.token.setDocument(documentName, documentURI, documentHash, { from: controller });
 
           assert.equal(logs.length, 1);
           assert.equal(logs[0].event, 'Document');
@@ -611,7 +611,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
           assert.equal(logs[0].args.documentHash, documentHash);
         });
       });
-      describe('when sender is not the contract owner', function () {
+      describe('when sender is not a controller', function () {
         it('reverts', async function () {
           await shouldFail.reverting(this.token.setDocument(documentName, documentURI, documentHash, { from: unknown }));
         });
@@ -620,7 +620,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     describe('getDocument', function () {
       describe('when docuemnt exists', function () {
         it('returns the document', async function () {
-          await this.token.setDocument(documentName, documentURI, documentHash, { from: owner });
+          await this.token.setDocument(documentName, documentURI, documentHash, { from: controller });
           const doc = await this.token.getDocument(documentName);
           assert.equal(documentURI, doc[0]);
           assert.equal(documentHash, doc[1]);
