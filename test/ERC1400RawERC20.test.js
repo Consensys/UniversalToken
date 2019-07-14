@@ -22,23 +22,23 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
     // SETWHITELISTED
 
     describe('setWhitelisted', function () {
-      describe('when sender is the contract owner', function () {
+      describe('when sender is a controller', function () {
         describe('when targeted address is not the zero address', function () {
           it('adds/removes the address from whitelist', async function () {
             assert(!(await this.token.whitelisted(tokenHolder)));
-            await this.token.setWhitelisted(tokenHolder, true, { from: owner });
+            await this.token.setWhitelisted(tokenHolder, true, { from: controller });
             assert(await this.token.whitelisted(tokenHolder));
-            await this.token.setWhitelisted(tokenHolder, false, { from: owner });
+            await this.token.setWhitelisted(tokenHolder, false, { from: controller });
             assert(!(await this.token.whitelisted(tokenHolder)));
           });
         });
         describe('when targeted address is the zero address', function () {
           it('reverts', async function () {
-            await shouldFail.reverting(this.token.setWhitelisted(ZERO_ADDRESS, true, { from: owner }));
+            await shouldFail.reverting(this.token.setWhitelisted(ZERO_ADDRESS, true, { from: controller }));
           });
         });
       });
-      describe('when sender is not the contract owner', function () {
+      describe('when sender is not a controller', function () {
         it('reverts', async function () {
           await shouldFail.reverting(this.token.setWhitelisted(tokenHolder, true, { from: unknown }));
         });
@@ -213,8 +213,8 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
       const to = recipient;
       beforeEach(async function () {
         await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
-        await this.token.setWhitelisted(tokenHolder, true, { from: owner });
-        await this.token.setWhitelisted(to, true, { from: owner });
+        await this.token.setWhitelisted(tokenHolder, true, { from: controller });
+        await this.token.setWhitelisted(to, true, { from: controller });
       });
 
       describe('when the sender and the recipient are whitelisted', function () {
@@ -281,7 +281,7 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
         const amount = initialSupply;
 
         it('reverts', async function () {
-          await this.token.setWhitelisted(tokenHolder, false, { from: owner });
+          await this.token.setWhitelisted(tokenHolder, false, { from: controller });
           await shouldFail.reverting(this.token.transfer(to, amount, { from: tokenHolder }));
         });
       });
@@ -289,7 +289,7 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
         const amount = initialSupply;
 
         it('reverts', async function () {
-          await this.token.setWhitelisted(to, false, { from: owner });
+          await this.token.setWhitelisted(to, false, { from: controller });
           await shouldFail.reverting(this.token.transfer(to, amount, { from: tokenHolder }));
         });
       });
@@ -302,8 +302,8 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
       const approvedAmount = 10000;
       beforeEach(async function () {
         await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
-        await this.token.setWhitelisted(tokenHolder, true, { from: owner });
-        await this.token.setWhitelisted(to, true, { from: owner });
+        await this.token.setWhitelisted(tokenHolder, true, { from: controller });
+        await this.token.setWhitelisted(to, true, { from: controller });
       });
 
       describe('when the recipient is whitelisted', function () {
@@ -398,7 +398,7 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
       describe('when the recipient is not whitelisted', function () {
         const amount = approvedAmount;
         it('reverts', async function () {
-          await this.token.setWhitelisted(to, false, { from: owner });
+          await this.token.setWhitelisted(to, false, { from: controller });
           await shouldFail.reverting(this.token.transferFrom(tokenHolder, to, amount, { from: operator }));
         });
       });

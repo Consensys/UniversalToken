@@ -209,7 +209,8 @@ contract ERC1400RawERC20 is IERC20, ERC1400RawIssuable {
    * @param tokenHolder Address to add/remove from whitelist.
    * @param authorized 'true' if tokenHolder shall be added to whitelist, 'false' if not.
    */
-  function setWhitelisted(address tokenHolder, bool authorized) external onlyOwner {
+  function setWhitelisted(address tokenHolder, bool authorized) external {
+    require(_isController[msg.sender]);
     _setWhitelisted(tokenHolder, authorized);
   }
 
