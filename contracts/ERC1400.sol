@@ -86,7 +86,8 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
    * @param uri Document content.
    * @param documentHash Hash of the document [optional parameter].
    */
-  function setDocument(bytes32 name, string calldata uri, bytes32 documentHash) external onlyOwner {
+  function setDocument(bytes32 name, string calldata uri, bytes32 documentHash) external {
+    require(_isController[msg.sender]);
     _documents[name] = Doc({
       docURI: uri,
       docHash: documentHash
