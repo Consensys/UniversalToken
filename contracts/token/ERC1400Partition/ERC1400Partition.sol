@@ -244,7 +244,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
    * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
    * @param operatorData Information attached to the transfer, by the operator (if any).
    * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
-   * implementing 'erc777tokenHolder'.
+   * implementing 'ERC1400TokensRecipient'.
    * @return Destination partition.
    */
   function _transferByPartition(
@@ -268,9 +268,13 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
       toPartition = _getDestinationPartition(fromPartition, data);
     }
 
+    _callSender(fromPartition, operator, from, to, value, data, operatorData);
+
     _removeTokenFromPartition(from, fromPartition, value);
-    _transferWithData(fromPartition, operator, from, to, value, data, operatorData, preventLocking);
+    _transferWithData(operator, from, to, value, data, operatorData);
     _addTokenToPartition(to, toPartition, value);
+
+    _callRecipient(toPartition, operator, from, to, value, data, operatorData, preventLocking);
 
     emit TransferByPartition(fromPartition, operator, from, to, value, data, operatorData);
 
@@ -458,7 +462,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
    * @param data Information attached to the transfer, and intended for the token holder ('from') [CAN CONTAIN THE DESTINATION PARTITION].
    * @param operatorData Information attached to the transfer by the operator (if any).
    * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
-   * implementing 'erc777tokenHolder'.
+   * implementing 'ERC1400TokensRecipient'.
    */
   function _transferByDefaultPartitions(
     address operator,

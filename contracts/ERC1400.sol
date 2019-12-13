@@ -286,8 +286,10 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
   )
     internal
   {
-    _issue(toPartition, operator, to, value, data, operatorData);
+    _issue(operator, to, value, data, operatorData);
     _addTokenToPartition(to, toPartition, value);
+
+    _callRecipient(toPartition, operator, address(0), to, value, data, operatorData, true);
 
     emit IssuedByPartition(toPartition, operator, to, value, data, operatorData);
   }
@@ -314,8 +316,10 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
   {
     require(_balanceOfByPartition[from][fromPartition] >= value, "A4"); // Transfer Blocked - Sender balance insufficient
 
+    _callSender(fromPartition, operator, from, address(0), value, data, operatorData);
+
     _removeTokenFromPartition(from, fromPartition, value);
-    _redeem(fromPartition, operator, from, value, data, operatorData);
+    _redeem(operator, from, value, data, operatorData);
 
     emit RedeemedByPartition(fromPartition, operator, from, value, data, operatorData);
   }

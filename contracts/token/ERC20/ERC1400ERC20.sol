@@ -59,31 +59,24 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
   /**
    * [OVERRIDES ERC1400 METHOD]
    * @dev Perform the transfer of tokens.
-   * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator The address performing the transfer.
    * @param from Token holder.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer.
    * @param operatorData Information attached to the transfer by the operator (if any).
-   * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
-   * implementing 'erc777tokenHolder'.
-   * ERC1400Raw native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
-   * functions SHOULD set this parameter to 'false'.
    */
   function _transferWithData(
-    bytes32 partition,
     address operator,
     address from,
     address to,
     uint256 value,
     bytes memory data,
-    bytes memory operatorData,
-    bool preventLocking
+    bytes memory operatorData
   )
     internal
   {
-    ERC1400Raw._transferWithData(partition, operator, from, to, value, data, operatorData, preventLocking);
+    ERC1400Raw._transferWithData(operator, from, to, value, data, operatorData);
 
     emit Transfer(from, to, value);
   }
@@ -91,15 +84,14 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
   /**
    * [OVERRIDES ERC1400 METHOD]
    * @dev Perform the token redemption.
-   * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator The address performing the redemption.
    * @param from Token holder whose tokens will be redeemed.
    * @param value Number of tokens to redeem.
    * @param data Information attached to the redemption.
    * @param operatorData Information attached to the redemption by the operator (if any).
    */
-  function _redeem(bytes32 partition, address operator, address from, uint256 value, bytes memory data, bytes memory operatorData) internal {
-    ERC1400Raw._redeem(partition, operator, from, value, data, operatorData);
+  function _redeem(address operator, address from, uint256 value, bytes memory data, bytes memory operatorData) internal {
+    ERC1400Raw._redeem(operator, from, value, data, operatorData);
 
     emit Transfer(from, address(0), value);  //  ERC20 backwards compatibility
   }
@@ -107,15 +99,14 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
   /**
    * [OVERRIDES ERC1400 METHOD]
    * @dev Perform the issuance of tokens.
-   * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator Address which triggered the issuance.
    * @param to Token recipient.
    * @param value Number of tokens issued.
    * @param data Information attached to the issuance.
    * @param operatorData Information attached to the issuance by the operator (if any).
    */
-  function _issue(bytes32 partition, address operator, address to, uint256 value, bytes memory data, bytes memory operatorData) internal {
-    ERC1400Raw._issue(partition, operator, to, value, data, operatorData);
+  function _issue(address operator, address to, uint256 value, bytes memory data, bytes memory operatorData) internal {
+    ERC1400Raw._issue(operator, to, value, data, operatorData);
 
     emit Transfer(address(0), to, value); // ERC20 backwards compatibility
   }

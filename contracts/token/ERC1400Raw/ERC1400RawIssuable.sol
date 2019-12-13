@@ -24,7 +24,9 @@ contract ERC1400RawIssuable is ERC1400Raw, MinterRole {
     onlyMinter
     returns (bool)
   {
-    _issue("", msg.sender, to, value, data, "");
+    _issue(msg.sender, to, value, data, "");
+
+    _callRecipient("", msg.sender, address(0), to, value, data, "", true);
 
     return true;
   }

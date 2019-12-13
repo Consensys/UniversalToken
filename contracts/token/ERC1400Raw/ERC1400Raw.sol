@@ -6,10 +6,10 @@ pragma solidity ^0.5.0;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
 import "erc1820/contracts/ERC1820Client.sol";
 
 import "../../CertificateController/CertificateController.sol";
+import "../../ReentrancyGuard/ReentrancyGuard.sol";
 
 import "./IERC1400Raw.sol";
 import "./IERC1400TokensSender.sol";
@@ -179,7 +179,11 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     external
     isValidCertificate(data)
   {
-    _transferWithData("", msg.sender, msg.sender, to, value, data, "", true);
+    _callSender("", msg.sender, msg.sender, to, value, data, "");
+
+    _transferWithData(msg.sender, msg.sender, to, value, data, "");
+
+    _callRecipient("", msg.sender, msg.sender, to, value, data, "", true);
   }
 
   /**
@@ -197,7 +201,11 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
   {
     require(_isOperator(msg.sender, from), "A7"); // Transfer Blocked - Identity restriction
 
-    _transferWithData("", msg.sender, from, to, value, data, operatorData, true);
+    _callSender("", msg.sender, from, to, value, data, operatorData);
+
+    _transferWithData(msg.sender, from, to, value, data, operatorData);
+
+    _callRecipient("", msg.sender, from, to, value, data, operatorData, true);
   }
 
   /**
@@ -210,7 +218,9 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     external
     isValidCertificate(data)
   {
-    _redeem("", msg.sender, msg.sender, value, data, "");
+    _callSender("", msg.sender, msg.sender, address(0), value, data, "");
+
+    _redeem(msg.sender, msg.sender, value, data, "");
   }
 
   /**
@@ -227,7 +237,9 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
   {
     require(_isOperator(msg.sender, from), "A7"); // Transfer Blocked - Identity restriction
 
-    _redeem("", msg.sender, from, value, data, operatorData);
+    _callSender("", msg.sender, from, address(0), value, data, operatorData);
+
+    _redeem(msg.sender, from, value, data, operatorData);
   }
 
   /********************** ERC1400Raw INTERNAL FUNCTIONS ***************************/
@@ -272,41 +284,30 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
    /**
     * [INTERNAL]
     * @dev Perform the transfer of tokens.
-    * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
     * @param operator The address performing the transfer.
     * @param from Token holder.
     * @param to Token recipient.
     * @param value Number of tokens to transfer.
     * @param data Information attached to the transfer.
     * @param operatorData Information attached to the transfer by the operator (if any)..
-    * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
-    * implementing 'erc777tokenHolder'.
-    * ERC1400Raw native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
-    * functions SHOULD set this parameter to 'false'.
     */
   function _transferWithData(
-    bytes32 partition,
     address operator,
     address from,
     address to,
     uint256 value,
     bytes memory data,
-    bytes memory operatorData,
-    bool preventLocking
+    bytes memory operatorData
   )
     internal
-    nonReentrant
+    nonMultiReentrant
   {
     require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
     require(to != address(0), "A6"); // Transfer Blocked - Receiver not eligible
     require(_balances[from] >= value, "A4"); // Transfer Blocked - Sender balance insufficient
 
-    _callSender(partition, operator, from, to, value, data, operatorData);
-
     _balances[from] = _balances[from].sub(value);
     _balances[to] = _balances[to].add(value);
-
-    _callRecipient(partition, operator, from, to, value, data, operatorData, preventLocking);
 
     emit TransferWithData(operator, from, to, value, data, operatorData);
   }
@@ -314,22 +315,19 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
   /**
    * [INTERNAL]
    * @dev Perform the token redemption.
-   * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator The address performing the redemption.
    * @param from Token holder whose tokens will be redeemed.
    * @param value Number of tokens to redeem.
    * @param data Information attached to the redemption.
    * @param operatorData Information attached to the redemption, by the operator (if any).
    */
-  function _redeem(bytes32 partition, address operator, address from, uint256 value, bytes memory data, bytes memory operatorData)
+  function _redeem(address operator, address from, uint256 value, bytes memory data, bytes memory operatorData)
     internal
-    nonReentrant
+    nonMultiReentrant
   {
     require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
     require(from != address(0), "A5"); // Transfer Blocked - Sender not eligible
     require(_balances[from] >= value, "A4"); // Transfer Blocked - Sender balance insufficient
-
-    _callSender(partition, operator, from, address(0), value, data, operatorData);
 
     _balances[from] = _balances[from].sub(value);
     _totalSupply = _totalSupply.sub(value);
@@ -409,21 +407,18 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
   /**
    * [INTERNAL]
    * @dev Perform the issuance of tokens.
-   * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator Address which triggered the issuance.
    * @param to Token recipient.
    * @param value Number of tokens issued.
    * @param data Information attached to the issuance, and intended for the recipient (to).
    * @param operatorData Information attached to the issuance by the operator (if any).
    */
-  function _issue(bytes32 partition, address operator, address to, uint256 value, bytes memory data, bytes memory operatorData) internal nonReentrant {
+  function _issue(address operator, address to, uint256 value, bytes memory data, bytes memory operatorData) internal nonMultiReentrant {
     require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
     require(to != address(0), "A6"); // Transfer Blocked - Receiver not eligible
 
     _totalSupply = _totalSupply.add(value);
     _balances[to] = _balances[to].add(value);
-
-    _callRecipient(partition, operator, address(0), to, value, data, operatorData, true);
 
     emit Issued(operator, to, value, data, operatorData);
   }
