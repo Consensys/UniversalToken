@@ -9,7 +9,6 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "erc1820/contracts/ERC1820Client.sol";
 
 import "../../CertificateController/CertificateController.sol";
-import "../../ReentrancyGuard/ReentrancyGuard.sol";
 
 import "./IERC1400Raw.sol";
 import "./IERC1400TokensSender.sol";
@@ -20,7 +19,7 @@ import "./IERC1400TokensRecipient.sol";
  * @title ERC1400Raw
  * @dev ERC1400Raw logic
  */
-contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateController, ReentrancyGuard {
+contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateController {
   using SafeMath for uint256;
 
   string internal _name;
@@ -300,7 +299,6 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     bytes memory operatorData
   )
     internal
-    nonMultiReentrant
   {
     require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
     require(to != address(0), "A6"); // Transfer Blocked - Receiver not eligible
@@ -323,7 +321,6 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
    */
   function _redeem(address operator, address from, uint256 value, bytes memory data, bytes memory operatorData)
     internal
-    nonMultiReentrant
   {
     require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
     require(from != address(0), "A5"); // Transfer Blocked - Sender not eligible
@@ -413,7 +410,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
    * @param data Information attached to the issuance, and intended for the recipient (to).
    * @param operatorData Information attached to the issuance by the operator (if any).
    */
-  function _issue(address operator, address to, uint256 value, bytes memory data, bytes memory operatorData) internal nonMultiReentrant {
+  function _issue(address operator, address to, uint256 value, bytes memory data, bytes memory operatorData) internal {
     require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
     require(to != address(0), "A6"); // Transfer Blocked - Receiver not eligible
 
