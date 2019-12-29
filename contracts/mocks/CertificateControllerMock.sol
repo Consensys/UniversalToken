@@ -61,7 +61,7 @@ contract CertificateControllerMock {
    * @param data Certificate to control
    */
    function _checkCertificate(bytes memory data, uint256 /*value*/, bytes4 /*functionID*/) internal pure returns(bool) { // Comments to avoid compilation warnings for unused variables.
-     if(data.length > 0 && (data[0] == hex"10" || data[0] == hex"11" || data[0] == hex"22")) {
+     if(data.length > 0 && (data[0] == hex"10" || data[0] == hex"11" || data[0] == hex"22" || data[0] == hex"33")) {
        return true;
      } else {
        return false;

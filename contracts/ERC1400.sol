@@ -249,8 +249,8 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
 
      address senderImplementation;
      address recipientImplementation;
-     senderImplementation = interfaceAddr(from, "ERC1400TokensSender");
-     recipientImplementation = interfaceAddr(to, "ERC1400TokensRecipient");
+     senderImplementation = interfaceAddr(from, ERC1400_TOKENS_SENDER);
+     recipientImplementation = interfaceAddr(to, ERC1400_TOKENS_RECIPIENT);
 
      if((senderImplementation != address(0))
        && !IERC1400TokensSender(senderImplementation).canTransfer(partition, from, to, value, data, operatorData))
@@ -289,7 +289,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
     _issue(operator, to, value, data, operatorData);
     _addTokenToPartition(to, toPartition, value);
 
-    _callRecipient(toPartition, operator, address(0), to, value, data, operatorData, true);
+    _callPostTransferHooks(toPartition, operator, address(0), to, value, data, operatorData, true);
 
     emit IssuedByPartition(toPartition, operator, to, value, data, operatorData);
   }
@@ -316,7 +316,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
   {
     require(_balanceOfByPartition[from][fromPartition] >= value, "A4"); // Transfer Blocked - Sender balance insufficient
 
-    _callSender(fromPartition, operator, from, address(0), value, data, operatorData);
+    _callPreTransferHooks(fromPartition, operator, from, address(0), value, data, operatorData);
 
     _removeTokenFromPartition(from, fromPartition, value);
     _redeem(operator, from, value, data, operatorData);
@@ -372,8 +372,18 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
     _setCertificateSigner(operator, authorized);
   }
 
-  /************* ERC1400Partition/ERC1400Raw BACKWARDS RETROCOMPATIBILITY ******************/
+  /**
+   * [NOT MANDATORY FOR ERC1400Raw STANDARD]
+   * @dev Set validator contract address.
+   * The validator contract needs to verify "ERC1400TokensValidator" interface.
+   * Once setup, the validator will be called everytime a transfer is executed.
+   * @param validatorAddress Address of the validator contract.
+   */
+  function setValidatorHook(address validatorAddress) external onlyOwner {
+    ERC1820Client.setInterfaceImplementation(ERC1400_TOKENS_VALIDATOR, validatorAddress);
+  }
 
+  /************* ERC1400Partition/ERC1400Raw BACKWARDS RETROCOMPATIBILITY ******************/
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC1400Partition METHOD]

@@ -9,9 +9,7 @@ contract ERC1400TokensSenderMock is IERC1400TokensSender, ERC1820ImplementerMock
   constructor(string memory interfaceLabel)
     public
     ERC1820ImplementerMock(interfaceLabel)
-  {
-
-  }
+  {}
 
   function canTransfer(
     bytes32 /*partition*/,

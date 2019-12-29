@@ -1,17 +1,17 @@
 pragma solidity ^0.5.0;
 
-import "../token/ERC1400Raw/IERC1400TokensRecipient.sol";
+import "../token/ERC1400Raw/IERC1400TokensValidator.sol";
 import "./ERC1820ImplementerMock.sol";
 
 
-contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820ImplementerMock {
+contract ERC1400TokensValidatorMock is IERC1400TokensValidator, ERC1820ImplementerMock {
 
   constructor(string memory interfaceLabel)
     public
     ERC1820ImplementerMock(interfaceLabel)
   {}
 
-  function canReceive(
+  function canValidate(
     bytes32 /*partition*/,
     address from,
     address to,
@@ -20,13 +20,13 @@ contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implement
     bytes calldata /*operatorData*/
   ) // Comments to avoid compilation warnings for unused variables.
     external
-    view
+    view 
     returns(bool)
   {
-    return(_canReceive(from, to, value, data));
+    return(_canValidate(from, to, value, data));
   }
 
-  function tokensReceived(
+  function tokensToValidate(
     bytes32 /*partition*/,
     address /*operator*/,
     address from,
@@ -37,10 +37,10 @@ contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implement
   ) // Comments to avoid compilation warnings for unused variables.
     external
   {
-    require(_canReceive(from, to, value, data), "A6"); // Transfer Blocked - Receiver not eligible
+    require(_canValidate(from, to, value, data), "A7"); // Transfer Blocked - Identity restriction
   }
 
-  function _canReceive(
+  function _canValidate(
     address /*from*/,
     address /*to*/,
     uint /*value*/,
@@ -50,12 +50,12 @@ contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implement
     pure
     returns(bool)
   {
-    bytes32 receiveRevert = 0x2200000000000000000000000000000000000000000000000000000000000000; // Default recipient hook failure data for the mock only
+    bytes32 transferRevert = 0x3300000000000000000000000000000000000000000000000000000000000000; // Default sender hook failure data for the mock only
     bytes32 data32;
     assembly {
         data32 := mload(add(data, 32))
     }
-    if (data32 == receiveRevert) {
+    if (data32 == transferRevert) {
       return false;
     } else {
       return true;

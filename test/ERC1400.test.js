@@ -1,10 +1,17 @@
 import { shouldFail } from 'openzeppelin-test-helpers';
 
+const { soliditySha3 } = require("web3-utils");
+
 const ERC1400 = artifacts.require('ERC1400');
 const ERC1400Partition = artifacts.require('ERC1400PartitionMock');
 const ERC1820Registry = artifacts.require('ERC1820Registry');
 const ERC1400TokensSender = artifacts.require('ERC1400TokensSenderMock');
+const ERC1400TokensValidator = artifacts.require('ERC1400TokensValidatorMock');
 const ERC1400TokensRecipient = artifacts.require('ERC1400TokensRecipientMock');
+
+const ERC1400_TOKENS_SENDER = 'ERC1400TokensSender';
+const ERC1400_TOKENS_VALIDATOR = 'ERC1400TokensValidator';
+const ERC1400_TOKENS_RECIPIENT = 'ERC1400TokensRecipient';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTE = '0x';
@@ -21,6 +28,7 @@ const INVALID_CERTIFICATE = '0x0000000000000000000000000000000000000000000000000
 
 const INVALID_CERTIFICATE_SENDER = '0x1100000000000000000000000000000000000000000000000000000000000000';
 const INVALID_CERTIFICATE_RECIPIENT = '0x2200000000000000000000000000000000000000000000000000000000000000';
+const INVALID_CERTIFICATE_VALIDATOR = '0x3300000000000000000000000000000000000000000000000000000000000000';
 
 const partitionFlag = '0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff'; // Flag to indicate a partition change
 const otherFlag = '0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd'; // Other flag
@@ -238,13 +246,15 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     before(async function () {
       this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
 
-      this.senderContract = await ERC1400TokensSender.new('ERC1400TokensSender', { from: tokenHolder });
-      await this.registry.setManager(tokenHolder, this.senderContract.address, { from: tokenHolder });
-      await this.senderContract.setERC1820Implementer({ from: tokenHolder });
+      this.senderContract = await ERC1400TokensSender.new(ERC1400_TOKENS_SENDER, { from: tokenHolder });
+      await this.registry.setInterfaceImplementer(tokenHolder, soliditySha3(ERC1400_TOKENS_SENDER), this.senderContract.address, { from: tokenHolder });
 
-      this.recipientContract = await ERC1400TokensRecipient.new('ERC1400TokensRecipient', { from: recipient });
-      await this.registry.setManager(recipient, this.recipientContract.address, { from: recipient });
-      await this.recipientContract.setERC1820Implementer({ from: recipient });
+      this.recipientContract = await ERC1400TokensRecipient.new(ERC1400_TOKENS_RECIPIENT, { from: recipient });
+      await this.registry.setInterfaceImplementer(recipient, soliditySha3(ERC1400_TOKENS_RECIPIENT), this.recipientContract.address, { from: recipient });
+    });
+    after(async function () {
+      await this.registry.setInterfaceImplementer(tokenHolder, soliditySha3(ERC1400_TOKENS_SENDER), ZERO_ADDRESS , { from: tokenHolder });
+      await this.registry.setInterfaceImplementer(recipient, soliditySha3(ERC1400_TOKENS_RECIPIENT), ZERO_ADDRESS, { from: recipient });
     });
 
     beforeEach(async function () {
@@ -1342,4 +1352,62 @@ contract('ERC1400Partition', function ([owner, operator, controller, controller_
       await shouldFail.reverting(this.token.redeemFrom(tokenHolder, 500, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
     });
   });
+});
+
+contract('ERC1400 with validator hook', function ([owner, operator, controller, tokenHolder, recipient, unknown]) {
+  // HOOKS
+  beforeEach(async function () {
+    this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+    this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
+    this.validatorContract = await ERC1400TokensValidator.new(ERC1400_TOKENS_VALIDATOR, { from: owner });
+  });
+
+  describe('setValidatorHook', function () {
+    describe('when the caller is the contract owner', function () {
+      it('sets the validator hook', async function () {
+        let hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
+        assert.equal(hookImplementer, ZERO_ADDRESS);
+
+        await this.token.setValidatorHook(this.validatorContract.address, { from: owner });
+
+        hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
+        assert.equal(hookImplementer, this.validatorContract.address);
+      });
+    });
+    describe('when the caller is not the contract owner', function () {
+      it('reverts', async function () {
+        await shouldFail.reverting(this.token.setValidatorHook(this.validatorContract.address, { from: unknown }));
+      });
+    });
+  });
+
+  describe('hooks', function () {
+    const amount = issuanceAmount;
+    const to = recipient;
+
+    beforeEach(async function () {
+      await this.token.setValidatorHook(this.validatorContract.address, { from: owner });
+      await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
+    });
+    afterEach(async function () {
+      await this.token.setValidatorHook(ZERO_ADDRESS, { from: owner });
+    });
+    describe('when the transfer is successfull', function () {
+      it('transfers the requested amount', async function () {
+        await this.token.transferWithData(to, amount, VALID_CERTIFICATE, { from: tokenHolder });
+        const senderBalance = await this.token.balanceOf(tokenHolder);
+        assert.equal(senderBalance, issuanceAmount - amount);
+
+        const recipientBalance = await this.token.balanceOf(to);
+        assert.equal(recipientBalance, amount);
+      });
+    });
+    describe('when the transfer fails', function () {
+      it('sender hook reverts', async function () {        
+        // Default sender hook failure data for the mock only: 0x1100000000000000000000000000000000000000000000000000000000000000
+        await shouldFail.reverting(this.token.transferWithData(to, amount, INVALID_CERTIFICATE_VALIDATOR, { from: tokenHolder }));
+      });
+    });
+  });
+
 });

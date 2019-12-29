@@ -278,13 +278,13 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
       toPartition = _getDestinationPartition(fromPartition, data);
     }
 
-    _callSender(fromPartition, operator, from, to, value, data, operatorData);
+    _callPreTransferHooks(fromPartition, operator, from, to, value, data, operatorData);
 
     _removeTokenFromPartition(from, fromPartition, value);
     _transferWithData(operator, from, to, value, data, operatorData);
     _addTokenToPartition(to, toPartition, value);
 
-    _callRecipient(toPartition, operator, from, to, value, data, operatorData, preventLocking);
+    _callPostTransferHooks(toPartition, operator, from, to, value, data, operatorData, preventLocking);
 
     emit TransferByPartition(fromPartition, operator, from, to, value, data, operatorData);
 

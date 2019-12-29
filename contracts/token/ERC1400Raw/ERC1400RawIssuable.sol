@@ -26,7 +26,7 @@ contract ERC1400RawIssuable is ERC1400Raw, MinterRole {
   {
     _issue(msg.sender, to, value, data, "");
 
-    _callRecipient("", msg.sender, address(0), to, value, data, "", true);
+    _callPostTransferHooks("", msg.sender, address(0), to, value, data, "", true);
 
     return true;
   }

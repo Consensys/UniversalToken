@@ -1,9 +1,14 @@
 import { shouldFail } from 'openzeppelin-test-helpers';
 
+const { soliditySha3 } = require("web3-utils");
+
 const ERC1400Raw = artifacts.require('ERC1400RawMock');
 const ERC1820Registry = artifacts.require('ERC1820Registry');
 const ERC1400TokensSender = artifacts.require('ERC1400TokensSenderMock');
 const ERC1400TokensRecipient = artifacts.require('ERC1400TokensRecipientMock');
+
+const ERC1400_TOKENS_SENDER = 'ERC1400TokensSender';
+const ERC1400_TOKENS_RECIPIENT = 'ERC1400TokensRecipient';
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTE = '0x';
@@ -526,7 +531,7 @@ contract('ERC1400Raw without hooks', function ([owner, operator, controller, con
   });
 });
 
-contract('ERC1400Raw with hooks', function ([owner, operator, controller, tokenHolder, recipient, unknown]) {
+contract('ERC1400Raw with sender and recipient hooks', function ([owner, operator, controller, tokenHolder, recipient, unknown]) {
   // HOOKS
 
   describe('hooks', function () {
@@ -537,15 +542,17 @@ contract('ERC1400Raw with hooks', function ([owner, operator, controller, tokenH
       this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER);
       this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
 
-      this.senderContract = await ERC1400TokensSender.new('ERC1400TokensSender', { from: tokenHolder });
-      await this.registry.setManager(tokenHolder, this.senderContract.address, { from: tokenHolder });
-      await this.senderContract.setERC1820Implementer({ from: tokenHolder });
+      this.senderContract = await ERC1400TokensSender.new(ERC1400_TOKENS_SENDER, { from: tokenHolder });
+      await this.registry.setInterfaceImplementer(tokenHolder, soliditySha3(ERC1400_TOKENS_SENDER), this.senderContract.address, { from: tokenHolder });
 
-      this.recipientContract = await ERC1400TokensRecipient.new('ERC1400TokensRecipient', { from: recipient });
-      await this.registry.setManager(recipient, this.recipientContract.address, { from: recipient });
-      await this.recipientContract.setERC1820Implementer({ from: recipient });
+      this.recipientContract = await ERC1400TokensRecipient.new(ERC1400_TOKENS_RECIPIENT, { from: recipient });
+      await this.registry.setInterfaceImplementer(recipient, soliditySha3(ERC1400_TOKENS_RECIPIENT), this.recipientContract.address, { from: recipient });
 
       await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
+    });
+    afterEach(async function () {
+        await this.registry.setInterfaceImplementer(tokenHolder, soliditySha3(ERC1400_TOKENS_SENDER), ZERO_ADDRESS , { from: tokenHolder });
+        await this.registry.setInterfaceImplementer(recipient, soliditySha3(ERC1400_TOKENS_RECIPIENT), ZERO_ADDRESS, { from: recipient });
     });
     describe('when the transfer is successfull', function () {
       it('transfers the requested amount', async function () {

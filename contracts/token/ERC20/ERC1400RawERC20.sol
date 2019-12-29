@@ -156,11 +156,11 @@ contract ERC1400RawERC20 is IERC20, ERC1400RawIssuable {
    * @return A boolean that indicates if the operation was successful.
    */
   function transfer(address to, uint256 value) external areWhitelisted(msg.sender, to) returns (bool) {
-    _callSender("", msg.sender, msg.sender, to, value, "", "");
+    _callPreTransferHooks("", msg.sender, msg.sender, to, value, "", "");
     
     _transferWithData(msg.sender, msg.sender, to, value, "", "");
 
-    _callRecipient("", msg.sender, msg.sender, to, value, "", "", false);
+    _callPostTransferHooks("", msg.sender, msg.sender, to, value, "", "", false);
 
     return true;
   }
@@ -183,11 +183,11 @@ contract ERC1400RawERC20 is IERC20, ERC1400RawIssuable {
       _allowed[from][msg.sender] = 0;
     }
 
-    _callSender("", msg.sender, from, to, value, "", "");
+    _callPreTransferHooks("", msg.sender, from, to, value, "", "");
 
     _transferWithData(msg.sender, from, to, value, "", "");
 
-    _callRecipient("", msg.sender, from, to, value, "", "", false);
+    _callPostTransferHooks("", msg.sender, from, to, value, "", "", false);
 
     return true;
   }
