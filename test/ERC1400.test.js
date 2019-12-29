@@ -495,6 +495,39 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     });
   });
 
+  // APPROVE BY PARTITION
+
+  describe('approveByPartition', function () {
+    const amount = 100;
+    beforeEach(async function () {
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+    });
+    describe('when sender approves an operator for a given partition', function () {
+      it('approves the operator', async function () {
+        assert.equal(await this.token.allowanceByPartition(partition1, tokenHolder, operator), 0);
+
+        await this.token.approveByPartition(partition1, operator, amount, { from: tokenHolder });
+
+        assert.equal(await this.token.allowanceByPartition(partition1, tokenHolder, operator), amount);
+      });
+      it('emits an approval event', async function () {
+        const { logs } = await this.token.approveByPartition(partition1, operator, amount, { from: tokenHolder });
+
+        assert.equal(logs.length, 1);
+        assert.equal(logs[0].event, 'ApprovalByPartition');
+        assert.equal(logs[0].args.partition, partition1);
+        assert.equal(logs[0].args.owner, tokenHolder);
+        assert.equal(logs[0].args.spender, operator);
+        assert.equal(logs[0].args.value, amount);
+      });
+    });
+    describe('when the operator to approve is the zero address', function () {
+      it('reverts', async function () {
+        await shouldFail.reverting(this.token.approveByPartition(partition1, ZERO_ADDRESS, amount, { from: tokenHolder }));
+      });
+    });
+  });
+
   // REVOKE OPERATOR BY PARTITION
 
   describe('revokeOperatorByPartition', function () {
@@ -842,6 +875,36 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
     });
 
+    describe('when the sender is approved for this partition', function () {
+      describe('when approved amount is sufficient', function () {
+        it('transfers the requested amount', async function () {
+          await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount);
+          await assertBalanceOf(this.token, recipient, partition1, 0);
+          assert.equal(await this.token.allowanceByPartition(partition1, tokenHolder, operator), 0);
+  
+          const approvedAmount = 400;
+          await this.token.approveByPartition(partition1, operator, approvedAmount, { from: tokenHolder });
+          assert.equal(await this.token.allowanceByPartition(partition1, tokenHolder, operator), approvedAmount);
+          await this.token.operatorTransferByPartition(partition1, tokenHolder, recipient, transferAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator });
+  
+          await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
+          await assertBalanceOf(this.token, recipient, partition1, transferAmount);
+          assert.equal(await this.token.allowanceByPartition(partition1, tokenHolder, operator), approvedAmount - transferAmount);
+        });
+      });
+      describe('when approved amount is not sufficient', function () {
+        it('reverts', async function () {
+          await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount);
+          await assertBalanceOf(this.token, recipient, partition1, 0);
+          assert.equal(await this.token.allowanceByPartition(partition1, tokenHolder, operator), 0);
+  
+          const approvedAmount = 200;
+          await this.token.approveByPartition(partition1, operator, approvedAmount, { from: tokenHolder });
+          assert.equal(await this.token.allowanceByPartition(partition1, tokenHolder, operator), approvedAmount);
+          await shouldFail.reverting(this.token.operatorTransferByPartition(partition1, tokenHolder, recipient, transferAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
+        });
+      });
+    });
     describe('when the sender is an operator for this partition', function () {
       describe('when the sender has enough balance for this partition', function () {
         describe('when partition does not change', function () {
@@ -931,7 +994,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
         await assertBalanceOf(this.token, recipient, partition1, transferAmount);
       });
     });
-    describe('when the sender is not an operator', function () {
+    describe('when the sender is neither an operator, nor approved', function () {
       it('reverts', async function () {
         await shouldFail.reverting(this.token.operatorTransferByPartition(partition1, tokenHolder, recipient, transferAmount, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
       });

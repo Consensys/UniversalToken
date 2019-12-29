@@ -38,6 +38,9 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
   /****************************************************************************/
 
   /**************** Mappings to find partition operators ************************/
+  // Mapping from (partition, tokenHolder, spender) to allowed value. [TOKEN-HOLDER-SPECIFIC]
+  mapping(bytes32 => mapping (address => mapping (address => uint256))) internal _allowedByPartition;
+
   // Mapping from (tokenHolder, partition, operator) to 'approved for partition' status. [TOKEN-HOLDER-SPECIFIC]
   mapping (address => mapping (bytes32 => mapping (address => bool))) internal _authorizedOperatorByPartition;
 
@@ -142,7 +145,14 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     isValidCertificate(operatorData)
     returns (bytes32)
   {
-    require(_isOperatorForPartition(partition, msg.sender, from), "A7"); // Transfer Blocked - Identity restriction
+    require(_isOperatorForPartition(partition, msg.sender, from)
+      || (value <= _allowedByPartition[partition][from][msg.sender]), "A7"); // Transfer Blocked - Identity restriction
+
+    if(_allowedByPartition[partition][from][msg.sender] >= value) {
+      _allowedByPartition[partition][from][msg.sender] = _allowedByPartition[partition][from][msg.sender].sub(value);
+    } else {
+      _allowedByPartition[partition][from][msg.sender] = 0;
+    }
 
     return _transferByPartition(partition, msg.sender, from, to, value, data, operatorData, true);
   }
@@ -401,6 +411,33 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
      }
      _controllersByPartition[partition] = operators;
    }
+
+  /**
+   * [NOT MANDATORY FOR ERC1400Partition STANDARD]
+   * @dev Check the value of tokens that an owner allowed to a spender.
+   * @param partition Name of the partition.
+   * @param owner address The address which owns the funds.
+   * @param spender address The address which will spend the funds.
+   * @return A uint256 specifying the value of tokens still available for the spender.
+   */
+  function allowanceByPartition(bytes32 partition, address owner, address spender) external view returns (uint256) {
+    return _allowedByPartition[partition][owner][spender];
+  }
+
+  /**
+   * [NOT MANDATORY FOR ERC1400Partition STANDARD]
+   * @dev Approve the passed address to spend the specified amount of tokens on behalf of 'msg.sender'.
+   * @param partition Name of the partition.
+   * @param spender The address which will spend the funds.
+   * @param value The amount of tokens to be spent.
+   * @return A boolean that indicates if the operation was successful.
+   */
+  function approveByPartition(bytes32 partition, address spender, uint256 value) external returns (bool) {
+    require(spender != address(0), "A5"); // Transfer Blocked - Sender not eligible
+    _allowedByPartition[partition][msg.sender][spender] = value;
+    emit ApprovalByPartition(partition, msg.sender, spender, value);
+    return true;
+  }
 
   /************** ERC1400Raw BACKWARDS RETROCOMPATIBILITY *************************/
 
