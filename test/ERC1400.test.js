@@ -9,10 +9,16 @@ const ERC1400TokensSender = artifacts.require('ERC1400TokensSenderMock');
 const ERC1400TokensValidator = artifacts.require('ERC1400TokensValidatorMock');
 const ERC1400TokensRecipient = artifacts.require('ERC1400TokensRecipientMock');
 
+const ERC1820_ACCEPT_MAGIC = 'ERC1820_ACCEPT_MAGIC';
+
+const ERC20_INTERFACE_NAME = 'ERC20Token';
+const ERC1400_INTERFACE_NAME = 'ERC1400Token';
+
 const ERC1400_TOKENS_SENDER = 'ERC1400TokensSender';
 const ERC1400_TOKENS_VALIDATOR = 'ERC1400TokensValidator';
 const ERC1400_TOKENS_RECIPIENT = 'ERC1400TokensRecipient';
 
+const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTE = '0x';
 
@@ -216,6 +222,10 @@ const issueOnMultiplePartitions = async (
 };
 
 contract('ERC1400', function ([owner, operator, controller, controller_alternative1, controller_alternative2, tokenHolder, recipient, unknown]) {
+  before(async function () {
+    this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
+  });
+
   describe('parameters', function () {
     beforeEach(async function () {
       this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
@@ -235,6 +245,40 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
         assert.equal(symbol, 'DAU');
       });
     });
+
+    describe('implementer1400', function () {
+      it('returns the contract address', async function () {
+        let interface1400Implementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_INTERFACE_NAME));
+        assert.equal(interface1400Implementer, this.token.address);
+      });
+    });
+
+    describe('implementer20', function () {
+      it('returns the zero address', async function () {
+        let interface20Implementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC20_INTERFACE_NAME));
+        assert.equal(interface20Implementer, ZERO_ADDRESS);
+      });
+    });
+  });
+
+  // CANIMPLEMENTINTERFACE
+
+  describe('canImplementInterfaceForAddress', function () {
+    beforeEach(async function () {
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+    });
+    describe('when interface hash is correct', function () {
+      it('returns ERC1820_ACCEPT_MAGIC', async function () {
+        const canImplement = await this.token.canImplementInterfaceForAddress(soliditySha3(ERC1400_INTERFACE_NAME), ZERO_ADDRESS);          
+        assert.equal(soliditySha3(ERC1820_ACCEPT_MAGIC), canImplement);
+      });
+    });
+    describe('when interface hash is not correct', function () {
+      it('returns ERC1820_ACCEPT_MAGIC', async function () {
+        const canImplement = await this.token.canImplementInterfaceForAddress(soliditySha3('FakeToken'), ZERO_ADDRESS);
+        assert.equal(ZERO_BYTES32, canImplement);
+      });
+    });
   });
 
   // CANTRANSFER
@@ -244,8 +288,6 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     const amount = 10 * localGranularity;
 
     before(async function () {
-      this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
-
       this.senderContract = await ERC1400TokensSender.new(ERC1400_TOKENS_SENDER, { from: tokenHolder });
       await this.registry.setInterfaceImplementer(tokenHolder, soliditySha3(ERC1400_TOKENS_SENDER), this.senderContract.address, { from: tokenHolder });
 
@@ -1314,6 +1356,71 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
       });
     });
   });
+
+  // MIGRATE
+  describe('migrate', function () {
+    const transferAmount = 300;
+
+    beforeEach(async function () {
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.migratedToken = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
+    });
+    describe('when the sender is the contract owner', function () {
+      describe('when the contract is not migrated', function () {
+        it('can transfer tokens', async function () {
+          await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount);
+          await assertBalanceOf(this.token, recipient, partition1, 0);
+
+          await this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder });
+
+          await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
+          await assertBalanceOf(this.token, recipient, partition1, transferAmount);
+        });
+    });
+    describe('when the contract is migrated definitely', function () {
+      it('can not transfer tokens', async function () {
+        let interfaceImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_INTERFACE_NAME));
+        assert.equal(interfaceImplementer, this.token.address);
+
+        await this.token.migrate(this.migratedToken.address, true, { from: owner });
+
+        interfaceImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_INTERFACE_NAME));
+        assert.equal(interfaceImplementer, this.migratedToken.address);
+
+        await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount);
+        await assertBalanceOf(this.token, recipient, partition1, 0);
+
+        await shouldFail.reverting(this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder }));
+      });
+    });
+    describe('when the contract is migrated, but not definitely', function () {
+      it('can transfer tokens', async function () {
+        let interfaceImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_INTERFACE_NAME));
+        assert.equal(interfaceImplementer, this.token.address);
+
+        await this.token.migrate(this.migratedToken.address, false, { from: owner });
+
+        interfaceImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_INTERFACE_NAME));
+        assert.equal(interfaceImplementer, this.migratedToken.address);
+
+        await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount);
+        await assertBalanceOf(this.token, recipient, partition1, 0);
+
+        await this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder });
+
+        await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
+        await assertBalanceOf(this.token, recipient, partition1, transferAmount);
+      });
+    });
+    });
+    describe('when the sender is not the contract owner', function () {
+      it('reverts', async function () {
+        await shouldFail.reverting(this.token.migrate(this.migratedToken.address, true, { from: unknown }));
+      });
+    });
+  });
+
 });
 
 contract('ERC1400Partition', function ([owner, operator, controller, controller_alternative1, controller_alternative2, tokenHolder, recipient, unknown]) {

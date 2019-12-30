@@ -10,7 +10,7 @@
     "build:ERC1400ERC20": "sol-merger \"./contracts/token/ERC20/ERC1400ERC20.sol\" ./artifacts",
     "build": "yarn run clean && yarn run build:ERC1400ERC20",
     "clean": "rm -rf artifacts",
-    "coverage": "solidity-coverage",
+    "coverage": "yarn truffle run coverage",
     "env": "node setup.js",
     "lint": "eslint ./migrations ./test ",
     "lint:fix": "eslint ./test ./migrations --fix",
@@ -69,7 +69,7 @@
     "openzeppelin-test-helpers": "^0.1.2",
     "remix-ide": "^0.7.4",
     "sol-merger": "0.1.4",
-    "solidity-coverage": "0.6.0",
+    "solidity-coverage": "0.7.0-beta.3",
     "solium": "^1.1.8",
     "solium-plugin-zeppelin": "^0.0.2"
   },

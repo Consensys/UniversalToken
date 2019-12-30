@@ -15,6 +15,11 @@ import "../ERC1400Raw/ERC1400RawIssuable.sol";
  */
 contract ERC1400RawERC20 is IERC20, ERC1400RawIssuable {
 
+  bytes32 constant internal ERC1820_ACCEPT_MAGIC = keccak256(abi.encodePacked("ERC1820_ACCEPT_MAGIC"));
+
+  string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
+  bytes32 internal _interfaceHash20;
+
   // Mapping from (tokenHolder, spender) to allowed value.
   mapping (address => mapping (address => uint256)) internal _allowed;
 
@@ -52,7 +57,9 @@ contract ERC1400RawERC20 is IERC20, ERC1400RawIssuable {
     public
     ERC1400Raw(name, symbol, granularity, controllers, certificateSigner)
   {
-    setInterfaceImplementation("ERC20Token", address(this));
+    ERC1820Client.setInterfaceImplementation(ERC20_INTERFACE_NAME, address(this));
+
+    _interfaceHash20 = keccak256(abi.encodePacked(ERC20_INTERFACE_NAME)); // For migration
   }
 
   /**
@@ -224,6 +231,47 @@ contract ERC1400RawERC20 is IERC20, ERC1400RawIssuable {
   function _setWhitelisted(address tokenHolder, bool authorized) internal {
     require(tokenHolder != address(0)); // Action Blocked - Not a valid address
     _whitelisted[tokenHolder] = authorized;
+  }
+
+  /************************** REQUIRED FOR MIGRATION FEATURE *******************************/
+
+  /**
+   * [ERC1820Implementer INTERFACE (1/1)] [OVERRIDES ERC1400 METHOD]
+   * @dev Indicates whether the contract implements the interface `interfaceHash` for the address `addr`.
+   * @param interfaceHash keccak256 hash of the name of the interface
+   * @return ERC1820_ACCEPT_MAGIC only if the contract implements `ìnterfaceHash` for the address `addr`.
+   */
+  function canImplementInterfaceForAddress(bytes32 interfaceHash, address /*addr*/) // Comments to avoid compilation warnings for unused variables.
+    external
+    view
+    returns(bytes32)
+  {
+    if(interfaceHash == _interfaceHash20) {
+      return ERC1820_ACCEPT_MAGIC;
+    } else {
+      return "";
+    }
+  }
+
+  /**
+   * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC1400 METHOD]
+   * @dev Migrate contract.
+   *
+   * ===> CAUTION: DEFINITIVE ACTION
+   * 
+   * This function shall be called once a new version of the smart contract has been created.
+   * Once this function is called:
+   *  - The address of the new smart contract is set in ERC1820 registry
+   *  - If the choice is definitive, the current smart contract is turned off and can never be used again
+   *
+   * @param newContractAddress Address of the new version of the smart contract.
+   * @param definitive If set to 'true' the contract is turned off definitely.
+   */
+  function migrate(address newContractAddress, bool definitive) external onlyOwner {
+    ERC1820Client.setInterfaceImplementation(ERC20_INTERFACE_NAME, newContractAddress);
+    if(definitive) {
+      _migrated = true;
+    }
   }
 
 }

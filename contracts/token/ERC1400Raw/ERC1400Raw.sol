@@ -32,6 +32,8 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
   uint256 internal _granularity;
   uint256 internal _totalSupply;
 
+  bool internal _migrated;
+
   // Indicate whether the token can still be controlled by operators or not anymore.
   bool internal _isControllable;
 
@@ -48,6 +50,14 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
   // Mapping from operator to controller status. [GLOBAL - NOT TOKEN-HOLDER-SPECIFIC]
   mapping(address => bool) internal _isController;
   /****************************************************************************/
+
+  /**
+   * @dev Modifier to make a function callable only when the contract is not migrated.
+   */
+  modifier whenNotMigrated() {
+      require(!_migrated, "A8");
+      _;
+  }
 
   /**
    * [ERC1400Raw CONSTRUCTOR]
@@ -304,6 +314,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     bytes memory operatorData
   )
     internal
+    whenNotMigrated
   {
     require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
     require(to != address(0), "A6"); // Transfer Blocked - Receiver not eligible
@@ -326,6 +337,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
    */
   function _redeem(address operator, address from, uint256 value, bytes memory data, bytes memory operatorData)
     internal
+    whenNotMigrated
   {
     require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
     require(from != address(0), "A5"); // Transfer Blocked - Sender not eligible
@@ -420,7 +432,10 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
    * @param data Information attached to the issuance, and intended for the recipient (to).
    * @param operatorData Information attached to the issuance by the operator (if any).
    */
-  function _issue(address operator, address to, uint256 value, bytes memory data, bytes memory operatorData) internal {
+  function _issue(address operator, address to, uint256 value, bytes memory data, bytes memory operatorData)
+    internal
+    whenNotMigrated  
+  {
     require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
     require(to != address(0), "A6"); // Transfer Blocked - Receiver not eligible
 

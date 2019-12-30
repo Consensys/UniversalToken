@@ -16,6 +16,11 @@ import "./token/ERC1400Partition/ERC1400Partition.sol";
  */
 contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
 
+  bytes32 internal ERC1820_ACCEPT_MAGIC = keccak256(abi.encodePacked("ERC1820_ACCEPT_MAGIC"));
+  
+  string constant internal ERC1400_INTERFACE_NAME = "ERC1400Token";
+  bytes32 internal _interfaceHash1400;
+
   struct Doc {
     string docURI;
     bytes32 docHash;
@@ -58,9 +63,11 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
     public
     ERC1400Partition(name, symbol, granularity, controllers, certificateSigner, defaultPartitions)
   {
-    setInterfaceImplementation("ERC1400Token", address(this));
+    ERC1820Client.setInterfaceImplementation(ERC1400_INTERFACE_NAME, address(this));
     _isControllable = true;
     _isIssuable = true;
+
+    _interfaceHash1400 = keccak256(abi.encodePacked(ERC1400_INTERFACE_NAME)); // For migration
   }
 
   /********************** ERC1400 EXTERNAL FUNCTIONS **************************/
@@ -373,7 +380,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
   }
 
   /**
-   * [NOT MANDATORY FOR ERC1400Raw STANDARD]
+   * [NOT MANDATORY FOR ERC1400 STANDARD]
    * @dev Set validator contract address.
    * The validator contract needs to verify "ERC1400TokensValidator" interface.
    * Once setup, the validator will be called everytime a transfer is executed.
@@ -381,6 +388,65 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
    */
   function setValidatorHook(address validatorAddress) external onlyOwner {
     ERC1820Client.setInterfaceImplementation(ERC1400_TOKENS_VALIDATOR, validatorAddress);
+  }
+
+  /************************** REQUIRED FOR MIGRATION FEATURE *******************************/
+
+  /**
+   * [ERC1820Implementer INTERFACE (1/1)] [NOT MANDATORY FOR ERC1400 STANDARD]
+   * @dev Indicates whether the contract implements the interface `interfaceHash` for the address `addr`.
+   * @param interfaceHash keccak256 hash of the name of the interface
+   * @return ERC1820_ACCEPT_MAGIC only if the contract implements `ìnterfaceHash` for the address `addr`.
+   */
+  function canImplementInterfaceForAddress(bytes32 interfaceHash, address /*addr*/) // Comments to avoid compilation warnings for unused variables.
+    external
+    view
+    returns(bytes32)
+  {
+    if(interfaceHash == _interfaceHash1400) {
+      return ERC1820_ACCEPT_MAGIC;
+    } else {
+      return "";
+    }
+  }
+
+  /**
+   * [NOT MANDATORY FOR ERC1400 STANDARD]
+   * @dev Migrate contract.
+   *
+   * ===> CAUTION: DEFINITIVE ACTION
+   * 
+   * This function shall be called once a new version of the smart contract has been created.
+   * Once this function is called:
+   *  - The address of the new smart contract is set in ERC1820 registry
+   *  - If the choice is definitive, the current smart contract is turned off and can never be used again
+   *
+   * @param newContractAddress Address of the new version of the smart contract.
+   * @param definitive If set to 'true' the contract is turned off definitely.
+   */
+  function migrate(address newContractAddress, bool definitive) external onlyOwner {
+    _migrate(newContractAddress, definitive);
+  }
+
+  /**
+   * [NOT MANDATORY FOR ERC1400 STANDARD]
+   * @dev Migrate contract.
+   *
+   * ===> CAUTION: DEFINITIVE ACTION
+   * 
+   * This function shall be called once a new version of the smart contract has been created.
+   * Once this function is called:
+   *  - The address of the new smart contract is set in ERC1820 registry
+   *  - If the choice is definitive, the current smart contract is turned off and can never be used again
+   *
+   * @param newContractAddress Address of the new version of the smart contract.
+   * @param definitive If set to 'true' the contract is turned off definitely.
+   */
+  function _migrate(address newContractAddress, bool definitive) internal {
+    ERC1820Client.setInterfaceImplementation(ERC1400_INTERFACE_NAME, newContractAddress);
+    if(definitive) {
+      _migrated = true;
+    }
   }
 
   /************* ERC1400Partition/ERC1400Raw BACKWARDS RETROCOMPATIBILITY ******************/

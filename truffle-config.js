@@ -49,6 +49,7 @@ module.exports = {
       network_id: parseInt(process.env.NETWORK_ID) || '*', // eslint-disable-line camelcase
     },
   },
+  plugins: ["solidity-coverage"],
   compilers: {
     solc: {
       version: '0.5.10',
