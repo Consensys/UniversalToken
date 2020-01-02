@@ -36,17 +36,6 @@ contract('ERC1400Raw without hooks', function ([owner, operator, controller, con
       });
     });
 
-    describe('_isRegularAddress', function () {
-      it('returns true when address is correct', async function () {
-        assert.isTrue(await this.token.isRegularAddress(owner));
-      });
-      it('returns true when address is non zero', async function () {
-        assert.isTrue(await this.token.isRegularAddress(owner));
-      });
-      it('returns false when address is ZERO_ADDRESS', async function () {
-        assert.isTrue(!(await this.token.isRegularAddress(ZERO_ADDRESS)));
-      });
-    });
   });
 
   // BASIC FUNCTIONNALITIES
@@ -279,37 +268,30 @@ contract('ERC1400Raw without hooks', function ([owner, operator, controller, con
         describe('when the recipient is not the zero address', function () {
           describe('when the sender has enough balance', function () {
             const amount = initialSupply;
-            describe('when the recipient is a regular address', function () {
-              it('transfers the requested amount', async function () {
-                await this.token.transferWithData(to, amount, VALID_CERTIFICATE, { from: tokenHolder });
-                const senderBalance = await this.token.balanceOf(tokenHolder);
-                assert.equal(senderBalance, initialSupply - amount);
+            it('transfers the requested amount', async function () {
+              await this.token.transferWithData(to, amount, VALID_CERTIFICATE, { from: tokenHolder });
+              const senderBalance = await this.token.balanceOf(tokenHolder);
+              assert.equal(senderBalance, initialSupply - amount);
 
-                const recipientBalance = await this.token.balanceOf(to);
-                assert.equal(recipientBalance, amount);
-              });
-
-              it('emits a sent event', async function () {
-                const { logs } = await this.token.transferWithData(to, amount, VALID_CERTIFICATE, { from: tokenHolder });
-
-                assert.equal(logs.length, 2);
-
-                assert.equal(logs[0].event, 'Checked');
-                assert.equal(logs[0].args.sender, tokenHolder);
-
-                assert.equal(logs[1].event, 'TransferWithData');
-                assert.equal(logs[1].args.operator, tokenHolder);
-                assert.equal(logs[1].args.from, tokenHolder);
-                assert.equal(logs[1].args.to, to);
-                assert.equal(logs[1].args.value, amount);
-                assert.equal(logs[1].args.data, VALID_CERTIFICATE);
-                assert.equal(logs[1].args.operatorData, null);
-              });
+              const recipientBalance = await this.token.balanceOf(to);
+              assert.equal(recipientBalance, amount);
             });
-            describe('when the recipient is not a regular address', function () {
-              it('reverts', async function () {
-                await shouldFail.reverting(this.token.transferWithData(this.token.address, amount, VALID_CERTIFICATE, { from: tokenHolder }));
-              });
+
+            it('emits a sent event', async function () {
+              const { logs } = await this.token.transferWithData(to, amount, VALID_CERTIFICATE, { from: tokenHolder });
+
+              assert.equal(logs.length, 2);
+
+              assert.equal(logs[0].event, 'Checked');
+              assert.equal(logs[0].args.sender, tokenHolder);
+
+              assert.equal(logs[1].event, 'TransferWithData');
+              assert.equal(logs[1].args.operator, tokenHolder);
+              assert.equal(logs[1].args.from, tokenHolder);
+              assert.equal(logs[1].args.to, to);
+              assert.equal(logs[1].args.value, amount);
+              assert.equal(logs[1].args.data, VALID_CERTIFICATE);
+              assert.equal(logs[1].args.operatorData, null);
             });
           });
           describe('when the sender does not have enough balance', function () {

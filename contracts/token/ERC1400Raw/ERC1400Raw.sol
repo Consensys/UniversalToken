@@ -199,7 +199,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, ERC1820Implementer, 
 
     _transferWithData(msg.sender, msg.sender, to, value, data, "");
 
-    _callPostTransferHooks("", msg.sender, msg.sender, to, value, data, "", true);
+    _callPostTransferHooks("", msg.sender, msg.sender, to, value, data, "");
   }
 
   /**
@@ -221,7 +221,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, ERC1820Implementer, 
 
     _transferWithData(msg.sender, from, to, value, data, operatorData);
 
-    _callPostTransferHooks("", msg.sender, from, to, value, data, operatorData, true);
+    _callPostTransferHooks("", msg.sender, from, to, value, data, operatorData);
   }
 
   /**
@@ -268,19 +268,6 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, ERC1820Implementer, 
    */
   function _isMultiple(uint256 value) internal view returns(bool) {
     return(value.div(_granularity).mul(_granularity) == value);
-  }
-
-  /**
-   * [INTERNAL]
-   * @dev Check whether an address is a regular address or not.
-   * @param addr Address of the contract that has to be checked.
-   * @return 'true' if 'addr' is a regular address (not a contract).
-   */
-  function _isRegularAddress(address addr) internal view returns(bool) {
-    if (addr == address(0)) { return false; }
-    uint size;
-    assembly { size := extcodesize(addr) } // solhint-disable-line no-inline-assembly
-    return size == 0;
   }
 
   /**
@@ -390,7 +377,6 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, ERC1820Implementer, 
   /**
    * [INTERNAL]
    * @dev Check for 'ERC1400TokensRecipient' hook on the recipient and call it.
-   * May throw according to 'preventLocking'.
    * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator Address which triggered the balance increase (through transfer or issuance).
    * @param from Token holder for a transfer and 0x for an issuance.
@@ -398,10 +384,6 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, ERC1820Implementer, 
    * @param value Number of tokens the recipient balance is increased by.
    * @param data Extra information, intended for the token holder ('from').
    * @param operatorData Extra information attached by the operator (if any).
-   * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
-   * implementing 'ERC1400TokensRecipient'.
-   * ERC1400Raw native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
-   * functions SHOULD set this parameter to 'false'.
    */
   function _callPostTransferHooks(
     bytes32 partition,
@@ -410,8 +392,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, ERC1820Implementer, 
     address to,
     uint256 value,
     bytes memory data,
-    bytes memory operatorData,
-    bool preventLocking
+    bytes memory operatorData
   )
     internal
   {
@@ -420,8 +401,6 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, ERC1820Implementer, 
 
     if (recipientImplementation != address(0)) {
       IERC1400TokensRecipient(recipientImplementation).tokensReceived(msg.sig, partition, operator, from, to, value, data, operatorData);
-    } else if (preventLocking) {
-      require(_isRegularAddress(to), "A6"); // Transfer Blocked - Receiver not eligible
     }
   }
 

@@ -152,7 +152,7 @@ contract ERC1400RawERC20 is IERC20, ERC1400RawIssuable {
     
     _transferWithData(msg.sender, msg.sender, to, value, "", "");
 
-    _callPostTransferHooks("", msg.sender, msg.sender, to, value, "", "", false);
+    _callPostTransferHooks("", msg.sender, msg.sender, to, value, "", "");
 
     return true;
   }
@@ -179,7 +179,7 @@ contract ERC1400RawERC20 is IERC20, ERC1400RawIssuable {
 
     _transferWithData(msg.sender, from, to, value, "", "");
 
-    _callPostTransferHooks("", msg.sender, from, to, value, "", "", false);
+    _callPostTransferHooks("", msg.sender, from, to, value, "", "");
 
     return true;
   }

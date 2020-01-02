@@ -149,7 +149,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @return A boolean that indicates if the operation was successful.
    */
   function transfer(address to, uint256 value) external returns (bool) {
-    _transferByDefaultPartitions(msg.sender, msg.sender, to, value, "", "", false);
+    _transferByDefaultPartitions(msg.sender, msg.sender, to, value, "", "");
     return true;
   }
 
@@ -171,7 +171,7 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
       _allowed[from][msg.sender] = 0;
     }
 
-    _transferByDefaultPartitions(msg.sender, from, to, value, "", "", false);
+    _transferByDefaultPartitions(msg.sender, from, to, value, "", "");
     return true;
   }
 

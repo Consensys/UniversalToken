@@ -280,7 +280,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
     _issue(operator, to, value, data, operatorData);
     _addTokenToPartition(to, toPartition, value);
 
-    _callPostTransferHooks(toPartition, operator, address(0), to, value, data, operatorData, true);
+    _callPostTransferHooks(toPartition, operator, address(0), to, value, data, operatorData);
 
     emit IssuedByPartition(toPartition, operator, to, value, data, operatorData);
   }
