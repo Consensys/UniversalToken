@@ -73,6 +73,34 @@ contract('CertificateController', ([owner, operator, controller, unknown]) => {
     });
   });
 
+  // SET CERTIFICATE CONTROLLER DISACTIVATED
+
+  describe('setCertificateControllerActivated', function () {
+    beforeEach(async function () {
+      this.controllerMock = await CertificateController.new(CERTIFICATE_SIGNER);
+    });
+    describe('when the sender is the contract owner', function () {
+      it('sets the operator as certificate signer', async function () {
+        await this.controllerMock.setCertificateControllerDisactivated(true, { from: owner });
+        assert(await this.controllerMock.certificateControllerDisactivated());
+      });
+      it('sets the operator as certificate signer', async function () {
+        assert(!(await this.controllerMock.certificateControllerDisactivated()));
+        await this.controllerMock.setCertificateControllerDisactivated(true, { from: owner });
+        assert(await this.controllerMock.certificateControllerDisactivated());
+        await this.controllerMock.setCertificateControllerDisactivated(false, { from: owner });
+        assert(!(await this.controllerMock.certificateControllerDisactivated()));
+      });
+    });
+    describe('when the sender is not the contract owner', function () {
+      it('reverts', async function () {
+        await shouldFail.reverting(
+          this.controllerMock.setCertificateControllerDisactivated(true, { from: unknown })
+        );
+      });
+    });
+  });
+
   // CHECKCERTIFICATE
 
   describe('checkCertificate', function () {

@@ -4,6 +4,9 @@ pragma solidity ^0.5.0;
 // CertificateController comment...
 contract CertificateController {
 
+  // If set to 'true', the certificate control is activated
+  bool _certificateControllerDisactivated;
+
   // Address used by off-chain controller service to sign certificate
   mapping(address => bool) internal _certificateSigners;
 
@@ -24,16 +27,19 @@ contract CertificateController {
    */
   modifier isValidCertificate(bytes memory data) {
 
-    require(_certificateSigners[msg.sender] || _checkCertificate(data, 0, 0x00000000), "A3"); // Transfer Blocked - Sender lockup period not ended
+    if(_certificateControllerDisactivated) {
+      require(_certificateSigners[msg.sender] || _checkCertificate(data, 0, 0x00000000), "A3"); // Transfer Blocked - Sender lockup period not ended
 
-    bytes32 salt;
-    assembly {
-      salt := mload(add(data, 0x20))
+      bytes32 salt;
+      assembly {
+        salt := mload(add(data, 0x20))
+      }
+
+      _usedCertificate[salt] = true; // Use certificate
+
+      emit Used(msg.sender);
     }
-
-    _usedCertificate[salt] = true; // Use certificate
-
-    emit Used(msg.sender);
+    
     _;
   }
 
@@ -72,6 +78,21 @@ contract CertificateController {
   function _setCertificateSigner(address operator, bool authorized) internal {
     require(operator != address(0)); // Action Blocked - Not a valid address
     _certificateSigners[operator] = authorized;
+  }
+
+  /**
+   * @dev Get activation status of certificate controller.
+   */
+  function certificateControllerDisactivated() external view returns (bool) {
+    return _certificateControllerDisactivated;
+  }
+
+  /**
+   * @dev Activate/disactivate certificate controller.
+   * @param disactivated 'true', if the certificate control shall be disactivated, 'false' if not.
+   */
+  function _setCertificateControllerDisactivated(bool disactivated) internal {
+    _certificateControllerDisactivated = disactivated;
   }
 
   /**
