@@ -364,6 +364,14 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
   }
 
   /**
+   * @dev Activate/disactivate certificate controller.
+   * @param disactivated 'true', if the certificate control shall be disactivated, 'false' if not.
+   */
+  function setCertificateControllerDisactivated(bool disactivated) external onlyOwner {
+   _setCertificateControllerDisactivated(disactivated);
+  }
+
+  /**
    * [NOT MANDATORY FOR ERC1400 STANDARD]
    * @dev Set validator contract address.
    * The validator contract needs to verify "ERC1400TokensValidator" interface.

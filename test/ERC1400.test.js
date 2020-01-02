@@ -557,6 +557,41 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     });
   });
 
+  // SET CERTIFICATE CONTROLLER DISACTIVATED
+
+  describe('setCertificateControllerActivated', function () {
+    beforeEach(async function () {
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+    });
+    describe('when the sender is the contract owner', function () {
+      it('disactivates the certificate controller', async function () {
+        await this.token.setCertificateControllerDisactivated(true, { from: owner });
+        assert.isTrue(await this.token.certificateControllerDisactivated());
+      });
+      it('disactivates and reactivates the certificate controller', async function () {
+        assert.isTrue(!(await this.token.certificateControllerDisactivated()));
+        await this.token.setCertificateControllerDisactivated(true, { from: owner });
+
+        await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, INVALID_CERTIFICATE, { from: owner });
+        await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
+
+        assert.isTrue(await this.token.certificateControllerDisactivated());
+        await this.token.setCertificateControllerDisactivated(false, { from: owner });
+        assert.isTrue(!(await this.token.certificateControllerDisactivated()));
+
+        await shouldFail.reverting(this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, INVALID_CERTIFICATE, { from: owner }));
+        await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
+      });
+    });
+    describe('when the sender is not the contract owner', function () {
+      it('reverts', async function () {
+        await shouldFail.reverting(
+          this.token.setCertificateControllerDisactivated(true, { from: unknown })
+        );
+      });
+    });
+  });
+
   // AUTHORIZE OPERATOR BY PARTITION
 
   describe('authorizeOperatorByPartition', function () {
