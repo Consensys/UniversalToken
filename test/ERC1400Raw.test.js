@@ -542,10 +542,10 @@ contract('ERC1400Raw with sender and recipient hooks', function ([owner, operato
       this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER);
       this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
 
-      this.senderContract = await ERC1400TokensSender.new(ERC1400_TOKENS_SENDER, { from: tokenHolder });
+      this.senderContract = await ERC1400TokensSender.new({ from: tokenHolder });
       await this.registry.setInterfaceImplementer(tokenHolder, soliditySha3(ERC1400_TOKENS_SENDER), this.senderContract.address, { from: tokenHolder });
 
-      this.recipientContract = await ERC1400TokensRecipient.new(ERC1400_TOKENS_RECIPIENT, { from: recipient });
+      this.recipientContract = await ERC1400TokensRecipient.new({ from: recipient });
       await this.registry.setInterfaceImplementer(recipient, soliditySha3(ERC1400_TOKENS_RECIPIENT), this.recipientContract.address, { from: recipient });
 
       await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });

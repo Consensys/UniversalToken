@@ -15,25 +15,10 @@ import "../ERC1400Raw/ERC1400RawIssuable.sol";
  */
 contract ERC1400RawERC20 is IERC20, ERC1400RawIssuable {
 
-  bytes32 constant internal ERC1820_ACCEPT_MAGIC = keccak256(abi.encodePacked("ERC1820_ACCEPT_MAGIC"));
-
   string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
-  bytes32 internal _interfaceHash20;
 
   // Mapping from (tokenHolder, spender) to allowed value.
   mapping (address => mapping (address => uint256)) internal _allowed;
-
-  // Mapping from (tokenHolder) to whitelisted status.
-  mapping (address => bool) internal _whitelisted;
-
-  /**
-   * @dev Modifier to verify if sender and recipient are whitelisted.
-   */
-  modifier areWhitelisted(address sender, address recipient) {
-    require(_whitelisted[sender], "A5"); // Transfer Blocked - Sender not eligible
-    require(_whitelisted[recipient], "A6"); // Transfer Blocked - Receiver not eligible
-    _;
-  }
 
   /**
    * [ERC1400RawERC20 CONSTRUCTOR]
@@ -59,7 +44,7 @@ contract ERC1400RawERC20 is IERC20, ERC1400RawIssuable {
   {
     ERC1820Client.setInterfaceImplementation(ERC20_INTERFACE_NAME, address(this));
 
-    _interfaceHash20 = keccak256(abi.encodePacked(ERC20_INTERFACE_NAME)); // For migration
+    ERC1820Implementer._setInterface(ERC20_INTERFACE_NAME); // For migration
   }
 
   /**
@@ -162,7 +147,7 @@ contract ERC1400RawERC20 is IERC20, ERC1400RawIssuable {
    * @param value The amount to be transferred.
    * @return A boolean that indicates if the operation was successful.
    */
-  function transfer(address to, uint256 value) external areWhitelisted(msg.sender, to) returns (bool) {
+  function transfer(address to, uint256 value) external returns (bool) {
     _callPreTransferHooks("", msg.sender, msg.sender, to, value, "", "");
     
     _transferWithData(msg.sender, msg.sender, to, value, "", "");
@@ -180,7 +165,7 @@ contract ERC1400RawERC20 is IERC20, ERC1400RawIssuable {
    * @param value The amount of tokens to be transferred.
    * @return A boolean that indicates if the operation was successful.
    */
-  function transferFrom(address from, address to, uint256 value) external areWhitelisted(from, to) returns (bool) {
+  function transferFrom(address from, address to, uint256 value) external returns (bool) {
     require( _isOperator(msg.sender, from)
       || (value <= _allowed[from][msg.sender]), "A7"); // Transfer Blocked - Identity restriction
 
@@ -199,62 +184,24 @@ contract ERC1400RawERC20 is IERC20, ERC1400RawIssuable {
     return true;
   }
 
-  /***************** ERC1400RawERC20 OPTIONAL FUNCTIONS ***************************/
+  /************************** ERC1400RawERC20 OPTIONAL FUNCTIONS *******************************/
 
   /**
    * [NOT MANDATORY FOR ERC1400RawERC20 STANDARD]
-   * @dev Get whitelisted status for a tokenHolder.
-   * @param tokenHolder Address whom to check the whitelisted status for.
-   * @return bool 'true' if tokenHolder is whitelisted, 'false' if not.
+   * @dev Set validator contract address.
+   * The validator contract needs to verify "ERC1400TokensValidator" interface.
+   * Once setup, the validator will be called everytime a transfer is executed.
+   * @param validatorAddress Address of the validator contract.
+   * @param interfaceLabel Interface label of hook contract.
    */
-  function whitelisted(address tokenHolder) external view returns (bool) {
-    return _whitelisted[tokenHolder];
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC1400RawERC20 STANDARD]
-   * @dev Set whitelisted status for a tokenHolder.
-   * @param tokenHolder Address to add/remove from whitelist.
-   * @param authorized 'true' if tokenHolder shall be added to whitelist, 'false' if not.
-   */
-  function setWhitelisted(address tokenHolder, bool authorized) external {
-    require(_isController[msg.sender]);
-    _setWhitelisted(tokenHolder, authorized);
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC1400RawERC20 STANDARD]
-   * @dev Set whitelisted status for a tokenHolder.
-   * @param tokenHolder Address to add/remove from whitelist.
-   * @param authorized 'true' if tokenHolder shall be added to whitelist, 'false' if not.
-   */
-  function _setWhitelisted(address tokenHolder, bool authorized) internal {
-    require(tokenHolder != address(0)); // Action Blocked - Not a valid address
-    _whitelisted[tokenHolder] = authorized;
+  function setHookContract(address validatorAddress, string calldata interfaceLabel) external onlyOwner {
+    ERC1400Raw._setHookContract(validatorAddress, interfaceLabel);
   }
 
   /************************** REQUIRED FOR MIGRATION FEATURE *******************************/
 
   /**
-   * [ERC1820Implementer INTERFACE (1/1)] [OVERRIDES ERC1400 METHOD]
-   * @dev Indicates whether the contract implements the interface `interfaceHash` for the address `addr`.
-   * @param interfaceHash keccak256 hash of the name of the interface
-   * @return ERC1820_ACCEPT_MAGIC only if the contract implements `ìnterfaceHash` for the address `addr`.
-   */
-  function canImplementInterfaceForAddress(bytes32 interfaceHash, address /*addr*/) // Comments to avoid compilation warnings for unused variables.
-    external
-    view
-    returns(bytes32)
-  {
-    if(interfaceHash == _interfaceHash20) {
-      return ERC1820_ACCEPT_MAGIC;
-    } else {
-      return "";
-    }
-  }
-
-  /**
-   * [NOT MANDATORY FOR ERC1400 STANDARD][OVERRIDES ERC1400 METHOD]
+   * [NOT MANDATORY FOR ERC1400RawERC20 STANDARD][OVERRIDES ERC1400 METHOD]
    * @dev Migrate contract.
    *
    * ===> CAUTION: DEFINITIVE ACTION

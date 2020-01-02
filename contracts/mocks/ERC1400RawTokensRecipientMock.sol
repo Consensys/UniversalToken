@@ -1,18 +1,21 @@
 pragma solidity ^0.5.0;
 
 import "../token/ERC1400Raw/IERC1400TokensRecipient.sol";
-import "./ERC1820ImplementerMock.sol";
+import "../token/ERC1820/ERC1820Implementer.sol";
 
 
-contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820ImplementerMock {
+contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implementer {
 
-  constructor(string memory interfaceLabel)
-    public
-    ERC1820ImplementerMock(interfaceLabel)
-  {}
+  string constant internal ERC1400_TOKENS_RECIPIENT = "ERC1400TokensRecipient";
+
+  constructor() public {
+    ERC1820Implementer._setInterface(ERC1400_TOKENS_RECIPIENT);
+  }
 
   function canReceive(
+    bytes4 /*functionID*/,
     bytes32 /*partition*/,
+    address /*operator*/,
     address from,
     address to,
     uint value,
@@ -27,6 +30,7 @@ contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implement
   }
 
   function tokensReceived(
+    bytes4 /*functionID*/,
     bytes32 /*partition*/,
     address /*operator*/,
     address from,

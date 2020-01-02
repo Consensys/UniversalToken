@@ -8,6 +8,7 @@ import "openzeppelin-solidity/contracts/access/roles/MinterRole.sol";
 
 import "./IERC1400.sol";
 import "./token/ERC1400Partition/ERC1400Partition.sol";
+import "./token/ERC1400Raw/IERC1400TokensChecker.sol";
 
 
 /**
@@ -15,11 +16,9 @@ import "./token/ERC1400Partition/ERC1400Partition.sol";
  * @dev ERC1400 logic
  */
 contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
-
-  bytes32 internal ERC1820_ACCEPT_MAGIC = keccak256(abi.encodePacked("ERC1820_ACCEPT_MAGIC"));
   
   string constant internal ERC1400_INTERFACE_NAME = "ERC1400Token";
-  bytes32 internal _interfaceHash1400;
+  string constant internal ERC1400_TOKENS_CHECKER = "ERC1400TokensChecker";
 
   struct Doc {
     string docURI;
@@ -67,7 +66,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
     _isControllable = true;
     _isIssuable = true;
 
-    _interfaceHash1400 = keccak256(abi.encodePacked(ERC1400_INTERFACE_NAME)); // For migration
+    ERC1820Implementer._setInterface(ERC1400_INTERFACE_NAME); // For migration
   }
 
   /********************** ERC1400 EXTERNAL FUNCTIONS **************************/
@@ -188,10 +187,11 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
     view
     returns (byte, bytes32, bytes32)
   {
-    if(!_checkCertificate(data, 0, this.transferByPartition.selector)) { // 0xf3d490db: 4 first bytes of keccak256(transferByPartition(bytes32,address,uint256,bytes))
+    bytes4 functionID = this.transferByPartition.selector; // 0xf3d490db: 4 first bytes of keccak256(transferByPartition(bytes32,address,uint256,bytes))
+    if(!_checkCertificate(data, 0, functionID)) {
       return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
     } else {
-      return _canTransfer(partition, msg.sender, msg.sender, to, value, data, "");
+      return _canTransfer(functionID, partition, msg.sender, msg.sender, to, value, data, "");
     }
   }
 
@@ -215,10 +215,11 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
     view
     returns (byte, bytes32, bytes32)
   {
-    if(!_checkCertificate(operatorData, 0, this.operatorTransferByPartition.selector)) { // 0x8c0dee9c: 4 first bytes of keccak256(operatorTransferByPartition(bytes32,address,address,uint256,bytes,bytes))
+    bytes4 functionID = this.operatorTransferByPartition.selector; // 0x8c0dee9c: 4 first bytes of keccak256(operatorTransferByPartition(bytes32,address,address,uint256,bytes,bytes))
+    if(!_checkCertificate(operatorData, 0, functionID)) {
       return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
     } else {
-      return _canTransfer(partition, msg.sender, from, to, value, data, operatorData);
+      return _canTransfer(functionID, partition, msg.sender, from, to, value, data, operatorData);
     }
   }
 
@@ -227,6 +228,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
   /**
    * [INTERNAL]
    * @dev Know the reason on success or failure based on the EIP-1066 application-specific status codes.
+   * @param functionID ID of the function that needs to be called.
    * @param partition Name of the partition.
    * @param operator The address performing the transfer.
    * @param from Token holder.
@@ -240,37 +242,19 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
    * transfer restriction rule responsible for making the transfer operation invalid).
    * @return Destination partition.
    */
-   function _canTransfer(bytes32 partition, address operator, address from, address to, uint256 value, bytes memory data, bytes memory operatorData)
+   function _canTransfer(bytes4 functionID, bytes32 partition, address operator, address from, address to, uint256 value, bytes memory data, bytes memory operatorData)
      internal
      view
      returns (byte, bytes32, bytes32)
    {
-     if(!_isOperatorForPartition(partition, operator, from))
-       return(hex"A7", "", partition); // "Transfer Blocked - Identity restriction"
+     address checksImplementation = interfaceAddr(address(this), ERC1400_TOKENS_CHECKER);
 
-     if((_balances[from] < value) || (_balanceOfByPartition[from][partition] < value))
-       return(hex"A4", "", partition); // Transfer Blocked - Sender balance insufficient
-
-     if(to == address(0))
-       return(hex"A6", "", partition); // Transfer Blocked - Receiver not eligible
-
-     address senderImplementation;
-     address recipientImplementation;
-     senderImplementation = interfaceAddr(from, ERC1400_TOKENS_SENDER);
-     recipientImplementation = interfaceAddr(to, ERC1400_TOKENS_RECIPIENT);
-
-     if((senderImplementation != address(0))
-       && !IERC1400TokensSender(senderImplementation).canTransfer(partition, from, to, value, data, operatorData))
-       return(hex"A5", "", partition); // Transfer Blocked - Sender not eligible
-
-     if((recipientImplementation != address(0))
-       && !IERC1400TokensRecipient(recipientImplementation).canReceive(partition, from, to, value, data, operatorData))
-       return(hex"A6", "", partition); // Transfer Blocked - Receiver not eligible
-
-     if(!_isMultiple(value))
-       return(hex"A9", "", partition); // Transfer Blocked - Token granularity
-
-     return(hex"A2", "", partition);  // Transfer Verified - Off-Chain approval for restricted token
+     if((checksImplementation != address(0))) {
+       return IERC1400TokensChecker(checksImplementation).canTransferByPartition(functionID, partition, operator, from, to, value, data, operatorData);
+     }
+     else {
+       return(hex"00", "", partition);
+     }
    }
 
   /**
@@ -385,30 +369,13 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
    * The validator contract needs to verify "ERC1400TokensValidator" interface.
    * Once setup, the validator will be called everytime a transfer is executed.
    * @param validatorAddress Address of the validator contract.
+   * @param interfaceLabel Interface label of hook contract.
    */
-  function setValidatorHook(address validatorAddress) external onlyOwner {
-    ERC1820Client.setInterfaceImplementation(ERC1400_TOKENS_VALIDATOR, validatorAddress);
+  function setHookContract(address validatorAddress, string calldata interfaceLabel) external onlyOwner {
+    ERC1400Raw._setHookContract(validatorAddress, interfaceLabel);
   }
 
   /************************** REQUIRED FOR MIGRATION FEATURE *******************************/
-
-  /**
-   * [ERC1820Implementer INTERFACE (1/1)] [NOT MANDATORY FOR ERC1400 STANDARD]
-   * @dev Indicates whether the contract implements the interface `interfaceHash` for the address `addr`.
-   * @param interfaceHash keccak256 hash of the name of the interface
-   * @return ERC1820_ACCEPT_MAGIC only if the contract implements `ìnterfaceHash` for the address `addr`.
-   */
-  function canImplementInterfaceForAddress(bytes32 interfaceHash, address /*addr*/) // Comments to avoid compilation warnings for unused variables.
-    external
-    view
-    returns(bytes32)
-  {
-    if(interfaceHash == _interfaceHash1400) {
-      return ERC1820_ACCEPT_MAGIC;
-    } else {
-      return "";
-    }
-  }
 
   /**
    * [NOT MANDATORY FOR ERC1400 STANDARD]

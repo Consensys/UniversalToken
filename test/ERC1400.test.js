@@ -8,6 +8,7 @@ const ERC1820Registry = artifacts.require('ERC1820Registry');
 const ERC1400TokensSender = artifacts.require('ERC1400TokensSenderMock');
 const ERC1400TokensValidator = artifacts.require('ERC1400TokensValidatorMock');
 const ERC1400TokensRecipient = artifacts.require('ERC1400TokensRecipientMock');
+const ERC1400TokensChecker = artifacts.require('ERC1400TokensCheckerMock');
 
 const ERC1820_ACCEPT_MAGIC = 'ERC1820_ACCEPT_MAGIC';
 
@@ -15,8 +16,9 @@ const ERC20_INTERFACE_NAME = 'ERC20Token';
 const ERC1400_INTERFACE_NAME = 'ERC1400Token';
 
 const ERC1400_TOKENS_SENDER = 'ERC1400TokensSender';
-const ERC1400_TOKENS_VALIDATOR = 'ERC1400TokensValidator';
 const ERC1400_TOKENS_RECIPIENT = 'ERC1400TokensRecipient';
+const ERC1400_TOKENS_VALIDATOR = 'ERC1400TokensValidator';
+const ERC1400_TOKENS_CHECKER = 'ERC1400TokensChecker';
 
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -54,6 +56,7 @@ const reversedPartitions = [partition3, partition1, partition2];
 
 const documentName = '0x446f63756d656e74204e616d6500000000000000000000000000000000000000';
 
+const ESC_00 = '0x00'; // Transfer verifier not setup
 // const ESC_A1 = '0xa1'; // Transfer Verified - On-Chain approval for restricted token
 const ESC_A2 = '0xa2'; // Transfer Verified - Off-Chain approval for restricted token
 const ESC_A3 = '0xa3'; // Transfer Blocked - Sender lockup period not ended
@@ -288,10 +291,12 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     const amount = 10 * localGranularity;
 
     before(async function () {
-      this.senderContract = await ERC1400TokensSender.new(ERC1400_TOKENS_SENDER, { from: tokenHolder });
+      this.senderContract = await ERC1400TokensSender.new({ from: tokenHolder });
       await this.registry.setInterfaceImplementer(tokenHolder, soliditySha3(ERC1400_TOKENS_SENDER), this.senderContract.address, { from: tokenHolder });
 
-      this.recipientContract = await ERC1400TokensRecipient.new(ERC1400_TOKENS_RECIPIENT, { from: recipient });
+      this.validatorContract = await ERC1400TokensValidator.new({ from: owner });
+
+      this.recipientContract = await ERC1400TokensRecipient.new({ from: recipient });
       await this.registry.setInterfaceImplementer(recipient, soliditySha3(ERC1400_TOKENS_RECIPIENT), this.recipientContract.address, { from: recipient });
     });
     after(async function () {
@@ -302,78 +307,105 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     beforeEach(async function () {
       this.token = await ERC1400.new('ERC1400PartitionToken', 'DAU', localGranularity, [controller], CERTIFICATE_SIGNER, partitions);
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
+
+      await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
     });
 
     describe('when certificate is valid', function () {
-      describe('when the operator is authorized', function () {
-        describe('when balance is sufficient', function () {
-          describe('when receiver is not the zero address', function () {
-            describe('when sender is eligible', function () {
-              describe('when receiver is eligible', function () {
-                describe('when the amount is a multiple of the granularity', function () {
-                  it('returns Ethereum status code A2 (canTransferByPartition)', async function () {
-                    const response = await this.token.canTransferByPartition(
-                      partition1, recipient, amount, VALID_CERTIFICATE, { from: tokenHolder });
-                    await assertEscResponse(response, ESC_A2, EMPTY_BYTE32, partition1);
-                  });
-                  it('returns Ethereum status code A2 (canOperatorTransferByPartition)', async function () {
-                    const response = await this.token.canOperatorTransferByPartition(
-                      partition1, tokenHolder, recipient, amount, ZERO_BYTE, VALID_CERTIFICATE, { from: tokenHolder });
-                    await assertEscResponse(response, ESC_A2, EMPTY_BYTE32, partition1);
+      describe('when checker has been setup', function () {
+        before(async function () {
+          this.checkerContract = await ERC1400TokensChecker.new({ from: owner });
+        });
+        beforeEach(async function () {
+          await this.token.setHookContract(this.checkerContract.address, ERC1400_TOKENS_CHECKER, { from: owner });
+        });
+        describe('when the operator is authorized', function () {
+          describe('when balance is sufficient', function () {
+            describe('when receiver is not the zero address', function () {
+              describe('when sender is eligible', function () {
+                describe('when validator is ok', function () {
+                  describe('when receiver is eligible', function () {
+                      describe('when the amount is a multiple of the granularity', function () {
+                        it('returns Ethereum status code A2 (canTransferByPartition)', async function () {
+                          const response = await this.token.canTransferByPartition(
+                            partition1, recipient, amount, VALID_CERTIFICATE, { from: tokenHolder });
+                          await assertEscResponse(response, ESC_A2, EMPTY_BYTE32, partition1);
+  
+                        });
+                        it('returns Ethereum status code A2 (canOperatorTransferByPartition)', async function () {
+                          const response = await this.token.canOperatorTransferByPartition(
+                            partition1, tokenHolder, recipient, amount, ZERO_BYTE, VALID_CERTIFICATE, { from: tokenHolder });
+                          await assertEscResponse(response, ESC_A2, EMPTY_BYTE32, partition1);
+                        });
+                      });
+                      describe('when the amount is not a multiple of the granularity', function () {
+                        it('returns Ethereum status code A9', async function () {
+                          const response = await this.token.canTransferByPartition(
+                            partition1, recipient, 1, VALID_CERTIFICATE, { from: tokenHolder });
+                          await assertEscResponse(response, ESC_A9, EMPTY_BYTE32, partition1);
+                        });
+                      });
+                    });
+                  describe('when receiver is not eligible', function () {
+                      it('returns Ethereum status code A6', async function () {
+                        const response = await this.token.canTransferByPartition(
+                          partition1, recipient, amount, INVALID_CERTIFICATE_RECIPIENT, { from: tokenHolder });
+                        await assertEscResponse(response, ESC_A6, EMPTY_BYTE32, partition1);
+                      });
                   });
                 });
-                describe('when the amount is not a multiple of the granularity', function () {
-                  it('returns Ethereum status code A9', async function () {
-                    const response = await this.token.canTransferByPartition(
-                      partition1, recipient, 1, VALID_CERTIFICATE, { from: tokenHolder });
-                    await assertEscResponse(response, ESC_A9, EMPTY_BYTE32, partition1);
+                describe('when validator is not ok', function () {
+                  it('returns Ethereum status code A3 (canTransferByPartition)', async function () {
+                      const response = await this.token.canTransferByPartition(
+                        partition1, recipient, amount, INVALID_CERTIFICATE_VALIDATOR, { from: tokenHolder });
+                      await assertEscResponse(response, ESC_A3, EMPTY_BYTE32, partition1);
                   });
                 });
               });
-              describe('when receiver is not eligible', function () {
-                it('returns Ethereum status code A6', async function () {
+              describe('when sender is not eligible', function () {
+                it('returns Ethereum status code A5', async function () {
                   const response = await this.token.canTransferByPartition(
-                    partition1, recipient, amount, INVALID_CERTIFICATE_RECIPIENT, { from: tokenHolder });
-                  await assertEscResponse(response, ESC_A6, EMPTY_BYTE32, partition1);
+                    partition1, recipient, amount, INVALID_CERTIFICATE_SENDER, { from: tokenHolder });
+                  await assertEscResponse(response, ESC_A5, EMPTY_BYTE32, partition1);
                 });
               });
             });
-            describe('when sender is not eligible', function () {
-              it('returns Ethereum status code A5', async function () {
+            describe('when receiver is the zero address', function () {
+              it('returns Ethereum status code A6', async function () {
                 const response = await this.token.canTransferByPartition(
-                  partition1, recipient, amount, INVALID_CERTIFICATE_SENDER, { from: tokenHolder });
-                await assertEscResponse(response, ESC_A5, EMPTY_BYTE32, partition1);
+                  partition1, ZERO_ADDRESS, amount, VALID_CERTIFICATE, { from: tokenHolder });
+                await assertEscResponse(response, ESC_A6, EMPTY_BYTE32, partition1);
               });
             });
           });
-          describe('when receiver is the zero address', function () {
-            it('returns Ethereum status code A6', async function () {
+          describe('when balance is not sufficient', function () {
+            it('returns Ethereum status code A4 (insuficient global balance)', async function () {
               const response = await this.token.canTransferByPartition(
-                partition1, ZERO_ADDRESS, amount, VALID_CERTIFICATE, { from: tokenHolder });
-              await assertEscResponse(response, ESC_A6, EMPTY_BYTE32, partition1);
+                partition1, recipient, issuanceAmount + localGranularity, VALID_CERTIFICATE, { from: tokenHolder });
+              await assertEscResponse(response, ESC_A4, EMPTY_BYTE32, partition1);
+            });
+            it('returns Ethereum status code A4 (insuficient partition balance)', async function () {
+              await this.token.issueByPartition(
+                partition2, tokenHolder, localGranularity, VALID_CERTIFICATE, { from: owner });
+              const response = await this.token.canTransferByPartition(
+                partition2, recipient, amount, VALID_CERTIFICATE, { from: tokenHolder });
+              await assertEscResponse(response, ESC_A4, EMPTY_BYTE32, partition2);
             });
           });
         });
-        describe('when balance is not sufficient', function () {
-          it('returns Ethereum status code A4 (insuficient global balance)', async function () {
-            const response = await this.token.canTransferByPartition(
-              partition1, recipient, issuanceAmount + localGranularity, VALID_CERTIFICATE, { from: tokenHolder });
-            await assertEscResponse(response, ESC_A4, EMPTY_BYTE32, partition1);
-          });
-          it('returns Ethereum status code A4 (insuficient partition balance)', async function () {
-            await this.token.issueByPartition(
-              partition2, tokenHolder, localGranularity, VALID_CERTIFICATE, { from: owner });
-            const response = await this.token.canTransferByPartition(
-              partition2, recipient, amount, VALID_CERTIFICATE, { from: tokenHolder });
-            await assertEscResponse(response, ESC_A4, EMPTY_BYTE32, partition2);
+        describe('when the operator is not authorized', function () {
+          it('returns Ethereum status code A7 (canOperatorTransferByPartition)', async function () {
+            const response = await this.token.canOperatorTransferByPartition(
+              partition1, operator, recipient, amount, ZERO_BYTE, VALID_CERTIFICATE, { from: tokenHolder });
+            await assertEscResponse(response, ESC_A7, EMPTY_BYTE32, partition1);
           });
         });
       });
-      describe('when the operator is not authorized', function () {
-        it('returns Ethereum status code A7 (canOperatorTransferByPartition)', async function () {
-          const response = await this.token.canOperatorTransferByPartition(
-            partition1, operator, recipient, amount, ZERO_BYTE, VALID_CERTIFICATE, { from: tokenHolder });
-          await assertEscResponse(response, ESC_A7, EMPTY_BYTE32, partition1);
+      describe('when checker has not been setup', function () {
+        it('returns empty Ethereum status code 00 (canTransferByPartition)', async function () {
+          const response = await this.token.canTransferByPartition(
+            partition1, recipient, amount, VALID_CERTIFICATE, { from: tokenHolder });
+          await assertEscResponse(response, ESC_00, EMPTY_BYTE32, partition1);
         });
       });
     });
@@ -1466,16 +1498,16 @@ contract('ERC1400 with validator hook', function ([owner, operator, controller, 
   beforeEach(async function () {
     this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
     this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
-    this.validatorContract = await ERC1400TokensValidator.new(ERC1400_TOKENS_VALIDATOR, { from: owner });
+    this.validatorContract = await ERC1400TokensValidator.new({ from: owner });
   });
 
-  describe('setValidatorHook', function () {
+  describe('setHookContract', function () {
     describe('when the caller is the contract owner', function () {
       it('sets the validator hook', async function () {
         let hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
         assert.equal(hookImplementer, ZERO_ADDRESS);
 
-        await this.token.setValidatorHook(this.validatorContract.address, { from: owner });
+        await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
 
         hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
         assert.equal(hookImplementer, this.validatorContract.address);
@@ -1483,7 +1515,7 @@ contract('ERC1400 with validator hook', function ([owner, operator, controller, 
     });
     describe('when the caller is not the contract owner', function () {
       it('reverts', async function () {
-        await shouldFail.reverting(this.token.setValidatorHook(this.validatorContract.address, { from: unknown }));
+        await shouldFail.reverting(this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: unknown }));
       });
     });
   });
@@ -1493,11 +1525,11 @@ contract('ERC1400 with validator hook', function ([owner, operator, controller, 
     const to = recipient;
 
     beforeEach(async function () {
-      await this.token.setValidatorHook(this.validatorContract.address, { from: owner });
+      await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
     });
     afterEach(async function () {
-      await this.token.setValidatorHook(ZERO_ADDRESS, { from: owner });
+      await this.token.setHookContract(ZERO_ADDRESS, ERC1400_TOKENS_VALIDATOR, { from: owner });
     });
     describe('when the transfer is successfull', function () {
       it('transfers the requested amount', async function () {

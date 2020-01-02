@@ -7,12 +7,14 @@ pragma solidity ^0.5.0;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "erc1820/contracts/ERC1820Client.sol";
+import "../ERC1820/ERC1820Implementer.sol";
+
 
 import "../../CertificateController/CertificateController.sol";
 
 import "./IERC1400Raw.sol";
-import "./IERC1400TokensValidator.sol";
 import "./IERC1400TokensSender.sol";
+import "./IERC1400TokensValidator.sol";
 import "./IERC1400TokensRecipient.sol";
 
 
@@ -20,7 +22,7 @@ import "./IERC1400TokensRecipient.sol";
  * @title ERC1400Raw
  * @dev ERC1400Raw logic
  */
-contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateController {
+contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, ERC1820Implementer, CertificateController {
   using SafeMath for uint256;
 
   string constant internal ERC1400_TOKENS_SENDER = "ERC1400TokensSender";
@@ -375,13 +377,13 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     address senderImplementation;
     senderImplementation = interfaceAddr(from, ERC1400_TOKENS_SENDER);
     if (senderImplementation != address(0)) {
-      IERC1400TokensSender(senderImplementation).tokensToTransfer(partition, operator, from, to, value, data, operatorData);
+      IERC1400TokensSender(senderImplementation).tokensToTransfer(msg.sig, partition, operator, from, to, value, data, operatorData);
     }
 
     address validatorImplementation;
     validatorImplementation = interfaceAddr(address(this), ERC1400_TOKENS_VALIDATOR);
     if (validatorImplementation != address(0)) {
-      IERC1400TokensValidator(validatorImplementation).tokensToValidate(partition, operator, from, to, value, data, operatorData);
+      IERC1400TokensValidator(validatorImplementation).tokensToValidate(msg.sig, partition, operator, from, to, value, data, operatorData);
     }
   }
 
@@ -417,7 +419,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     recipientImplementation = interfaceAddr(to, ERC1400_TOKENS_RECIPIENT);
 
     if (recipientImplementation != address(0)) {
-      IERC1400TokensRecipient(recipientImplementation).tokensReceived(partition, operator, from, to, value, data, operatorData);
+      IERC1400TokensRecipient(recipientImplementation).tokensReceived(msg.sig, partition, operator, from, to, value, data, operatorData);
     } else if (preventLocking) {
       require(_isRegularAddress(to), "A6"); // Transfer Blocked - Receiver not eligible
     }
@@ -446,6 +448,18 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
   }
 
   /********************** ERC1400Raw OPTIONAL FUNCTIONS ***************************/
+
+  /**
+   * [NOT MANDATORY FOR ERC1400Raw STANDARD]
+   * @dev Set validator contract address.
+   * The validator contract needs to verify "ERC1400TokensValidator" interface.
+   * Once setup, the validator will be called everytime a transfer is executed.
+   * @param validatorAddress Address of the validator contract.
+   * @param interfaceLabel Interface label of hook contract.
+   */
+  function _setHookContract(address validatorAddress, string memory interfaceLabel) internal {
+    ERC1820Client.setInterfaceImplementation(interfaceLabel, validatorAddress);
+  }
 
   /**
    * [NOT MANDATORY FOR ERC1400Raw STANDARD]

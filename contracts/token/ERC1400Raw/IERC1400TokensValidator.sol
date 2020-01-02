@@ -11,7 +11,9 @@ pragma solidity ^0.5.0;
 interface IERC1400TokensValidator {
 
   function canValidate(
+    bytes4 functionID,
     bytes32 partition,
+    address operator,
     address from,
     address to,
     uint value,
@@ -20,6 +22,7 @@ interface IERC1400TokensValidator {
   ) external view returns(bool);
 
   function tokensToValidate(
+    bytes4 functionID,
     bytes32 partition,
     address operator,
     address from,
