@@ -1,6 +1,7 @@
 pragma solidity ^0.5.0;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
 import "openzeppelin-solidity/contracts/access/roles/WhitelistedRole.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
@@ -15,7 +16,7 @@ import "../token/ERC1400Raw/IERC1400TokensSender.sol";
 import "../token/ERC1400Raw/IERC1400TokensRecipient.sol";
 
 
-contract ERC1400TokensValidatorMock is IERC1400TokensValidator, WhitelistedRole, ERC1820Client, ERC1820Implementer {
+contract ERC1400TokensValidatorMock is IERC1400TokensValidator, Pausable, WhitelistedRole, ERC1820Client, ERC1820Implementer {
   using SafeMath for uint256;
 
   string constant internal ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
@@ -85,6 +86,7 @@ contract ERC1400TokensValidatorMock is IERC1400TokensValidator, WhitelistedRole,
   ) // Comments to avoid compilation warnings for unused variables.
     internal
     view
+    whenNotPaused
     returns(bool)
   {
 

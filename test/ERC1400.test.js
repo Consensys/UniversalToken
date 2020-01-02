@@ -915,36 +915,53 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
     });
 
-    describe('when the sender has enough balance for this partition', function () {
-      describe('when the transfer amount is not equal to 0', function () {
-        it('transfers the requested amount', async function () {
-          await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount);
-          await assertBalanceOf(this.token, recipient, partition1, 0);
-
-          await this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder });
-          await this.token.transferByPartition(partition1, recipient, 0, VALID_CERTIFICATE, { from: tokenHolder });
-
-          await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
-          await assertBalanceOf(this.token, recipient, partition1, transferAmount);
+    describe('when contract is not paused', function () {
+      describe('when the sender has enough balance for this partition', function () {
+        describe('when the transfer amount is not equal to 0', function () {
+          it('transfers the requested amount', async function () {
+            await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount);
+            await assertBalanceOf(this.token, recipient, partition1, 0);
+  
+            await this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder });
+            await this.token.transferByPartition(partition1, recipient, 0, VALID_CERTIFICATE, { from: tokenHolder });
+  
+            await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount - transferAmount);
+            await assertBalanceOf(this.token, recipient, partition1, transferAmount);
+          });
+          it('emits a TransferByPartition event', async function () {
+            const { logs } = await this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder });
+  
+            assert.equal(logs.length, 3);
+  
+            assertTransferEvent(logs, partition1, tokenHolder, tokenHolder, recipient, transferAmount, VALID_CERTIFICATE, null);
+          });
         });
-        it('emits a TransferByPartition event', async function () {
-          const { logs } = await this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder });
-
-          assert.equal(logs.length, 3);
-
-          assertTransferEvent(logs, partition1, tokenHolder, tokenHolder, recipient, transferAmount, VALID_CERTIFICATE, null);
+        describe('when the transfer amount is equal to 0', function () {
+          it('reverts', async function () {
+            await shouldFail.reverting(this.token.transferByPartition(partition2, recipient, 0, VALID_CERTIFICATE, { from: tokenHolder }));
+          });
         });
+  
       });
-      describe('when the transfer amount is equal to 0', function () {
+      describe('when the sender does not have enough balance for this partition', function () {
         it('reverts', async function () {
-          await shouldFail.reverting(this.token.transferByPartition(partition2, recipient, 0, VALID_CERTIFICATE, { from: tokenHolder }));
+          await shouldFail.reverting(this.token.transferByPartition(partition2, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder }));
         });
       });
-
     });
-    describe('when the sender does not have enough balance for this partition', function () {
+    describe('when contract is paused', function () {
+      beforeEach(async function () {
+        this.validatorContract = await ERC1400TokensValidator.new({ from: owner });
+        await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
+        let hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
+        assert.equal(hookImplementer, this.validatorContract.address);
+
+        await this.validatorContract.pause({ from: owner });
+      });
       it('reverts', async function () {
-        await shouldFail.reverting(this.token.transferByPartition(partition2, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder }));
+        await assertBalanceOf(this.token, tokenHolder, partition1, issuanceAmount);
+
+        await shouldFail.reverting(this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder }));
       });
     });
   });

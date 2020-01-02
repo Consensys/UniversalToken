@@ -277,99 +277,110 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
         await this.validatorContract.addWhitelisted(tokenHolder, { from: owner });
         await this.validatorContract.addWhitelisted(recipient, { from: owner });
       });
-      describe('when the sender and the recipient are whitelisted', function () {
-        beforeEach(async function () {
-          assert.equal(await this.validatorContract.isWhitelisted(tokenHolder), true);
-          assert.equal(await this.validatorContract.isWhitelisted(recipient), true);
-        });
-        describe('when the amount is a multiple of the granularity', function () {
-          describe('when the recipient is not the zero address', function () {  
-            describe('when the sender has enough balance', function () {
+      describe('when contract is not paused', function () {
+        describe('when the sender and the recipient are whitelisted', function () {
+          beforeEach(async function () {
+            assert.equal(await this.validatorContract.isWhitelisted(tokenHolder), true);
+            assert.equal(await this.validatorContract.isWhitelisted(recipient), true);
+          });
+          describe('when the amount is a multiple of the granularity', function () {
+            describe('when the recipient is not the zero address', function () {  
+              describe('when the sender has enough balance', function () {
+                const amount = issuanceAmount;
+    
+                it('transfers the requested amount', async function () {
+                  await this.token.transfer(recipient, amount, { from: tokenHolder });
+                  await assertBalance(this.token, tokenHolder, issuanceAmount - amount);
+                  await assertBalance(this.token, recipient, amount);
+                });
+    
+                it('emits a Transfer event', async function () {
+                  const { logs } = await this.token.transfer(recipient, amount, { from: tokenHolder });
+    
+                  assert.equal(logs.length, 3);
+    
+                  assert.equal(logs[0].event, 'TransferWithData');
+                  assert.equal(logs[0].args.operator, tokenHolder);
+                  assert.equal(logs[0].args.from, tokenHolder);
+                  assert.equal(logs[0].args.to, recipient);
+                  assert.equal(logs[0].args.value, amount);
+                  assert.equal(logs[0].args.data, null);
+                  assert.equal(logs[0].args.operatorData, null);
+    
+                  assert.equal(logs[1].event, 'Transfer');
+                  assert.equal(logs[1].args.from, tokenHolder);
+                  assert.equal(logs[1].args.to, recipient);
+                  assert.equal(logs[1].args.value, amount);
+    
+                  assert.equal(logs[2].event, 'TransferByPartition');
+                  assert.equal(logs[2].args.fromPartition, partition1);
+                  assert.equal(logs[2].args.operator, tokenHolder);
+                  assert.equal(logs[2].args.from, tokenHolder);
+                  assert.equal(logs[2].args.to, recipient);
+                  assert.equal(logs[2].args.value, amount);
+                  assert.equal(logs[2].args.data, null);
+                  assert.equal(logs[2].args.operatorData, null);
+                });
+              });
+              describe('when the sender does not have enough balance', function () {
+                const amount = issuanceAmount + 1;
+    
+                it('reverts', async function () {
+                  await shouldFail.reverting(this.token.transfer(recipient, amount, { from: tokenHolder }));
+                });
+              });
+            });
+    
+            describe('when the recipient is the zero address', function () {
               const amount = issuanceAmount;
-  
-              it('transfers the requested amount', async function () {
-                await this.token.transfer(recipient, amount, { from: tokenHolder });
-                await assertBalance(this.token, tokenHolder, issuanceAmount - amount);
-                await assertBalance(this.token, recipient, amount);
-              });
-  
-              it('emits a Transfer event', async function () {
-                const { logs } = await this.token.transfer(recipient, amount, { from: tokenHolder });
-  
-                assert.equal(logs.length, 3);
-  
-                assert.equal(logs[0].event, 'TransferWithData');
-                assert.equal(logs[0].args.operator, tokenHolder);
-                assert.equal(logs[0].args.from, tokenHolder);
-                assert.equal(logs[0].args.to, recipient);
-                assert.equal(logs[0].args.value, amount);
-                assert.equal(logs[0].args.data, null);
-                assert.equal(logs[0].args.operatorData, null);
-  
-                assert.equal(logs[1].event, 'Transfer');
-                assert.equal(logs[1].args.from, tokenHolder);
-                assert.equal(logs[1].args.to, recipient);
-                assert.equal(logs[1].args.value, amount);
-  
-                assert.equal(logs[2].event, 'TransferByPartition');
-                assert.equal(logs[2].args.fromPartition, partition1);
-                assert.equal(logs[2].args.operator, tokenHolder);
-                assert.equal(logs[2].args.from, tokenHolder);
-                assert.equal(logs[2].args.to, recipient);
-                assert.equal(logs[2].args.value, amount);
-                assert.equal(logs[2].args.data, null);
-                assert.equal(logs[2].args.operatorData, null);
-              });
-            });
-            describe('when the sender does not have enough balance', function () {
-              const amount = issuanceAmount + 1;
-  
+    
               it('reverts', async function () {
-                await shouldFail.reverting(this.token.transfer(recipient, amount, { from: tokenHolder }));
+                await shouldFail.reverting(this.token.transfer(ZERO_ADDRESS, amount, { from: tokenHolder }));
               });
             });
           });
-  
-          describe('when the recipient is the zero address', function () {
-            const amount = issuanceAmount;
-  
+          describe('when the amount is not a multiple of the granularity', function () {
             it('reverts', async function () {
-              await shouldFail.reverting(this.token.transfer(ZERO_ADDRESS, amount, { from: tokenHolder }));
+              this.token = await ERC1400ERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, partitions);
+              await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
+              await shouldFail.reverting(this.token.transfer(recipient, 3, { from: tokenHolder }));
             });
           });
         });
-        describe('when the amount is not a multiple of the granularity', function () {
+        describe('when the sender is not whitelisted', function () {
+          const amount = issuanceAmount;
+          
+          beforeEach(async function () {
+            await this.validatorContract.removeWhitelisted(tokenHolder, { from: owner });
+  
+            assert.equal(await this.validatorContract.isWhitelisted(tokenHolder), false);
+            assert.equal(await this.validatorContract.isWhitelisted(recipient), true);
+          });
           it('reverts', async function () {
-            this.token = await ERC1400ERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, partitions);
-            await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
-            await shouldFail.reverting(this.token.transfer(recipient, 3, { from: tokenHolder }));
+            await shouldFail.reverting(this.token.transfer(recipient, amount, { from: tokenHolder }));
+          });
+        });
+        describe('when the recipient is not whitelisted', function () {
+          const amount = issuanceAmount;
+    
+          beforeEach(async function () {
+            await this.validatorContract.removeWhitelisted(recipient, { from: owner });
+  
+            assert.equal(await this.validatorContract.isWhitelisted(tokenHolder), true);
+            assert.equal(await this.validatorContract.isWhitelisted(recipient), false);
+          });
+          it('reverts', async function () {
+            await shouldFail.reverting(this.token.transfer(recipient, amount, { from: tokenHolder }));
           });
         });
       });
-      describe('when the sender is not whitelisted', function () {
-        const amount = issuanceAmount;
-        
-        beforeEach(async function () {
-          await this.validatorContract.removeWhitelisted(tokenHolder, { from: owner });
-
-          assert.equal(await this.validatorContract.isWhitelisted(tokenHolder), false);
-          assert.equal(await this.validatorContract.isWhitelisted(recipient), true);
+      describe('when contract is paused', function () {
+        beforeEach(async function () { 
+          await this.validatorContract.pause({ from: owner });
         });
         it('reverts', async function () {
-          await shouldFail.reverting(this.token.transfer(recipient, amount, { from: tokenHolder }));
-        });
-      });
-      describe('when the recipient is not whitelisted', function () {
-        const amount = issuanceAmount;
-  
-        beforeEach(async function () {
-          await this.validatorContract.removeWhitelisted(recipient, { from: owner });
-
-          assert.equal(await this.validatorContract.isWhitelisted(tokenHolder), true);
-          assert.equal(await this.validatorContract.isWhitelisted(recipient), false);
-        });
-        it('reverts', async function () {
-          await shouldFail.reverting(this.token.transfer(recipient, amount, { from: tokenHolder }));
+          await assertBalance(this.token, tokenHolder, issuanceAmount);
+          await shouldFail.reverting(this.token.transfer(recipient, issuanceAmount, { from: tokenHolder }));
         });
       });
     });
