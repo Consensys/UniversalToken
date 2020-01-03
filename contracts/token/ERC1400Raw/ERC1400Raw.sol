@@ -9,8 +9,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "erc1820/contracts/ERC1820Client.sol";
 import "../ERC1820/ERC1820Implementer.sol";
 
-
-import "../../CertificateController/CertificateController.sol";
+import "contract-certificate-controller/contracts/CertificateControllerNonce.sol";
 
 import "./IERC1400Raw.sol";
 import "./IERC1400TokensSender.sol";
