@@ -1,6 +1,6 @@
 ![Codefi](images/CodefiBanner.png)
 
-## Introduction
+# Introduction
 
 Blockchain technology and more specifically the emergence of "programmable" tokens have opened a world of new possibilities for financial assets: the creation of digital assets.
 Digital assets are financial assets, which have been "tokenized". This means each asset is represented by a token on the blockchain.
@@ -12,13 +12,13 @@ Those tokens can be represented by multiple standards:
 The following repository contains the ERC1400 implementation used by the Codefi Assets platform.
 
 
-## What is Codefi Assets?
+# What is Codefi Assets?
 
 Codefi Assets is an advanced institutional technology platform for issuance and management of tokenized financial assets, powered by the Ethereum blockchain. Codefi Assets is a product created by ConsenSys.
 
 https://codefi.consensys.net/codefiassets
 
-#### A platform for financial asset issuance & management
+### A platform for financial asset issuance & management
 
 The current capital market still needs to overcome a few pain points:
  - Today, it is cumbersome and costly to issue an asset.
@@ -30,7 +30,7 @@ With Codefi Assets, we want to tokenize the capital market to tackle those pain 
  - This reduction of costs will allow us to onboard smaller ticket investors.
  - Globally, the tokenization removes constraints for more liquid and frictionless asset transfers, while keeping a strong control over the market, thus liberating the secondary market.
 
-#### Video demo of an asset issuance platform based on Codefi Assets technology
+### Video demo of an asset issuance platform based on Codefi Assets technology
 
 ![CodefiVideo](images/CodefiVideo.png)
 
@@ -38,7 +38,7 @@ Link to video:
 https://www.youtube.com/watch?v=PjunjtIj02c
 
 
-## Quick overview of token standards (ERC20, ERC1400) 
+# Quick overview of token standards (ERC20, ERC1400) 
 
 ![Picture1](images/Picture1.png)
 ![Picture2](images/Picture2.png)
@@ -46,11 +46,11 @@ https://www.youtube.com/watch?v=PjunjtIj02c
 ![Picture4](images/Picture4.png)
 
 
-## Why do we use the ERC1400 token standard on Codefi Assets?
+# Why do we use the ERC1400 token standard on Codefi Assets?
 
 ERC1400 introduces additional features to ERC20 features, and provides issuers with strong control capabilities over their financial assets.
 
-#### Introduction - The limits of ERC20 token standard
+### Introduction - The limits of ERC20 token standard
 
 Currently the most common and well-known standard within crypto community is the ERC20([eips.ethereum.org/EIPS/eip-20](https://eips.ethereum.org/EIPS/eip-20)).
 The vast majority of ICOs are based on this ERC20 standard, but it doesn't appear to be the most relevant standard for financial asset tokenization.
@@ -63,7 +63,7 @@ All controls have to be hard-coded on-chain and are often limited to simple/bina
 Codefi Assets makes use of more evolved/granular controls to secure transfers.
 Those controls can evolve quickly and require flexibility, which makes it difficult to hard-code them on-chain.
 
-#### Transfer controls based on certificates - A way to perform multisignature in one single transaction
+### Transfer controls based on certificates - A way to perform multisignature in one single transaction
 
 The use of an additional 'data' parameter in the transfer functions can enable more evolved/granular controls:
 ```
@@ -90,17 +90,18 @@ In a way, this can be seen as a way to perform multisignature in one single tran
  - A valid transaction signature (signed by the investor)
  - A valid certificate signature (signed by the issuer)
 
- #### Example use case
+ ### Example use case
  
  An example use case for the certificate validation is KYC verification.
 
  The certificate generator can be coupled to a KYC API, and only provide certificates to users who've completed their KYC verification before.
+
  ![Picture7](images/Picture7.png)
 
 PS: Since the ERC1400 standard is agnostic about the way to control certificate, we didn't include our certificate controller in this repository (a mock is used instead). In order to perform real advanced conditional ownership, a certificate controller called 'CertificateController.sol' shall be placed in folder '/contracts/CertificateController' instead of the mock placed there.
 
 
-## Description of ERC1400 standard
+# Description of ERC1400 standard
 
 ERC1400 introduces new concepts on top of ERC20 token standard:
  - **Granular transfer controls**: Possibility to perform granular controls on the transfers with a system of certificates (injected in the additional `data` field of the transfer method)
@@ -113,25 +114,25 @@ Optionnaly, the following features can also be added:
  - **Upgradeability**: Use of ERC1820([eips.ethereum.org/EIPS/eip-1820](http://eips.ethereum.org/EIPS/eip-1820)) as central contract registry to follow smart contract migrations.
 
 
-## Focus on ERC1400 implementation choices
+# Focus on ERC1400 implementation choices
 
 The original submission with discussion can be found at: [github.com/ethereum/EIPs/issues/1411](https://github.com/ethereum/EIPs/issues/1411).
 
 We've performed a few updates compared to the original submission, mainly to fit with business requirements + to save gas cost of contract deployment.
 
-**Choices made to fit with business requirements**:
+#### Choices made to fit with business requirements
  - Introduction of sender/recipient hooks ([IERC1400TokensRecipient](contracts/token/ERC1400Raw/IERC1400TokensRecipient.sol), [IERC1400TokensSender](contracts/token/ERC1400Raw/IERC1400TokensSender.sol)). Those are inspired by [ERC777 hooks]((https://eips.ethereum.org/EIPS/eip-777)), but they have been updated in order to support partitions, in order to become ERC1400-compliant.
  - Modification of view functions ('canTransferByPartition', 'canOperatorTransferByPartition') as consequence of our certificate design choice: the view functions need to have the exact same parameters as 'transferByPartition' and 'operatorTransferByPartition' in order to be in measure to confirm the certificate's validity.
  - Introduction of validator hook ([IERC1400TokensValidator](contracts/token/ERC1400Raw/IERC1400TokensValidator.sol)), to manage updates of the transfer validation policy across time (certificate, whitelist, blacklist, lock-up periods, investor caps, pauseability, etc.), thanks an upgradeable module.
  - Extension of ERC20's allowance feature to support partitions, in order to become ERC1400-compliant. This is particularly important for secondary market and delivery-vs-payment.
  - Possibility to migrate contract, and register new address in ERC1820 central registry, for smart contract upgradeability.
 
-**Choices made to save gas cost of contract deployment**:
+#### Choices made to save gas cost of contract deployment
  - Removal of controller functions ('controllerTransfer' and 'controllerRedeem') and events ('ControllerTransfer' and 'ControllerRedemption') to save gas cost of contract deployment. Those controller functionalities have been included in 'operatorTransferByPartition' and 'operatorRedeemByPartition' functions instead.
  - Export of 'canTransferByPartition' and 'canOperatorTransferByPartition' in optional checker hook [IERC1400TokensChecker](contracts/token/ERC1400Raw/IERC1400TokensChecker.sol) as those functions take a lot of place, although they are not essential, as the result they return can be deduced by calling other view functions of the contract.
 
 
-## Interfaces
+# Interfaces
 
 For better readability, ER1400 contract has been structured into different parts:
  - [ERC1400Raw](contracts/token/ERC1400Raw/ERC1400Raw.sol), contains the minimum logic, recommanded to manage financial assets: granular transfer controls with certificate, controllers, hooks, migrations
