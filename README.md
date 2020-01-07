@@ -1,101 +1,80 @@
-![CoFi](images/CoFiLogo.png)
+![Codefi](images/CodefiBanner.png)
 
-## What is CoFi OS?
+## Introduction
 
-CoFi OS is an advanced institutional technology platform for issuing and exchanging tokenized financial assets, powered by the Ethereum blockchain. The security token implementations used by the platform are shared in this repository.
-CoFi OS is a product created by ConsenSys.
+Blockchain technology and more specifically the emergence of "programmable" tokens have opened a world of new possibilities for financial assets: the creation of digital assets.
+Digital assets are financial assets, which have been "tokenized". This means each asset is represented by a token on the blockchain.
 
-Example of an asset issuance leveraging the CoFi OS technology:
+Those tokens can be represented by multiple standards:
+ - **ERC20** is the most basic and most adopted token standard. It can be seen as the "axiom of token standards" and is compatible with the majority of existing tools and platforms.
+ - **ERC1400** is a more evolved standard, also ERC20-compliant, precisely designed for the use case of tokenized financial assets, allowing to perform highly controllable token transfers.
 
-![CoFiVideo](images/CoFiVideo.png)
-https://youtu.be/r2zvd7u5Uv0
-
-
-Slide deck presenting ERC1400 features:
-![ERC1400](images/ERC1400.png)
-https://docs.google.com/presentation/d/e/2PACX-1vS6pUx-VjdwSfELQwFVlXzq3Ekvxa9wpGTrNJqkp6-CnHxBPecjTEcVq21V6Nsbc-Bp4yq4dZTtp6Kn/pub?start=false&loop=false&delayms=3000
-
-## Content - Security token implementations, adapted for financial asset tokenization: ERC777 (ERC1400Raw) and ERC1400
-
-This repo contains security token smart contract implementations used by CoFi OS:
-#### ERC777 (ERC1400Raw) implementation - Advanced token standard for asset transfers
-
- - Empowerment of operators with the ability to send tokens on behalf of other addresses.
- - Setup of send/receive hooks to offer token holders more control over their tokens.
- - Use of ERC1820([eips.ethereum.org/EIPS/eip-1820](http://eips.ethereum.org/EIPS/eip-1820)) to notify contracts and regular addresses when they receive tokens.
- - Backwards compatible with ERC20.
-
- WARNING - NAMING:
- The token standard implementation contained in this repo was renamed ERC1400Raw (instead of ERC777) as it is not 100% compliant with the official ERC777 interface. Indeed, it implements the same logic as ERC777 but functions have been renamed to better fit with the ERC1400 interface:
- - defaultOperators --> controllers
- - isOperatorFor --> isOperator
- - send --> transferWithData
- - operatorSend --> transferFromWithData
- - burn --> redeem
- - operatorBurn --> redeemFrom
- - mint --> issue
- - Sent event --> TransferWithData event
- - Minted event --> Issued event
- - Burned event --> Redeemed event
-
- Furthermore, the hooks have been enhanced to support partitions and become ERC1400-compliant:
- - IERC777TokensSender --> IERC1400TokensSender
- - IERC777TokensRecipient --> IERC1400TokensRecipient
+The following repository contains the ERC1400 implementation used by the Codefi Assets platform.
 
 
-#### ERC1400 implementation - Partially fungible token standard
+## What is Codefi Assets?
 
- - Differentiated ownership / transparent restrictions.
- - Controller operations (force transfer).
- - On-chain restriction checking with error signaling, off-chain data injection for transfer restrictions and issuance / redemption semantics.
- - Document management.
- - Backwards compatible with ERC20.
+Codefi Assets is an advanced institutional technology platform for issuance and management of tokenized financial assets, powered by the Ethereum blockchain. Codefi Assets is a product created by ConsenSys.
 
-## Objective - Financial asset issuance & management
+https://codefi.consensys.net/codefiassets
+
+#### A platform for financial asset issuance & management
 
 The current capital market still needs to overcome a few pain points:
  - Today, it is cumbersome and costly to issue an asset.
  - Once issued, the assets are mainly reserved for high-ticket investors.
- - Finally, those assets are not easily tradable, which strongly limits the secondary market possibilities.
+ - Finally, those assets are not easily tradeable, which strongly limits the secondary market possibilities.
 
-With CoFi OS, we want to tokenize the capital market to tackle those pain points. In the new system, we imagine:
+With Codefi Assets, we want to tokenize the capital market to tackle those pain points. In the new system, we imagine:
  - An asset issuance will be faster, simpler but also cheaper than today.
  - This reduction of costs will allow us to onboard smaller ticket investors.
  - Globally, the tokenization removes constraints for more liquid and frictionless asset transfers, while keeping a strong control over the market, thus liberating the secondary market.
 
-The security token standards contained in this repository, combined to user-friendly interfaces, can be leveraged for financial asset issuance & management:
+#### Video demo of an asset issuance platform based on Codefi Assets technology
 
-![CoFiInterface](images/CoFiInterface.png)
+![CodefiVideo](images/CodefiVideo.png)
 
-## Approach - Introduce a new transfer standard to provide issuers with strong control capabilities over their financial assets
+Link to video:
+https://www.youtube.com/watch?v=PjunjtIj02c
 
-### Introduction - The limits of ERC20 token standard
+
+## Quick overview of token standards (ERC20, ERC1400) 
+
+![Picture1](images/Picture1.png)
+![Picture2](images/Picture2.png)
+![Picture3](images/Picture3.png)
+![Picture4](images/Picture4.png)
+
+
+## Why do we use the ERC1400 token standard on Codefi Assets?
+
+ERC1400 introduces additional features to ERC20 features, and provides issuers with strong control capabilities over their financial assets.
+
+#### Introduction - The limits of ERC20 token standard
 
 Currently the most common and well-known standard within crypto community is the ERC20([eips.ethereum.org/EIPS/eip-20](https://eips.ethereum.org/EIPS/eip-20)).
-While the vast majority of ICOs are based on this ERC20 standard, it appears not to be the most relevant for financial asset tokenization.
+The vast majority of ICOs are based on this ERC20 standard, but it doesn't appear to be the most relevant standard for financial asset tokenization.
 The only parameters required to perform an ERC20 token transfer are the recipient's address and the value of the transfer, thus limiting the control possibilities over transfers:
 ```
 function transfer(address recipient, uint256 value)
 ```
-All controls have to be hard-coded on-chain and are often limited to simple / binary checks e.g. checking whether an investor is blacklisted or not.
+All controls have to be hard-coded on-chain and are often limited to simple/binary checks e.g. checking whether an investor is blacklisted or not.
 
-CoFi OS makes use of more evolved / granular controls to secure transfers.
+Codefi Assets makes use of more evolved/granular controls to secure transfers.
 Those controls can evolve quickly and require flexibility, which makes it difficult to hard-code them on-chain.
 
-### CoFi transaction - A way to secure all transfers with a certificate generated off-chain by the issuer
+#### Transfer controls based on certificates - A way to perform multisignature in one single transaction
 
-The use of an additional 'data' parameter in the transfer functions can enable more evolved / granular controls:
+The use of an additional 'data' parameter in the transfer functions can enable more evolved/granular controls:
 ```
 function transferWithData(address recipient, uint256 value, bytes data)
 ```
-CoFi OS fosters to use this additional 'data' field, available in ERC777 (ERC1400Raw) and ERC1400 standards, in order to inject a certificate generated off-chain by the issuer.
+Codefi Assets fosters to use this additional 'data' field, available in the ERC1400 standard, in order to inject a certificate generated off-chain by the issuer.
 A token transfer shall be conditioned to the validity of the certificate, thus offering the issuer with strong control capabilities over its financial assets.
 
-![CoFiTransaction](images/CoFiTransaction.png)
+![Picture5](images/Picture5.png)
 
-### CoFi certificate - A way to perform advanced conditional ownership
-
-The CoFi certificate contains:
+The Codefi certificate contains:
  - The function ID which ensures the certificate can’t be used on an other function.
  - The parameters which ensures the input parameters have been validated by the issuer.
  - A validity date which ensures the certificate can’t be used after validity date.
@@ -103,89 +82,105 @@ The CoFi certificate contains:
 
 Finally the certificate is signed by the issuer which ensures it is authentic.
 
-The certificate enables the issuer to perform advanced conditional ownership, since he needs to be aware of all parameters of a function call before generating the associated certificate.
+The certificate enables the issuer to perform advanced conditional ownership, since he needs to be aware of all parameters of a transaction before generating the associated certificate.
 
-![CoFiCertificate](images/CoFiCertificate.png)
+![Picture6](images/Picture6.png)
+
+In a way, this can be seen as a way to perform multisignature in one single transaction since every asset transfer requires:
+ - A valid transaction signature (signed by the investor)
+ - A valid certificate signature (signed by the issuer)
+
+ #### Example use case
+ 
+ An example use case for the certificate validation is KYC verification.
+
+ The certificate generator can be coupled to a KYC API, and only provide certificates to users who've completed their KYC verification before.
+ ![Picture7](images/Picture7.png)
 
 PS: Since the ERC1400 standard is agnostic about the way to control certificate, we didn't include our certificate controller in this repository (a mock is used instead). In order to perform real advanced conditional ownership, a certificate controller called 'CertificateController.sol' shall be placed in folder '/contracts/CertificateController' instead of the mock placed there.
 
-## Detailed presentation - Standards description & implementation choices
 
-### ERC777 (ERC1400Raw)
+## Description of ERC1400 standard
 
-The [ERC777 (ERC1400Raw)](contracts/token/ERC1400Raw/ERC1400Raw.sol) is an advanced token standard adapted for regulated asset transfers, since it allows to inject data (i.e. our certificate) in the transfer transactions:
-```
-function transferWithData(address recipient, uint256 value, bytes data)
-```
+ERC1400 introduces new concepts on top of ERC20 token standard:
+ - **Granular transfer controls**: Possibility to perform granular controls on the transfers with a system of certificates (injected in the additional `data` field of the transfer method)
+ - **Controllers**: Empowerment of controllers with the ability to send tokens on behalf of other addresses (e.g. force transfer).
+ - **Partionned tokens** (partial-fungibility): Every ERC1400 token can be partitioned. The partition of a token, can be seen as the state of a token. It is well adapted for representing, classes of assets, performing corporate actions, etc.
+ - **Document management**: Possibility to bind tokens to hashes of legal documents, thus making the link between a blockchain transaction and the real world.
 
-The official proposal can be found at: [eips.ethereum.org/EIPS/eip-777](https://eips.ethereum.org/EIPS/eip-777).
+Optionnaly, the following features can also be added:
+ - **Hooks**: Possibility for token senders/recipients to setup hooks, e.g. automated actions executed everytime they send/receive tokens, thanks to [ERC1820](http://eips.ethereum.org/EIPS/eip-1820).
+ - **Upgradeability**: Use of ERC1820([eips.ethereum.org/EIPS/eip-1820](http://eips.ethereum.org/EIPS/eip-1820)) as central contract registry to follow smart contract migrations.
 
-We've performed a few updates compared to the official proposal, mainly to better fit with our implementation of ERC1400:
- - Introduction of the notion of 'controllers' (replacing defaultOperators) for better consistency with ERC1400 'controllers'.
- - Introduction of '_isControllable' property (set to 'false' by default for the ERC777 (ERC1400Raw), but set to 'true' for the ERC1400).
- - Update of IERC777TokensRecipient and IERC777TokensSender interfaces, by adding 'partition' parameters, and renaming into IERC1400TokensRecipient and IERC1400TokensSender in order to make the hooks ERC1400-compliant.
- - Renaming of 'send' function (now 'transferWithData') and 'Sent' event (now 'TransferWithData') for better consistency with ERC1400 names + to avoid potential issues with blockchain tools (e.g. Truffle, etc.) considering 'send' as a reserved word.
- - Renaming of 'mint' function (now 'issue') and 'Minted' event (now 'Issued') for better consistency with ERC1400 names.
- - Renaming of 'burn' function (now 'redeem') and 'Burned' event (now 'Redeemed') for better consistency with ERC1400 names.
- - Renaming of 'operatorBurn' function (now 'redeemFrom') for better consistency with ERC1400 names.
 
-ERC777 (ERC1400Raw) can be made compatible with ERC20 (see [ERC1400RawERC20.sol](contracts/token/ERC20/ERC1400RawERC20.sol)).
-This backwards compatibility property offers interoperability, as ERC20 tokens are compatible with most existing exchange platforms.
+## Focus on ERC1400 implementation choices
 
-It implements the [following interface](contracts/token/ERC1400Raw/IERC1400Raw.sol):
+The original submission with discussion can be found at: [github.com/ethereum/EIPs/issues/1411](https://github.com/ethereum/EIPs/issues/1411).
+
+We've performed a few updates compared to the original submission, mainly to fit with business requirements + to save gas cost of contract deployment.
+
+**Choices made to fit with business requirements**:
+ - Introduction of sender/recipient hooks ([IERC1400TokensRecipient](contracts/token/ERC1400Raw/IERC1400TokensRecipient.sol), [IERC1400TokensSender](contracts/token/ERC1400Raw/IERC1400TokensSender.sol)). Those are inspired by [ERC777 hooks]((https://eips.ethereum.org/EIPS/eip-777)), but they have been updated in order to support partitions, in order to become ERC1400-compliant.
+ - Modification of view functions ('canTransferByPartition', 'canOperatorTransferByPartition') as consequence of our certificate design choice: the view functions need to have the exact same parameters as 'transferByPartition' and 'operatorTransferByPartition' in order to be in measure to confirm the certificate's validity.
+ - Introduction of validator hook ([IERC1400TokensValidator](contracts/token/ERC1400Raw/IERC1400TokensValidator.sol)), to manage updates of the transfer validation policy across time (certificate, whitelist, blacklist, lock-up periods, investor caps, pauseability, etc.), thanks an upgradeable module.
+ - Extension of ERC20's allowance feature to support partitions, in order to become ERC1400-compliant. This is particularly important for secondary market and delivery-vs-payment.
+ - Possibility to migrate contract, and register new address in ERC1820 central registry, for smart contract upgradeability.
+
+**Choices made to save gas cost of contract deployment**:
+ - Removal of controller functions ('controllerTransfer' and 'controllerRedeem') and events ('ControllerTransfer' and 'ControllerRedemption') to save gas cost of contract deployment. Those controller functionalities have been included in 'operatorTransferByPartition' and 'operatorRedeemByPartition' functions instead.
+ - Export of 'canTransferByPartition' and 'canOperatorTransferByPartition' in optional checker hook [IERC1400TokensChecker](contracts/token/ERC1400Raw/IERC1400TokensChecker.sol) as those functions take a lot of place, although they are not essential, as the result they return can be deduced by calling other view functions of the contract.
+
+
+## Interfaces
+
+For better readability, ER1400 contract has been structured into different parts:
+ - [ERC1400Raw](contracts/token/ERC1400Raw/ERC1400Raw.sol), contains the minimum logic, recommanded to manage financial assets: granular transfer controls with certificate, controllers, hooks, migrations
+ - [ERC1400Partition](contracts/token/ERCC1400Partition/ERC1400Partition.sol), introduces the concept of partitionned tokens (partial fungibility)
+ - [ERC1400](contracts/token/ERC1400.sol), adds the issuance/redemption logic
+ - [ERC1400ERC20](contracts/token/ERC20/ERC1400ERC20.sol), adds the ERC20 backwards compatibility
+
+### ERC1400Raw interface
+
+ERC1400Raw can be used:
+ - Either as a sub-contract of ERC1400Partition
+ - Or as a standalone contract, in case partitions are not required for the token
+
 ```
 interface IERC1400Raw {
 
+  // Token Information
   function name() external view returns (string);
   function symbol() external view returns (string);
   function totalSupply() external view returns (uint256);
   function balanceOf(address owner) external view returns (uint256);
   function granularity() external view returns (uint256);
 
+  // Operators
   function controllers() external view returns (address[]);
   function authorizeOperator(address operator) external;
   function revokeOperator(address operator) external;
   function isOperator(address operator, address tokenHolder) external view returns (bool);
+  event AuthorizedOperator(address indexed operator, address indexed tokenHolder);
+  event RevokedOperator(address indexed operator, address indexed tokenHolder);
 
+  // Token Transfers
   function transferWithData(address to, uint256 value, bytes data) external;
   function transferFromWithData(address from, address to, uint256 value, bytes data, bytes operatorData) external;
 
+  // Token Issuance/Redemption
   function redeem(uint256 value, bytes data) external;
   function redeemFrom(address from, uint256 value, bytes data, bytes operatorData) external;
-
-  event TransferWithData(
-    address indexed operator,
-    address indexed from,
-    address indexed to,
-    uint256 value,
-    bytes data,
-    bytes operatorData
-  );
   event Issued(address indexed operator, address indexed to, uint256 value, bytes data, bytes operatorData);
   event Redeemed(address indexed operator, address indexed from, uint256 value, bytes data, bytes operatorData);
-  event AuthorizedOperator(address indexed operator, address indexed tokenHolder);
-  event RevokedOperator(address indexed operator, address indexed tokenHolder);
 
 }
 ```
 
-### ERC1400
+### ERC1400Partition interface
 
-The [ERC1400](contracts/ERC1400.sol) has an additional feature on top of ERC777 (ERC1400Raw) properties: the partial fungibility property.
+ERC1400Partition adds an additional feature on top of ERC1400Raw properties: the possibility to partition tokens (partial-fungibility property).
 This property allows to perform corporate actions, like mergers and acquisitions, which is essential for financial assets.
 
-The original submission with discussion can be found at: [github.com/ethereum/EIPs/issues/1411](https://github.com/ethereum/EIPs/issues/1411).
-
-We've performed a few updates compared to the original submission, mainly to fit with business requirements + to save gas cost of contract deployment:
- - Compatibility with ERC777 (ERC1400Raw) as all ERC777 (ERC1400Raw) properties are business requirements for financial asset tokenization (incl. send/receive hooks and ERC1820 which are used to ensure transfer atomicity).
- - Modification of view functions ('canTransferByPartition', 'canOperatorTransferByPartition') as consequence of our certificate design choice: the view functions need to have the exact same parameters as 'transferByPartition' and 'operatorTransferByPartition' in order to be in measure to confirm the certificate's validity.
- - Removal of controller functions ('controllerTransfer' and 'controllerRedeem') and events ('ControllerTransfer' and 'ControllerRedemption') to save gas cost of contract deployment. Those controller functionalities have been included in 'transferByPartition' and 'redeemByPartition' functions instead.
- - Split of ERC1400 functions into 2 interfaces (IERC1400Partition for asset transfer logic + IERC1400 for asset issuance/redemption logic) for better readability.
-
-ERC1400 is compatible with ERC777 (ERC1400Raw) and can be made compatible with ERC20 (see [ERC1400ERC20.sol](contracts/token/ERC20/ERC1400ERC20.sol)).
-This backwards compatibility property offers interoperability, as ERC20 tokens are compatible with most existing exchange platforms.
-
-The standard implements the following interfaces: [IERC1400Partition](contracts/token/ERC1400Partition/IERC1400Partition.sol) + [IERC1400](contracts/IERC1400.sol):
 ```
 interface IERC1400Partition {
 
@@ -196,6 +191,20 @@ interface IERC1400Partition {
     // Token Transfers
     function transferByPartition(bytes32 partition, address to, uint256 value, bytes data) external returns (bytes32);
     function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes data, bytes operatorData) external returns (bytes32);
+    event TransferByPartition(
+        bytes32 indexed fromPartition,
+        address operator,
+        address indexed from,
+        address indexed to,
+        uint256 value,
+        bytes data,
+        bytes operatorData
+    );
+    event ChangedPartition(
+        bytes32 indexed fromPartition,
+        bytes32 indexed toPartition,
+        uint256 value
+    );
 
     // Default Partition Management
     function getDefaultPartitions(address tokenHolder) external view returns (bytes32[]);
@@ -206,33 +215,17 @@ interface IERC1400Partition {
     function authorizeOperatorByPartition(bytes32 partition, address operator) external;
     function revokeOperatorByPartition(bytes32 partition, address operator) external;
     function isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) external view returns (bool);
-
-    // Transfer Events
-    event TransferByPartition(
-        bytes32 indexed fromPartition,
-        address operator,
-        address indexed from,
-        address indexed to,
-        uint256 value,
-        bytes data,
-        bytes operatorData
-    );
-
-    event ChangedPartition(
-        bytes32 indexed fromPartition,
-        bytes32 indexed toPartition,
-        uint256 value
-    );
-
-    // Operator Events
     event AuthorizedOperatorByPartition(bytes32 indexed partition, address indexed operator, address indexed tokenHolder);
     event RevokedOperatorByPartition(bytes32 indexed partition, address indexed operator, address indexed tokenHolder);
 
 }
 ```
 
+### ERC1400 interface
+
+ERC1400 adds issuance/redemption + document management logics upon ERC1400Partition.
 ```
-interface IERC1400  {
+interface IERC1400 {
 
     // Document Management
     function getDocument(bytes32 name) external view returns (string, bytes32);
@@ -259,6 +252,33 @@ interface IERC1400  {
 }
 ```
 
+### ERC1400ERC20 interface
+
+Finally ERC1400ERC20 introduces the last missing layer: ERC20 backwards compatibility. It is not mandatory but quite essential, because it ensures the token is compatible with all ERC20-compliant platforms.
+
+```
+interface IERC20 {
+
+    // Token Information
+    function totalSupply() external view returns (uint256);
+    function balanceOf(address account) external view returns (uint256);
+
+    // Token Transfers
+    function transfer(address recipient, uint256 amount) external returns (bool);
+    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
+    event Transfer(address indexed from, address indexed to, uint256 value);
+
+    // Allowances
+    function allowance(address owner, address spender) external view returns (uint256);
+    function approve(address spender, uint256 amount) external returns (bool);
+    event Approval(address indexed owner, address indexed spender, uint256 value);
+
+}
+```
+
+NB: [ERC1400RawERC20](contracts/token/ERC20/ERC1400RawERC20.sol) has been created in case ERC20 backwards retrocompatibility is required, but not the partitions.
+
+
 ## Quick start: How to test the contract?
 
 Prerequisites: please make sure you installed "yarn" on your environment.
@@ -273,6 +293,7 @@ $ cd ERC1400
 $ yarn
 $ yarn coverage
 ```
+
 
 ## How to deploy the contract on a blokchain network?
 
@@ -313,6 +334,7 @@ Deploy the contract by running the migration script:
 ```
 $ yarn truffle migrate --network ropsten
 ```
+
 
 ## APPENDIX
 
