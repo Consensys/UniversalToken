@@ -4,8 +4,8 @@ const { soliditySha3 } = require("web3-utils");
 
 const ERC1400Raw = artifacts.require('ERC1400RawMock');
 const ERC1820Registry = artifacts.require('ERC1820Registry');
-const ERC1400TokensSender = artifacts.require('ERC1400TokensSenderMock');
-const ERC1400TokensRecipient = artifacts.require('ERC1400TokensRecipientMock');
+const ERC1400TokensSender = artifacts.require('ERC1400TokensSender');
+const ERC1400TokensRecipient = artifacts.require('ERC1400TokensRecipient');
 
 const ERC1400_TOKENS_SENDER = 'ERC1400TokensSender';
 const ERC1400_TOKENS_RECIPIENT = 'ERC1400TokensRecipient';

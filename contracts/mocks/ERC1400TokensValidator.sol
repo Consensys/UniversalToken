@@ -20,7 +20,7 @@ import "../token/ERC1400Raw/IERC1400TokensSender.sol";
 import "../token/ERC1400Raw/IERC1400TokensRecipient.sol";
 
 
-contract ERC1400TokensValidatorMock is IERC1400TokensValidator, Ownable, Pausable, WhitelistedRole, BlacklistedRole, ERC1820Client, ERC1820Implementer {
+contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, WhitelistedRole, BlacklistedRole, ERC1820Client, ERC1820Implementer {
   using SafeMath for uint256;
 
   string constant internal ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";

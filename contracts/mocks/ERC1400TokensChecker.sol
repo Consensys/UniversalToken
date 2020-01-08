@@ -16,7 +16,7 @@ import "../token/ERC1400Raw/IERC1400TokensRecipient.sol";
 import "../token/ERC1400Raw/IERC1400TokensValidator.sol";
 
 
-contract ERC1400TokensCheckerMock is IERC1400TokensChecker, ERC1820Client, ERC1820Implementer {
+contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Implementer {
   using SafeMath for uint256;
 
   string constant internal ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";

@@ -5,10 +5,10 @@ const { soliditySha3 } = require("web3-utils");
 const ERC1400 = artifacts.require('ERC1400');
 const ERC1400Partition = artifacts.require('ERC1400PartitionMock');
 const ERC1820Registry = artifacts.require('ERC1820Registry');
-const ERC1400TokensSender = artifacts.require('ERC1400TokensSenderMock');
-const ERC1400TokensValidator = artifacts.require('ERC1400TokensValidatorMock');
-const ERC1400TokensRecipient = artifacts.require('ERC1400TokensRecipientMock');
-const ERC1400TokensChecker = artifacts.require('ERC1400TokensCheckerMock');
+const ERC1400TokensSender = artifacts.require('ERC1400TokensSender');
+const ERC1400TokensValidator = artifacts.require('ERC1400TokensValidator');
+const ERC1400TokensRecipient = artifacts.require('ERC1400TokensRecipient');
+const ERC1400TokensChecker = artifacts.require('ERC1400TokensChecker');
 
 const ERC1820_ACCEPT_MAGIC = 'ERC1820_ACCEPT_MAGIC';
 
