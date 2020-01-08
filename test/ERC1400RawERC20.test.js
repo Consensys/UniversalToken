@@ -234,7 +234,7 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
         
         describe('when token has a withelist', function () {
             beforeEach(async function () {
-                this.validatorContract = await ERC1400TokensValidator.new({ from: owner });
+                this.validatorContract = await ERC1400TokensValidator.new(true, false, { from: owner });
                 await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
                 let hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
                 assert.equal(hookImplementer, this.validatorContract.address);
@@ -353,7 +353,7 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
         
         describe('when token has a withelist', function () {
             beforeEach(async function () {
-                this.validatorContract = await ERC1400TokensValidator.new({ from: owner });
+                this.validatorContract = await ERC1400TokensValidator.new(true, false, { from: owner });
                 await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
                 let hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
                 assert.equal(hookImplementer, this.validatorContract.address);
@@ -554,7 +554,7 @@ contract('ERC1400RawERC20 with validator hook', function ([owner, operator, cont
   
     beforeEach(async function () {
         this.token = await ERC1400RawERC20.new('ERC1400RawERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER);
-        this.validatorContract = await ERC1400TokensValidator.new({ from: owner });
+        this.validatorContract = await ERC1400TokensValidator.new(true, false, { from: owner });
     });
   
     describe('setHookContract', function () {

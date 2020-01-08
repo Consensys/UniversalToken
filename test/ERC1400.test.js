@@ -294,7 +294,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
       this.senderContract = await ERC1400TokensSender.new({ from: tokenHolder });
       await this.registry.setInterfaceImplementer(tokenHolder, soliditySha3(ERC1400_TOKENS_SENDER), this.senderContract.address, { from: tokenHolder });
 
-      this.validatorContract = await ERC1400TokensValidator.new({ from: owner });
+      this.validatorContract = await ERC1400TokensValidator.new(true, false, { from: owner });
 
       this.recipientContract = await ERC1400TokensRecipient.new({ from: recipient });
       await this.registry.setInterfaceImplementer(recipient, soliditySha3(ERC1400_TOKENS_RECIPIENT), this.recipientContract.address, { from: recipient });
@@ -986,7 +986,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     });
     describe('when contract is paused', function () {
       beforeEach(async function () {
-        this.validatorContract = await ERC1400TokensValidator.new({ from: owner });
+        this.validatorContract = await ERC1400TokensValidator.new(true, false, { from: owner });
         await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
         let hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
         assert.equal(hookImplementer, this.validatorContract.address);
@@ -1550,7 +1550,7 @@ contract('ERC1400 with validator hook', function ([owner, operator, controller, 
   beforeEach(async function () {
     this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
     this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
-    this.validatorContract = await ERC1400TokensValidator.new({ from: owner });
+    this.validatorContract = await ERC1400TokensValidator.new(true, false, { from: owner });
   });
 
   describe('setHookContract', function () {
