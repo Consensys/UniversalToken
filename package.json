@@ -75,7 +75,7 @@
   },
   "dependencies": {
     "erc1820": "git+https://github.com/0xjac/ERC1820#885549fe3e9f0fd22444f78532be3dce4ee8a5e2",
-    "openzeppelin-solidity": "git+https://github.com/OpenZeppelin/openzeppelin-solidity#77d569d8fafe7f39d44386e0083bda26968e534c",
+    "openzeppelin-solidity": "2.1.3",
     "truffle": "5.0.1",
     "truffle-hdwallet-provider": "1.0.1"
   },

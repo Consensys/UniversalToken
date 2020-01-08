@@ -267,9 +267,9 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
     });
 
-    describe('when token has a withelist', function () {
+    describe('when token has a withlist', function () {
       beforeEach(async function () {
-        this.validatorContract = await ERC1400TokensValidator.new({ from: owner });
+        this.validatorContract = await ERC1400TokensValidator.new(true, false, { from: owner });
         await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
         let hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
         assert.equal(hookImplementer, this.validatorContract.address);
@@ -384,7 +384,71 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
         });
       });
     });
-    describe('when token has no withelist', function () {
+    describe('when token has a blacklist', function () {
+      beforeEach(async function () {
+        this.validatorContract = await ERC1400TokensValidator.new(false, true, { from: owner });
+        await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
+        let hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
+        assert.equal(hookImplementer, this.validatorContract.address);
+
+        await this.validatorContract.addBlacklisted(tokenHolder, { from: owner });
+        await this.validatorContract.addBlacklisted(recipient, { from: owner });
+        assert.equal(await this.validatorContract.isBlacklisted(tokenHolder), true);
+        assert.equal(await this.validatorContract.isBlacklisted(recipient), true);
+      });
+      describe('when the blacklist is activated', function () {
+        describe('when both the sender and the recipient are blacklisted', function () {
+          const amount = issuanceAmount;
+    
+          it('reverts', async function () {
+            await shouldFail.reverting(this.token.transfer(recipient, amount, { from: tokenHolder }));
+          });
+        });
+        describe('when the sender is blacklisted', function () {
+          const amount = issuanceAmount;
+    
+          it('reverts', async function () {
+            await this.validatorContract.removeBlacklisted(recipient, { from: owner });
+            await shouldFail.reverting(this.token.transfer(recipient, amount, { from: tokenHolder }));
+          });
+        });
+        describe('when the recipient is blacklisted', function () {
+          const amount = issuanceAmount;
+    
+          it('reverts', async function () {
+            await this.validatorContract.removeBlacklisted(tokenHolder, { from: owner });
+            await shouldFail.reverting(this.token.transfer(recipient, amount, { from: tokenHolder }));
+          });
+        });
+        describe('when neither the sender nor the recipient are blacklisted', function () {
+          const amount = issuanceAmount;
+    
+          it('transfers the requested amount', async function () {
+            await this.validatorContract.removeBlacklisted(tokenHolder, { from: owner });
+            await this.validatorContract.removeBlacklisted(recipient, { from: owner });
+
+            await this.token.transfer(recipient, amount, { from: tokenHolder });
+            await assertBalance(this.token, tokenHolder, issuanceAmount - amount);
+            await assertBalance(this.token, recipient, amount);
+          });
+        });
+      });
+      describe('when the blacklist is not activated', function () {
+        beforeEach(async function () {
+          await this.validatorContract.setBlacklistActivated(false, { from: owner });
+        });
+        describe('when both the sender and the recipient are blacklisted', function () {
+          const amount = issuanceAmount;
+    
+          it('transfers the requested amount', async function () {
+            await this.token.transfer(recipient, amount, { from: tokenHolder });
+            await assertBalance(this.token, tokenHolder, issuanceAmount - amount);
+            await assertBalance(this.token, recipient, amount);
+          });
+        });
+      });
+    });
+    describe('when token has neither a whitelist, nor a blacklist', function () {
       const amount = issuanceAmount;
   
       it('transfers the requested amount', async function () {
@@ -405,7 +469,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
 
     describe('when token has a withelist', function () {
       beforeEach(async function () {
-        this.validatorContract = await ERC1400TokensValidator.new({ from: owner });
+        this.validatorContract = await ERC1400TokensValidator.new(true, false, { from: owner });
         await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
         let hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
         assert.equal(hookImplementer, this.validatorContract.address);
@@ -538,13 +602,13 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
     });
   });
 
-  // WHITELIST - (section to check if certificate-based functions can still be called even when contract has a whitelist)
+  // WHITELIST - (section to check if certificate-based functions can still be called even when contract has a whitelist and a blacklist)
   describe('whitelist', function () {
     const redeemAmount = 50;
     const transferAmount = 300;
     const approvedAmount = 10000;
     beforeEach(async function () {
-      this.validatorContract = await ERC1400TokensValidator.new({ from: owner });
+      this.validatorContract = await ERC1400TokensValidator.new(true, true, { from: owner });
       await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
       let hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
       assert.equal(hookImplementer, this.validatorContract.address);
@@ -741,6 +805,66 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
     describe('when the sender is not the contract owner', function () {
       it('reverts', async function () {
         await shouldFail.reverting(this.token.migrate(this.migratedToken.address, true, { from: unknown }));
+      });
+    });
+  });
+
+  // WHITELIST ACTIVATED
+
+  describe('setWhitelistActivated', function () {
+    beforeEach(async function () {
+      this.validatorContract = await ERC1400TokensValidator.new(false, false, { from: owner });
+      await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
+      let hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
+      assert.equal(hookImplementer, this.validatorContract.address);
+    });
+    describe('when the caller is the contract owner', function () {
+      it('activates the whitelist', async function () {
+        assert.equal(await this.validatorContract.isWhitelistActivated(), false);
+
+        await this.validatorContract.setWhitelistActivated(true, { from: owner });
+        assert.equal(await this.validatorContract.isWhitelistActivated(), true);
+
+        await this.validatorContract.setWhitelistActivated(false, { from: owner });
+        assert.equal(await this.validatorContract.isWhitelistActivated(), false);
+
+        await this.validatorContract.setWhitelistActivated(true, { from: owner });
+        assert.equal(await this.validatorContract.isWhitelistActivated(), true);
+      });
+    });
+    describe('when the caller is not the contract owner', function () {
+      it('reverts', async function () {
+        await shouldFail.reverting(this.validatorContract.setWhitelistActivated(true, { from: unknown }));
+      });
+    });
+  });
+
+  // BLACKLIST ACTIVATED
+
+  describe('setBlacklistActivated', function () {
+    beforeEach(async function () {
+      this.validatorContract = await ERC1400TokensValidator.new(false, false, { from: owner });
+      await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
+      let hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
+      assert.equal(hookImplementer, this.validatorContract.address);
+    });
+    describe('when the caller is the contract owner', function () {
+      it('activates the whitelist', async function () {
+        assert.equal(await this.validatorContract.isBlacklistActivated(), false);
+
+        await this.validatorContract.setBlacklistActivated(true, { from: owner });
+        assert.equal(await this.validatorContract.isBlacklistActivated(), true);
+
+        await this.validatorContract.setBlacklistActivated(false, { from: owner });
+        assert.equal(await this.validatorContract.isBlacklistActivated(), false);
+
+        await this.validatorContract.setBlacklistActivated(true, { from: owner });
+        assert.equal(await this.validatorContract.isBlacklistActivated(), true);
+      });
+    });
+    describe('when the caller is not the contract owner', function () {
+      it('reverts', async function () {
+        await shouldFail.reverting(this.validatorContract.setBlacklistActivated(true, { from: unknown }));
       });
     });
   });
