@@ -4,7 +4,7 @@ const { soliditySha3 } = require("web3-utils");
 
 const ERC1820Registry = artifacts.require('ERC1820Registry');
 const ERC1400ERC20 = artifacts.require('ERC1400ERC20');
-const ERC1400TokensValidator = artifacts.require('ERC1400TokensValidatorMock');
+const ERC1400TokensValidator = artifacts.require('ERC1400TokensValidator');
 
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';

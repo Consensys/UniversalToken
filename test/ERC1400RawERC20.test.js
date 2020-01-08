@@ -4,7 +4,7 @@ const { soliditySha3 } = require("web3-utils");
 
 const ERC1820Registry = artifacts.require('ERC1820Registry');
 const ERC1400RawERC20 = artifacts.require('ERC1400RawERC20');
-const ERC1400TokensValidator = artifacts.require('ERC1400TokensValidatorMock');
+const ERC1400TokensValidator = artifacts.require('ERC1400TokensValidator');
 
 const ERC1820_ACCEPT_MAGIC = 'ERC1820_ACCEPT_MAGIC';
 

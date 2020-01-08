@@ -4,7 +4,7 @@ import "../token/ERC1400Raw/IERC1400TokensSender.sol";
 import "../token/ERC1820/ERC1820Implementer.sol";
 
 
-contract ERC1400TokensSenderMock is IERC1400TokensSender, ERC1820Implementer {
+contract ERC1400TokensSender is IERC1400TokensSender, ERC1820Implementer {
 
   string constant internal ERC1400_TOKENS_SENDER = "ERC1400TokensSender";
 
