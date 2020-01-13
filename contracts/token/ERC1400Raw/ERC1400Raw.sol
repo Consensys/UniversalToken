@@ -6,13 +6,15 @@ pragma solidity ^0.5.0;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "openzeppelin-solidity/contracts/utils/ReentrancyGuard.sol";
 import "erc1820/contracts/ERC1820Client.sol";
+import "../ERC1820/ERC1820Implementer.sol";
+
 
 import "../../CertificateController/CertificateController.sol";
 
 import "./IERC1400Raw.sol";
 import "./IERC1400TokensSender.sol";
+import "./IERC1400TokensValidator.sol";
 import "./IERC1400TokensRecipient.sol";
 
 
@@ -20,13 +22,19 @@ import "./IERC1400TokensRecipient.sol";
  * @title ERC1400Raw
  * @dev ERC1400Raw logic
  */
-contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateController, ReentrancyGuard {
+contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, ERC1820Implementer, CertificateController {
   using SafeMath for uint256;
+
+  string constant internal ERC1400_TOKENS_SENDER = "ERC1400TokensSender";
+  string constant internal ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
+  string constant internal ERC1400_TOKENS_RECIPIENT = "ERC1400TokensRecipient";
 
   string internal _name;
   string internal _symbol;
   uint256 internal _granularity;
   uint256 internal _totalSupply;
+
+  bool internal _migrated;
 
   // Indicate whether the token can still be controlled by operators or not anymore.
   bool internal _isControllable;
@@ -44,6 +52,14 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
   // Mapping from operator to controller status. [GLOBAL - NOT TOKEN-HOLDER-SPECIFIC]
   mapping(address => bool) internal _isController;
   /****************************************************************************/
+
+  /**
+   * @dev Modifier to make a function callable only when the contract is not migrated.
+   */
+  modifier whenNotMigrated() {
+      require(!_migrated, "A8");
+      _;
+  }
 
   /**
    * [ERC1400Raw CONSTRUCTOR]
@@ -179,7 +195,11 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     external
     isValidCertificate(data)
   {
-    _transferWithData("", msg.sender, msg.sender, to, value, data, "", true);
+    _callPreTransferHooks("", msg.sender, msg.sender, to, value, data, "");
+
+    _transferWithData(msg.sender, msg.sender, to, value, data, "");
+
+    _callPostTransferHooks("", msg.sender, msg.sender, to, value, data, "");
   }
 
   /**
@@ -197,7 +217,11 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
   {
     require(_isOperator(msg.sender, from), "A7"); // Transfer Blocked - Identity restriction
 
-    _transferWithData("", msg.sender, from, to, value, data, operatorData, true);
+    _callPreTransferHooks("", msg.sender, from, to, value, data, operatorData);
+
+    _transferWithData(msg.sender, from, to, value, data, operatorData);
+
+    _callPostTransferHooks("", msg.sender, from, to, value, data, operatorData);
   }
 
   /**
@@ -210,7 +234,9 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     external
     isValidCertificate(data)
   {
-    _redeem("", msg.sender, msg.sender, value, data, "");
+    _callPreTransferHooks("", msg.sender, msg.sender, address(0), value, data, "");
+
+    _redeem(msg.sender, msg.sender, value, data, "");
   }
 
   /**
@@ -227,7 +253,9 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
   {
     require(_isOperator(msg.sender, from), "A7"); // Transfer Blocked - Identity restriction
 
-    _redeem("", msg.sender, from, value, data, operatorData);
+    _callPreTransferHooks("", msg.sender, from, address(0), value, data, operatorData);
+
+    _redeem(msg.sender, from, value, data, operatorData);
   }
 
   /********************** ERC1400Raw INTERNAL FUNCTIONS ***************************/
@@ -240,19 +268,6 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
    */
   function _isMultiple(uint256 value) internal view returns(bool) {
     return(value.div(_granularity).mul(_granularity) == value);
-  }
-
-  /**
-   * [INTERNAL]
-   * @dev Check whether an address is a regular address or not.
-   * @param addr Address of the contract that has to be checked.
-   * @return 'true' if 'addr' is a regular address (not a contract).
-   */
-  function _isRegularAddress(address addr) internal view returns(bool) {
-    if (addr == address(0)) { return false; }
-    uint size;
-    assembly { size := extcodesize(addr) } // solhint-disable-line no-inline-assembly
-    return size == 0;
   }
 
   /**
@@ -272,41 +287,30 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
    /**
     * [INTERNAL]
     * @dev Perform the transfer of tokens.
-    * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
     * @param operator The address performing the transfer.
     * @param from Token holder.
     * @param to Token recipient.
     * @param value Number of tokens to transfer.
     * @param data Information attached to the transfer.
     * @param operatorData Information attached to the transfer by the operator (if any)..
-    * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
-    * implementing 'erc777tokenHolder'.
-    * ERC1400Raw native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
-    * functions SHOULD set this parameter to 'false'.
     */
   function _transferWithData(
-    bytes32 partition,
     address operator,
     address from,
     address to,
     uint256 value,
     bytes memory data,
-    bytes memory operatorData,
-    bool preventLocking
+    bytes memory operatorData
   )
     internal
-    nonReentrant
+    whenNotMigrated
   {
     require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
     require(to != address(0), "A6"); // Transfer Blocked - Receiver not eligible
     require(_balances[from] >= value, "A4"); // Transfer Blocked - Sender balance insufficient
-
-    _callSender(partition, operator, from, to, value, data, operatorData);
-
+  
     _balances[from] = _balances[from].sub(value);
     _balances[to] = _balances[to].add(value);
-
-    _callRecipient(partition, operator, from, to, value, data, operatorData, preventLocking);
 
     emit TransferWithData(operator, from, to, value, data, operatorData);
   }
@@ -314,22 +318,19 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
   /**
    * [INTERNAL]
    * @dev Perform the token redemption.
-   * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator The address performing the redemption.
    * @param from Token holder whose tokens will be redeemed.
    * @param value Number of tokens to redeem.
    * @param data Information attached to the redemption.
    * @param operatorData Information attached to the redemption, by the operator (if any).
    */
-  function _redeem(bytes32 partition, address operator, address from, uint256 value, bytes memory data, bytes memory operatorData)
+  function _redeem(address operator, address from, uint256 value, bytes memory data, bytes memory operatorData)
     internal
-    nonReentrant
+    whenNotMigrated
   {
     require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
     require(from != address(0), "A5"); // Transfer Blocked - Sender not eligible
     require(_balances[from] >= value, "A4"); // Transfer Blocked - Sender balance insufficient
-
-    _callSender(partition, operator, from, address(0), value, data, operatorData);
 
     _balances[from] = _balances[from].sub(value);
     _totalSupply = _totalSupply.sub(value);
@@ -339,8 +340,8 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
 
   /**
    * [INTERNAL]
-   * @dev Check for 'ERC1400TokensSender' hook on the sender and call it.
-   * May throw according to 'preventLocking'.
+   * @dev Check for 'ERC1400TokensSender' hook on the sender + check for 'ERC1400TokensValidator' on the token
+   * contract address and call them.
    * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator Address which triggered the balance decrease (through transfer or redemption).
    * @param from Token holder.
@@ -349,7 +350,7 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
    * @param data Extra information.
    * @param operatorData Extra information, attached by the operator (if any).
    */
-  function _callSender(
+  function _callPreTransferHooks(
     bytes32 partition,
     address operator,
     address from,
@@ -361,17 +362,21 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
     internal
   {
     address senderImplementation;
-    senderImplementation = interfaceAddr(from, "ERC1400TokensSender");
-
+    senderImplementation = interfaceAddr(from, ERC1400_TOKENS_SENDER);
     if (senderImplementation != address(0)) {
-      IERC1400TokensSender(senderImplementation).tokensToTransfer(partition, operator, from, to, value, data, operatorData);
+      IERC1400TokensSender(senderImplementation).tokensToTransfer(msg.sig, partition, operator, from, to, value, data, operatorData);
+    }
+
+    address validatorImplementation;
+    validatorImplementation = interfaceAddr(address(this), ERC1400_TOKENS_VALIDATOR);
+    if (validatorImplementation != address(0)) {
+      IERC1400TokensValidator(validatorImplementation).tokensToValidate(msg.sig, partition, operator, from, to, value, data, operatorData);
     }
   }
 
   /**
    * [INTERNAL]
    * @dev Check for 'ERC1400TokensRecipient' hook on the recipient and call it.
-   * May throw according to 'preventLocking'.
    * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator Address which triggered the balance increase (through transfer or issuance).
    * @param from Token holder for a transfer and 0x for an issuance.
@@ -379,56 +384,61 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, CertificateControlle
    * @param value Number of tokens the recipient balance is increased by.
    * @param data Extra information, intended for the token holder ('from').
    * @param operatorData Extra information attached by the operator (if any).
-   * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
-   * implementing 'ERC1400TokensRecipient'.
-   * ERC1400Raw native transfer functions MUST set this parameter to 'true', and backwards compatible ERC20 transfer
-   * functions SHOULD set this parameter to 'false'.
    */
-  function _callRecipient(
+  function _callPostTransferHooks(
     bytes32 partition,
     address operator,
     address from,
     address to,
     uint256 value,
     bytes memory data,
-    bytes memory operatorData,
-    bool preventLocking
+    bytes memory operatorData
   )
     internal
   {
     address recipientImplementation;
-    recipientImplementation = interfaceAddr(to, "ERC1400TokensRecipient");
+    recipientImplementation = interfaceAddr(to, ERC1400_TOKENS_RECIPIENT);
 
     if (recipientImplementation != address(0)) {
-      IERC1400TokensRecipient(recipientImplementation).tokensReceived(partition, operator, from, to, value, data, operatorData);
-    } else if (preventLocking) {
-      require(_isRegularAddress(to), "A6"); // Transfer Blocked - Receiver not eligible
+      IERC1400TokensRecipient(recipientImplementation).tokensReceived(msg.sig, partition, operator, from, to, value, data, operatorData);
     }
   }
 
   /**
    * [INTERNAL]
    * @dev Perform the issuance of tokens.
-   * @param partition Name of the partition (bytes32 to be left empty for ERC1400Raw transfer).
    * @param operator Address which triggered the issuance.
    * @param to Token recipient.
    * @param value Number of tokens issued.
    * @param data Information attached to the issuance, and intended for the recipient (to).
    * @param operatorData Information attached to the issuance by the operator (if any).
    */
-  function _issue(bytes32 partition, address operator, address to, uint256 value, bytes memory data, bytes memory operatorData) internal nonReentrant {
+  function _issue(address operator, address to, uint256 value, bytes memory data, bytes memory operatorData)
+    internal
+    whenNotMigrated  
+  {
     require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
     require(to != address(0), "A6"); // Transfer Blocked - Receiver not eligible
 
     _totalSupply = _totalSupply.add(value);
     _balances[to] = _balances[to].add(value);
 
-    _callRecipient(partition, operator, address(0), to, value, data, operatorData, true);
-
     emit Issued(operator, to, value, data, operatorData);
   }
 
   /********************** ERC1400Raw OPTIONAL FUNCTIONS ***************************/
+
+  /**
+   * [NOT MANDATORY FOR ERC1400Raw STANDARD]
+   * @dev Set validator contract address.
+   * The validator contract needs to verify "ERC1400TokensValidator" interface.
+   * Once setup, the validator will be called everytime a transfer is executed.
+   * @param validatorAddress Address of the validator contract.
+   * @param interfaceLabel Interface label of hook contract.
+   */
+  function _setHookContract(address validatorAddress, string memory interfaceLabel) internal {
+    ERC1820Client.setInterfaceImplementation(interfaceLabel, validatorAddress);
+  }
 
   /**
    * [NOT MANDATORY FOR ERC1400Raw STANDARD]

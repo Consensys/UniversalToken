@@ -3,6 +3,9 @@ pragma solidity ^0.5.0;
 
 contract CertificateControllerMock {
 
+  // If set to 'true', the certificate control is activated
+  bool _certificateControllerDisactivated;
+
   // Address used by off-chain controller service to sign certificate
   mapping(address => bool) internal _certificateSigners;
 
@@ -20,11 +23,14 @@ contract CertificateControllerMock {
    */
   modifier isValidCertificate(bytes memory data) {
 
-    require(_certificateSigners[msg.sender] || _checkCertificate(data, 0, 0x00000000), "A3"); // Transfer Blocked - Sender lockup period not ended
+    if(!_certificateControllerDisactivated) {
+      require(_certificateSigners[msg.sender] || _checkCertificate(data, 0, 0x00000000), "A3"); // Transfer Blocked - Sender lockup period not ended
 
-    _checkCount[msg.sender] += 1; // Increment sender check count
+      _checkCount[msg.sender] += 1; // Increment sender check count
 
-    emit Checked(msg.sender);
+      emit Checked(msg.sender);
+    }
+
     _;
   }
 
@@ -56,12 +62,28 @@ contract CertificateControllerMock {
     _certificateSigners[operator] = authorized;
   }
 
+
+  /**
+   * @dev Get activation status of certificate controller.
+   */
+  function certificateControllerDisactivated() external view returns (bool) {
+    return _certificateControllerDisactivated;
+  }
+
+  /**
+   * @dev Activate/disactivate certificate controller.
+   * @param disactivated 'true', if the certificate control shall be disactivated, 'false' if not.
+   */
+  function _setCertificateControllerDisactivated(bool disactivated) internal {
+    _certificateControllerDisactivated = disactivated;
+  }
+
   /**
    * @dev Checks if a certificate is correct
    * @param data Certificate to control
    */
    function _checkCertificate(bytes memory data, uint256 /*value*/, bytes4 /*functionID*/) internal pure returns(bool) { // Comments to avoid compilation warnings for unused variables.
-     if(data.length > 0 && (data[0] == hex"10" || data[0] == hex"11" || data[0] == hex"22")) {
+     if(data.length > 0 && (data[0] == hex"10" || data[0] == hex"11" || data[0] == hex"22" || data[0] == hex"33")) {
        return true;
      } else {
        return false;

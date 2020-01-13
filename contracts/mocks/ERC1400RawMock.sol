@@ -28,12 +28,8 @@ contract ERC1400RawMock is ERC1400RawIssuable {
     _setControllers(operators);
   }
 
-  function isRegularAddress(address adr) external view returns(bool) {
-    return _isRegularAddress(adr);
-  }
-
   function redeemFromMock(address from, uint256 value, bytes calldata data, bytes calldata operatorData) external {
-    _redeem("", msg.sender, from, value, data, operatorData);
+    _redeem(msg.sender, from, value, data, operatorData);
   }
 
 }

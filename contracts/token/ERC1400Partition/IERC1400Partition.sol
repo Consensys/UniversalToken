@@ -49,4 +49,7 @@ interface IERC1400Partition {
     event AuthorizedOperatorByPartition(bytes32 indexed partition, address indexed operator, address indexed tokenHolder);
     event RevokedOperatorByPartition(bytes32 indexed partition, address indexed operator, address indexed tokenHolder);
 
+    // Allowance
+    event ApprovalByPartition(bytes32 indexed partition, address indexed owner, address indexed spender, uint256 value);
+
 }

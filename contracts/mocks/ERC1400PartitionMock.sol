@@ -17,7 +17,7 @@ contract ERC1400PartitionMock is ERC1400Partition {
     public
     ERC1400Partition(name, symbol, granularity, controllers, certificateSigner, tokenDefaultPartitions)
   {
-    _issue("", msg.sender, tokenHolderMock, valueMock, "", "");
+    _issue(msg.sender, tokenHolderMock, valueMock, "", "");
   }
 
 }

@@ -38,6 +38,9 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
   /****************************************************************************/
 
   /**************** Mappings to find partition operators ************************/
+  // Mapping from (partition, tokenHolder, spender) to allowed value. [TOKEN-HOLDER-SPECIFIC]
+  mapping(bytes32 => mapping (address => mapping (address => uint256))) internal _allowedByPartition;
+
   // Mapping from (tokenHolder, partition, operator) to 'approved for partition' status. [TOKEN-HOLDER-SPECIFIC]
   mapping (address => mapping (bytes32 => mapping (address => bool))) internal _authorizedOperatorByPartition;
 
@@ -116,7 +119,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     isValidCertificate(data)
     returns (bytes32)
   {
-    return _transferByPartition(partition, msg.sender, msg.sender, to, value, data, "", true);
+    return _transferByPartition(partition, msg.sender, msg.sender, to, value, data, "");
   }
 
   /**
@@ -142,9 +145,16 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     isValidCertificate(operatorData)
     returns (bytes32)
   {
-    require(_isOperatorForPartition(partition, msg.sender, from), "A7"); // Transfer Blocked - Identity restriction
+    require(_isOperatorForPartition(partition, msg.sender, from)
+      || (value <= _allowedByPartition[partition][from][msg.sender]), "A7"); // Transfer Blocked - Identity restriction
 
-    return _transferByPartition(partition, msg.sender, from, to, value, data, operatorData, true);
+    if(_allowedByPartition[partition][from][msg.sender] >= value) {
+      _allowedByPartition[partition][from][msg.sender] = _allowedByPartition[partition][from][msg.sender].sub(value);
+    } else {
+      _allowedByPartition[partition][from][msg.sender] = 0;
+    }
+
+    return _transferByPartition(partition, msg.sender, from, to, value, data, operatorData);
   }
 
   /**
@@ -243,8 +253,6 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
    * @param operatorData Information attached to the transfer, by the operator (if any).
-   * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
-   * implementing 'erc777tokenHolder'.
    * @return Destination partition.
    */
   function _transferByPartition(
@@ -254,8 +262,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     address to,
     uint256 value,
     bytes memory data,
-    bytes memory operatorData,
-    bool preventLocking
+    bytes memory operatorData
   )
     internal
     returns (bytes32)
@@ -268,9 +275,13 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
       toPartition = _getDestinationPartition(fromPartition, data);
     }
 
+    _callPreTransferHooks(fromPartition, operator, from, to, value, data, operatorData);
+
     _removeTokenFromPartition(from, fromPartition, value);
-    _transferWithData(fromPartition, operator, from, to, value, data, operatorData, preventLocking);
+    _transferWithData(operator, from, to, value, data, operatorData);
     _addTokenToPartition(to, toPartition, value);
+
+    _callPostTransferHooks(toPartition, operator, from, to, value, data, operatorData);
 
     emit TransferByPartition(fromPartition, operator, from, to, value, data, operatorData);
 
@@ -398,6 +409,33 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
      _controllersByPartition[partition] = operators;
    }
 
+  /**
+   * [NOT MANDATORY FOR ERC1400Partition STANDARD]
+   * @dev Check the value of tokens that an owner allowed to a spender.
+   * @param partition Name of the partition.
+   * @param owner address The address which owns the funds.
+   * @param spender address The address which will spend the funds.
+   * @return A uint256 specifying the value of tokens still available for the spender.
+   */
+  function allowanceByPartition(bytes32 partition, address owner, address spender) external view returns (uint256) {
+    return _allowedByPartition[partition][owner][spender];
+  }
+
+  /**
+   * [NOT MANDATORY FOR ERC1400Partition STANDARD]
+   * @dev Approve the passed address to spend the specified amount of tokens on behalf of 'msg.sender'.
+   * @param partition Name of the partition.
+   * @param spender The address which will spend the funds.
+   * @param value The amount of tokens to be spent.
+   * @return A boolean that indicates if the operation was successful.
+   */
+  function approveByPartition(bytes32 partition, address spender, uint256 value) external returns (bool) {
+    require(spender != address(0), "A5"); // Transfer Blocked - Sender not eligible
+    _allowedByPartition[partition][msg.sender][spender] = value;
+    emit ApprovalByPartition(partition, msg.sender, spender, value);
+    return true;
+  }
+
   /************** ERC1400Raw BACKWARDS RETROCOMPATIBILITY *************************/
 
   /**
@@ -411,7 +449,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     external
     isValidCertificate(data)
   {
-    _transferByDefaultPartitions(msg.sender, msg.sender, to, value, data, "", true);
+    _transferByDefaultPartitions(msg.sender, msg.sender, to, value, data, "");
   }
 
   /**
@@ -429,7 +467,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
   {
     require(_isOperator(msg.sender, from), "A7"); // Transfer Blocked - Identity restriction
 
-    _transferByDefaultPartitions(msg.sender, from, to, value, data, operatorData, true);
+    _transferByDefaultPartitions(msg.sender, from, to, value, data, operatorData);
   }
 
   /**
@@ -437,7 +475,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
    * @dev Empty function to erase ERC1400Raw redeem() function since it doesn't handle partitions.
    */
   function redeem(uint256 /*value*/, bytes calldata /*data*/) external { // Comments to avoid compilation warnings for unused variables.
-    revert("A8: Transfer Blocked - Token restriction");
+    revert("A8"); // Transfer Blocked - Token restriction
   }
 
   /**
@@ -445,7 +483,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
    * @dev Empty function to erase ERC1400Raw redeemFrom() function since it doesn't handle partitions.
    */
   function redeemFrom(address /*from*/, uint256 /*value*/, bytes calldata /*data*/, bytes calldata /*operatorData*/) external { // Comments to avoid compilation warnings for unused variables.
-    revert("A8: Transfer Blocked - Token restriction");
+    revert("A8"); // Transfer Blocked - Token restriction
   }
 
   /**
@@ -457,8 +495,6 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer, and intended for the token holder ('from') [CAN CONTAIN THE DESTINATION PARTITION].
    * @param operatorData Information attached to the transfer by the operator (if any).
-   * @param preventLocking 'true' if you want this function to throw when tokens are sent to a contract not
-   * implementing 'erc777tokenHolder'.
    */
   function _transferByDefaultPartitions(
     address operator,
@@ -466,8 +502,7 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     address to,
     uint256 value,
     bytes memory data,
-    bytes memory operatorData,
-    bool preventLocking
+    bytes memory operatorData
   )
     internal
   {
@@ -479,11 +514,11 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     for (uint i = 0; i < _defaultPartitions.length; i++) {
       _localBalance = _balanceOfByPartition[from][_defaultPartitions[i]];
       if(_remainingValue <= _localBalance) {
-        _transferByPartition(_defaultPartitions[i], operator, from, to, _remainingValue, data, operatorData, preventLocking);
+        _transferByPartition(_defaultPartitions[i], operator, from, to, _remainingValue, data, operatorData);
         _remainingValue = 0;
         break;
       } else if (_localBalance != 0) {
-        _transferByPartition(_defaultPartitions[i], operator, from, to, _localBalance, data, operatorData, preventLocking);
+        _transferByPartition(_defaultPartitions[i], operator, from, to, _localBalance, data, operatorData);
         _remainingValue = _remainingValue - _localBalance;
       }
     }

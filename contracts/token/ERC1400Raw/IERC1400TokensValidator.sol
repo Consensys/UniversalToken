@@ -5,12 +5,12 @@
 pragma solidity ^0.5.0;
 
 /**
- * @title IERC1400TokensSender
- * @dev ERC1400TokensSender interface
+ * @title IERC1400TokensValidator
+ * @dev ERC1400TokensValidator interface
  */
-interface IERC1400TokensSender {
+interface IERC1400TokensValidator {
 
-  function canTransfer(
+  function canValidate(
     bytes4 functionID,
     bytes32 partition,
     address operator,
@@ -21,7 +21,7 @@ interface IERC1400TokensSender {
     bytes calldata operatorData
   ) external view returns(bool);
 
-  function tokensToTransfer(
+  function tokensToValidate(
     bytes4 functionID,
     bytes32 partition,
     address operator,

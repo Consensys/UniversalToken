@@ -1,16 +1,17 @@
 {
   "name": "ERC1400",
   "version": "0.1.0-dev",
-  "description": "CoFi's ERC1400 implementation",
+  "description": "Codefi Asset's ERC1400 implementation",
   "files": [
     "contracts",
     "tests"
   ],
   "scripts": {
     "build:ERC1400ERC20": "sol-merger \"./contracts/token/ERC20/ERC1400ERC20.sol\" ./artifacts",
-    "build": "yarn run clean && yarn run build:ERC1400ERC20",
+    "build:ERC1400TokensValidator": "sol-merger \"./contracts/mocks/ERC1400TokensValidator.sol\" ./artifacts",
+    "build": "yarn run clean && yarn run build:ERC1400ERC20 && yarn run build:ERC1400TokensValidator",
     "clean": "rm -rf artifacts",
-    "coverage": "solidity-coverage",
+    "coverage": "yarn truffle run coverage",
     "env": "node setup.js",
     "lint": "eslint ./migrations ./test ",
     "lint:fix": "eslint ./test ./migrations --fix",
@@ -69,13 +70,13 @@
     "openzeppelin-test-helpers": "^0.1.2",
     "remix-ide": "^0.7.4",
     "sol-merger": "0.1.4",
-    "solidity-coverage": "0.6.0",
+    "solidity-coverage": "0.7.0-beta.3",
     "solium": "^1.1.8",
     "solium-plugin-zeppelin": "^0.0.2"
   },
   "dependencies": {
     "erc1820": "git+https://github.com/0xjac/ERC1820#885549fe3e9f0fd22444f78532be3dce4ee8a5e2",
-    "openzeppelin-solidity": "git+https://github.com/OpenZeppelin/openzeppelin-solidity#77d569d8fafe7f39d44386e0083bda26968e534c",
+    "openzeppelin-solidity": "2.1.3",
     "truffle": "5.0.1",
     "truffle-hdwallet-provider": "1.0.1"
   },
