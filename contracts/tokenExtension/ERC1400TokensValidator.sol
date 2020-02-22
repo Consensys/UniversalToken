@@ -40,7 +40,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
 
   /**
    * @dev Verify if a token transfer can be executed or not, on the validator's perspective.
-   * @param functionID ID of the function that is called.
+   * @param functionSig ID of the function that is called.
    * @param partition Name of the partition (left empty for ERC1400Raw transfer).
    * @param operator Address which triggered the balance decrease (through transfer or redemption).
    * @param from Token holder.
@@ -51,7 +51,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
    * @return 'true' if the token transfer can be validated, 'false' if not.
    */
   function canValidate(
-    bytes4 functionID,
+    bytes4 functionSig,
     bytes32 partition,
     address operator,
     address from,
@@ -64,12 +64,12 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     view 
     returns(bool)
   {
-    return(_canValidate(functionID, partition, operator, from, to, value, data, operatorData));
+    return(_canValidate(functionSig, partition, operator, from, to, value, data, operatorData));
   }
 
   /**
    * @dev Function called by the token contract before executing a transfer.
-   * @param functionID ID of the function that is called.
+   * @param functionSig ID of the function that is called.
    * @param partition Name of the partition (left empty for ERC1400Raw transfer).
    * @param operator Address which triggered the balance decrease (through transfer or redemption).
    * @param from Token holder.
@@ -80,7 +80,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
    * @return 'true' if the token transfer can be validated, 'false' if not.
    */
   function tokensToValidate(
-    bytes4 functionID,
+    bytes4 functionSig,
     bytes32 partition,
     address operator,
     address from,
@@ -91,7 +91,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   ) // Comments to avoid compilation warnings for unused variables.
     external
   {
-    require(_canValidate(functionID, partition, operator, from, to, value, data, operatorData), "A7"); // Transfer Blocked - Identity restriction
+    require(_canValidate(functionSig, partition, operator, from, to, value, data, operatorData), "A7"); // Transfer Blocked - Identity restriction
   }
 
   /**
@@ -99,7 +99,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
    * @return 'true' if the token transfer can be validated, 'false' if not.
    */
   function _canValidate(
-    bytes4 functionID,
+    bytes4 functionSig,
     bytes32 /*partition*/,
     address /*operator*/,
     address from,
@@ -123,7 +123,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
       return false;
     }
 
-    if(_functionRequiresValidation(functionID)) {
+    if(_functionRequiresValidation(functionSig)) {
       if(_whitelistActivated) {
         if(!isWhitelisted(from) || !isWhitelisted(to)) {
           return false;
@@ -141,12 +141,12 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
 
   /**
    * @dev Check if validator is activated for the function called in the smart contract.
-   * @param functionID ID of the function that is called.
+   * @param functionSig ID of the function that is called.
    * @return 'true' if the function requires validation, 'false' if not.
    */
-  function _functionRequiresValidation(bytes4 functionID) internal pure returns(bool) {
+  function _functionRequiresValidation(bytes4 functionSig) internal pure returns(bool) {
 
-    if(areEqual(functionID, ERC20_TRANSFER_FUNCTION_ID) || areEqual(functionID, ERC20_TRANSFERFROM_FUNCTION_ID)) {
+    if(areEqual(functionSig, ERC20_TRANSFER_FUNCTION_ID) || areEqual(functionSig, ERC20_TRANSFERFROM_FUNCTION_ID)) {
       return true;
     } else {
       return false;

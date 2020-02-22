@@ -31,7 +31,7 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
 
   /**
    * @dev Know the reason on success or failure based on the EIP-1066 application-specific status codes.
-   * @param functionID ID of the function that needs to be called.
+   * @param functionSig ID of the function that needs to be called.
    * @param partition Name of the partition.
    * @param operator The address performing the transfer.
    * @param from Token holder.
@@ -45,17 +45,17 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
    * transfer restriction rule responsible for making the transfer operation invalid).
    * @return Destination partition.
    */
-   function canTransferByPartition(bytes4 functionID, bytes32 partition, address operator, address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData)
+   function canTransferByPartition(bytes4 functionSig, bytes32 partition, address operator, address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData)
      external
      view
      returns (byte, bytes32, bytes32)
    {
-     return _canTransferByPartition(functionID, partition, operator, from, to, value, data, operatorData);
+     return _canTransferByPartition(functionSig, partition, operator, from, to, value, data, operatorData);
    }
 
   /**
    * @dev Know the reason on success or failure based on the EIP-1066 application-specific status codes.
-   * @param functionID ID of the function that needs to be called.
+   * @param functionSig ID of the function that needs to be called.
    * @param partition Name of the partition.
    * @param operator The address performing the transfer.
    * @param from Token holder.
@@ -69,7 +69,7 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
    * transfer restriction rule responsible for making the transfer operation invalid).
    * @return Destination partition.
    */
-   function _canTransferByPartition(bytes4 functionID, bytes32 partition, address operator, address from, address to, uint256 value, bytes memory data, bytes memory operatorData)
+   function _canTransferByPartition(bytes4 functionSig, bytes32 partition, address operator, address from, address to, uint256 value, bytes memory data, bytes memory operatorData)
      internal
      view
      returns (byte, bytes32, bytes32)
@@ -87,17 +87,17 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
      
      hookImplementation = ERC1820Client.interfaceAddr(from, ERC1400_TOKENS_SENDER);
      if((hookImplementation != address(0))
-       && !IERC1400TokensSender(hookImplementation).canTransfer(functionID, partition, operator, from, to, value, data, operatorData))
+       && !IERC1400TokensSender(hookImplementation).canTransfer(functionSig, partition, operator, from, to, value, data, operatorData))
        return(hex"A5", "", partition); // Transfer Blocked - Sender not eligible
 
      hookImplementation = ERC1820Client.interfaceAddr(to, ERC1400_TOKENS_RECIPIENT);
      if((hookImplementation != address(0))
-       && !IERC1400TokensRecipient(hookImplementation).canReceive(functionID, partition, operator, from, to, value, data, operatorData))
+       && !IERC1400TokensRecipient(hookImplementation).canReceive(functionSig, partition, operator, from, to, value, data, operatorData))
        return(hex"A6", "", partition); // Transfer Blocked - Receiver not eligible
 
      hookImplementation = ERC1820Client.interfaceAddr(msg.sender, ERC1400_TOKENS_VALIDATOR);
      if((hookImplementation != address(0))
-       && !IERC1400TokensValidator(hookImplementation).canValidate(functionID, partition, operator, from, to, value, data, operatorData))
+       && !IERC1400TokensValidator(hookImplementation).canValidate(functionSig, partition, operator, from, to, value, data, operatorData))
        return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
 
      uint256 granularity = IERC1400Raw(msg.sender).granularity();
@@ -114,7 +114,7 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
    * application specific reason codes with additional details (for example the
    * transfer restriction rule responsible for making the transfer operation invalid).
    */
-  function canTransfer(bytes4 /*functionID*/, address /*operator*/, address /*from*/, address /*to*/, uint256 /*value*/, bytes calldata /*data*/, bytes calldata /*operatorData*/)
+  function canTransfer(bytes4 /*functionSig*/, address /*operator*/, address /*from*/, address /*to*/, uint256 /*value*/, bytes calldata /*data*/, bytes calldata /*operatorData*/)
     external
     view
     returns (byte, bytes32)
@@ -136,11 +136,11 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
     // for (uint i = 0; i < defaultPartitions.length; i++) {
     //   _localBalance = IERC1400Partition(msg.sender).balanceOfByPartition(defaultPartitions[i], from);
     //   if(_remainingValue <= _localBalance) {
-    //     (esc,,) = _canTransferByPartition(functionID, defaultPartitions[i], operator, from, to, _remainingValue, data, operatorData);
+    //     (esc,,) = _canTransferByPartition(functionSig, defaultPartitions[i], operator, from, to, _remainingValue, data, operatorData);
     //     _remainingValue = 0;
     //     break;
     //   } else if (_localBalance != 0) {
-    //     (esc,,) = _canTransferByPartition(functionID, defaultPartitions[i], operator, from, to, _localBalance, data, operatorData);
+    //     (esc,,) = _canTransferByPartition(functionSig, defaultPartitions[i], operator, from, to, _localBalance, data, operatorData);
     //     _remainingValue = _remainingValue - _localBalance;
     //   }
     //   if(esc != hex"A2") {
