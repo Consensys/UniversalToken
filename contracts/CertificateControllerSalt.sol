@@ -18,8 +18,9 @@ contract CertificateController {
 
   event Used(address sender);
 
-  constructor(address _certificateSigner) public {
+  constructor(address _certificateSigner, bool deactivated) public {
     _setCertificateSigner(_certificateSigner, true);
+    _certificateControllerDeactivated = deactivated;
   }
 
   /**
