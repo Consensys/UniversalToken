@@ -73,7 +73,7 @@ contract('CertificateController', ([owner, operator, controller, unknown]) => {
     });
   });
 
-  // SET CERTIFICATE CONTROLLER DISACTIVATED
+  // SET CERTIFICATE CONTROLLER DEACTIVATED
 
   describe('setCertificateControllerActivated', function () {
     beforeEach(async function () {
@@ -81,21 +81,21 @@ contract('CertificateController', ([owner, operator, controller, unknown]) => {
     });
     describe('when the sender is the contract owner', function () {
       it('disactivates the certificate controller', async function () {
-        await this.controllerMock.setCertificateControllerDisactivated(true, { from: owner });
-        assert(await this.controllerMock.certificateControllerDisactivated());
+        await this.controllerMock.setCertificateControllerDeactivated(true, { from: owner });
+        assert(await this.controllerMock.certificateControllerDeactivated());
       });
       it('disactivates and reactivates the certificate controller', async function () {
-        assert(!(await this.controllerMock.certificateControllerDisactivated()));
-        await this.controllerMock.setCertificateControllerDisactivated(true, { from: owner });
-        assert(await this.controllerMock.certificateControllerDisactivated());
-        await this.controllerMock.setCertificateControllerDisactivated(false, { from: owner });
-        assert(!(await this.controllerMock.certificateControllerDisactivated()));
+        assert(!(await this.controllerMock.certificateControllerDeactivated()));
+        await this.controllerMock.setCertificateControllerDeactivated(true, { from: owner });
+        assert(await this.controllerMock.certificateControllerDeactivated());
+        await this.controllerMock.setCertificateControllerDeactivated(false, { from: owner });
+        assert(!(await this.controllerMock.certificateControllerDeactivated()));
       });
     });
     describe('when the sender is not the contract owner', function () {
       it('reverts', async function () {
         await shouldFail.reverting(
-          this.controllerMock.setCertificateControllerDisactivated(true, { from: unknown })
+          this.controllerMock.setCertificateControllerDeactivated(true, { from: unknown })
         );
       });
     });

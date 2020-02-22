@@ -4,8 +4,8 @@ pragma solidity ^0.5.0;
 // CertificateController comment...
 contract CertificateController {
 
-  // If set to 'true', the certificate control is activated
-  bool _certificateControllerDisactivated;
+  // If set to 'true', the certificate control is deactivated
+  bool _certificateControllerDeactivated;
 
   // Address used by off-chain controller service to sign certificate
   mapping(address => bool) internal _certificateSigners;
@@ -24,7 +24,7 @@ contract CertificateController {
    */
   modifier isValidCertificate(bytes memory data) {
 
-    if(!_certificateControllerDisactivated) {
+    if(!_certificateControllerDeactivated) {
       require(_certificateSigners[msg.sender] || _checkCertificate(data, 0, 0x00000000), "A3"); // Transfer Blocked - Sender lockup period not ended
 
       _checkCount[msg.sender] += 1; // Increment sender check count
@@ -80,16 +80,16 @@ contract CertificateController {
   /**
    * @dev Get activation status of certificate controller.
    */
-  function certificateControllerDisactivated() external view returns (bool) {
-    return _certificateControllerDisactivated;
+  function certificateControllerDeactivated() external view returns (bool) {
+    return _certificateControllerDeactivated;
   }
 
   /**
    * @dev Activate/disactivate certificate controller.
-   * @param disactivated 'true', if the certificate control shall be disactivated, 'false' if not.
+   * @param deactivated 'true', if the certificate control shall be deactivated, 'false' if not.
    */
-  function _setCertificateControllerDisactivated(bool disactivated) internal {
-    _certificateControllerDisactivated = disactivated;
+  function _setCertificateControllerDeactivated(bool deactivated) internal {
+    _certificateControllerDeactivated = deactivated;
   }
 
   /**

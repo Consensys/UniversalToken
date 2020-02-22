@@ -27,10 +27,10 @@ contract ControlledMock is Ownable, CertificateController {
 
   /**
    * @dev Activate/disactivate certificate controller.
-   * @param disactivated 'true', if the certificate control shall be disactivated, 'false' if not.
+   * @param deactivated 'true', if the certificate control shall be deactivated, 'false' if not.
    */
-  function setCertificateControllerDisactivated(bool disactivated) external onlyOwner {
-   _setCertificateControllerDisactivated(disactivated);
+  function setCertificateControllerDeactivated(bool deactivated) external onlyOwner {
+   _setCertificateControllerDeactivated(deactivated);
   }
 
   /**
