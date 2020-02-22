@@ -5,9 +5,9 @@ const { soliditySha3 } = require("web3-utils");
 const ERC1400 = artifacts.require('ERC1400');
 const ERC1400Partition = artifacts.require('ERC1400PartitionMock');
 const ERC1820Registry = artifacts.require('ERC1820Registry');
-const ERC1400TokensSender = artifacts.require('ERC1400TokensSender');
+const ERC1400TokensSender = artifacts.require('ERC1400TokensSenderMock');
 const ERC1400TokensValidator = artifacts.require('ERC1400TokensValidator');
-const ERC1400TokensRecipient = artifacts.require('ERC1400TokensRecipient');
+const ERC1400TokensRecipient = artifacts.require('ERC1400TokensRecipientMock');
 const ERC1400TokensChecker = artifacts.require('ERC1400TokensChecker');
 
 const ERC1820_ACCEPT_MAGIC = 'ERC1820_ACCEPT_MAGIC';
@@ -557,27 +557,27 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     });
   });
 
-  // SET CERTIFICATE CONTROLLER DISACTIVATED
+  // SET CERTIFICATE CONTROLLER DEACTIVATED
 
-  describe('setCertificateControllerActivated', function () {
+  describe('setCertificateControllerDeactivated', function () {
     beforeEach(async function () {
       this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
     });
     describe('when the sender is the contract owner', function () {
       it('disactivates the certificate controller', async function () {
-        await this.token.setCertificateControllerDisactivated(true, { from: owner });
-        assert.isTrue(await this.token.certificateControllerDisactivated());
+        await this.token.setCertificateControllerDeactivated(true, { from: owner });
+        assert.isTrue(await this.token.certificateControllerDeactivated());
       });
       it('disactivates and reactivates the certificate controller', async function () {
-        assert.isTrue(!(await this.token.certificateControllerDisactivated()));
-        await this.token.setCertificateControllerDisactivated(true, { from: owner });
+        assert.isTrue(!(await this.token.certificateControllerDeactivated()));
+        await this.token.setCertificateControllerDeactivated(true, { from: owner });
 
         await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, INVALID_CERTIFICATE, { from: owner });
         await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
 
-        assert.isTrue(await this.token.certificateControllerDisactivated());
-        await this.token.setCertificateControllerDisactivated(false, { from: owner });
-        assert.isTrue(!(await this.token.certificateControllerDisactivated()));
+        assert.isTrue(await this.token.certificateControllerDeactivated());
+        await this.token.setCertificateControllerDeactivated(false, { from: owner });
+        assert.isTrue(!(await this.token.certificateControllerDeactivated()));
 
         await shouldFail.reverting(this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, INVALID_CERTIFICATE, { from: owner }));
         await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
@@ -586,7 +586,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     describe('when the sender is not the contract owner', function () {
       it('reverts', async function () {
         await shouldFail.reverting(
-          this.token.setCertificateControllerDisactivated(true, { from: unknown })
+          this.token.setCertificateControllerDeactivated(true, { from: unknown })
         );
       });
     });
@@ -1514,7 +1514,7 @@ contract('ERC1400Partition', function ([owner, operator, controller, controller_
     beforeEach(async function () {
       this.token = await ERC1400Partition.new('ERC1400PartitionToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions, tokenHolder, 1000);
     });
-    // it('redeem function is disactivated', async function () {
+    // it('redeem function is deactivated', async function () {
     //   await assertBalance(this.token, tokenHolder, 1000);
     //   await this.token.redeem(500, VALID_CERTIFICATE, { from: tokenHolder });
     //   await assertBalance(this.token, tokenHolder, 1000);
@@ -1531,7 +1531,7 @@ contract('ERC1400Partition', function ([owner, operator, controller, controller_
     beforeEach(async function () {
       this.token = await ERC1400Partition.new('ERC1400PartitionToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions, tokenHolder, 1000);
     });
-    // it('redeemFrom function is disactivated', async function () {
+    // it('redeemFrom function is deactivated', async function () {
     //   await this.token.authorizeOperator(operator, { from: tokenHolder });
     //   await assertBalance(this.token, tokenHolder, 1000);
     //   await this.token.redeemFrom(tokenHolder, 500, ZERO_BYTE, VALID_CERTIFICATE, { from: operator });

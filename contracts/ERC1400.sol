@@ -187,11 +187,11 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
     view
     returns (byte, bytes32, bytes32)
   {
-    bytes4 functionID = this.transferByPartition.selector; // 0xf3d490db: 4 first bytes of keccak256(transferByPartition(bytes32,address,uint256,bytes))
-    if(!_checkCertificate(data, 0, functionID)) {
+    bytes4 functionSig = this.transferByPartition.selector; // 0xf3d490db: 4 first bytes of keccak256(transferByPartition(bytes32,address,uint256,bytes))
+    if(!_checkCertificate(data, 0, functionSig)) {
       return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
     } else {
-      return _canTransfer(functionID, partition, msg.sender, msg.sender, to, value, data, "");
+      return _canTransfer(functionSig, partition, msg.sender, msg.sender, to, value, data, "");
     }
   }
 
@@ -215,11 +215,11 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
     view
     returns (byte, bytes32, bytes32)
   {
-    bytes4 functionID = this.operatorTransferByPartition.selector; // 0x8c0dee9c: 4 first bytes of keccak256(operatorTransferByPartition(bytes32,address,address,uint256,bytes,bytes))
-    if(!_checkCertificate(operatorData, 0, functionID)) {
+    bytes4 functionSig = this.operatorTransferByPartition.selector; // 0x8c0dee9c: 4 first bytes of keccak256(operatorTransferByPartition(bytes32,address,address,uint256,bytes,bytes))
+    if(!_checkCertificate(operatorData, 0, functionSig)) {
       return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
     } else {
-      return _canTransfer(functionID, partition, msg.sender, from, to, value, data, operatorData);
+      return _canTransfer(functionSig, partition, msg.sender, from, to, value, data, operatorData);
     }
   }
 
@@ -228,7 +228,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
   /**
    * [INTERNAL]
    * @dev Know the reason on success or failure based on the EIP-1066 application-specific status codes.
-   * @param functionID ID of the function that needs to be called.
+   * @param functionSig ID of the function that needs to be called.
    * @param partition Name of the partition.
    * @param operator The address performing the transfer.
    * @param from Token holder.
@@ -242,7 +242,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
    * transfer restriction rule responsible for making the transfer operation invalid).
    * @return Destination partition.
    */
-   function _canTransfer(bytes4 functionID, bytes32 partition, address operator, address from, address to, uint256 value, bytes memory data, bytes memory operatorData)
+   function _canTransfer(bytes4 functionSig, bytes32 partition, address operator, address from, address to, uint256 value, bytes memory data, bytes memory operatorData)
      internal
      view
      returns (byte, bytes32, bytes32)
@@ -250,7 +250,7 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
      address checksImplementation = interfaceAddr(address(this), ERC1400_TOKENS_CHECKER);
 
      if((checksImplementation != address(0))) {
-       return IERC1400TokensChecker(checksImplementation).canTransferByPartition(functionID, partition, operator, from, to, value, data, operatorData);
+       return IERC1400TokensChecker(checksImplementation).canTransferByPartition(functionSig, partition, operator, from, to, value, data, operatorData);
      }
      else {
        return(hex"00", "", partition);
@@ -365,10 +365,10 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
 
   /**
    * @dev Activate/disactivate certificate controller.
-   * @param disactivated 'true', if the certificate control shall be disactivated, 'false' if not.
+   * @param deactivated 'true', if the certificate control shall be deactivated, 'false' if not.
    */
-  function setCertificateControllerDisactivated(bool disactivated) external onlyOwner {
-   _setCertificateControllerDisactivated(disactivated);
+  function setCertificateControllerDeactivated(bool deactivated) external onlyOwner {
+   _setCertificateControllerDeactivated(deactivated);
   }
 
   /**

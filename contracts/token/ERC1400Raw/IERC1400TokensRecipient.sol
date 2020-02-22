@@ -11,7 +11,7 @@ pragma solidity ^0.5.0;
 interface IERC1400TokensRecipient {
 
   function canReceive(
-    bytes4 functionID,
+    bytes4 functionSig,
     bytes32 partition,
     address operator,
     address from,
@@ -22,7 +22,7 @@ interface IERC1400TokensRecipient {
   ) external view returns(bool);
 
   function tokensReceived(
-    bytes4 functionID,
+    bytes4 functionSig,
     bytes32 partition,
     address operator,
     address from,
