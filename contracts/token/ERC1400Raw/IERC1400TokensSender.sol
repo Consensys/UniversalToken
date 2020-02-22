@@ -11,7 +11,7 @@ pragma solidity ^0.5.0;
 interface IERC1400TokensSender {
 
   function canTransfer(
-    bytes4 functionID,
+    bytes4 functionSig,
     bytes32 partition,
     address operator,
     address from,
@@ -22,7 +22,7 @@ interface IERC1400TokensSender {
   ) external view returns(bool);
 
   function tokensToTransfer(
-    bytes4 functionID,
+    bytes4 functionSig,
     bytes32 partition,
     address operator,
     address from,
