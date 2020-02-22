@@ -62,6 +62,10 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
    * @param certificateSigner Address of the off-chain service which signs the
    * conditional ownership certificates required for token transfers, issuance,
    * redemption (Cf. CertificateController.sol).
+   * @param certificateDeactivated If set to 'true', the certificate controller
+   * is deactivated at contract creation.
+   * @param defaultPartitions Partitions chosen by default, when partition is
+   * not specified, like the case ERC20 tranfers.
    */
   constructor(
     string memory name,
@@ -69,10 +73,11 @@ contract ERC1400Partition is IERC1400Partition, ERC1400Raw {
     uint256 granularity,
     address[] memory controllers,
     address certificateSigner,
+    bool certificateDeactivated,
     bytes32[] memory defaultPartitions
   )
     public
-    ERC1400Raw(name, symbol, granularity, controllers, certificateSigner)
+    ERC1400Raw(name, symbol, granularity, controllers, certificateSigner, certificateDeactivated)
   {
     _defaultPartitions = defaultPartitions;
   }

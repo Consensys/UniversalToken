@@ -231,7 +231,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('parameters', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
     describe('name', function () {
       it('returns the name of the token', async function () {
@@ -268,7 +268,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('canImplementInterfaceForAddress', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
     describe('when interface hash is correct', function () {
       it('returns ERC1820_ACCEPT_MAGIC', async function () {
@@ -305,7 +305,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     });
 
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400PartitionToken', 'DAU', localGranularity, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400PartitionToken', 'DAU', localGranularity, [controller], CERTIFICATE_SIGNER, false, partitions);
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
 
       await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
@@ -427,7 +427,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('authorizeOperatorByPartition', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
     it('authorizes operator for partition', async function () {
       await this.token.authorizeOperatorByPartition(partition1, operator, { from: tokenHolder });
@@ -439,7 +439,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('setControllers', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
     describe('when the caller is the contract owner', function () {
       it('sets the operators as controllers', async function () {
@@ -474,7 +474,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('setPartitionControllers', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
     describe('when the caller is the contract owner', function () {
       it('sets the operators as controllers for the specified partition', async function () {
@@ -534,7 +534,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('setCertificateSigner', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
     describe('when the caller is the contract owner', function () {
       it('sets the operators as certificate signers', async function () {
@@ -561,7 +561,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('setCertificateControllerDeactivated', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
     describe('when the sender is the contract owner', function () {
       it('disactivates the certificate controller', async function () {
@@ -596,7 +596,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('authorizeOperatorByPartition', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
     it('authorizes the operator', async function () {
       assert.isTrue(!(await this.token.isOperatorForPartition(partition1, operator, tokenHolder)));
@@ -619,7 +619,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
   describe('approveByPartition', function () {
     const amount = 100;
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
     describe('when sender approves an operator for a given partition', function () {
       it('approves the operator', async function () {
@@ -651,7 +651,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('revokeOperatorByPartition', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
     describe('when operator is not controller', function () {
       it('revokes the operator', async function () {
@@ -677,7 +677,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('controllers', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
     describe('when the token is controllable', function () {
       it('returns the list of controllers', async function () {
@@ -694,7 +694,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('controllersByPartition', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
       await this.token.setPartitionControllers(partition3, [operator], { from: owner });
     });
     describe('when the token is controllable', function () {
@@ -711,7 +711,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
   // SET/GET TOKEN DEFAULT PARTITIONS
   describe('defaultPartitions', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
       defaultPartitions = await this.token.getDefaultPartitions();
       assert.equal(defaultPartitions.length, 3);
       assert.equal(defaultPartitions[0], partition1);
@@ -742,7 +742,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     const documentHash = '0x1c81c608a616183cc4a38c09ecc944eb77eaff465dd87aae0290177f2b70b6f8'; // SHA-256 of documentURI + '0x'
 
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
 
     describe('setDocument', function () {
@@ -790,7 +790,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('issueByPartition', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
 
     describe('when sender is the issuer', function () {
@@ -854,7 +854,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     const redeemAmount = 300;
 
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
     });
 
@@ -892,7 +892,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     const redeemAmount = 300;
 
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
     });
 
@@ -946,7 +946,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     const transferAmount = 300;
 
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
     });
 
@@ -1007,7 +1007,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     const transferAmount = 300;
 
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
     });
 
@@ -1141,7 +1141,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('partitionsOf', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
     describe('when tokenHolder owes no tokens', function () {
       it('returns empty list', async function () {
@@ -1173,7 +1173,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('totalPartitions', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
     describe('when no tokens are issued', function () {
       it('returns empty list', async function () {
@@ -1208,7 +1208,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
   describe('transferWithData', function () {
     describe('when defaultPartitions have been defined', function () {
       beforeEach(async function () {
-        this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+        this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
         await issueOnMultiplePartitions(this.token, owner, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
       });
       describe('when the sender has enough balance for those default partitions', function () {
@@ -1253,7 +1253,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     });
     describe('when defaultPartitions have not been defined', function () {
       it('reverts', async function () {
-        this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, []);
+        this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, []);
         await issueOnMultiplePartitions(this.token, owner, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
         await shouldFail.reverting(this.token.transferWithData(recipient, 2.5 * issuanceAmount, VALID_CERTIFICATE, { from: tokenHolder }));
       });
@@ -1264,7 +1264,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('_transferByDefaultPartitions', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     });
     describe('when the sender has enough balance for those default partitions', function () {
       it('transfers the requested amount (scenario1)', async function () {
@@ -1293,7 +1293,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('transferFromWithData', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
       await issueOnMultiplePartitions(this.token, owner, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
     });
     describe('when the operator is approved', function () {
@@ -1348,7 +1348,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('redeem', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
       await issueOnMultiplePartitions(this.token, owner, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
     });
     describe('when defaultPartitions have been defined', function () {
@@ -1391,7 +1391,7 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
 
   describe('redeemFrom', function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
       await issueOnMultiplePartitions(this.token, owner, tokenHolder, partitions, [issuanceAmount, issuanceAmount, issuanceAmount]);
     });
     describe('when the operator is approved', function () {
@@ -1446,8 +1446,8 @@ contract('ERC1400', function ([owner, operator, controller, controller_alternati
     const transferAmount = 300;
 
     beforeEach(async function () {
-      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
-      this.migratedToken = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
+      this.migratedToken = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
     });
     describe('when the sender is the contract owner', function () {
@@ -1512,7 +1512,7 @@ contract('ERC1400Partition', function ([owner, operator, controller, controller_
 
   describe('ERC1400Partition - redeem', function () {
     beforeEach(async function () {
-      this.token = await ERC1400Partition.new('ERC1400PartitionToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions, tokenHolder, 1000);
+      this.token = await ERC1400Partition.new('ERC1400PartitionToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions, tokenHolder, 1000);
     });
     // it('redeem function is deactivated', async function () {
     //   await assertBalance(this.token, tokenHolder, 1000);
@@ -1529,7 +1529,7 @@ contract('ERC1400Partition', function ([owner, operator, controller, controller_
 
   describe('ERC1400Partition - redeemFrom', function () {
     beforeEach(async function () {
-      this.token = await ERC1400Partition.new('ERC1400PartitionToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions, tokenHolder, 1000);
+      this.token = await ERC1400Partition.new('ERC1400PartitionToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions, tokenHolder, 1000);
     });
     // it('redeemFrom function is deactivated', async function () {
     //   await this.token.authorizeOperator(operator, { from: tokenHolder });
@@ -1548,7 +1548,7 @@ contract('ERC1400Partition', function ([owner, operator, controller, controller_
 contract('ERC1400 with validator hook', function ([owner, operator, controller, tokenHolder, recipient, unknown]) {
   // HOOKS
   beforeEach(async function () {
-    this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+    this.token = await ERC1400.new('ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
     this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
     this.validatorContract = await ERC1400TokensValidator.new(true, false, { from: owner });
   });
