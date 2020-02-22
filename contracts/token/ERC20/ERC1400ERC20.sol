@@ -31,6 +31,10 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
    * @param certificateSigner Address of the off-chain service which signs the
    * conditional ownership certificates required for token transfers, issuance,
    * redemption (Cf. CertificateController.sol).
+   * @param certificateDeactivated If set to 'true', the certificate controller
+   * is deactivated at contract creation.
+   * @param defaultPartitions Partitions chosen by default, when partition is
+   * not specified, like the case ERC20 tranfers.
    */
   constructor(
     string memory name,
@@ -38,10 +42,11 @@ contract ERC1400ERC20 is IERC20, ERC1400 {
     uint256 granularity,
     address[] memory controllers,
     address certificateSigner,
-    bytes32[] memory tokenDefaultPartitions
+    bool certificateDeactivated,
+    bytes32[] memory defaultPartitions
   )
     public
-    ERC1400(name, symbol, granularity, controllers, certificateSigner, tokenDefaultPartitions)
+    ERC1400(name, symbol, granularity, controllers, certificateSigner, certificateDeactivated, defaultPartitions)
   {
     ERC1820Client.setInterfaceImplementation(ERC20_INTERFACE_NAME, address(this));
 

@@ -10,12 +10,13 @@ contract ERC1400PartitionMock is ERC1400Partition {
     uint256 granularity,
     address[] memory controllers,
     address certificateSigner,
-    bytes32[] memory tokenDefaultPartitions,
+    bool certificateDeactivated,
+    bytes32[] memory defaultPartitions,
     address tokenHolderMock,
     uint256 valueMock
   )
     public
-    ERC1400Partition(name, symbol, granularity, controllers, certificateSigner, tokenDefaultPartitions)
+    ERC1400Partition(name, symbol, granularity, controllers, certificateSigner, certificateDeactivated, defaultPartitions)
   {
     _issue(msg.sender, tokenHolderMock, valueMock, "", "");
   }
