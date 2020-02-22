@@ -72,16 +72,19 @@ contract ERC1400Raw is IERC1400Raw, Ownable, ERC1820Client, ERC1820Implementer, 
    * @param certificateSigner Address of the off-chain service which signs the
    * conditional ownership certificates required for token transfers, issuance,
    * redemption (Cf. CertificateController.sol).
+   * @param certificateDeactivated If set to 'true', the certificate controller
+   * is deactivated at contract creation.
    */
   constructor(
     string memory name,
     string memory symbol,
     uint256 granularity,
     address[] memory controllers,
-    address certificateSigner
+    address certificateSigner,
+    bool certificateDeactivated
   )
     public
-    CertificateController(certificateSigner)
+    CertificateController(certificateSigner, certificateDeactivated)
   {
     _name = name;
     _symbol = symbol;

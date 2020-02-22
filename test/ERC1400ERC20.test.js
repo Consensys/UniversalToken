@@ -71,7 +71,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
     this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
   });
   beforeEach(async function () {
-    this.token = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, partitions);
+    this.token = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
   });
 
   // CANIMPLEMENTINTERFACE
@@ -341,7 +341,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
           });
           describe('when the amount is not a multiple of the granularity', function () {
             it('reverts', async function () {
-              this.token = await ERC1400ERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, partitions);
+              this.token = await ERC1400ERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, false, partitions);
               await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
               await shouldFail.reverting(this.token.transfer(recipient, 3, { from: tokenHolder }));
             });
@@ -547,7 +547,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
           });
           describe('when the amount is not a multiple of the granularity', function () {
             it('reverts', async function () {
-              this.token = await ERC1400ERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, partitions);
+              this.token = await ERC1400ERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, false, partitions);
               await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
               await shouldFail.reverting(this.token.transferFrom(tokenHolder, recipient, 3, { from: operator }));
             });
@@ -743,7 +743,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
     const transferAmount = 300;
 
     beforeEach(async function () {
-      this.migratedToken = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, partitions);
+      this.migratedToken = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
     });
     describe('when the sender is the contract owner', function () {

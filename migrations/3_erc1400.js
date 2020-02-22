@@ -9,5 +9,5 @@ const partition3 = '0x4c6f636b65640000000000000000000000000000000000000000000000
 const partitions = [partition1, partition2, partition3];
 
 module.exports = function (deployer, network, accounts) {
-  deployer.deploy(ERC1400ERC20, 'ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, partitions);
+  deployer.deploy(ERC1400ERC20, 'ERC1400Token', 'DAU', 1, [controller], CERTIFICATE_SIGNER, true, partitions);
 };

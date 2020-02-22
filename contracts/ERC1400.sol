@@ -50,6 +50,10 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
    * @param certificateSigner Address of the off-chain service which signs the
    * conditional ownership certificates required for token transfers, issuance,
    * redemption (Cf. CertificateController.sol).
+   * @param certificateDeactivated If set to 'true', the certificate controller
+   * is deactivated at contract creation.
+   * @param defaultPartitions Partitions chosen by default, when partition is
+   * not specified, like the case ERC20 tranfers.
    */
   constructor(
     string memory name,
@@ -57,10 +61,11 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
     uint256 granularity,
     address[] memory controllers,
     address certificateSigner,
+    bool certificateDeactivated,
     bytes32[] memory defaultPartitions
   )
     public
-    ERC1400Partition(name, symbol, granularity, controllers, certificateSigner, defaultPartitions)
+    ERC1400Partition(name, symbol, granularity, controllers, certificateSigner, certificateDeactivated, defaultPartitions)
   {
     ERC1820Client.setInterfaceImplementation(ERC1400_INTERFACE_NAME, address(this));
     _isControllable = true;
