@@ -73,7 +73,7 @@ contract('CertificateController', ([owner, operator, controller, unknown]) => {
     });
   });
 
-  // SET CERTIFICATE CONTROLLER DEACTIVATED
+  // SET CERTIFICATE CONTROLLER ACTIVATED
 
   describe('setCertificateControllerActivated', function () {
     beforeEach(async function () {
