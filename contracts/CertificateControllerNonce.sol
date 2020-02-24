@@ -4,8 +4,8 @@ pragma solidity ^0.5.0;
 // CertificateController comment...
 contract CertificateController {
 
-  // If set to 'true', the certificate control is deactivated
-  bool _certificateControllerDeactivated;
+  // If set to 'true', the certificate control is activated
+  bool _certificateControllerActivated;
 
   // Address used by off-chain controller service to sign certificate
   mapping(address => bool) internal _certificateSigners;
@@ -15,9 +15,9 @@ contract CertificateController {
 
   event Checked(address sender);
 
-  constructor(address _certificateSigner, bool deactivated) public {
+  constructor(address _certificateSigner, bool activated) public {
     _setCertificateSigner(_certificateSigner, true);
-    _certificateControllerDeactivated = deactivated;
+    _certificateControllerActivated = activated;
   }
 
   /**
@@ -25,7 +25,7 @@ contract CertificateController {
    */
   modifier isValidCertificate(bytes memory data) {
 
-    if(!_certificateControllerDeactivated) {
+    if(_certificateControllerActivated) {
       require(_certificateSigners[msg.sender] || _checkCertificate(data, 0, 0x00000000), "A3"); // Transfer Blocked - Sender lockup period not ended
 
       _checkCount[msg.sender] += 1; // Increment sender check count
@@ -81,16 +81,16 @@ contract CertificateController {
   /**
    * @dev Get activation status of certificate controller.
    */
-  function certificateControllerDeactivated() external view returns (bool) {
-    return _certificateControllerDeactivated;
+  function certificateControllerActivated() external view returns (bool) {
+    return _certificateControllerActivated;
   }
 
   /**
    * @dev Activate/disactivate certificate controller.
-   * @param deactivated 'true', if the certificate control shall be deactivated, 'false' if not.
+   * @param activated 'true', if the certificate control shall be activated, 'false' if not.
    */
-  function _setCertificateControllerDeactivated(bool deactivated) internal {
-    _certificateControllerDeactivated = deactivated;
+  function _setCertificateControllerActivated(bool activated) internal {
+    _certificateControllerActivated = activated;
   }
 
   /**
