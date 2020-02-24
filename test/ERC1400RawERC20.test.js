@@ -42,7 +42,7 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
     });
 
     beforeEach(async function () {
-      this.token = await ERC1400RawERC20.new('ERC1400RawERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, false);
+      this.token = await ERC1400RawERC20.new('ERC1400RawERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, true);
     });
 
     // CANIMPLEMENTINTERFACE
@@ -294,7 +294,7 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
                 });
                 describe('when the amount is not a multiple of the granularity', function () {
                     it('reverts', async function () {
-                        this.token = await ERC1400RawERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, false);
+                        this.token = await ERC1400RawERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, true);
                         await this.token.issue(tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
                         await shouldFail.reverting(this.token.transfer(recipient, 3, { from: tokenHolder }));
                     });
@@ -420,7 +420,7 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
                     });
                     describe('when the amount is not a multiple of the granularity', function () {
                         it('reverts', async function () {
-                            this.token = await ERC1400RawERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, false);
+                            this.token = await ERC1400RawERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, true);
                             await this.token.issue(tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
                             await shouldFail.reverting(this.token.transferFrom(tokenHolder, recipient, 3, { from: operator }));
                         });
@@ -483,7 +483,7 @@ contract('ERC1400RawERC20', function ([owner, operator, controller, tokenHolder,
     const transferAmount = 300;
 
     beforeEach(async function () {
-      this.migratedToken = await ERC1400RawERC20.new('ERC1400RawERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, false);
+      this.migratedToken = await ERC1400RawERC20.new('ERC1400RawERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, true);
       await this.token.issue(tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
     });
     describe('when the sender is the contract owner', function () {
@@ -553,7 +553,7 @@ contract('ERC1400RawERC20 with validator hook', function ([owner, operator, cont
     });
   
     beforeEach(async function () {
-        this.token = await ERC1400RawERC20.new('ERC1400RawERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, false);
+        this.token = await ERC1400RawERC20.new('ERC1400RawERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, true);
         this.validatorContract = await ERC1400TokensValidator.new(true, false, { from: owner });
     });
   
