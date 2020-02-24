@@ -75,7 +75,7 @@
     "solium-plugin-zeppelin": "^0.0.2"
   },
   "dependencies": {
-    "contract-certificate-controller": "git+https://gitlab.com/ConsenSys/client/fr/dauriel/smart-contracts/certificate-controller#f14b1fd6ed02577091c158fceff1a7a59af32da5",
+    "contract-certificate-controller": "git+https://gitlab.com/ConsenSys/client/fr/dauriel/smart-contracts/certificate-controller#773d2fb281e10bd80027e8a9197fa73cf767687f",
     "erc1820": "git+https://github.com/0xjac/ERC1820#885549fe3e9f0fd22444f78532be3dce4ee8a5e2",
     "openzeppelin-solidity": "2.1.3",
     "truffle": "5.0.1",
