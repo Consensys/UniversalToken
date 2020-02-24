@@ -10,15 +10,15 @@ pragma solidity ^0.5.0;
  */
 interface IERC1400TokensChecker {
 
-  function canTransfer(
-    bytes4 functionSig,
-    address operator,
-    address from,
-    address to,
-    uint256 value,
-    bytes calldata data,
-    bytes calldata operatorData
-  ) external view returns (byte, bytes32);
+  // function canTransfer(
+  //   bytes4 functionSig,
+  //   address operator,
+  //   address from,
+  //   address to,
+  //   uint256 value,
+  //   bytes calldata data,
+  //   bytes calldata operatorData
+  // ) external view returns (byte, bytes32);
 
   function canTransferByPartition(
     bytes4 functionSig,

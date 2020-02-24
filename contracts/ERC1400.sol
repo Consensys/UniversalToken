@@ -50,8 +50,8 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
    * @param certificateSigner Address of the off-chain service which signs the
    * conditional ownership certificates required for token transfers, issuance,
    * redemption (Cf. CertificateController.sol).
-   * @param certificateDeactivated If set to 'true', the certificate controller
-   * is deactivated at contract creation.
+   * @param certificateActivated If set to 'true', the certificate controller
+   * is activated at contract creation.
    * @param defaultPartitions Partitions chosen by default, when partition is
    * not specified, like the case ERC20 tranfers.
    */
@@ -61,11 +61,11 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
     uint256 granularity,
     address[] memory controllers,
     address certificateSigner,
-    bool certificateDeactivated,
+    bool certificateActivated,
     bytes32[] memory defaultPartitions
   )
     public
-    ERC1400Partition(name, symbol, granularity, controllers, certificateSigner, certificateDeactivated, defaultPartitions)
+    ERC1400Partition(name, symbol, granularity, controllers, certificateSigner, certificateActivated, defaultPartitions)
   {
     ERC1820Client.setInterfaceImplementation(ERC1400_INTERFACE_NAME, address(this));
     _isControllable = true;
@@ -370,10 +370,10 @@ contract ERC1400 is IERC1400, ERC1400Partition, MinterRole {
 
   /**
    * @dev Activate/disactivate certificate controller.
-   * @param deactivated 'true', if the certificate control shall be deactivated, 'false' if not.
+   * @param activated 'true', if the certificate control shall be activated, 'false' if not.
    */
-  function setCertificateControllerDeactivated(bool deactivated) external onlyOwner {
-   _setCertificateControllerDeactivated(deactivated);
+  function setCertificateControllerActivated(bool activated) external onlyOwner {
+   _setCertificateControllerActivated(activated);
   }
 
   /**

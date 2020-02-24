@@ -5,6 +5,7 @@ const { soliditySha3 } = require("web3-utils");
 const ERC1820Registry = artifacts.require('ERC1820Registry');
 const ERC1400ERC20 = artifacts.require('ERC1400ERC20');
 const ERC1400TokensValidator = artifacts.require('ERC1400TokensValidator');
+const BlacklistMock = artifacts.require('BlacklistMock.sol');
 
 const ZERO_BYTES32 = '0x0000000000000000000000000000000000000000000000000000000000000000';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
@@ -71,7 +72,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
     this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
   });
   beforeEach(async function () {
-    this.token = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
+    this.token = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, true, partitions);
   });
 
   // CANIMPLEMENTINTERFACE
@@ -341,7 +342,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
           });
           describe('when the amount is not a multiple of the granularity', function () {
             it('reverts', async function () {
-              this.token = await ERC1400ERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, false, partitions);
+              this.token = await ERC1400ERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, true, partitions);
               await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
               await shouldFail.reverting(this.token.transfer(recipient, 3, { from: tokenHolder }));
             });
@@ -458,6 +459,60 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
       });
     });
   });
+  
+  // BLACKLIST
+  describe('addBlacklisted/renounceBlacklistAdmin', function () {
+    beforeEach(async function () {
+      this.validatorContract = await ERC1400TokensValidator.new(false, true, { from: owner });
+      await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
+      let hookImplementer = await this.registry.getInterfaceImplementer(this.token.address, soliditySha3(ERC1400_TOKENS_VALIDATOR));
+      assert.equal(hookImplementer, this.validatorContract.address);
+
+      await this.validatorContract.addBlacklisted(tokenHolder, { from: owner });
+      await this.validatorContract.addBlacklisted(recipient, { from: owner });
+      assert.equal(await this.validatorContract.isBlacklisted(tokenHolder), true);
+      assert.equal(await this.validatorContract.isBlacklisted(recipient), true);
+    });
+    describe('add/remove a blacklist admin', function () {
+      describe('when caller is a blacklist admin', function () {
+        it('adds a blacklist admin', async function () {
+          assert.equal(await this.validatorContract.isBlacklistAdmin(unknown), false);
+          await this.validatorContract.addBlacklistAdmin(unknown, { from: owner });
+          assert.equal(await this.validatorContract.isBlacklistAdmin(unknown), true);
+        });
+        it('renounces blacklist admin', async function () {
+          assert.equal(await this.validatorContract.isBlacklistAdmin(unknown), false);
+          await this.validatorContract.addBlacklistAdmin(unknown, { from: owner });
+          assert.equal(await this.validatorContract.isBlacklistAdmin(unknown), true);
+          await this.validatorContract.renounceBlacklistAdmin({ from: unknown });
+          assert.equal(await this.validatorContract.isBlacklistAdmin(unknown), false);
+        });
+      });
+      describe('when caller is not a blacklist admin', function () {
+        it('reverts', async function () {
+          assert.equal(await this.validatorContract.isBlacklistAdmin(unknown), false);
+          await shouldFail.reverting(this.validatorContract.addBlacklistAdmin(unknown, { from: unknown }));
+          assert.equal(await this.validatorContract.isBlacklistAdmin(unknown), false);
+        });
+      });
+    });
+  });
+  describe('onlyNotBlacklisted', function () {
+    beforeEach(async function () {
+      this.blacklistMock = await BlacklistMock.new({ from: owner });
+    });
+    describe('can not call function if blacklisted', function () {
+      it('reverts', async function () {
+        assert.equal(await this.blacklistMock.isBlacklisted(unknown), false);
+        await this.blacklistMock.setBlacklistActivated(true, { from: unknown });
+        await this.blacklistMock.addBlacklisted(unknown, { from: owner });
+        assert.equal(await this.blacklistMock.isBlacklisted(unknown), true);
+
+        await shouldFail.reverting(this.blacklistMock.setBlacklistActivated(true, { from: unknown }));
+      });
+    });
+  });
+
 
   // TRANSFERFROM
 
@@ -547,7 +602,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
           });
           describe('when the amount is not a multiple of the granularity', function () {
             it('reverts', async function () {
-              this.token = await ERC1400ERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, false, partitions);
+              this.token = await ERC1400ERC20.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, true, partitions);
               await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
               await shouldFail.reverting(this.token.transferFrom(tokenHolder, recipient, 3, { from: operator }));
             });
@@ -606,7 +661,6 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
   describe('whitelist', function () {
     const redeemAmount = 50;
     const transferAmount = 300;
-    const approvedAmount = 10000;
     beforeEach(async function () {
       this.validatorContract = await ERC1400TokensValidator.new(true, true, { from: owner });
       await this.token.setHookContract(this.validatorContract.address, ERC1400_TOKENS_VALIDATOR, { from: owner });
@@ -743,7 +797,7 @@ contract('ERC1400ERC20', function ([owner, operator, controller, tokenHolder, re
     const transferAmount = 300;
 
     beforeEach(async function () {
-      this.migratedToken = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, false, partitions);
+      this.migratedToken = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, true, partitions);
       await this.token.issueByPartition(partition1, tokenHolder, issuanceAmount, VALID_CERTIFICATE, { from: owner });
     });
     describe('when the sender is the contract owner', function () {

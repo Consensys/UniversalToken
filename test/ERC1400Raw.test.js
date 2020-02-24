@@ -27,12 +27,12 @@ contract('ERC1400Raw without hooks', function ([owner, operator, controller, con
 
   describe('Additionnal mock tests', function () {
     beforeEach(async function () {
-      this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false);
+      this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER, true);
     });
 
     describe('contract creation', function () {
       it('fails deploying the contract if granularity is lower than 1', async function () {
-        await shouldFail.reverting(ERC1400Raw.new('ERC1400RawToken', 'DAU', 0, [controller], CERTIFICATE_SIGNER, false));
+        await shouldFail.reverting(ERC1400Raw.new('ERC1400RawToken', 'DAU', 0, [controller], CERTIFICATE_SIGNER, true));
       });
     });
 
@@ -42,7 +42,7 @@ contract('ERC1400Raw without hooks', function ([owner, operator, controller, con
 
   describe('parameters', function () {
     beforeEach(async function () {
-      this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false);
+      this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER, true);
     });
 
     describe('name', function () {
@@ -245,7 +245,7 @@ contract('ERC1400Raw without hooks', function ([owner, operator, controller, con
         });
         describe('when the amount is not a multiple of the granularity', function () {
           it('reverts', async function () {
-            this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, false);
+            this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, true);
             await shouldFail.reverting(this.token.issue(tokenHolder, 3, VALID_CERTIFICATE, { from: owner }));
           });
         });
@@ -314,7 +314,7 @@ contract('ERC1400Raw without hooks', function ([owner, operator, controller, con
       });
       describe('when the amount is not a multiple of the granularity', function () {
         it('reverts', async function () {
-          this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, false);
+          this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, true);
           await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
           await shouldFail.reverting(this.token.transferWithData(to, 3, VALID_CERTIFICATE, { from: tokenHolder }));
         });
@@ -384,7 +384,7 @@ contract('ERC1400Raw without hooks', function ([owner, operator, controller, con
         });
         describe('when the amount is not a multiple of the granularity', function () {
           it('reverts', async function () {
-            this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, false);
+            this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, true);
             await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
             await shouldFail.reverting(this.token.transferFromWithData(tokenHolder, to, 3, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
           });
@@ -441,7 +441,7 @@ contract('ERC1400Raw without hooks', function ([owner, operator, controller, con
       });
       describe('when the amount is not a multiple of the granularity', function () {
         it('reverts', async function () {
-          this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, false);
+          this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, true);
           await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
           await shouldFail.reverting(this.token.redeem(3, VALID_CERTIFICATE, { from: tokenHolder }));
         });
@@ -504,7 +504,7 @@ contract('ERC1400Raw without hooks', function ([owner, operator, controller, con
       });
       describe('when the amount is not a multiple of the granularity', function () {
         it('reverts', async function () {
-          this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, false);
+          this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 2, [], CERTIFICATE_SIGNER, true);
           await this.token.issue(tokenHolder, initialSupply, VALID_CERTIFICATE, { from: owner });
           await shouldFail.reverting(this.token.redeemFrom(tokenHolder, 3, ZERO_BYTE, VALID_CERTIFICATE, { from: operator }));
         });
@@ -521,7 +521,7 @@ contract('ERC1400Raw with sender and recipient hooks', function ([owner, operato
     const to = recipient;
 
     beforeEach(async function () {
-      this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER, false);
+      this.token = await ERC1400Raw.new('ERC1400RawToken', 'DAU', 1, [controller], CERTIFICATE_SIGNER, true);
       this.registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
 
       this.senderContract = await ERC1400TokensSender.new({ from: tokenHolder });
