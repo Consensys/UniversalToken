@@ -28,7 +28,7 @@ contract CertificateController {
    */
   modifier isValidCertificate(bytes memory data) {
 
-    if(!_certificateControllerActivated) {
+    if(_certificateControllerActivated) {
       require(_certificateSigners[msg.sender] || _checkCertificate(data, 0, 0x00000000), "A3"); // Transfer Blocked - Sender lockup period not ended
 
       bytes32 salt;

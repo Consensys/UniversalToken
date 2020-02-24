@@ -81,15 +81,15 @@ contract('CertificateController', ([owner, operator, controller, unknown]) => {
     });
     describe('when the sender is the contract owner', function () {
       it('disactivates the certificate controller', async function () {
-        await this.controllerMock.setCertificateControllerActivated(true, { from: owner });
-        assert(await this.controllerMock.certificateControllerActivated());
+        await this.controllerMock.setCertificateControllerActivated(false, { from: owner });
+        assert(!(await this.controllerMock.certificateControllerActivated()));
       });
       it('disactivates and reactivates the certificate controller', async function () {
-        assert(!(await this.controllerMock.certificateControllerActivated()));
-        await this.controllerMock.setCertificateControllerActivated(true, { from: owner });
         assert(await this.controllerMock.certificateControllerActivated());
         await this.controllerMock.setCertificateControllerActivated(false, { from: owner });
         assert(!(await this.controllerMock.certificateControllerActivated()));
+        await this.controllerMock.setCertificateControllerActivated(true, { from: owner });
+        assert(await this.controllerMock.certificateControllerActivated());
       });
     });
     describe('when the sender is not the contract owner', function () {

@@ -13,7 +13,7 @@ contract ControlledMock is Ownable, CertificateController {
 
   constructor(address certificateSigner)
     public
-    CertificateController(certificateSigner, false)
+    CertificateController(certificateSigner, true)
   {}
 
   /**
