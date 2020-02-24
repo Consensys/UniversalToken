@@ -114,47 +114,47 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
    * application specific reason codes with additional details (for example the
    * transfer restriction rule responsible for making the transfer operation invalid).
    */
-  function canTransfer(bytes4 /*functionSig*/, address /*operator*/, address /*from*/, address /*to*/, uint256 /*value*/, bytes calldata /*data*/, bytes calldata /*operatorData*/)
-    external
-    view
-    returns (byte, bytes32)
-  {
-    // if(!IERC1400Raw(msg.sender).isOperator(operator, from))
-    //    return(hex"A7", ""); // Transfer Blocked - Identity restriction
+  // function canTransfer(bytes4 /*functionSig*/, address /*operator*/, address /*from*/, address /*to*/, uint256 /*value*/, bytes calldata /*data*/, bytes calldata /*operatorData*/)
+  //   external
+  //   view
+  //   returns (byte, bytes32)
+  // {
+  //   if(!IERC1400Raw(msg.sender).isOperator(operator, from))
+  //      return(hex"A7", ""); // Transfer Blocked - Identity restriction
 
-    // byte esc;
+  //   byte esc;
 
-    // bytes32[] memory defaultPartitions = IERC1400Partition(msg.sender).getDefaultPartitions();
+  //   bytes32[] memory defaultPartitions = IERC1400Partition(msg.sender).getDefaultPartitions();
 
-    // if(defaultPartitions.length == 0) {
-    //   return(hex"A8", ""); // Transfer Blocked - Token restriction
-    // }
+  //   if(defaultPartitions.length == 0) {
+  //     return(hex"A8", ""); // Transfer Blocked - Token restriction
+  //   }
 
-    // uint256 _remainingValue = value;
-    // uint256 _localBalance;
+  //   uint256 _remainingValue = value;
+  //   uint256 _localBalance;
 
-    // for (uint i = 0; i < defaultPartitions.length; i++) {
-    //   _localBalance = IERC1400Partition(msg.sender).balanceOfByPartition(defaultPartitions[i], from);
-    //   if(_remainingValue <= _localBalance) {
-    //     (esc,,) = _canTransferByPartition(functionSig, defaultPartitions[i], operator, from, to, _remainingValue, data, operatorData);
-    //     _remainingValue = 0;
-    //     break;
-    //   } else if (_localBalance != 0) {
-    //     (esc,,) = _canTransferByPartition(functionSig, defaultPartitions[i], operator, from, to, _localBalance, data, operatorData);
-    //     _remainingValue = _remainingValue - _localBalance;
-    //   }
-    //   if(esc != hex"A2") {
-    //     return(esc, "");
-    //   }
-    // }
+  //   for (uint i = 0; i < defaultPartitions.length; i++) {
+  //     _localBalance = IERC1400Partition(msg.sender).balanceOfByPartition(defaultPartitions[i], from);
+  //     if(_remainingValue <= _localBalance) {
+  //       (esc,,) = _canTransferByPartition(functionSig, defaultPartitions[i], operator, from, to, _remainingValue, data, operatorData);
+  //       _remainingValue = 0;
+  //       break;
+  //     } else if (_localBalance != 0) {
+  //       (esc,,) = _canTransferByPartition(functionSig, defaultPartitions[i], operator, from, to, _localBalance, data, operatorData);
+  //       _remainingValue = _remainingValue - _localBalance;
+  //     }
+  //     if(esc != hex"A2") {
+  //       return(esc, "");
+  //     }
+  //   }
 
-    // if(_remainingValue != 0) {
-    //   return(hex"A8", ""); // Transfer Blocked - Token restriction
-    // }
+  //   if(_remainingValue != 0) {
+  //     return(hex"A8", ""); // Transfer Blocked - Token restriction
+  //   }
 
-    // return(hex"A2", ""); // Transfer Verified - Off-Chain approval for restricted token
+  //   return(hex"A2", ""); // Transfer Verified - Off-Chain approval for restricted token
 
-    return(hex"00", "");
-  }
+  //   return(hex"00", "");
+  // }
 
 }

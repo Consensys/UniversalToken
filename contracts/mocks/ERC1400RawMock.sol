@@ -10,10 +10,10 @@ contract ERC1400RawMock is ERC1400RawIssuable {
     uint256 granularity,
     address[] memory controllers,
     address certificateSigner,
-    bool certificateDeactivated
+    bool certificateActivated
   )
     public
-    ERC1400Raw(name, symbol, granularity, controllers, certificateSigner, certificateDeactivated)
+    ERC1400Raw(name, symbol, granularity, controllers, certificateSigner, certificateActivated)
   {
   }
 
