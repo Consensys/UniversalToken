@@ -1,58 +1,11 @@
-![CoFi](images/CoFiLogo.png)
-
-## What is CoFi OS?
-
-CoFi OS is an advanced institutional technology platform for issuing and exchanging tokenized financial assets, powered by the Ethereum blockchain. The security token implementations used by the platform are shared in this repository.
-CoFi OS is a product created by ConsenSys.
-
-## Approach - Introduce a new transfer standard to provide issuers with strong control capabilities over their financial assets
-
-### Introduction - The limits of ERC20 token standard
-
-Currently the most common and well-known standard within crypto community is the ERC20([eips.ethereum.org/EIPS/eip-20](https://eips.ethereum.org/EIPS/eip-20)).
-While the vast majority of ICOs are based on this ERC20 standard, it appears not to be the most relevant for financial asset tokenization.
-The only parameters required to perform an ERC20 token transfer are the recipient's address and the value of the transfer, thus limiting the control possibilities over transfers:
-```
-function transfer(address recipient, uint256 value)
-```
-All controls have to be hard-coded on-chain and are often limited to simple / binary checks e.g. checking whether an investor is blacklisted or not.
-
-CoFi OS makes use of more evolved / granular controls to secure transfers.
-Those controls can evolve quickly and require flexibility, which makes it difficult to hard-code them on-chain.
-
-### CoFi transaction - A way to secure all transfers with a certificate generated off-chain by the issuer
-
-The use of an additional 'data' parameter in the transfer functions can enable more evolved / granular controls:
-```
-function transferWithData(address recipient, uint256 value, bytes data)
-```
-CoFi OS fosters to use this additional 'data' field (available in ERC777 and ERC1400 standards) to inject a certificate generated off-chain by the issuer.
-A token transfer shall be conditioned to the validity of the certificate, thus offering the issuer with strong control capabilities over its financial assets.
-
-![CoFiTransaction](images/CoFiTransaction.png)
-
-### CoFi certificate - A way to perform advanced conditional ownership
-
-The CoFi certificate contains:
- - The function ID which ensures the certificate can’t be used on an other function.
- - The parameters which ensures the input parameters have been validated by the issuer.
- - A validity date which ensures the certificate can’t be used after validity date.
- - A nonce/salt which ensures the certificate can’t be used twice.
-
-Finally the certificate is signed by the issuer which ensures it is authentic.
-
-The certificate enables the issuer to perform advanced conditional ownership, since he needs to be aware of all parameters of a function call before generating the associated certificate.
-
-![CoFiCertificate](images/CoFiCertificate.png)
-
-## Detailed presentation - Description of certificate controllers and implementation choice (nonce vs salt)
+## Description of certificate controllers and implementation choice (nonce vs salt)
 
 ### The certificate controller, a way to perform multi-signature in a single transaction
 
 Certificate controllers can be used by any smart contract requiring the verification of an approval generated off-chain.
-In the frame of CoFi OS, the certificate controller is used by the ERC1400 token contract, to ensure, the token transfer requested by an investor, is indeed approved by the issuer.
+In the frame of Codefi Assets, the certificate controller is used by the ERC1400 token contract, to ensure, the token transfer requested by an investor, is indeed approved by the issuer.
 
-The certificate controller performs an ec-recover operation on the provided certificate, in order to recover the signature of the certificate signer. The signature, which in the frame of CoFi OS usually is the issuer's signature, is then compared the list of signatures authorized by the contract.
+The certificate controller performs an ec-recover operation on the provided certificate, in order to recover the signature of the certificate signer. The signature, which in the frame of Codefi Assets usually is the issuer's signature, is then compared the list of signatures authorized by the contract.
 
 In a way, it can be seen as a way to perform multi-signature, with one single transaction instead of two: every transaction contains both the signature of the investor (transaction signature) AND the signature of the issuer (certificate signature).
 
@@ -63,9 +16,7 @@ The smart contract which requires to verify certificates needs to:
  - Add a `data` parameter in final position for the functions which require a certificate validation
  - Add a modifier `isValidCertificate(data)` to the functions which require a certificate validation
 
-An off-chain certificate generator module is of course required to crate the certificates.
-The certificate generator used in the frame of CoFi OS can be found here:
-https://gitlab.com/ConsenSys/client/fr/dauriel/api-certificate-generator?nav_source=navbar
+An off-chain certificate generator module is of course required to create the certificates (it is not part of this repo).
 
 ### Nonce-based VS Salt based certificate controllers
 
@@ -113,3 +64,4 @@ If the signer accepts raw arguments and does its own ABI encoding with standard 
 ### Remediation
 
 This potential vulnerability can be addressed at the signing layer (off chain) by doing the ABI encoding there and denying an attacker the opportunity to construct their own call data.
+
