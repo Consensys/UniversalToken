@@ -1,6 +1,6 @@
 pragma solidity ^0.5.0;
 
-import "../CertificateControllerNonce.sol";
+import "../CertificateController/CertificateControllerNonce.sol";
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 

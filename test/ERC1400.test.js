@@ -1,4 +1,4 @@
-import { shouldFail } from 'openzeppelin-test-helpers';
+const { shouldFail } = require('openzeppelin-test-helpers');
 
 const { soliditySha3 } = require("web3-utils");
 

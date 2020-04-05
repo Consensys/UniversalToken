@@ -1,6 +1,6 @@
-import { shouldFail } from 'openzeppelin-test-helpers';
+const { shouldFail } = require('openzeppelin-test-helpers');
 
-const CertificateController = artifacts.require('./ControlledMock.sol');
+const CertificateController = artifacts.require('ControlledMock.sol');
 
 const CERTIFICATE_SIGNER = '0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630';
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
