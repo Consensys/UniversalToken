@@ -7,12 +7,12 @@ import "../token/ERC1400Partition/IERC1400Partition.sol";
 import "../token/ERC1820/ERC1820Implementer.sol";
 
 /**
- * @title BalanceReader
+ * @title BatchBalanceReader
  * @dev Proxy contract to read multiple ERC1400/ERC20 token balances in a single contract call.
  */
-contract BalanceReader is ERC1820Implementer {
+contract BatchBalanceReader is ERC1820Implementer {
 
-  string constant internal BALANCE_READER = "BalanceReader";
+  string constant internal BALANCE_READER = "BatchBalanceReader";
 
   constructor() public {
     ERC1820Implementer._setInterface(BALANCE_READER);
