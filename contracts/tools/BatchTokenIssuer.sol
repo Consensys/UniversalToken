@@ -8,12 +8,12 @@ import "../IERC1400.sol";
 import "../token/ERC1820/ERC1820Implementer.sol";
 
 /**
- * @title BatchIssuer
+ * @title BatchTokenIssuer
  * @dev Proxy contract to issue multiple ERC1400/ERC20 tokens in a single transaction.
  */
-contract BatchIssuer is ERC1820Implementer {
+contract BatchTokenIssuer is ERC1820Implementer {
 
-  string constant internal BATCH_ISSUER = "BatchIssuer";
+  string constant internal BATCH_ISSUER = "BatchTokenIssuer";
 
   // Mapping from token to token minters.
   mapping(address => address[]) internal _tokenMinters;

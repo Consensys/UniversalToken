@@ -2,7 +2,7 @@ const ethWallet = require('ethereumjs-wallet');
 
 const { shouldFail } = require('openzeppelin-test-helpers');
 
-const BatchIssuer = artifacts.require('BatchIssuer.sol');
+const BatchTokenIssuer = artifacts.require('BatchTokenIssuer.sol');
 
 const ERC1400ERC20 = artifacts.require('ERC1400ERC20');
 
@@ -27,11 +27,11 @@ const assertBalanceOfByPartition = async (_contract, _tokenHolder, _partition, _
 };
   
 
-contract('BatchIssuer', ([owner, controller, tokenMinter1, tokenMinter2, unknown]) => {
+contract('BatchTokenIssuer', ([owner, controller, tokenMinter1, tokenMinter2, unknown]) => {
 
     beforeEach(async function () {
         this.token = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, true, [partition1]);
-        this.batchIssuer = await BatchIssuer.new();
+        this.batchIssuer = await BatchTokenIssuer.new();
 
         await this.token.setCertificateSigner(this.batchIssuer.address, true, { from: owner });
         await this.token.addMinter(this.batchIssuer.address, { from: owner });
@@ -61,7 +61,7 @@ contract('BatchIssuer', ([owner, controller, tokenMinter1, tokenMinter2, unknown
                     }            
                 });
             });
-            describe('when the operator has been declared as minter in the BatchIssuer contract', function () {
+            describe('when the operator has been declared as minter in the BatchTokenIssuer contract', function () {
                 it('issues tokens for multiple different holders', async function () {     
                     await this.batchIssuer.setTokenMinters(this.token.address, [tokenMinter1], { from: owner });           
                     await this.batchIssuer.batchIssueByPartition(this.token.address, this.issuancePartitions, this.tokenHolders, this.values, { from: tokenMinter1 });
@@ -71,7 +71,7 @@ contract('BatchIssuer', ([owner, controller, tokenMinter1, tokenMinter2, unknown
                     }            
                 });
             });
-            describe('when the operator neither the owner of the token contract, nor a minter in the BatchIssuer contract', function () {
+            describe('when the operator neither the owner of the token contract, nor a minter in the BatchTokenIssuer contract', function () {
                 it('issues tokens for multiple different holders', async function () {                
                     await shouldFail.reverting(this.batchIssuer.batchIssueByPartition(this.token.address, this.issuancePartitions, this.tokenHolders, this.values, { from: tokenMinter1 }));            
                 });

@@ -1,4 +1,4 @@
-const BalanceReader = artifacts.require('BalanceReader.sol');
+const BatchBalanceReader = artifacts.require('BatchBalanceReader.sol');
 
 const ERC1400ERC20 = artifacts.require('ERC1400ERC20');
 
@@ -33,12 +33,12 @@ const issuanceAmount41 = 41;
 const issuanceAmount42 = 42;
 const issuanceAmount43 = 43;
 
-contract('BalanceReader', ([owner, controller, tokenHolder1, tokenHolder2, tokenHolder3, unknown]) => {
+contract('BatchBalanceReader', ([owner, controller, tokenHolder1, tokenHolder2, tokenHolder3, unknown]) => {
 
     beforeEach(async function () {
         this.token1 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, true, partitions);
         this.token2 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, true, partitions);
-        this.balanceReader = await BalanceReader.new();
+        this.balanceReader = await BatchBalanceReader.new();
 
         // Token1
         await this.token1.issueByPartition(partition1, tokenHolder1, issuanceAmount11, VALID_CERTIFICATE, { from: owner });
