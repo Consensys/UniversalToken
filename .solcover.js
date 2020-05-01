@@ -5,6 +5,7 @@ module.exports = {
        'mocks',
        'CertificateController/CertificateControllerNonce',
        'CertificateController/CertificateControllerSalt',
+       'tools/FundIssuer'
     ],
     copyPackages: ['openzeppelin-solidity'],
 }
