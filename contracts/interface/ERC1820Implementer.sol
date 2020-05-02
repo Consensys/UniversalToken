@@ -1,5 +1,6 @@
 pragma solidity ^0.5.0;
 
+
 contract ERC1820Implementer {
   bytes32 constant ERC1820_ACCEPT_MAGIC = keccak256(abi.encodePacked("ERC1820_ACCEPT_MAGIC"));
 

@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "../token/ERC1400Raw/IERC1400TokensSender.sol";
-import "../token/ERC1820/ERC1820Implementer.sol";
+import "../extensions/userExtensions/IERC1400TokensSender.sol";
+import "../interface/ERC1820Implementer.sol";
 
 
 contract ERC1400TokensSenderMock is IERC1400TokensSender, ERC1820Implementer {

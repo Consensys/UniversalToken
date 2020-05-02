@@ -2,7 +2,8 @@ pragma solidity ^0.5.0;
 
 // MOCK CONTRACT TO REACH FULL COVERAGE BY CALLING "onlyNotBlacklisted" MODIFIER
 
-import "../tokenExtension/roles/BlacklistedRole.sol";
+import "../extensions/tokenExtensions/roles/BlacklistedRole.sol";
+
 
 contract BlacklistMock is BlacklistedRole {
 

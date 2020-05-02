@@ -6,6 +6,7 @@ import "../token/ERC1400Partition/IERC1400Partition.sol";
 
 import "../token/ERC1820/ERC1820Implementer.sol";
 
+
 /**
  * @title BatchBalanceReader
  * @dev Proxy contract to read multiple ERC1400/ERC20 token balances in a single contract call.

@@ -7,6 +7,7 @@ import "../IERC1400.sol";
 
 import "../token/ERC1820/ERC1820Implementer.sol";
 
+
 /**
  * @title BatchTokenIssuer
  * @dev Proxy contract to issue multiple ERC1400/ERC20 tokens in a single transaction.
@@ -52,11 +53,11 @@ contract BatchTokenIssuer is ERC1820Implementer {
     onlyTokenMinter(tokenAddress)
     returns (uint256[] memory)
   {
-    require(partitions.length == tokenHolders.length, 'partitions and tokenHolders arrays have different lengths');
-    require(partitions.length == values.length, 'partitions and values arrays have different lengths');
+    require(partitions.length == tokenHolders.length, "partitions and tokenHolders arrays have different lengths");
+    require(partitions.length == values.length, "partitions and values arrays have different lengths");
     
     for (uint i = 0; i < partitions.length; i++) {
-        IERC1400(tokenAddress).issueByPartition(partitions[i], tokenHolders[i], values[i], '');
+        IERC1400(tokenAddress).issueByPartition(partitions[i], tokenHolders[i], values[i], "");
     }
   }
 

@@ -3,6 +3,7 @@ pragma solidity ^0.5.0;
 import "openzeppelin-solidity/contracts/access/Roles.sol";
 import "./BlacklistAdminRole.sol";
 
+
 /**
  * @title BlacklistedRole
  * @dev Blacklisted accounts have been forbidden by a BlacklistAdmin to perform certain actions (e.g. participate in a

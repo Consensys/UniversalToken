@@ -19,6 +19,7 @@ import "../ERC1400.sol";
  ***************************************************************************************************************
  */
 
+
 /**
  * @title FundIssuer
  * @dev Fund issuance contract.
@@ -213,7 +214,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
     } else if (flag == ORDER_PAYMENT_FLAG) {
       uint256 orderIndex = _getOrderIndex(data);
       Order storage order = _orders[orderIndex];
-      require(from == order.investor, 'Payment sender is not the subscriber');
+      require(from == order.investor, "Payment sender is not the subscriber");
 
       _executePayment(orderIndex, erc1400TokenData, false);         
     }
@@ -308,9 +309,9 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
   {
     AssetRules storage rules = _assetRules[assetAddress][assetClass];
 
-    require(rules.defined, 'Rules not defined for this asset');
+    require(rules.defined, "Rules not defined for this asset");
 
-    require(assetValue == 0 || reverseAssetValue == 0, 'Asset value can only be set in one direction');
+    require(assetValue == 0 || reverseAssetValue == 0, "Asset value can only be set in one direction");
 
     rules.assetValueType = assetValueType;
     rules.assetValue = assetValue;
@@ -331,8 +332,8 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
     returns(uint256)
   {
     AssetRules storage rules = _assetRules[assetAddress][assetClass];
-    require(rules.defined, 'Rules not defined for this asset');
-    require(rules.subscriptionsOpened, 'Subscriptions not opened for this asset');
+    require(rules.defined, "Rules not defined for this asset");
+    require(rules.subscriptionsOpened, "Subscriptions not opened for this asset");
 
     uint256 lastCycleIndex = _lastCycleIndex[assetAddress][assetClass];
     Cycle storage lastCycle = _cycles[lastCycleIndex];
@@ -434,18 +435,18 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
       lastIndex = _startNewCycle(assetAddress, assetClass);
     }
 
-    require(_getCycleState(lastIndex) == CycleState.Subscription, 'Subscription can only be performed during subscription period');
+    require(_getCycleState(lastIndex) == CycleState.Subscription, "Subscription can only be performed during subscription period");
 
     (uint256 value, uint256 amount, OrderType orderType) = abi.decode(orderData, (uint256, uint256, OrderType));
 
     require(value == 0 || amount == 0, "Order can not be of type amount and value at the same time");
 
     if(orderType == OrderType.Value) {
-      require(value != 0, 'Order value shall not be nil');
+      require(value != 0, "Order value shall not be nil");
     } else if(orderType == OrderType.Amount) {
-      require(amount != 0, 'Order amount shall not be nil');
+      require(amount != 0, "Order amount shall not be nil");
     } else {
-      revert('Order type needs to be value or amount');
+      revert("Order type needs to be value or amount");
     }
 
     _orderIndex++;
@@ -481,10 +482,10 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
     require(
       order.state == OrderState.Subscribed ||
       order.state == OrderState.Paid,
-      'Only subscribed or paid orders can be cancelled'
+      "Only subscribed or paid orders can be cancelled"
     ); // This also checks if the order exists. Otherwise, we would have "order.state == OrderState.Undefined"
 
-    require(_getCycleState(order.cycleIndex) < CycleState.Valuation, 'Orders can only be cancelled before cut-off');
+    require(_getCycleState(order.cycleIndex) < CycleState.Valuation, "Orders can only be cancelled before cut-off");
 
     require(msg.sender == order.investor);
 
@@ -510,10 +511,10 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
       order.state == OrderState.Paid ||
       order.state == OrderState.Rejected
       ,
-      'Order rejection can only handled for subscribed or paid orders'
+      "Order rejection can only handled for subscribed or paid orders"
     ); // This also checks if the order exists. Otherwise, we would have "order.state == OrderState.Undefined"
 
-    require(_getCycleState(order.cycleIndex) < CycleState.Payment , 'Orders can only be rejected before beginning of payment phase');
+    require(_getCycleState(order.cycleIndex) < CycleState.Payment , "Orders can only be rejected before beginning of payment phase");
 
     Cycle storage cycle = _cycles[order.cycleIndex];
 
@@ -547,11 +548,11 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
     Cycle storage cycle = _cycles[cycleIndex];
     CycleState cycleState = _getCycleState(cycleIndex);
 
-    require(cycleState > CycleState.Subscription && cycleState < CycleState.Payment , 'AssetValue can only be set during valuation period');
+    require(cycleState > CycleState.Subscription && cycleState < CycleState.Payment , "AssetValue can only be set during valuation period");
 
-    require(cycle.assetValueType == AssetValue.Unknown, 'Asset value can only be set for a cycle of type unkonwn');
+    require(cycle.assetValueType == AssetValue.Unknown, "Asset value can only be set for a cycle of type unkonwn");
 
-    require(assetValue == 0 || reverseAssetValue == 0, 'Asset value can only be set in one direction');
+    require(assetValue == 0 || reverseAssetValue == 0, "Asset value can only be set in one direction");
 
     require(_checkPriceOracle(cycle.assetAddress, msg.sender), "Sender is not a price oracle.");
     
@@ -626,18 +627,18 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
     require(
       order.state == OrderState.Subscribed ||
       order.state == OrderState.UnpaidSettled,
-      'Order is neither in state Subscribed, nor UnpaidSettled'
+      "Order is neither in state Subscribed, nor UnpaidSettled"
     ); // This also checks if the order exists. Otherwise, we would have "order.state == OrderState.Undefined"
 
-    require(!cycle.finalized, 'Cycle is already finalized');
+    require(!cycle.finalized, "Cycle is already finalized");
 
     if(cycle.assetValueType == AssetValue.Unknown) {
-      require(_getCycleState(order.cycleIndex) >= CycleState.Payment , 'Payment can only be performed after valuation period');
+      require(_getCycleState(order.cycleIndex) >= CycleState.Payment , "Payment can only be performed after valuation period");
     } else {
-      require(_getCycleState(order.cycleIndex) >= CycleState.Subscription , 'Payment can only be performed after start of subscription period');
+      require(_getCycleState(order.cycleIndex) >= CycleState.Subscription , "Payment can only be performed after start of subscription period");
     }
 
-    require(order.orderType == OrderType.Value || order.orderType == OrderType.Amount, 'Invalid order type');
+    require(order.orderType == OrderType.Value || order.orderType == OrderType.Amount, "Invalid order type");
 
     (uint256 amount, uint256 value) = _getOrderAmountAndValue(orderIndex);
     order.amount = amount;
@@ -655,13 +656,13 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
         _escrowedErc1400[cycle.assetAddress][cycle.paymentAddress][cycle.paymentPartition] += value;
       } else if(cycle.paymentType == Payment.ERC1400 && erc1400TokenData.length != 0) {
         (address erc1400TokenAddress, bytes32 erc1400TokenPartition, uint256 erc1400PaymentValue) = abi.decode(erc1400TokenData, (address, bytes32, uint256));
-        require(erc1400PaymentValue == value, 'wrong payment value');
-        require(Payment.ERC1400 == cycle.paymentType, 'ERC1400 payment is not accecpted for this asset');
-        require(erc1400TokenAddress == cycle.paymentAddress, 'wrong payment token address');
-        require(erc1400TokenPartition == cycle.paymentPartition, 'wrong payment token partition');
+        require(erc1400PaymentValue == value, "wrong payment value");
+        require(Payment.ERC1400 == cycle.paymentType, "ERC1400 payment is not accecpted for this asset");
+        require(erc1400TokenAddress == cycle.paymentAddress, "wrong payment token address");
+        require(erc1400TokenPartition == cycle.paymentPartition, "wrong payment token partition");
         _escrowedErc1400[cycle.assetAddress][cycle.paymentAddress][cycle.paymentPartition] += value;
       } else {
-        revert('off-chain payment needs to be bypassed');
+        revert("off-chain payment needs to be bypassed");
       }
     }
 
@@ -770,16 +771,16 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
   function _settleOrder(uint256 orderIndex) internal {
     Order storage order = _orders[orderIndex];
 
-    require(order.state > OrderState.Undefined, 'Order doesnt exist');
+    require(order.state > OrderState.Undefined, "Order doesnt exist");
 
     CycleState currentState = _getCycleState(order.cycleIndex);
 
     Cycle storage cycle = _cycles[order.cycleIndex];
 
     if(cycle.assetValueType == AssetValue.Unknown) {
-      require(currentState >= CycleState.Settlement, 'Order settlement can only be performed during settlement period');
+      require(currentState >= CycleState.Settlement, "Order settlement can only be performed during settlement period");
     } else {
-      require(currentState >= CycleState.Valuation, 'Order settlement can only be performed after the cut-off');
+      require(currentState >= CycleState.Valuation, "Order settlement can only be performed after the cut-off");
     }
 
     _releasePayment(orderIndex, cycle.fundAddress);
@@ -791,7 +792,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
       ERC1400(cycle.assetAddress).issueByPartition(cycle.assetClass, address(this), order.amount, "");
       order.state = OrderState.UnpaidSettled;
     } else {
-      revert('Impossible to settle an order that is neither in state Paid, nor Subscribed');
+      revert("Impossible to settle an order that is neither in state Paid, nor Subscribed");
     }
   }
 
@@ -806,7 +807,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
       "Sender is not a token controller."
     );
 
-    require(!cycle.finalized, 'Cycle is already finalized');
+    require(!cycle.finalized, "Cycle is already finalized");
 
     (, uint256 totalUnpaidSettled, bool remainingOrdersToSettle) = _getTotalSettledForCycle(cycleIndex);
 
@@ -816,7 +817,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
         ERC1400(cycle.assetAddress).transferByPartition(cycle.assetClass, cycle.fundAddress, totalUnpaidSettled, "");
       }
     } else {
-      revert('Remaining orders to settle');
+      revert("Remaining orders to settle");
     }
   }
 
@@ -991,11 +992,13 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
       assetAddress:= mload(add(data, 64))
     }
   }
+
   function _getAssetClass(bytes memory data) internal pure returns(bytes32 assetClass) {
     assembly {
       assetClass:= mload(add(data, 96))
     }
   }
+
   function _getOrderData(bytes memory data) internal pure returns(bytes memory orderData) {
     uint256 orderValue;
     uint256 orderAmount;
