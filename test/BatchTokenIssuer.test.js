@@ -4,14 +4,14 @@ const { shouldFail } = require('openzeppelin-test-helpers');
 
 const BatchTokenIssuer = artifacts.require('BatchTokenIssuer.sol');
 
-const ERC1400ERC20 = artifacts.require('ERC1400ERC20');
+const ERC1400 = artifacts.require('ERC1400CertificateMock');
 
 const CERTIFICATE_SIGNER = '0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630';
 
-const partition1_short = '5265736572766564000000000000000000000000000000000000000000000000'; // Reserved in hex
-const partition2_short = '4973737565640000000000000000000000000000000000000000000000000000'; // Issued in hex
-const partition3_short = '4c6f636b65640000000000000000000000000000000000000000000000000000'; // Locked in hex
-const partition4_short = '436f6c6c61746572616c4c6f636b656400000000000000000000000000000000'; // Collateral in hex
+const partition1_short = '7265736572766564000000000000000000000000000000000000000000000000'; // reserved in hex
+const partition2_short = '6973737565640000000000000000000000000000000000000000000000000000'; // issued in hex
+const partition3_short = '6c6f636b65640000000000000000000000000000000000000000000000000000'; // locked in hex
+const partition4_short = '636f6c6c61746572616c00000000000000000000000000000000000000000000'; // collateral in hex
 const partition1 = '0x'.concat(partition1_short);
 const partition2 = '0x'.concat(partition2_short);
 const partition3 = '0x'.concat(partition3_short);
@@ -30,7 +30,7 @@ const assertBalanceOfByPartition = async (_contract, _tokenHolder, _partition, _
 contract('BatchTokenIssuer', ([owner, controller, tokenMinter1, tokenMinter2, unknown]) => {
 
     beforeEach(async function () {
-        this.token = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, true, [partition1]);
+        this.token = await ERC1400.new('ERC1400Token', 'DAU20', 1, [controller], CERTIFICATE_SIGNER, true, [partition1]);
         this.batchIssuer = await BatchTokenIssuer.new();
 
         await this.token.setCertificateSigner(this.batchIssuer.address, true, { from: owner });

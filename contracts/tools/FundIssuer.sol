@@ -1,10 +1,17 @@
+/*
+ * This code has not been reviewed.
+ * Do not use or deploy this code before reviewing it personally first.
+ */
 pragma solidity ^0.5.0;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
-import "../token/ERC1820/ERC1820Implementer.sol";
-import "../token/ERC1400Raw/IERC1400TokensRecipient.sol";
+
+import "erc1820/contracts/ERC1820Client.sol";
+import "../interface/ERC1820Implementer.sol";
+
+import "../extensions/userExtensions/IERC1400TokensRecipient.sol";
 import "../ERC1400.sol";
 
 /**
@@ -188,10 +195,10 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
    * @param operatorData Information attached to the DVP transfer, by the operator.
    */
   function tokensReceived(bytes4, bytes32 partition, address, address from, address to, uint value, bytes calldata data, bytes calldata operatorData) external {
-    require(interfaceAddr(msg.sender, "ERC1400Token") == msg.sender, "A8: Transfer Blocked - Token restriction");
+    require(interfaceAddr(msg.sender, "ERC1400Token") == msg.sender, "55"); // 0x55 funds locked (lockup period)
 
-    require(to == address(this), "A8: Transfer Blocked - Token restriction");
-    require(_canReceive(data, operatorData), "A6: Transfer Blocked - Receiver not eligible");
+    require(to == address(this), "50"); // 0x50	transfer failure
+    require(_canReceive(data, operatorData), "57"); // 0x57	invalid receiver
 
     bytes32 flag = _getTransferFlag(data);
     bytes memory erc1400TokenData = abi.encode(msg.sender, partition, value);

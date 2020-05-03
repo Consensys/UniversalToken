@@ -11,7 +11,7 @@ import "./certificateControllers/CertificateControllerSalt.sol";
  * @title ERC1400
  * @dev ERC1400 logic
  */
-contract ERC1400CertificateNonce is ERC1400, CertificateController {
+contract ERC1400CertificateSalt is ERC1400, CertificateController {
 
   /**
    * @dev Initialize ERC1400 + initialize certificate controller.
@@ -66,58 +66,93 @@ contract ERC1400CertificateNonce is ERC1400, CertificateController {
     external
     isValidCertificate(data)
   {
-    ERC1400.transferWithData(to, value, data);
+    _transferByDefaultPartitions(msg.sender, msg.sender, to, value, data);
   }
 
   function transferFromWithData(address from, address to, uint256 value, bytes calldata data)
     external
     isValidCertificate(data)
   {
-    ERC1400.transferFromWithData(from, to, value, data);
+    require(_isOperator(msg.sender, from), "58"); // 0x58	invalid operator (transfer agent)
+
+    _transferByDefaultPartitions(msg.sender, from, to, value, data);
   }
+
   function transferByPartition(bytes32 partition, address to, uint256 value, bytes calldata data)
     external
     isValidCertificate(data)
     returns (bytes32)
   {
-    return ERC1400.transferByPartition(partition, to, value, data);
+    return _transferByPartition(partition, msg.sender, msg.sender, to, value, data, "");
   }
+
   function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData)
     external
     isValidCertificate(operatorData)
     returns (bytes32)
   {
-    return ERC1400.operatorTransferByPartition(partition, from, to, value, data, operatorData);
+    require(_isOperatorForPartition(partition, msg.sender, from)
+      || (value <= _allowedByPartition[partition][from][msg.sender]), "53"); // 0x53	insufficient allowance
+
+    if(_allowedByPartition[partition][from][msg.sender] >= value) {
+      _allowedByPartition[partition][from][msg.sender] = _allowedByPartition[partition][from][msg.sender].sub(value);
+    } else {
+      _allowedByPartition[partition][from][msg.sender] = 0;
+    }
+
+    return _transferByPartition(partition, msg.sender, from, to, value, data, operatorData);
   }
-  function issueByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes calldata data)
+
+  function issue(address tokenHolder, uint256 value, bytes calldata data)
     external
+    onlyMinter
+    isIssuableToken
     isValidCertificate(data)
   {
-    ERC1400.issueByPartition(partition, tokenHolder, value, data);
+    require(_defaultPartitions.length != 0, "55"); // 0x55	funds locked (lockup period)
+
+    _issueByPartition(_defaultPartitions[0], msg.sender, tokenHolder, value, data);
   }
+
+  function issueByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes calldata data)
+    external
+    onlyMinter
+    isIssuableToken
+    isValidCertificate(data)
+  {
+    _issueByPartition(partition, msg.sender, tokenHolder, value, data);
+  }
+
   function redeem(uint256 value, bytes calldata data)
     external
     isValidCertificate(data)
   {
-    ERC1400.redeem(value, data);
+    _redeemByDefaultPartitions(msg.sender, msg.sender, value, data);
   }
+
   function redeemFrom(address from, uint256 value, bytes calldata data)
     external
     isValidCertificate(data)
   {
-    ERC1400.redeemFrom(from, value, data);
+    require(_isOperator(msg.sender, from), "58"); // 0x58	invalid operator (transfer agent)
+
+    _redeemByDefaultPartitions(msg.sender, from, value, data);
   }
+
   function redeemByPartition(bytes32 partition, uint256 value, bytes calldata data)
     external
     isValidCertificate(data)
   {
-    ERC1400.redeemByPartition(partition, value, data);
+    _redeemByPartition(partition, msg.sender, msg.sender, value, data, "");
   }
+
   function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes calldata operatorData)
     external
     isValidCertificate(operatorData)
   {
-    ERC1400.operatorRedeemByPartition(partition, tokenHolder, value, operatorData);
+    require(_isOperatorForPartition(partition, msg.sender, tokenHolder), "58"); // 0x58	invalid operator (transfer agent)
+
+    _redeemByPartition(partition, msg.sender, tokenHolder, value, "", operatorData);
   }
   /************************************************************************************************/
 
@@ -142,7 +177,7 @@ contract ERC1400CertificateNonce is ERC1400, CertificateController {
   {
     bytes4 functionSig = this.transferByPartition.selector; // 0xf3d490db: 4 first bytes of keccak256(transferByPartition(bytes32,address,uint256,bytes))
     if(!_checkCertificate(data, 0, functionSig)) {
-      return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
+      return(hex"54", "", partition); // 0x54	transfers halted (contract paused)
     } else {
       return ERC1400._canTransfer(functionSig, partition, msg.sender, msg.sender, to, value, data, "");
     }
@@ -168,7 +203,7 @@ contract ERC1400CertificateNonce is ERC1400, CertificateController {
   {
     bytes4 functionSig = this.operatorTransferByPartition.selector; // 0x8c0dee9c: 4 first bytes of keccak256(operatorTransferByPartition(bytes32,address,address,uint256,bytes,bytes))
     if(!_checkCertificate(operatorData, 0, functionSig)) {
-      return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
+      return(hex"54", "", partition); // 0x54	transfers halted (contract paused)
     } else {
       return ERC1400._canTransfer(functionSig, partition, msg.sender, from, to, value, data, operatorData);
     }

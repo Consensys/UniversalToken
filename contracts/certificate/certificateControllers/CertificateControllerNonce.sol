@@ -1,3 +1,7 @@
+/*
+ * This code has not been reviewed.
+ * Do not use or deploy this code before reviewing it personally first.
+ */
 pragma solidity ^0.5.0;
 
 
@@ -26,7 +30,7 @@ contract CertificateController {
   modifier isValidCertificate(bytes memory data) {
 
     if(_certificateControllerActivated) {
-      require(_certificateSigners[msg.sender] || _checkCertificate(data, 0, 0x00000000), "A3"); // Transfer Blocked - Sender lockup period not ended
+      require(_certificateSigners[msg.sender] || _checkCertificate(data, 0, 0x00000000), "54"); // 0x54	transfers halted (contract paused)
 
       _checkCount[msg.sender] += 1; // Increment sender check count
 
@@ -41,7 +45,7 @@ contract CertificateController {
    */
   /* modifier isValidPayableCertificate(bytes memory data) {
 
-    require(_certificateSigners[msg.sender] || _checkCertificate(data, msg.value, 0x00000000), "A3"); // Transfer Blocked - Sender lockup period not ended
+    require(_certificateSigners[msg.sender] || _checkCertificate(data, msg.value, 0x00000000), "54"); // 0x54	transfers halted (contract paused)
 
     _checkCount[msg.sender] += 1; // Increment sender check count
 

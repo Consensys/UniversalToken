@@ -138,7 +138,7 @@ For better readability, ER1400 contract has been structured into different parts
  - [ERC1400Raw](contracts/token/ERC1400Raw/ERC1400Raw.sol), contains the minimum logic, recommanded to manage financial assets: granular transfer controls with certificate, controllers, hooks, migrations
  - [ERC1400Partition](contracts/token/ERCC1400Partition/ERC1400Partition.sol), introduces the concept of partitionned tokens (partial fungibility)
  - [ERC1400](contracts/token/ERC1400.sol), adds the issuance/redemption logic
- - [ERC1400ERC20](contracts/token/ERC20/ERC1400ERC20.sol), adds the ERC20 backwards compatibility
+ - [ERC1400ERC20](contracts/token/ERC20/ERC1400ERC20.sol), adds the ERC20 retrocompatibility
 
 ### ERC1400Raw interface
 
@@ -255,7 +255,7 @@ interface IERC1400 {
 
 ### ERC1400ERC20 interface
 
-Finally ERC1400ERC20 introduces the last missing layer: ERC20 backwards compatibility. It is not mandatory but quite essential, because it ensures the token is compatible with all ERC20-compliant platforms.
+Finally ERC1400ERC20 introduces the last missing layer: ERC20 retrocompatibility. It is not mandatory but quite essential, because it ensures the token is compatible with all ERC20-compliant platforms.
 
 ```
 interface IERC20 {
@@ -277,7 +277,7 @@ interface IERC20 {
 }
 ```
 
-NB: [ERC1400RawERC20](contracts/token/ERC20/ERC1400RawERC20.sol) has been created in case ERC20 backwards retrocompatibility is required, but not the partitions.
+NB: [ERC1400RawERC20](contracts/token/ERC20/ERC1400RawERC20.sol) has been created in case ERC20 retrocompatibility is required, but not the partitions.
 
 
 ## Quick start: How to test the contract?

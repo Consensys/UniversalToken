@@ -2,11 +2,11 @@ const { shouldFail } = require('openzeppelin-test-helpers');
 const { soliditySha3 } = require("web3-utils");
 
 const DVPContract = artifacts.require('DVP');
-const ERC1400ERC20 = artifacts.require('ERC1400ERC20Mock');
+const ERC1400 = artifacts.require('ERC1400CertificateMock');
 const ERC20 = artifacts.require('ERC20Token');
 const ERC721 = artifacts.require('ERC721Token');
 
-const FakeERC1400ERC20 = artifacts.require('FakeERC1400ERC20Mock');
+const FakeERC1400 = artifacts.require('FakeERC1400Mock');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTE = '0x';
@@ -28,9 +28,9 @@ const CERTIFICATE_SIGNER = '0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630';
 
 const VALID_CERTIFICATE = '0x1000000000000000000000000000000000000000000000000000000000000000';
 
-const partition1 = '0x5265736572766564000000000000000000000000000000000000000000000000'; // Reserved in hex
-const partition2 = '0x4973737565640000000000000000000000000000000000000000000000000000'; // Issued in hex
-const partition3 = '0x4c6f636b65640000000000000000000000000000000000000000000000000000'; // Locked in hex
+const partition1 = '0x7265736572766564000000000000000000000000000000000000000000000000'; // reserved in hex
+const partition2 = '0x6973737565640000000000000000000000000000000000000000000000000000'; // issued in hex
+const partition3 = '0x6c6f636b65640000000000000000000000000000000000000000000000000000'; // locked in hex
 const partitions = [partition1, partition2, partition3];
 
 const ALL_PARTITIONS = '0x0000000000000000000000000000000000000000000000000000000000000000';
@@ -794,7 +794,7 @@ contract('DVP', function ([owner, tokenController1, tokenController2, executer, 
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
       
-      this.emoney1400 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions);
+      this.emoney1400 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions);
 
       const chainTime = (await web3.eth.getBlock('latest')).timestamp;
       const expirationDate = chainTime + 2 * SECONDS_IN_A_WEEK;
@@ -852,11 +852,11 @@ contract('DVP', function ([owner, tokenController1, tokenController2, executer, 
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.security1400 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions);
+      this.security1400 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions);
       await this.security1400.setCertificateSigner(this.dvp.address, true, { from: owner });
       await this.security1400.issueByPartition(partition1, tokenHolder1, issuanceAmount, MOCK_CERTIFICATE, { from: owner });
 
-      this.emoney1400 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions);
+      this.emoney1400 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions);
       await this.emoney1400.setCertificateSigner(this.dvp.address, true, { from: owner });
       await this.emoney1400.issueByPartition(partition1, recipient1, issuanceAmount, MOCK_CERTIFICATE, { from: owner });
     });
@@ -932,7 +932,7 @@ contract('DVP', function ([owner, tokenController1, tokenController2, executer, 
                   });
                   describe('when token is not the correct token', function () {
                     beforeEach(async function () {
-                      this.wrongEmoney1400 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions);
+                      this.wrongEmoney1400 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions);
                       await this.wrongEmoney1400.setCertificateSigner(this.dvp.address, true, { from: owner });
                       await this.wrongEmoney1400.issueByPartition(partition1, recipient1, issuanceAmount, MOCK_CERTIFICATE, { from: owner });
                     });
@@ -983,7 +983,7 @@ contract('DVP', function ([owner, tokenController1, tokenController2, executer, 
       });
       describe('when recipient is not the DVP contract', function () {
         beforeEach(async function () {
-          this.fakeSecurity1400 = await FakeERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions);
+          this.fakeSecurity1400 = await FakeERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions);
           await this.fakeSecurity1400.setCertificateSigner(this.dvp.address, true, { from: owner });
           await this.fakeSecurity1400.issueByPartition(partition1, tokenHolder1, issuanceAmount, MOCK_CERTIFICATE, { from: owner });
         });
@@ -1040,7 +1040,7 @@ contract('DVP', function ([owner, tokenController1, tokenController2, executer, 
                 });
                 describe('when token standard is ERC1400', function () {
                   it('creates and accepts the trade request', async function () {
-                    this.security1400 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [], CERTIFICATE_SIGNER, true, partitions);
+                    this.security1400 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [], CERTIFICATE_SIGNER, true, partitions);
                     await this.security1400.setCertificateSigner(this.dvp.address, true, { from: owner });
 
                     await this.security1400.issueByPartition(partition1, tokenHolder1, issuanceAmount, VALID_CERTIFICATE, { from: owner });
@@ -1073,7 +1073,7 @@ contract('DVP', function ([owner, tokenController1, tokenController2, executer, 
                 });
                 describe('when token standard is ERC1400', function () {
                   it('creates and accepts the trade request', async function () {
-                    this.security1400 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [], CERTIFICATE_SIGNER, true, partitions);
+                    this.security1400 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [], CERTIFICATE_SIGNER, true, partitions);
                     await this.security1400.issueByPartition(partition1, tokenHolder1, issuanceAmount, VALID_CERTIFICATE, { from: owner });
                     await this.security1400.approveByPartition(partition1, this.dvp.address, token1Amount, { from: tokenHolder1 });
         
@@ -1257,7 +1257,7 @@ contract('DVP', function ([owner, tokenController1, tokenController2, executer, 
           });
           describe('when token standard is ERC1400', function () {
             beforeEach(async function () {
-              this.security1400 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [], CERTIFICATE_SIGNER, true, partitions);
+              this.security1400 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [], CERTIFICATE_SIGNER, true, partitions);
               await this.security1400.setCertificateSigner(this.dvp.address, true, { from: owner });
               await this.security1400.issueByPartition(partition1, recipient1, issuanceAmount, VALID_CERTIFICATE, { from: owner });
             });
@@ -1314,7 +1314,7 @@ contract('DVP', function ([owner, tokenController1, tokenController2, executer, 
         });
         describe('when token standard is ERC1400', function () {
           beforeEach(async function () {
-            this.security1400 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [], CERTIFICATE_SIGNER, true, partitions);
+            this.security1400 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [], CERTIFICATE_SIGNER, true, partitions);
             await this.security1400.setCertificateSigner(this.dvp.address, true, { from: owner });
             await this.security1400.issueByPartition(partition1, recipient1, issuanceAmount, VALID_CERTIFICATE, { from: owner });
             this.token2 = this.security1400;
@@ -1616,7 +1616,7 @@ contract('DVP', function ([owner, tokenController1, tokenController2, executer, 
                 describe('when token standard is ERC1400 vs ERC20', function () {
                   describe('when trade type is Escrow', function () {
                     beforeEach(async function () {
-                      this.security1400 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions);
+                      this.security1400 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions);
                       await this.security1400.setCertificateSigner(this.dvp.address, true, { from: owner });
                       await this.security1400.issueByPartition(partition1, tokenHolder1, issuanceAmount, MOCK_CERTIFICATE, { from: owner });
                     });
@@ -2392,12 +2392,12 @@ contract('DVP', function ([owner, tokenController1, tokenController2, executer, 
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.token1 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: owner });
+      this.token1 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: owner });
       await this.token1.setCertificateSigner(this.dvp.address, true, { from: owner });
       await this.token1.issueByPartition(partition1, tokenHolder1, issuanceAmount, MOCK_CERTIFICATE, { from: owner });
       await this.dvp.setPriceOracles(this.token1.address, [oracle], { from: owner });
 
-      this.token2 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: owner });
+      this.token2 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: owner });
       await this.token2.setCertificateSigner(this.dvp.address, true, { from: owner });
       await this.token2.issueByPartition(partition2, recipient1, issuanceAmount, MOCK_CERTIFICATE, { from: owner });
       await this.dvp.setPriceOracles(this.token2.address, [unknown], { from: owner });
@@ -2504,12 +2504,12 @@ contract('DVP', function ([owner, tokenController1, tokenController2, executer, 
           });
           describe('when the second token has more value than the first token', function () {
             beforeEach(async function () {
-              this.token3 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: owner });
+              this.token3 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: owner });
               await this.token3.setCertificateSigner(this.dvp.address, true, { from: owner });
               await this.token3.issueByPartition(partition1, tokenHolder1, issuanceAmount, MOCK_CERTIFICATE, { from: owner });
               await this.dvp.setPriceOracles(this.token3.address, [oracle], { from: owner });
           
-              this.token4 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: owner });
+              this.token4 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: owner });
               await this.token4.setCertificateSigner(this.dvp.address, true, { from: owner });
               await this.token4.issueByPartition(partition2, recipient1, issuanceAmount, MOCK_CERTIFICATE, { from: owner });
               await this.dvp.setPriceOracles(this.token4.address, [unknown], { from: owner });

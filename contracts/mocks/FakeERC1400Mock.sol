@@ -1,19 +1,21 @@
 pragma solidity ^0.5.0;
 
-import "../ERC1400.sol";
+import "./ERC1400CertificateMock.sol";
 
 
-contract FakeERC1400Mock is ERC1400 {
+contract FakeERC1400Mock is ERC1400CertificateMock {
 
   constructor(
     string memory name,
     string memory symbol,
     uint256 granularity,
     address[] memory controllers,
-    bytes32[] memory tokenDefaultPartitions
+    address certificateSigner,
+    bool certificateActivated,
+    bytes32[] memory defaultPartitions
   )
     public
-    ERC1400(name, symbol, granularity, controllers, tokenDefaultPartitions)
+    ERC1400CertificateMock(name, symbol, granularity, controllers, certificateSigner, certificateActivated, defaultPartitions)
   {}
 
   function _callPostTransferHooks(

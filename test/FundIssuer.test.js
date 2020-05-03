@@ -14,14 +14,14 @@ const { shouldFail } = require('openzeppelin-test-helpers');
 const { soliditySha3 } = require("web3-utils");
 
 const FundIssuerContract = artifacts.require('FundIssuer');
-const ERC1400ERC20 = artifacts.require('ERC1400ERC20Mock');
+const ERC1400 = artifacts.require('ERC1400CertificateMock');
 const ERC1820Registry = artifacts.require('ERC1820Registry');
 const ERC20 = artifacts.require('ERC20Token');
 const ERC721 = artifacts.require('ERC721Token');
 
 const ERC1400_TOKENS_RECIPIENT_INTERFACE = 'ERC1400TokensRecipient';
 
-const FakeERC1400ERC20 = artifacts.require('FakeERC1400ERC20Mock');
+const FakeERC1400 = artifacts.require('FakeERC1400Mock');
 
 const ZERO_ADDRESS = '0x0000000000000000000000000000000000000000';
 const ZERO_BYTE = '0x';
@@ -75,9 +75,9 @@ const VALID_CERTIFICATE = '0x100000000000000000000000000000000000000000000000000
 
 const partition0 = '0x0000000000000000000000000000000000000000000000000000000000000000'; // Empty hex
 
-const partition1 = '0x5265736572766564000000000000000000000000000000000000000000000000'; // Reserved in hex
-const partition2 = '0x4973737565640000000000000000000000000000000000000000000000000000'; // Issued in hex
-const partition3 = '0x4c6f636b65640000000000000000000000000000000000000000000000000000'; // Locked in hex
+const partition1 = '0x7265736572766564000000000000000000000000000000000000000000000000'; // reserved in hex
+const partition2 = '0x6973737565640000000000000000000000000000000000000000000000000000'; // issued in hex
+const partition3 = '0x6c6f636b65640000000000000000000000000000000000000000000000000000'; // locked in hex
 const partitions = [partition1, partition2, partition3];
 
 const ALL_PARTITIONS = '0x0000000000000000000000000000000000000000000000000000000000000000';
@@ -616,7 +616,7 @@ contract('Fund issuance', function ([owner, tokenController1, tokenController2, 
 
   describe('executePaymentAsInvestor', function () {
     beforeEach(async function () {
-      this.asset = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController1 });
+      this.asset = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController1 });
       this.fic = await FundIssuerContract.new();
 
       this.assetValue = 1000;
@@ -844,7 +844,7 @@ contract('Fund issuance', function ([owner, tokenController1, tokenController2, 
 
   describe('rejectOrder', function () {
     beforeEach(async function () {
-      this.asset = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController1 });
+      this.asset = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController1 });
       this.fic = await FundIssuerContract.new();
       await subscribe(
         this.fic,
@@ -1067,7 +1067,7 @@ contract('Fund issuance', function ([owner, tokenController1, tokenController2, 
   describe('canReceive', function () {
     beforeEach(async function () {
       this.fic = await FundIssuerContract.new();
-      this.asset = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController1 });
+      this.asset = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController1 });
       this.orderCreationFlag = getOrderCreationData(this.asset.address, partition1, 500, 0, TYPE_VALUE)
       this.orderPaymentFlag = getOrderPaymentData(1);
     });
@@ -1119,7 +1119,7 @@ contract('Fund issuance', function ([owner, tokenController1, tokenController2, 
 
   describe('setAssetRules', function () {
     beforeEach(async function () {
-      this.asset = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController1 });
+      this.asset = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController1 });
       this.fic = await FundIssuerContract.new();
     });
     describe('when caller is the token controller', function () {
@@ -1161,7 +1161,7 @@ contract('Fund issuance', function ([owner, tokenController1, tokenController2, 
                 fund,
                 true
               );
-              this.paymentToken = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions);
+              this.paymentToken = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions);
               const chainTime = (await web3.eth.getBlock('latest')).timestamp;
               await setAssetRules(
                 this.fic,
@@ -1293,7 +1293,7 @@ contract('Fund issuance', function ([owner, tokenController1, tokenController2, 
 
   describe('subscribe', function () {
     beforeEach(async function () {
-      this.asset = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController1 });
+      this.asset = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController1 });
       this.fic = await FundIssuerContract.new();
     });
     describe('when the current cycle is in subscription period', function () {
@@ -1476,7 +1476,7 @@ contract('Fund issuance', function ([owner, tokenController1, tokenController2, 
                 fund,
                 NEW_CYCLE_CREATED_FALSE
               );
-              this.asset2 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController2 });
+              this.asset2 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController2 });
               await subscribe(
                 this.fic,
                 this.asset2.address,
@@ -1589,7 +1589,7 @@ contract('Fund issuance', function ([owner, tokenController1, tokenController2, 
 
   describe('cancelOrder', function () {
     beforeEach(async function () {
-      this.asset = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController1 });
+      this.asset = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController1 });
       this.fic = await FundIssuerContract.new();
       await subscribe(
         this.fic,
@@ -1696,7 +1696,7 @@ contract('Fund issuance', function ([owner, tokenController1, tokenController2, 
 
   describe('valuate', function () {
     beforeEach(async function () {
-      this.asset = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true,partitions, { from: tokenController1 });
+      this.asset = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true,partitions, { from: tokenController1 });
       this.fic = await FundIssuerContract.new();
       await subscribe(
         this.fic,
@@ -1776,7 +1776,7 @@ contract('Fund issuance', function ([owner, tokenController1, tokenController2, 
       });
       describe('when cycle is of type known', function () {
         it('set the valuation', async function () {
-          this.asset2 = await ERC1400ERC20.new('ERC1400ERC20Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController1 });
+          this.asset2 = await ERC1400.new('ERC1400Token', 'DAU20', 1, [owner], CERTIFICATE_SIGNER, true, partitions, { from: tokenController1 });
           this.fic = await FundIssuerContract.new();
           await setAssetRules(
             this.fic,

@@ -133,14 +133,14 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @dev Modifier to verify if token is issuable.
    */
   modifier isIssuableToken() {
-    require(_isIssuable, "A8"); // Transfer Blocked - Token restriction
+    require(_isIssuable, "55"); // 0x55	funds locked (lockup period)
     _;
   }
   /**
    * @dev Modifier to make a function callable only when the contract is not migrated.
    */
   modifier isNotMigratedToken() {
-      require(!_migrated, "A8");
+      require(!_migrated, "54"); // 0x54	transfers halted (contract paused)
       _;
   }
   /************************************************************************************************/
@@ -238,7 +238,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @return A boolean that indicates if the operation was successful.
    */
   function approve(address spender, uint256 value) external returns (bool) {
-    require(spender != address(0), "A5"); // Transfer Blocked - Sender not eligible
+    require(spender != address(0), "56"); // 0x56	invalid sender
     _allowed[msg.sender][spender] = value;
     emit Approval(msg.sender, spender, value);
     return true;
@@ -252,7 +252,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    */
   function transferFrom(address from, address to, uint256 value) external returns (bool) {
     require( _isOperator(msg.sender, from)
-      || (value <= _allowed[from][msg.sender]), "A7"); // Transfer Blocked - Identity restriction
+      || (value <= _allowed[from][msg.sender]), "53"); // 0x53	insufficient allowance
 
     if(_allowed[from][msg.sender] >= value) {
       _allowed[from][msg.sender] = _allowed[from][msg.sender].sub(value);
@@ -326,7 +326,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @dev Transfer the amount of tokens from the address 'msg.sender' to the address 'to'.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
-   * @param data Information attached to the transfer, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param data Information attached to the transfer, by the token holder.
    */
   function transferWithData(address to, uint256 value, bytes calldata data) external {
     _transferByDefaultPartitions(msg.sender, msg.sender, to, value, data);
@@ -339,7 +339,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param data Information attached to the transfer, and intended for the token holder ('from').
    */
   function transferFromWithData(address from, address to, uint256 value, bytes calldata data) external {
-    require(_isOperator(msg.sender, from), "A7"); // Transfer Blocked - Identity restriction
+    require(_isOperator(msg.sender, from), "58"); // 0x58	invalid operator (transfer agent)
 
     _transferByDefaultPartitions(msg.sender, from, to, value, data);
   }
@@ -352,7 +352,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param partition Name of the partition.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
-   * @param data Information attached to the transfer, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param data Information attached to the transfer, by the token holder.
    * @return Destination partition.
    */
   function transferByPartition(
@@ -373,7 +373,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
-   * @param operatorData Information attached to the transfer, by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param operatorData Information attached to the transfer, by the operator.
    * @return Destination partition.
    */
   function operatorTransferByPartition(
@@ -388,7 +388,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     returns (bytes32)
   {
     require(_isOperatorForPartition(partition, msg.sender, from)
-      || (value <= _allowedByPartition[partition][from][msg.sender]), "A7"); // Transfer Blocked - Identity restriction
+      || (value <= _allowedByPartition[partition][from][msg.sender]), "53"); // 0x53	insufficient allowance
 
     if(_allowedByPartition[partition][from][msg.sender] >= value) {
       _allowedByPartition[partition][from][msg.sender] = _allowedByPartition[partition][from][msg.sender].sub(value);
@@ -489,11 +489,26 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     return _isIssuable;
   }
   /**
+   * @dev Issue tokens from default partition.
+   * @param tokenHolder Address for which we want to issue tokens.
+   * @param value Number of tokens issued.
+   * @param data Information attached to the issuance, by the issuer.
+   */
+  function issue(address tokenHolder, uint256 value, bytes calldata data)
+    external
+    onlyMinter
+    isIssuableToken
+  {
+    require(_defaultPartitions.length != 0, "55"); // 0x55	funds locked (lockup period)
+
+    _issueByPartition(_defaultPartitions[0], msg.sender, tokenHolder, value, data);
+  }
+  /**
    * @dev Issue tokens from a specific partition.
    * @param partition Name of the partition.
    * @param tokenHolder Address for which we want to issue tokens.
    * @param value Number of tokens issued.
-   * @param data Information attached to the issuance, by the issuer. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param data Information attached to the issuance, by the issuer.
    */
   function issueByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes calldata data)
     external
@@ -509,7 +524,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   /**
    * @dev Redeem the amount of tokens from the address 'msg.sender'.
    * @param value Number of tokens to redeem.
-   * @param data Information attached to the redemption, by the token holder. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param data Information attached to the redemption, by the token holder.
    */
   function redeem(uint256 value, bytes calldata data)
     external
@@ -525,7 +540,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   function redeemFrom(address from, uint256 value, bytes calldata data)
     external
   {
-    require(_isOperator(msg.sender, from), "A7"); // Transfer Blocked - Identity restriction
+    require(_isOperator(msg.sender, from), "58"); // 0x58	invalid operator (transfer agent)
 
     _redeemByDefaultPartitions(msg.sender, from, value, data);
   }
@@ -533,7 +548,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @dev Redeem tokens of a specific partition.
    * @param partition Name of the partition.
    * @param value Number of tokens redeemed.
-   * @param data Information attached to the redemption, by the redeemer. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param data Information attached to the redemption, by the redeemer.
    */
   function redeemByPartition(bytes32 partition, uint256 value, bytes calldata data)
     external
@@ -545,12 +560,12 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param partition Name of the partition.
    * @param tokenHolder Address for which we want to redeem tokens.
    * @param value Number of tokens redeemed
-   * @param operatorData Information attached to the redemption, by the operator. [CONTAINS THE CONDITIONAL OWNERSHIP CERTIFICATE]
+   * @param operatorData Information attached to the redemption, by the operator.
    */
   function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes calldata operatorData)
     external
   {
-    require(_isOperatorForPartition(partition, msg.sender, tokenHolder), "A7"); // Transfer Blocked - Identity restriction
+    require(_isOperatorForPartition(partition, msg.sender, tokenHolder), "58"); // 0x58	invalid operator (transfer agent)
 
     _redeemByPartition(partition, msg.sender, tokenHolder, value, "", operatorData);
   }
@@ -579,7 +594,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   }
   /**
    * @dev Get the number of decimals of the token.
-   * @return The number of decimals of the token. For Backwards compatibility, decimals are forced to 18 in ERC1400Raw.
+   * @return The number of decimals of the token. For retrocompatibility, decimals are forced to 18 in ERC1400.
    */
   function decimals() external pure returns(uint8) {
     return uint8(18);
@@ -629,7 +644,6 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   }
   /**
    * @dev Get controllers for a given partition.
-   * Function used for ERC1400Raw and ERC20 backwards compatibility.
    * @param partition Name of the partition.
    * @return Array of controllers for partition.
    */
@@ -657,7 +671,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   /********************************* Token default partitions *************************************/
   /**
    * @dev Get default partitions to transfer from.
-   * Function used for ERC1400Raw and ERC20 backwards compatibility.
+   * Function used for ERC20 retrocompatibility.
    * For example, a security token may return the bytes32("unrestricted").
    * @return Array of default partitions.
    */
@@ -666,7 +680,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   }
   /**
    * @dev Set default partitions to transfer from.
-   * Function used for ERC1400Raw and ERC20 backwards compatibility.
+   * Function used for ERC20 retrocompatibility.
    * @param partitions partitions to use by default when not specified.
    */
   function setDefaultPartitions(bytes32[] calldata partitions) external onlyOwner {
@@ -694,7 +708,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @return A boolean that indicates if the operation was successful.
    */
   function approveByPartition(bytes32 partition, address spender, uint256 value) external returns (bool) {
-    require(spender != address(0), "A5"); // Transfer Blocked - Sender not eligible
+    require(spender != address(0), "56"); // 0x56	invalid sender
     _allowedByPartition[partition][msg.sender][spender] = value;
     emit ApprovalByPartition(partition, msg.sender, spender, value);
     return true;
@@ -743,27 +757,21 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   /**************************************** Token Transfers ***************************************/
   /**
    * @dev Perform the transfer of tokens.
-   * @param operator The address performing the transfer.
    * @param from Token holder.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
-   * @param data Information attached to the transfer.
-   * @param operatorData Information attached to the transfer by the operator (if any)..
    */
   function _transferWithData(
-    address operator,
     address from,
     address to,
-    uint256 value,
-    bytes memory data,
-    bytes memory operatorData
+    uint256 value
   )
     internal
     isNotMigratedToken
   {
-    require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
-    require(to != address(0), "A6"); // Transfer Blocked - Receiver not eligible
-    require(_balances[from] >= value, "A4"); // Transfer Blocked - Sender balance insufficient
+    require(_isMultiple(value), "50"); // 0x50	transfer failure
+    require(to != address(0), "57"); // 0x57	invalid receiver
+    require(_balances[from] >= value, "52"); // 0x52	insufficient balance
   
     _balances[from] = _balances[from].sub(value);
     _balances[to] = _balances[to].add(value);
@@ -793,7 +801,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     internal
     returns (bytes32)
   {
-    require(_balanceOfByPartition[from][fromPartition] >= value, "A4"); // Transfer Blocked - Sender balance insufficient
+    require(_balanceOfByPartition[from][fromPartition] >= value, "52"); // 0x52	insufficient balance
 
     bytes32 toPartition = fromPartition;
 
@@ -804,7 +812,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     _callPreTransferHooks(fromPartition, operator, from, to, value, data, operatorData);
 
     _removeTokenFromPartition(from, fromPartition, value);
-    _transferWithData(operator, from, to, value, data, operatorData);
+    _transferWithData(from, to, value);
     _addTokenToPartition(to, toPartition, value);
 
     _callPostTransferHooks(toPartition, operator, from, to, value, data, operatorData);
@@ -819,6 +827,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   }
   /**
    * @dev Transfer tokens from default partitions.
+   * Function used for ERC20 retrocompatibility.
    * @param operator The address performing the transfer.
    * @param from Token holder.
    * @param to Token recipient.
@@ -834,7 +843,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   )
     internal
   {
-    require(_defaultPartitions.length != 0, "A8"); // Transfer Blocked - Token restriction
+    require(_defaultPartitions.length != 0, "55"); // // 0x55	funds locked (lockup period)
 
     uint256 _remainingValue = value;
     uint256 _localBalance;
@@ -851,7 +860,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
       }
     }
 
-    require(_remainingValue == 0, "A8"); // Transfer Blocked - Token restriction
+    require(_remainingValue == 0, "52"); // 0x52	insufficient balance
   }
   /**
    * @dev Retrieve the destination partition from the 'data' field.
@@ -890,7 +899,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     // If the total supply is zero, finds and deletes the partition.
     if(_totalSupplyByPartition[partition] == 0) {
       uint256 index1 = _indexOfTotalPartitions[partition];
-      require(index1 > 0, "A8"); // Transfer Blocked - Token restriction
+      require(index1 > 0, "50"); // 0x50	transfer failure
 
       // move the last item into the index being vacated
       bytes32 lastValue = _totalPartitions[_totalPartitions.length - 1];
@@ -904,7 +913,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     // If the balance of the TokenHolder's partition is zero, finds and deletes the partition.
     if(_balanceOfByPartition[from][partition] == 0) {
       uint256 index2 = _indexOfPartitionsOf[from][partition];
-      require(index2 > 0, "A8"); // Transfer Blocked - Token restriction
+      require(index2 > 0, "50"); // 0x50	transfer failure
 
       // move the last item into the index being vacated
       bytes32 lastValue = _partitionsOf[from][_partitionsOf[from].length - 1];
@@ -1055,8 +1064,8 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     internal
     isNotMigratedToken  
   {
-    require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
-    require(to != address(0), "A6"); // Transfer Blocked - Receiver not eligible
+    require(_isMultiple(value), "50"); // 0x50	transfer failure
+    require(to != address(0), "57"); // 0x57	invalid receiver
 
     _totalSupply = _totalSupply.add(value);
     _balances[to] = _balances[to].add(value);
@@ -1103,9 +1112,9 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     internal
     isNotMigratedToken
   {
-    require(_isMultiple(value), "A9"); // Transfer Blocked - Token granularity
-    require(from != address(0), "A5"); // Transfer Blocked - Sender not eligible
-    require(_balances[from] >= value, "A4"); // Transfer Blocked - Sender balance insufficient
+    require(_isMultiple(value), "50"); // 0x50	transfer failure
+    require(from != address(0), "56"); // 0x56	invalid sender
+    require(_balances[from] >= value, "52"); // 0x52	insufficient balance
 
     _balances[from] = _balances[from].sub(value);
     _totalSupply = _totalSupply.sub(value);
@@ -1132,7 +1141,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   )
     internal
   {
-    require(_balanceOfByPartition[from][fromPartition] >= value, "A4"); // Transfer Blocked - Sender balance insufficient
+    require(_balanceOfByPartition[from][fromPartition] >= value, "52"); // 0x52	insufficient balance
 
     _callPreTransferHooks(fromPartition, operator, from, address(0), value, data, operatorData);
 
@@ -1156,7 +1165,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   )
     internal
   {
-    require(_defaultPartitions.length != 0, "A8"); // Transfer Blocked - Token restriction
+    require(_defaultPartitions.length != 0, "55"); // 0x55	funds locked (lockup period)
 
     uint256 _remainingValue = value;
     uint256 _localBalance;
@@ -1173,7 +1182,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
       }
     }
 
-    require(_remainingValue == 0, "A8"); // Transfer Blocked - Token restriction
+    require(_remainingValue == 0, "52"); // 0x52	insufficient balance
   }
   /************************************************************************************************/
 
