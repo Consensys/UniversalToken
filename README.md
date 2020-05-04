@@ -1,14 +1,14 @@
 ![Codefi](images/CodefiBanner.png)
 
 # Overview of the repo
- - [ERC1400 hybrid token standard](https://github.com/ConsenSys/ERC1400/README.md)
+ - [ERC1400 hybrid token standard](https://github.com/ConsenSys/ERC1400/blob/master/README.md)
  - [Certificate-based token transfers](contracts/certificate/README.md)
  - [Delivery-vs-payment](contracts/tools/DVP.md)
  - [Fund issuance](contracts/tools/FundIssuer.md)
 
 # Introduction
 
-[Introduction to tokenization](https://medium.com/@consensyscodefi/how-to-explain-tokenization-to-six-year-olds-well-sort-of-consensys-codefi-a40780c5d4ca).
+Never heard of tokenization --> See introduction [here](https://medium.com/@consensyscodefi/how-to-explain-tokenization-to-six-year-olds-well-sort-of-consensys-codefi-a40780c5d4ca).
 
 Blockchain technology and more specifically the emergence of "programmable" tokens have opened a world of new possibilities for financial assets: the creation of digital assets.
 Digital assets are financial assets, which have been "tokenized". This means each asset is represented by a token on the blockchain.

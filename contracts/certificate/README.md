@@ -24,7 +24,7 @@ function transferWithData(address recipient, uint256 value, bytes data)
 Codefi Assets fosters to use this additional 'data' field, available in the ERC1400 standard, in order to inject a certificate generated off-chain by the issuer.
 A token transfer shall be conditioned to the validity of the certificate, thus offering the issuer with strong control capabilities over its financial assets.
 
-![Picture5](images/Picture5.png)
+![Picture5](../../images/Picture5.png)
 
 The Codefi certificate contains:
  - The function ID which ensures the certificate can’t be used on an other function.
@@ -36,7 +36,7 @@ Finally the certificate is signed by the issuer which ensures it is authentic.
 
 The certificate enables the issuer to perform advanced conditional ownership, since he needs to be aware of all parameters of a transaction before generating the associated certificate.
 
-![Picture6](images/Picture6.png)
+![Picture6](../../images/Picture6.png)
 
 In a way, this can be seen as a way to perform multisignature in one single transaction since every asset transfer requires:
  - A valid transaction signature (signed by the investor)
@@ -48,7 +48,7 @@ In a way, this can be seen as a way to perform multisignature in one single tran
 
  The certificate generator can be coupled to a KYC API, and only provide certificates to users who've completed their KYC verification before.
 
- ![Picture7](images/Picture7.png)
+ ![Picture7](../../images/Picture7.png)
 
 PS: Since the ERC1400 standard is agnostic about the way to control certificate, we didn't include our certificate controller in this repository (a mock is used instead). In order to perform real advanced conditional ownership, a certificate controller called 'CertificateController.sol' shall be placed in folder '/contracts/CertificateController' instead of the mock placed there.
 
