@@ -115,10 +115,10 @@ interface IERC1400 /*is IERC20*/ { // Interfaces can currently not inherit inter
 }
 
 /**
- * Reason codes - ERC1066
+ * Reason codes - ERC-1066
  *
  * To improve the token holder experience, canTransfer MUST return a reason byte code
- * on success or failure based on the EIP-1066 application-specific status codes specified below.
+ * on success or failure based on the ERC-1066 application-specific status codes specified below.
  * An implementation can also return arbitrary data as a bytes32 to provide additional
  * information not captured by the reason code.
  * 
@@ -141,4 +141,6 @@ interface IERC1400 /*is IERC20*/ { // Interfaces can currently not inherit inter
  * 0x5d	
  * 0x5e	
  * 0x5f	token meta or info
+ *
+ * These codes are being discussed at: https://ethereum-magicians.org/t/erc-1066-ethereum-status-codes-esc/283/24
  */

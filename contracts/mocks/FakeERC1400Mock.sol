@@ -1,23 +1,24 @@
 pragma solidity ^0.5.0;
 
-import "./ERC1400CertificateMock.sol";
+import "../ERC1400.sol";
 
 
-contract FakeERC1400Mock is ERC1400CertificateMock {
+contract FakeERC1400Mock is ERC1400 {
 
   constructor(
     string memory name,
     string memory symbol,
     uint256 granularity,
     address[] memory controllers,
-    address certificateSigner,
-    bool certificateActivated,
     bytes32[] memory defaultPartitions
   )
     public
-    ERC1400CertificateMock(name, symbol, granularity, controllers, certificateSigner, certificateActivated, defaultPartitions)
+    ERC1400(name, symbol, granularity, controllers, defaultPartitions)
   {}
 
+  /**
+   * Override function to allow calling "tokensReceived" hook with wrong recipient ("to")
+   */
   function _callPostTransferHooks(
     bytes32 partition,
     address operator,
@@ -35,6 +36,22 @@ contract FakeERC1400Mock is ERC1400CertificateMock {
     if (recipientImplementation != address(0)) {
       IERC1400TokensRecipient(recipientImplementation).tokensReceived(msg.sig, partition, operator, from, from, value, data, operatorData);
     }
+  }
+
+  /**
+   * Override function to allow redeeming tokens from address(0)
+   */
+  function transferFromWithData(address from, address to, uint256 value, bytes calldata /*data*/) external {
+    _transferWithData(from, to, value);
+  }
+
+  /**
+   * Override function to allow redeeming tokens from address(0)
+   */
+  function redeemFrom(address from, uint256 value, bytes calldata data)
+    external
+  {
+    _redeem(msg.sender, from, value, data);
   }
 
 }
