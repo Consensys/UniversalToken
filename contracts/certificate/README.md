@@ -1,3 +1,58 @@
+# Certificate-based token transfers
+
+ERC1400 introduces additional features to ERC20 features, and provides issuers with strong control capabilities over their financial assets.
+
+### Introduction - The limits of ERC20 token standard
+
+Currently the most common and well-known standard within crypto community is the ERC20([eips.ethereum.org/EIPS/eip-20](https://eips.ethereum.org/EIPS/eip-20)).
+The vast majority of ICOs are based on this ERC20 standard, but it doesn't appear to be the most relevant standard for financial asset tokenization.
+The only parameters required to perform an ERC20 token transfer are the recipient's address and the value of the transfer, thus limiting the control possibilities over transfers:
+```
+function transfer(address recipient, uint256 value)
+```
+All controls have to be hard-coded on-chain and are often limited to simple/binary checks e.g. checking whether an investor is blacklisted or not.
+
+Codefi Assets makes use of more evolved/granular controls to secure transfers.
+Those controls can evolve quickly and require flexibility, which makes it difficult to hard-code them on-chain.
+
+### Transfer controls based on certificates - A way to perform multisignature in one single transaction
+
+The use of an additional 'data' parameter in the transfer functions can enable more evolved/granular controls:
+```
+function transferWithData(address recipient, uint256 value, bytes data)
+```
+Codefi Assets fosters to use this additional 'data' field, available in the ERC1400 standard, in order to inject a certificate generated off-chain by the issuer.
+A token transfer shall be conditioned to the validity of the certificate, thus offering the issuer with strong control capabilities over its financial assets.
+
+![Picture5](../../images/Picture5.png)
+
+The Codefi certificate contains:
+ - The function ID which ensures the certificate can’t be used on an other function.
+ - The parameters which ensures the input parameters have been validated by the issuer.
+ - A validity date which ensures the certificate can’t be used after validity date.
+ - A nonce which ensures the certificate can’t be used twice.
+
+Finally the certificate is signed by the issuer which ensures it is authentic.
+
+The certificate enables the issuer to perform advanced conditional ownership, since he needs to be aware of all parameters of a transaction before generating the associated certificate.
+
+![Picture6](../../images/Picture6.png)
+
+In a way, this can be seen as a way to perform multisignature in one single transaction since every asset transfer requires:
+ - A valid transaction signature (signed by the investor)
+ - A valid certificate signature (signed by the issuer)
+
+ ### Example use case
+ 
+ An example use case for the certificate validation is KYC verification.
+
+ The certificate generator can be coupled to a KYC API, and only provide certificates to users who've completed their KYC verification before.
+
+ ![Picture7](../../images/Picture7.png)
+
+PS: Since the ERC1400 standard is agnostic about the way to control certificate, we didn't include our certificate controller in this repository (a mock is used instead). In order to perform real advanced conditional ownership, a certificate controller called 'CertificateController.sol' shall be placed in folder '/contracts/CertificateController' instead of the mock placed there.
+
+
 ## Description of certificate controllers and implementation choice (nonce vs salt)
 
 ### The certificate controller, a way to perform multi-signature in a single transaction

@@ -1,20 +1,23 @@
+/*
+ * This code has not been reviewed.
+ * Do not use or deploy this code before reviewing it personally first.
+ */
 pragma solidity ^0.5.0;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/access/roles/WhitelistedRole.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import "../token/ERC1400Raw/IERC1400TokensChecker.sol";
 import "erc1820/contracts/ERC1820Client.sol";
-import "../token/ERC1820/ERC1820Implementer.sol";
+import "../../interface/ERC1820Implementer.sol";
 
-import "../IERC1400.sol";
-import "../token/ERC1400Partition/IERC1400Partition.sol";
-import "../token/ERC1400Raw/IERC1400Raw.sol";
-import "../token/ERC1400Raw/IERC1400TokensSender.sol";
-import "../token/ERC1400Raw/IERC1400TokensRecipient.sol";
-import "../token/ERC1400Raw/IERC1400TokensValidator.sol";
+import "../../ERC1400.sol";
 
+import "../userExtensions/IERC1400TokensSender.sol";
+import "../userExtensions/IERC1400TokensRecipient.sol";
+
+import "./IERC1400TokensValidator.sol";
+import "./IERC1400TokensChecker.sol";
 
 contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Implementer {
   using SafeMath for uint256;
@@ -74,37 +77,37 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
      view
      returns (byte, bytes32, bytes32)
    {
-     if(!IERC1400Partition(msg.sender).isOperatorForPartition(partition, operator, from))
-       return(hex"A7", "", partition); // Transfer Blocked - Identity restriction
+     if(!ERC1400(msg.sender).isOperatorForPartition(partition, operator, from))
+       return(hex"58", "", partition); // 0x58	invalid operator (transfer agent)
 
-     if((IERC1400Raw(msg.sender).balanceOf(from) < value) || (IERC1400Partition(msg.sender).balanceOfByPartition(partition, from) < value))
-       return(hex"A4", "", partition); // Transfer Blocked - Sender balance insufficient
+     if((IERC20(msg.sender).balanceOf(from) < value) || (ERC1400(msg.sender).balanceOfByPartition(partition, from) < value))
+       return(hex"52", "", partition); // 0x52	insufficient balance
 
      if(to == address(0))
-       return(hex"A6", "", partition); // Transfer Blocked - Receiver not eligible
+       return(hex"57", "", partition); // 0x57	invalid receiver
 
      address hookImplementation;
      
      hookImplementation = ERC1820Client.interfaceAddr(from, ERC1400_TOKENS_SENDER);
      if((hookImplementation != address(0))
        && !IERC1400TokensSender(hookImplementation).canTransfer(functionSig, partition, operator, from, to, value, data, operatorData))
-       return(hex"A5", "", partition); // Transfer Blocked - Sender not eligible
+       return(hex"56", "", partition); // 0x56	invalid sender
 
      hookImplementation = ERC1820Client.interfaceAddr(to, ERC1400_TOKENS_RECIPIENT);
      if((hookImplementation != address(0))
        && !IERC1400TokensRecipient(hookImplementation).canReceive(functionSig, partition, operator, from, to, value, data, operatorData))
-       return(hex"A6", "", partition); // Transfer Blocked - Receiver not eligible
+       return(hex"57", "", partition); // 0x57	invalid receiver
 
      hookImplementation = ERC1820Client.interfaceAddr(msg.sender, ERC1400_TOKENS_VALIDATOR);
      if((hookImplementation != address(0))
        && !IERC1400TokensValidator(hookImplementation).canValidate(functionSig, partition, operator, from, to, value, data, operatorData))
-       return(hex"A3", "", partition); // Transfer Blocked - Sender lockup period not ended
+       return(hex"54", "", partition); // 0x54	transfers halted (contract paused)
 
-     uint256 granularity = IERC1400Raw(msg.sender).granularity();
+     uint256 granularity = ERC1400(msg.sender).granularity();
      if(!(value.div(granularity).mul(granularity) == value))
-       return(hex"A9", "", partition); // Transfer Blocked - Token granularity
+       return(hex"50", "", partition); // 0x50	transfer failure
 
-     return(hex"A2", "", partition);  // Transfer Verified - Off-Chain approval for restricted token
+     return(hex"51", "", partition);  // 0x51	transfer success
    }
 
   /**
@@ -119,22 +122,22 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
   //   view
   //   returns (byte, bytes32)
   // {
-  //   if(!IERC1400Raw(msg.sender).isOperator(operator, from))
-  //      return(hex"A7", ""); // Transfer Blocked - Identity restriction
+  //   if(!ERC1400(msg.sender).isOperator(operator, from))
+  //      return(hex"58", ""); // 0x58	invalid operator (transfer agent)
 
   //   byte esc;
 
-  //   bytes32[] memory defaultPartitions = IERC1400Partition(msg.sender).getDefaultPartitions();
+  //   bytes32[] memory defaultPartitions = ERC1400(msg.sender).getDefaultPartitions();
 
   //   if(defaultPartitions.length == 0) {
-  //     return(hex"A8", ""); // Transfer Blocked - Token restriction
+  //     return(hex"55", ""); // 0x55	funds locked (lockup period)
   //   }
 
   //   uint256 _remainingValue = value;
   //   uint256 _localBalance;
 
   //   for (uint i = 0; i < defaultPartitions.length; i++) {
-  //     _localBalance = IERC1400Partition(msg.sender).balanceOfByPartition(defaultPartitions[i], from);
+  //     _localBalance = ERC1400(msg.sender).balanceOfByPartition(defaultPartitions[i], from);
   //     if(_remainingValue <= _localBalance) {
   //       (esc,,) = _canTransferByPartition(functionSig, defaultPartitions[i], operator, from, to, _remainingValue, data, operatorData);
   //       _remainingValue = 0;
@@ -143,16 +146,16 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
   //       (esc,,) = _canTransferByPartition(functionSig, defaultPartitions[i], operator, from, to, _localBalance, data, operatorData);
   //       _remainingValue = _remainingValue - _localBalance;
   //     }
-  //     if(esc != hex"A2") {
+  //     if(esc != hex"51") {
   //       return(esc, "");
   //     }
   //   }
 
   //   if(_remainingValue != 0) {
-  //     return(hex"A8", ""); // Transfer Blocked - Token restriction
+  //     return(hex"52", ""); // 0x52	insufficient balance
   //   }
 
-  //   return(hex"A2", ""); // Transfer Verified - Off-Chain approval for restricted token
+  //   return(hex"51", ""); // 0x51	transfer success
 
   //   return(hex"00", "");
   // }

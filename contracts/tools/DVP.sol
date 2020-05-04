@@ -1,12 +1,21 @@
+/*
+ * This code has not been reviewed.
+ * Do not use or deploy this code before reviewing it personally first.
+ */
 pragma solidity ^0.5.0;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
 import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
-import "../token/ERC1820/ERC1820Implementer.sol";
-import "../token/ERC1400Raw/IERC1400TokensRecipient.sol";
+
+import "erc1820/contracts/ERC1820Client.sol";
+import "../interface/ERC1820Implementer.sol";
+
+import "../extensions/userExtensions/IERC1400TokensRecipient.sol";
+
 import "../ERC1400.sol";
+
 
 /**
  * @title DVP
@@ -203,10 +212,10 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @param operatorData Information attached to the DVP transfer, by the operator.
    */
   function tokensReceived(bytes4, bytes32 partition, address, address from, address to, uint value, bytes calldata data, bytes calldata operatorData) external {
-    require(interfaceAddr(msg.sender, "ERC1400Token") == msg.sender, "A8: Transfer Blocked - Token restriction");
+    require(interfaceAddr(msg.sender, "ERC1400Token") == msg.sender, "55"); // funds locked (lockup period)
 
-    require(to == address(this), "A8: Transfer Blocked - Token restriction");
-    require(_canReceive(data, operatorData), "A6: Transfer Blocked - Receiver not eligible");
+    require(to == address(this), "50"); // 0x50	transfer failure
+    require(_canReceive(data, operatorData), "57"); // 0x57	invalid receiver
 
     bytes32 flag = _getTradeFlag(data);
     if(flag == TRADE_PROPOSAL_FLAG) {
@@ -234,13 +243,13 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
 
       bytes memory selectedTokenData = (from == trade.holder1) ? trade.tokenData1 : trade.tokenData2;
       (address tokenAddress,,,,,) = abi.decode(selectedTokenData, (address, uint256, bytes32, Standard, bool, bool));
-      require(msg.sender == tokenAddress, 'Wrong token sent');
+      require(msg.sender == tokenAddress, "Wrong token sent");
 
       (,, bytes32 tokenId,,,) = abi.decode(selectedTokenData, (address, uint256, bytes32, Standard, bool, bool));
-      require(partition == tokenId, 'Tokens of the wrong partition sent');
+      require(partition == tokenId, "Tokens of the wrong partition sent");
 
       (,,, Standard tokenStandard,,) = abi.decode(selectedTokenData, (address, uint256, bytes32, Standard, bool, bool));
-      require(Standard.ERC1400 == tokenStandard, 'Tokens of the wrong standard sent');
+      require(Standard.ERC1400 == tokenStandard, "Tokens of the wrong standard sent");
 
       _acceptTrade(index, from, 0, value);         
     }
@@ -370,7 +379,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    */
   function _acceptTrade(uint256 index, address sender, uint256 ethValue, uint256 erc1400TokenValue) internal {
     Trade storage trade = _trades[index];
-    require(trade.state == State.Pending, 'Trade is not pending');
+    require(trade.state == State.Pending, "Trade is not pending");
 
     address selectedHolder;
     if(sender == trade.holder1) {
@@ -404,7 +413,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
         // OffChain
       }
     } else { // trade.tradeType == TradeType.Swap
-      require(_allowanceIsProvided(sender, selectedTokenData), 'Allowance needs to be provided in token smart contract first');
+      require(_allowanceIsProvided(sender, selectedTokenData), "Allowance needs to be provided in token smart contract first");
     }
 
     bytes memory newTokenData = abi.encode(tokenAddress, tokenValue, tokenId, tokenStandard, true, approved);
@@ -480,7 +489,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    */
   function approveTrade(uint256 index, bool approved) external {
     Trade storage trade = _trades[index];
-    require(trade.state == State.Pending, 'Trade is not pending');
+    require(trade.state == State.Pending, "Trade is not pending");
 
     (address tokenAddress1,,,,,) = abi.decode(trade.tokenData1, (address, uint256, bytes32, Standard, bool, bool));
     (address tokenAddress2,,,,,) = abi.decode(trade.tokenData2, (address, uint256, bytes32, Standard, bool, bool));
@@ -536,7 +545,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    */
   function executeTrade(uint256 index) external {
     Trade storage trade = _trades[index];
-    require(trade.state == State.Pending, 'Trade is not pending');
+    require(trade.state == State.Pending, "Trade is not pending");
 
     if(trade.executer != address(0)) {
       require(msg.sender == trade.executer, "Trade can only be executed by executer defined at trade creation");
@@ -565,7 +574,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       _transferUsersTokens(index, Holder.Holder1, tokenValue1, false);
       _transferUsersTokens(index, Holder.Holder2, tokenValue2, false);
     } else {
-      require(price <= tokenValue2, 'Price is higher than amount escrowed/authorized');
+      require(price <= tokenValue2, "Price is higher than amount escrowed/authorized");
       _transferUsersTokens(index, Holder.Holder1, tokenValue1, false);
       _transferUsersTokens(index, Holder.Holder2, price, false);
       if(trade.tradeType == TradeType.Escrow) {
@@ -582,7 +591,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    */
   function forceTrade(uint256 index) external {
     Trade storage trade = _trades[index];
-    require(trade.state == State.Pending, 'Trade is not pending');
+    require(trade.state == State.Pending, "Trade is not pending");
 
     (address tokenAddress1 ,uint256 tokenValue1 ,,, bool accepted1,) = abi.decode(trade.tokenData1, (address, uint256, bytes32, Standard, bool, bool));
     (address tokenAddress2 ,uint256 tokenValue2 ,,, bool accepted2,) = abi.decode(trade.tokenData2, (address, uint256, bytes32, Standard, bool, bool));
@@ -591,11 +600,11 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     require(_tokenControllers[tokenAddress1].length == 0 && _tokenControllers[tokenAddress2].length == 0, "Trade can not be forced if tokens have controllers");
 
     if(trade.executer != address(0)) {
-      require(msg.sender == trade.executer, 'Sender is not allowed to force trade (0)');
+      require(msg.sender == trade.executer, "Sender is not allowed to force trade (0)");
     } else if(accepted1) {
-      require(msg.sender == trade.holder1, 'Sender is not allowed to force trade (1)');
+      require(msg.sender == trade.holder1, "Sender is not allowed to force trade (1)");
     } else if(accepted2) {
-      require(msg.sender == trade.holder2, 'Sender is not allowed to force trade (2)');
+      require(msg.sender == trade.holder2, "Sender is not allowed to force trade (2)");
     } else {
       revert("Trade can't be forced as tokens are not available so far");
     }
@@ -617,29 +626,29 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    */
   function cancelTrade(uint256 index) external {
     Trade storage trade = _trades[index];
-    require(trade.state == State.Pending, 'Trade is not pending');
+    require(trade.state == State.Pending, "Trade is not pending");
 
     (,uint256 tokenValue1 ,,, bool accepted1,) = abi.decode(trade.tokenData1, (address, uint256, bytes32, Standard, bool, bool));
     (,uint256 tokenValue2 ,,, bool accepted2,) = abi.decode(trade.tokenData2, (address, uint256, bytes32, Standard, bool, bool));
     
     if(accepted1 && accepted2) {
-      require(msg.sender == trade.executer || (block.timestamp >= trade.expirationDate && (msg.sender == trade.holder1 || msg.sender == trade.holder2) ), 'Sender is not allowed to cancel trade (0)');
+      require(msg.sender == trade.executer || (block.timestamp >= trade.expirationDate && (msg.sender == trade.holder1 || msg.sender == trade.holder2) ), "Sender is not allowed to cancel trade (0)");
       if(trade.tradeType == TradeType.Escrow) {
         _transferUsersTokens(index, Holder.Holder1, tokenValue1, true);
         _transferUsersTokens(index, Holder.Holder2, tokenValue2, true);
       }
     } else if(accepted1) {
-      require(msg.sender == trade.executer || (block.timestamp >= trade.expirationDate && msg.sender == trade.holder1), 'Sender is not allowed to cancel trade (1)');
+      require(msg.sender == trade.executer || (block.timestamp >= trade.expirationDate && msg.sender == trade.holder1), "Sender is not allowed to cancel trade (1)");
       if(trade.tradeType == TradeType.Escrow) {
         _transferUsersTokens(index, Holder.Holder1, tokenValue1, true);
       }
     } else if(accepted2) {
-      require(msg.sender == trade.executer || (block.timestamp >= trade.expirationDate && msg.sender == trade.holder2), 'Sender is not allowed to cancel trade (2)');
+      require(msg.sender == trade.executer || (block.timestamp >= trade.expirationDate && msg.sender == trade.holder2), "Sender is not allowed to cancel trade (2)");
       if(trade.tradeType == TradeType.Escrow) {
         _transferUsersTokens(index, Holder.Holder2, tokenValue2, true);
       }
     } else {
-      require(msg.sender == trade.executer || msg.sender == trade.holder1 || msg.sender == trade.holder2, 'Sender is not allowed to cancel trade (3)');
+      require(msg.sender == trade.executer || msg.sender == trade.holder1 || msg.sender == trade.holder2, "Sender is not allowed to cancel trade (3)");
     }
 
     trade.state = State.Cancelled;
@@ -669,7 +678,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     if(revertTransfer) {
       recipient = sender;
     } else {
-      require(block.timestamp <= trade.expirationDate, 'Expiration date is past');
+      require(block.timestamp <= trade.expirationDate, "Expiration date is past");
     }
 
     if(tokenStandard == Standard.ETH) {
@@ -877,7 +886,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @param operators Trade executers addresses.
    */
   function setTradeExecuters(address[] calldata operators) external onlyOwner {
-    require(_ownedContract, 'DVP contract is not owned');
+    require(_ownedContract, "DVP contract is not owned");
     _setTradeExecuters(operators);
   }
 
@@ -1010,7 +1019,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @param startDate Date after which token price can potentially be set by an oracle (0 if price can not be set by an oracle).
    */
   function setVariablePriceStartDate(address tokenAddress, uint256 startDate) external onlyPriceOracle(tokenAddress) {
-    require((startDate > block.timestamp + SECONDS_IN_WEEK) || startDate == 0, 'Start date needs to be set at least a week before');
+    require((startDate > block.timestamp + SECONDS_IN_WEEK) || startDate == 0, "Start date needs to be set at least a week before");
     _variablePriceStartDate[tokenAddress] = startDate;
   }
 
@@ -1037,9 +1046,9 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     require(!(_priceOwnership[tokenAddress1][tokenAddress2] && _priceOwnership[tokenAddress2][tokenAddress1]), "Competition on price ownership");
 
     if(_priceOwnership[tokenAddress1][tokenAddress2]) {
-      require(_checkPriceOracle(tokenAddress1, msg.sender), 'Price setter is not an oracle for this token (1)');
+      require(_checkPriceOracle(tokenAddress1, msg.sender), "Price setter is not an oracle for this token (1)");
     } else if(_priceOwnership[tokenAddress2][tokenAddress1]) {
-      require(_checkPriceOracle(tokenAddress2, msg.sender), 'Price setter is not an oracle for this token (2)');
+      require(_checkPriceOracle(tokenAddress2, msg.sender), "Price setter is not an oracle for this token (2)");
     } else {
       revert("No price ownership");
     }

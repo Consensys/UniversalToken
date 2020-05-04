@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "../token/ERC1400Raw/IERC1400TokensSender.sol";
-import "../token/ERC1820/ERC1820Implementer.sol";
+import "../extensions/userExtensions/IERC1400TokensSender.sol";
+import "../interface/ERC1820Implementer.sol";
 
 
 contract ERC1400TokensSenderMock is IERC1400TokensSender, ERC1820Implementer {
@@ -41,7 +41,7 @@ contract ERC1400TokensSenderMock is IERC1400TokensSender, ERC1820Implementer {
   ) // Comments to avoid compilation warnings for unused variables.
     external
   {
-    require(_canTransfer(from, to, value, data), "A5"); // Transfer Blocked - Sender not eligible
+    require(_canTransfer(from, to, value, data), "56"); // 0x56	invalid sender
   }
 
   function _canTransfer(
@@ -67,25 +67,3 @@ contract ERC1400TokensSenderMock is IERC1400TokensSender, ERC1820Implementer {
   }
 
 }
-
-
-/**
- * Reason codes - ERC1066
- *
- * To improve the token holder experience, canTransfer MUST return a reason byte code
- * on success or failure based on the EIP-1066 application-specific status codes specified below.
- * An implementation can also return arbitrary data as a bytes32 to provide additional
- * information not captured by the reason code.
- *
- * Code	Reason
- * 0xA0	Transfer Verified - Unrestricted
- * 0xA1	Transfer Verified - On-Chain approval for restricted token
- * 0xA2	Transfer Verified - Off-Chain approval for restricted token
- * 0xA3	Transfer Blocked - Sender lockup period not ended
- * 0xA4	Transfer Blocked - Sender balance insufficient
- * 0xA5	Transfer Blocked - Sender not eligible
- * 0xA6	Transfer Blocked - Receiver not eligible
- * 0xA7	Transfer Blocked - Identity restriction
- * 0xA8	Transfer Blocked - Token restriction
- * 0xA9	Transfer Blocked - Token granularity
- */

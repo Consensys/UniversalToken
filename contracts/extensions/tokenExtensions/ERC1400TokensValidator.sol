@@ -1,6 +1,8 @@
+/*
+ * This code has not been reviewed.
+ * Do not use or deploy this code before reviewing it personally first.
+ */
 pragma solidity ^0.5.0;
-
-import "../token/ERC1400Raw/IERC1400TokensValidator.sol";
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
@@ -11,13 +13,12 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "./roles/BlacklistedRole.sol";
 
 import "erc1820/contracts/ERC1820Client.sol";
-import "../token/ERC1820/ERC1820Implementer.sol";
+import "../../interface/ERC1820Implementer.sol";
 
-import "../IERC1400.sol";
-import "../token/ERC1400Partition/IERC1400Partition.sol";
-import "../token/ERC1400Raw/IERC1400Raw.sol";
-import "../token/ERC1400Raw/IERC1400TokensSender.sol";
-import "../token/ERC1400Raw/IERC1400TokensRecipient.sol";
+import "../userExtensions/IERC1400TokensSender.sol";
+import "../userExtensions/IERC1400TokensRecipient.sol";
+
+import "./IERC1400TokensValidator.sol";
 
 
 contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, WhitelistedRole, BlacklistedRole, ERC1820Client, ERC1820Implementer {
@@ -41,7 +42,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   /**
    * @dev Verify if a token transfer can be executed or not, on the validator's perspective.
    * @param functionSig ID of the function that is called.
-   * @param partition Name of the partition (left empty for ERC1400Raw transfer).
+   * @param partition Name of the partition (left empty for ERC20 transfer).
    * @param operator Address which triggered the balance decrease (through transfer or redemption).
    * @param from Token holder.
    * @param to Token recipient for a transfer and 0x for a redemption.
@@ -70,7 +71,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   /**
    * @dev Function called by the token contract before executing a transfer.
    * @param functionSig ID of the function that is called.
-   * @param partition Name of the partition (left empty for ERC1400Raw transfer).
+   * @param partition Name of the partition (left empty for ERC20 transfer).
    * @param operator Address which triggered the balance decrease (through transfer or redemption).
    * @param from Token holder.
    * @param to Token recipient for a transfer and 0x for a redemption.
@@ -91,7 +92,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   ) // Comments to avoid compilation warnings for unused variables.
     external
   {
-    require(_canValidate(functionSig, partition, operator, from, to, value, data, operatorData), "A7"); // Transfer Blocked - Identity restriction
+    require(_canValidate(functionSig, partition, operator, from, to, value, data, operatorData), "55"); // 0x55	funds locked (lockup period)
   }
 
   /**

@@ -25,7 +25,7 @@ contract CertificateControllerMock {
   modifier isValidCertificate(bytes memory data) {
 
     if(_certificateControllerActivated) {
-      require(_certificateSigners[msg.sender] || _checkCertificate(data, 0, 0x00000000), "A3"); // Transfer Blocked - Sender lockup period not ended
+      require(_certificateSigners[msg.sender] || _checkCertificate(data, 0, 0x00000000), "54"); // 0x54	transfers halted (contract paused)
 
       _checkCount[msg.sender] += 1; // Increment sender check count
 

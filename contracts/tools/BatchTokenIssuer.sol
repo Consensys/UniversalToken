@@ -1,11 +1,16 @@
+/*
+ * This code has not been reviewed.
+ * Do not use or deploy this code before reviewing it personally first.
+ */
 pragma solidity ^0.5.0;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
+import "../interface/ERC1820Implementer.sol";
+
 import "../IERC1400.sol";
 
-import "../token/ERC1820/ERC1820Implementer.sol";
 
 /**
  * @title BatchTokenIssuer
@@ -52,11 +57,11 @@ contract BatchTokenIssuer is ERC1820Implementer {
     onlyTokenMinter(tokenAddress)
     returns (uint256[] memory)
   {
-    require(partitions.length == tokenHolders.length, 'partitions and tokenHolders arrays have different lengths');
-    require(partitions.length == values.length, 'partitions and values arrays have different lengths');
+    require(partitions.length == tokenHolders.length, "partitions and tokenHolders arrays have different lengths");
+    require(partitions.length == values.length, "partitions and values arrays have different lengths");
     
     for (uint i = 0; i < partitions.length; i++) {
-        IERC1400(tokenAddress).issueByPartition(partitions[i], tokenHolders[i], values[i], '');
+        IERC1400(tokenAddress).issueByPartition(partitions[i], tokenHolders[i], values[i], "");
     }
   }
 

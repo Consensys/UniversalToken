@@ -1,13 +1,33 @@
 ![Codefi](images/CodefiBanner.png)
 
+# Overview of the repo
+ - [ERC1400 hybrid token standard](https://github.com/ConsenSys/ERC1400/blob/master/README.md)
+ - [Certificate-based token transfers](contracts/certificate/README.md)
+ - [Delivery-vs-payment](contracts/tools/DVP.md)
+ - [Fund issuance](contracts/tools/FundIssuer.md)
+
 # Introduction
+
+Never heard of tokenization --> See introduction [here](https://medium.com/@consensyscodefi/how-to-explain-tokenization-to-six-year-olds-well-sort-of-consensys-codefi-a40780c5d4ca).
 
 Blockchain technology and more specifically the emergence of "programmable" tokens have opened a world of new possibilities for financial assets: the creation of digital assets.
 Digital assets are financial assets, which have been "tokenized". This means each asset is represented by a token on the blockchain.
 
-Those tokens can be represented by multiple standards:
- - **ERC20** is the most basic and most adopted token standard. It can be seen as the "axiom of token standards" and is compatible with the majority of existing tools and platforms.
- - **ERC1400** is a more evolved standard, also ERC20-compliant, precisely designed for the use case of tokenized financial assets, allowing to perform highly controllable token transfers.
+As introduced by the [token taxonomy framework](https://github.com/token-taxonomy-consortium/TokenTaxonomyFramework), there are 3 main categories of tokens:
+ - **Fungible tokens**: Fungible tokens are all identical and cannot be distinguished from each other. Each individual token is essentially interchangeable, like US dollars, company shares, or ounces of gold. This is probably the simplest and most common category of tokens.
+ - **Non-fungible tokens**: A non-fungible token is unique. Non-fungible tokens (NFTs) are used to create verifiable digital scarcity, as well as representing asset ownership of things like real estate, luxury goods, works of art, or collectible objects in video games (CryptoKitties is an early example). Essentially, NFTs are used for items which require a unique digital fingerprint.
+ - **Hybrid tokens**: Hybrid tokens are a mix of both. Each token belongs to a class (sometimes also called category/partition/tranche). Inside a given class, all tokens are the same: they are fungible. But tokens from different classes can be distinguished from each other: they are non-fungible. **By combining both advantages of fungibility and non-fungibility, hybrid tokens often appear as a relevant way to represent financial assets.**
+
+ ![Picture8](images/Picture9.png)
+ 
+Token standards have emerged in the Ethereum community.
+
+**ERC20** is the most basic and most adopted token standard. It can be seen as the "axiom of fungible token standards" and is compatible with the majority of existing tools and platforms.
+
+**ERC1400** is a hybrid token standard precisely designed for the use case of tokenized financial assets:
+ - By being ERC20 retrocompatible, it remains compatible with the majority of existing tools and platforms.
+ - By being partially-fungible (hybrid token), it allows to represent different classes of assets, perform more evolved token actions (lock tokens, collateralize tokens, etc.), which is essential in the context of corporate actions.
+ - By offering the possibility to attach data to transfers, strong control over token transfers, based on granular certificate checks can be setup by issuers.
 
 The following repository contains the ERC1400 implementation used by the Codefi Assets platform.
 
@@ -45,62 +65,6 @@ https://www.youtube.com/watch?v=PjunjtIj02c
 ![Picture3](images/Picture3.png)
 ![Picture4](images/Picture4.png)
 
-
-# Why do we use the ERC1400 token standard on Codefi Assets?
-
-ERC1400 introduces additional features to ERC20 features, and provides issuers with strong control capabilities over their financial assets.
-
-### Introduction - The limits of ERC20 token standard
-
-Currently the most common and well-known standard within crypto community is the ERC20([eips.ethereum.org/EIPS/eip-20](https://eips.ethereum.org/EIPS/eip-20)).
-The vast majority of ICOs are based on this ERC20 standard, but it doesn't appear to be the most relevant standard for financial asset tokenization.
-The only parameters required to perform an ERC20 token transfer are the recipient's address and the value of the transfer, thus limiting the control possibilities over transfers:
-```
-function transfer(address recipient, uint256 value)
-```
-All controls have to be hard-coded on-chain and are often limited to simple/binary checks e.g. checking whether an investor is blacklisted or not.
-
-Codefi Assets makes use of more evolved/granular controls to secure transfers.
-Those controls can evolve quickly and require flexibility, which makes it difficult to hard-code them on-chain.
-
-### Transfer controls based on certificates - A way to perform multisignature in one single transaction
-
-The use of an additional 'data' parameter in the transfer functions can enable more evolved/granular controls:
-```
-function transferWithData(address recipient, uint256 value, bytes data)
-```
-Codefi Assets fosters to use this additional 'data' field, available in the ERC1400 standard, in order to inject a certificate generated off-chain by the issuer.
-A token transfer shall be conditioned to the validity of the certificate, thus offering the issuer with strong control capabilities over its financial assets.
-
-![Picture5](images/Picture5.png)
-
-The Codefi certificate contains:
- - The function ID which ensures the certificate can’t be used on an other function.
- - The parameters which ensures the input parameters have been validated by the issuer.
- - A validity date which ensures the certificate can’t be used after validity date.
- - A nonce which ensures the certificate can’t be used twice.
-
-Finally the certificate is signed by the issuer which ensures it is authentic.
-
-The certificate enables the issuer to perform advanced conditional ownership, since he needs to be aware of all parameters of a transaction before generating the associated certificate.
-
-![Picture6](images/Picture6.png)
-
-In a way, this can be seen as a way to perform multisignature in one single transaction since every asset transfer requires:
- - A valid transaction signature (signed by the investor)
- - A valid certificate signature (signed by the issuer)
-
- ### Example use case
- 
- An example use case for the certificate validation is KYC verification.
-
- The certificate generator can be coupled to a KYC API, and only provide certificates to users who've completed their KYC verification before.
-
- ![Picture7](images/Picture7.png)
-
-PS: Since the ERC1400 standard is agnostic about the way to control certificate, we didn't include our certificate controller in this repository (a mock is used instead). In order to perform real advanced conditional ownership, a certificate controller called 'CertificateController.sol' shall be placed in folder '/contracts/CertificateController' instead of the mock placed there.
-
-
 # Description of ERC1400 standard
 
 ERC1400 introduces new concepts on top of ERC20 token standard:
@@ -116,168 +80,160 @@ Optionally, the following features can also be added:
 
 # Focus on ERC1400 implementation choices
 
-The original submission with discussion can be found at: [github.com/ethereum/EIPs/issues/1411](https://github.com/ethereum/EIPs/issues/1411).
+This implementation has been developed based on EIP-spec interface defined by the [security token roundtable](https://github.com/SecurityTokenStandard/EIP-Spec/blob/master/eip/eip-1400.md).
 
 We've performed a few updates compared to the original submission, mainly to fit with business requirements + to save gas cost of contract deployment.
 
 #### Choices made to fit with business requirements
- - Introduction of sender/recipient hooks ([IERC1400TokensRecipient](contracts/token/ERC1400Raw/IERC1400TokensRecipient.sol), [IERC1400TokensSender](contracts/token/ERC1400Raw/IERC1400TokensSender.sol)). Those are inspired by [ERC777 hooks]((https://eips.ethereum.org/EIPS/eip-777)), but they have been updated in order to support partitions, in order to become ERC1400-compliant.
+ - Introduction of sender/recipient hooks ([IERC1400TokensRecipient](contracts/extensions/userExtensions/IERC1400TokensRecipient.sol), [IERC1400TokensSender](contracts/extensions/userExtensions/IERC1400TokensSender.sol)). Those are inspired by [ERC777 hooks]((https://eips.ethereum.org/EIPS/eip-777)), but they have been updated in order to support partitions, in order to become ERC1400-compliant.
  - Modification of view functions ('canTransferByPartition', 'canOperatorTransferByPartition') as consequence of our certificate design choice: the view functions need to have the exact same parameters as 'transferByPartition' and 'operatorTransferByPartition' in order to be in measure to confirm the certificate's validity.
- - Introduction of validator hook ([IERC1400TokensValidator](contracts/token/ERC1400Raw/IERC1400TokensValidator.sol)), to manage updates of the transfer validation policy across time (certificate, whitelist, blacklist, lock-up periods, investor caps, pauseability, etc.), thanks an upgradeable module.
+ - Introduction of validator hook ([IERC1400TokensValidator](contracts/extensions/tokenExtensions/IERC1400TokensValidator.sol)), to manage updates of the transfer validation policy across time (certificate, whitelist, blacklist, lock-up periods, investor caps, pauseability, etc.), thanks an upgradeable module.
  - Extension of ERC20's allowance feature to support partitions, in order to become ERC1400-compliant. This is particularly important for secondary market and delivery-vs-payment.
  - Possibility to migrate contract, and register new address in ERC1820 central registry, for smart contract upgradeability.
 
 #### Choices made to save gas cost of contract deployment
  - Removal of controller functions ('controllerTransfer' and 'controllerRedeem') and events ('ControllerTransfer' and 'ControllerRedemption') to save gas cost of contract deployment. Those controller functionalities have been included in 'operatorTransferByPartition' and 'operatorRedeemByPartition' functions instead.
- - Export of 'canTransferByPartition' and 'canOperatorTransferByPartition' in optional checker hook [IERC1400TokensChecker](contracts/token/ERC1400Raw/IERC1400TokensChecker.sol) as those functions take a lot of place, although they are not essential, as the result they return can be deduced by calling other view functions of the contract.
+ - Export of 'canTransferByPartition' and 'canOperatorTransferByPartition' in optional checker hook [IERC1400TokensChecker](contracts/extensions/tokenExtensions/IERC1400TokensChecker.sol) as those functions take a lot of place, although they are not essential, as the result they return can be deduced by calling other view functions of the contract.
 
+NB: The original submission with discussion can be found at: [github.com/ethereum/EIPs/issues/1411](https://github.com/ethereum/EIPs/issues/1411).
 
 # Interfaces
 
-For better readability, ER1400 contract has been structured into different parts:
- - [ERC1400Raw](contracts/token/ERC1400Raw/ERC1400Raw.sol), contains the minimum logic, recommanded to manage financial assets: granular transfer controls with certificate, controllers, hooks, migrations
- - [ERC1400Partition](contracts/token/ERCC1400Partition/ERC1400Partition.sol), introduces the concept of partitionned tokens (partial fungibility)
- - [ERC1400](contracts/token/ERC1400.sol), adds the issuance/redemption logic
- - [ERC1400ERC20](contracts/token/ERC20/ERC1400ERC20.sol), adds the ERC20 backwards compatibility
+#### ERC1400 interface
 
-### ERC1400Raw interface
-
-ERC1400Raw can be used:
- - Either as a sub-contract of ERC1400Partition
- - Or as a standalone contract, in case partitions are not required for the token
-
+The [IERC1400 interface](contracts/IERC1400.sol) of this implementation is the following:
 ```
-interface IERC1400Raw {
+interface IERC1400 /*is IERC20*/ { // Interfaces can currently not inherit interfaces, but IERC1400 shall include IERC20
 
-  // Token Information
-  function name() external view returns (string);
-  function symbol() external view returns (string);
-  function totalSupply() external view returns (uint256);
-  function balanceOf(address owner) external view returns (uint256);
-  function granularity() external view returns (uint256);
+  // ****************** Document Management *******************
+  function getDocument(bytes32 name) external view returns (string memory, bytes32);
+  function setDocument(bytes32 name, string calldata uri, bytes32 documentHash) external;
 
-  // Operators
-  function controllers() external view returns (address[]);
+  // ******************* Token Information ********************
+  function balanceOfByPartition(bytes32 partition, address tokenHolder) external view returns (uint256);
+  function partitionsOf(address tokenHolder) external view returns (bytes32[] memory);
+
+  // *********************** Transfers ************************
+  function transferWithData(address to, uint256 value, bytes calldata data) external;
+  function transferFromWithData(address from, address to, uint256 value, bytes calldata data) external;
+
+  // *************** Partition Token Transfers ****************
+  function transferByPartition(bytes32 partition, address to, uint256 value, bytes calldata data) external returns (bytes32);
+  function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData) external returns (bytes32);
+
+  // ****************** Controller Operation ******************
+  function isControllable() external view returns (bool);
+  // function controllerTransfer(address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData) external; // removed because same action can be achieved with "operatorTransferByPartition"
+  // function controllerRedeem(address tokenHolder, uint256 value, bytes calldata data, bytes calldata operatorData) external; // removed because same action can be achieved with "operatorRedeemByPartition"
+
+  // ****************** Operator Management *******************
   function authorizeOperator(address operator) external;
   function revokeOperator(address operator) external;
+  function authorizeOperatorByPartition(bytes32 partition, address operator) external;
+  function revokeOperatorByPartition(bytes32 partition, address operator) external;
+
+  // ****************** Operator Information ******************
   function isOperator(address operator, address tokenHolder) external view returns (bool);
+  function isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) external view returns (bool);
+
+  // ********************* Token Issuance *********************
+  function isIssuable() external view returns (bool);
+  function issue(address tokenHolder, uint256 value, bytes calldata data) external;
+  function issueByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes calldata data) external;
+
+  // ******************** Token Redemption ********************
+  function redeem(uint256 value, bytes calldata data) external;
+  function redeemFrom(address tokenHolder, uint256 value, bytes calldata data) external;
+  function redeemByPartition(bytes32 partition, uint256 value, bytes calldata data) external;
+  function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes calldata operatorData) external;
+
+  // ******************* Transfer Validity ********************
+  // We use different transfer validity functions because those described in the interface don't allow to verify the certificate's validity.
+  // Indeed, verifying the ecrtificate's validity requires to keeps the function's arguments in the exact same order as the transfer function.
+  //
+  // function canTransfer(address to, uint256 value, bytes calldata data) external view returns (byte, bytes32);
+  // function canTransferFrom(address from, address to, uint256 value, bytes calldata data) external view returns (byte, bytes32);
+  // function canTransferByPartition(address from, address to, bytes32 partition, uint256 value, bytes calldata data) external view returns (byte, bytes32, bytes32);    
+
+  // ******************* Controller Events ********************
+  // We don't use this event as we don't use "controllerTransfer"
+  //   event ControllerTransfer(
+  //       address controller,
+  //       address indexed from,
+  //       address indexed to,
+  //       uint256 value,
+  //       bytes data,
+  //       bytes operatorData
+  //   );
+  //
+  // We don't use this event as we don't use "controllerRedeem"
+  //   event ControllerRedemption(
+  //       address controller,
+  //       address indexed tokenHolder,
+  //       uint256 value,
+  //       bytes data,
+  //       bytes operatorData
+  //   );
+
+  // ******************** Document Events *********************
+  event Document(bytes32 indexed name, string uri, bytes32 documentHash);
+
+  // ******************** Transfer Events *********************
+  event TransferByPartition(
+      bytes32 indexed fromPartition,
+      address operator,
+      address indexed from,
+      address indexed to,
+      uint256 value,
+      bytes data,
+      bytes operatorData
+  );
+
+  event ChangedPartition(
+      bytes32 indexed fromPartition,
+      bytes32 indexed toPartition,
+      uint256 value
+  );
+
+  // ******************** Operator Events *********************
   event AuthorizedOperator(address indexed operator, address indexed tokenHolder);
   event RevokedOperator(address indexed operator, address indexed tokenHolder);
+  event AuthorizedOperatorByPartition(bytes32 indexed partition, address indexed operator, address indexed tokenHolder);
+  event RevokedOperatorByPartition(bytes32 indexed partition, address indexed operator, address indexed tokenHolder);
 
-  // Token Transfers
-  function transferWithData(address to, uint256 value, bytes data) external;
-  function transferFromWithData(address from, address to, uint256 value, bytes data, bytes operatorData) external;
-
-  // Token Issuance/Redemption
-  function redeem(uint256 value, bytes data) external;
-  function redeemFrom(address from, uint256 value, bytes data, bytes operatorData) external;
-  event Issued(address indexed operator, address indexed to, uint256 value, bytes data, bytes operatorData);
-  event Redeemed(address indexed operator, address indexed from, uint256 value, bytes data, bytes operatorData);
+  // ************** Issuance / Redemption Events **************
+  event Issued(address indexed operator, address indexed to, uint256 value, bytes data);
+  event Redeemed(address indexed operator, address indexed from, uint256 value, bytes data);
+  event IssuedByPartition(bytes32 indexed partition, address indexed operator, address indexed to, uint256 value, bytes data, bytes operatorData);
+  event RedeemedByPartition(bytes32 indexed partition, address indexed operator, address indexed from, uint256 value, bytes operatorData);
 
 }
 ```
 
-### ERC1400Partition interface
+#### ERC1066 interface for reason codes
 
-ERC1400Partition adds an additional feature on top of ERC1400Raw properties: the possibility to partition tokens (partial-fungibility property).
-This property allows to perform corporate actions, like mergers and acquisitions, which is essential for financial assets.
-
+To improve the token holder experience, canTransfer MUST return a reason byte code on success or failure based on the [ERC1066](https://ethereum-magicians.org/t/erc-1066-ethereum-status-codes-esc/283/24) application-specific status codes specified below. An implementation can also return arbitrary data as a bytes32 to provide additional information not captured by the reason code.
 ```
-interface IERC1400Partition {
-
-    // Token Information
-    function balanceOfByPartition(bytes32 partition, address tokenHolder) external view returns (uint256);
-    function partitionsOf(address tokenHolder) external view returns (bytes32[]);
-
-    // Token Transfers
-    function transferByPartition(bytes32 partition, address to, uint256 value, bytes data) external returns (bytes32);
-    function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes data, bytes operatorData) external returns (bytes32);
-    event TransferByPartition(
-        bytes32 indexed fromPartition,
-        address operator,
-        address indexed from,
-        address indexed to,
-        uint256 value,
-        bytes data,
-        bytes operatorData
-    );
-    event ChangedPartition(
-        bytes32 indexed fromPartition,
-        bytes32 indexed toPartition,
-        uint256 value
-    );
-
-    // Default Partition Management
-    function getDefaultPartitions(address tokenHolder) external view returns (bytes32[]);
-    function setDefaultPartitions(bytes32[] partitions) external;
-
-    // Operators
-    function controllersByPartition(bytes32 partition) external view returns (address[]);
-    function authorizeOperatorByPartition(bytes32 partition, address operator) external;
-    function revokeOperatorByPartition(bytes32 partition, address operator) external;
-    function isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) external view returns (bool);
-    event AuthorizedOperatorByPartition(bytes32 indexed partition, address indexed operator, address indexed tokenHolder);
-    event RevokedOperatorByPartition(bytes32 indexed partition, address indexed operator, address indexed tokenHolder);
-
-}
+ * Code	Reason
+ * 0x50	transfer failure
+ * 0x51	transfer success
+ * 0x52	insufficient balance
+ * 0x53	insufficient allowance
+ * 0x54	transfers halted (contract paused)
+ * 0x55	funds locked (lockup period)
+ * 0x56	invalid sender
+ * 0x57	invalid receiver
+ * 0x58	invalid operator (transfer agent)
+ * 0x59	
+ * 0x5a	
+ * 0x5b	
+ * 0x5a	
+ * 0x5b	
+ * 0x5c	
+ * 0x5d	
+ * 0x5e	
+ * 0x5f	token meta or info
 ```
-
-### ERC1400 interface
-
-ERC1400 adds issuance/redemption + document management logics upon ERC1400Partition.
-```
-interface IERC1400 {
-
-    // Document Management
-    function getDocument(bytes32 name) external view returns (string, bytes32);
-    function setDocument(bytes32 name, string uri, bytes32 documentHash) external;
-    event Document(bytes32 indexed name, string uri, bytes32 documentHash);
-
-    // Controller Operation
-    function isControllable() external view returns (bool);
-
-    // Token Issuance
-    function isIssuable() external view returns (bool);
-    function issueByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data) external;
-    event IssuedByPartition(bytes32 indexed partition, address indexed operator, address indexed to, uint256 value, bytes data, bytes operatorData);
-
-    // Token Redemption
-    function redeemByPartition(bytes32 partition, uint256 value, bytes data) external;
-    function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes data, bytes operatorData) external;
-    event RedeemedByPartition(bytes32 indexed partition, address indexed operator, address indexed from, uint256 value, bytes data, bytes operatorData);
-
-    // Transfer Validity
-    function canTransferByPartition(bytes32 partition, address to, uint256 value, bytes data) external view returns (byte, bytes32, bytes32);
-    function canOperatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes data, bytes operatorData) external view returns (byte, bytes32, bytes32);
-
-}
-```
-
-### ERC1400ERC20 interface
-
-Finally ERC1400ERC20 introduces the last missing layer: ERC20 backwards compatibility. It is not mandatory but quite essential, because it ensures the token is compatible with all ERC20-compliant platforms.
-
-```
-interface IERC20 {
-
-    // Token Information
-    function totalSupply() external view returns (uint256);
-    function balanceOf(address account) external view returns (uint256);
-
-    // Token Transfers
-    function transfer(address recipient, uint256 amount) external returns (bool);
-    function transferFrom(address sender, address recipient, uint256 amount) external returns (bool);
-    event Transfer(address indexed from, address indexed to, uint256 value);
-
-    // Allowances
-    function allowance(address owner, address spender) external view returns (uint256);
-    function approve(address spender, uint256 amount) external returns (bool);
-    event Approval(address indexed owner, address indexed spender, uint256 value);
-
-}
-```
-
-NB: [ERC1400RawERC20](contracts/token/ERC20/ERC1400RawERC20.sol) has been created in case ERC20 backwards retrocompatibility is required, but not the partitions.
 
 
 ## Quick start: How to test the contract?

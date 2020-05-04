@@ -1,7 +1,7 @@
 pragma solidity ^0.5.0;
 
-import "../token/ERC1400Raw/IERC1400TokensRecipient.sol";
-import "../token/ERC1820/ERC1820Implementer.sol";
+import "../extensions/userExtensions/IERC1400TokensRecipient.sol";
+import "../interface/ERC1820Implementer.sol";
 
 
 contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implementer {
@@ -41,7 +41,7 @@ contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implement
   ) // Comments to avoid compilation warnings for unused variables.
     external
   {
-    require(_canReceive(from, to, value, data), "A6"); // Transfer Blocked - Receiver not eligible
+    require(_canReceive(from, to, value, data), "57"); // 0x57	invalid receiver
   }
 
   function _canReceive(
