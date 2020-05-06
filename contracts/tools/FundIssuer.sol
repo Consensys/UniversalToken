@@ -129,7 +129,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
   // Mapping from (assetAddress, paymentAddress) to amount of escrowed ERC20.
   mapping(address => mapping (address => uint256)) internal _escrowedErc20;
 
-  // Mapping from (assetAddress, paymentAddress, peymentPartition) to amount of escrowed ERC1400.
+  // Mapping from (assetAddress, paymentAddress, paymentPartition) to amount of escrowed ERC1400.
   mapping(address => mapping (address => mapping (bytes32 => uint256))) internal _escrowedErc1400;
 
   // Mapping from token to token controllers.
