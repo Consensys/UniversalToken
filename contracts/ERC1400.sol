@@ -613,6 +613,14 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   function totalPartitions() external view returns (bytes32[] memory) {
     return _totalPartitions;
   }
+  /**
+   * @dev Get the total number of issued tokens for a given partition.
+   * @param partition Name of the partition.
+   * @return Total supply of tokens currently in circulation, for a given partition.
+   */
+  function totalSupplyByPartition(bytes32 partition) external view returns (uint256) {
+    return _totalSupplyByPartition[partition];
+  }
   /************************************************************************************************/
 
 
