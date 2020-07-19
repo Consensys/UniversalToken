@@ -2962,6 +2962,67 @@ contract("ERC1400", function ([
       });
     });
 
+    describe("totalSupplyByPartition", function () {
+      it("returns the totalSupply of a given partition", async function () {
+        totalSupplyPartition1 = await this.token.totalSupplyByPartition(
+          partition1
+        );
+        totalSupplyPartition2 = await this.token.totalSupplyByPartition(
+          partition2
+        );
+        assert.equal(totalSupplyPartition1, 0);
+        assert.equal(totalSupplyPartition2, 0);
+
+        await this.token.issueByPartition(
+          partition1,
+          tokenHolder,
+          issuanceAmount,
+          ZERO_BYTES32,
+          { from: owner }
+        );
+        totalSupplyPartition1 = await this.token.totalSupplyByPartition(
+          partition1
+        );
+        totalSupplyPartition2 = await this.token.totalSupplyByPartition(
+          partition2
+        );
+        assert.equal(totalSupplyPartition1, issuanceAmount);
+        assert.equal(totalSupplyPartition2, 0);
+
+        await this.token.issueByPartition(
+          partition2,
+          tokenHolder,
+          issuanceAmount,
+          ZERO_BYTES32,
+          { from: owner }
+        );
+        totalSupplyPartition1 = await this.token.totalSupplyByPartition(
+          partition1
+        );
+        totalSupplyPartition2 = await this.token.totalSupplyByPartition(
+          partition2
+        );
+        assert.equal(totalSupplyPartition1, issuanceAmount);
+        assert.equal(totalSupplyPartition2, issuanceAmount);
+
+        await this.token.issueByPartition(
+          partition1,
+          tokenHolder,
+          issuanceAmount,
+          ZERO_BYTES32,
+          { from: owner }
+        );
+        totalSupplyPartition1 = await this.token.totalSupplyByPartition(
+          partition1
+        );
+        totalSupplyPartition2 = await this.token.totalSupplyByPartition(
+          partition2
+        );
+        assert.equal(totalSupplyPartition1, 2 * issuanceAmount);
+        assert.equal(totalSupplyPartition2, issuanceAmount);
+      });
+    });
+
     describe("total supply", function () {
       it("returns the total amount of tokens", async function () {
         await this.token.issue(tokenHolder, issuanceAmount, ZERO_BYTES32, {
