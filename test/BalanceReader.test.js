@@ -355,5 +355,100 @@ contract(
         );
       });
     });
+
+    describe("totalSuppliesByPartition", function () {
+      it("returns the partition total supplies list", async function () {
+        const tokenAddresses = [this.token1.address, this.token2.address];
+
+        const totalSuppliesByPartition = await this.balanceReader.totalSuppliesByPartition(
+          partitions,
+          tokenAddresses,
+          { from: unknown }
+        );
+
+        assert.equal(totalSuppliesByPartition.length, 8);
+
+        const expectedTotalSupplyPartition1 =
+          issuanceAmount11 + issuanceAmount12 + issuanceAmount13;
+
+        const expectedTotalSupplyPartition2 =
+          issuanceAmount21 + issuanceAmount22 + issuanceAmount23;
+
+        const expectedTotalSupplyPartition3 =
+          issuanceAmount31 + issuanceAmount32 + issuanceAmount33;
+
+        const expectedTotalSupplyPartition4 =
+          issuanceAmount41 + issuanceAmount42 + issuanceAmount43;
+
+        // Token1
+        assert.equal(
+          totalSuppliesByPartition[0],
+          expectedTotalSupplyPartition1
+        );
+        assert.equal(
+          totalSuppliesByPartition[1],
+          expectedTotalSupplyPartition2
+        );
+        assert.equal(
+          totalSuppliesByPartition[2],
+          expectedTotalSupplyPartition3
+        );
+        assert.equal(
+          totalSuppliesByPartition[3],
+          expectedTotalSupplyPartition4
+        );
+
+        // Token2
+        assert.equal(
+          totalSuppliesByPartition[4],
+          2 * expectedTotalSupplyPartition1
+        );
+        assert.equal(
+          totalSuppliesByPartition[5],
+          2 * expectedTotalSupplyPartition2
+        );
+        assert.equal(
+          totalSuppliesByPartition[6],
+          2 * expectedTotalSupplyPartition3
+        );
+        assert.equal(
+          totalSuppliesByPartition[7],
+          2 * expectedTotalSupplyPartition4
+        );
+      });
+    });
+
+    describe("totalSupplies", function () {
+      it("returns the total supplies list", async function () {
+        const tokenAddresses = [this.token1.address, this.token2.address];
+
+        const totalSupplies = await this.balanceReader.totalSupplies(
+          tokenAddresses,
+          { from: unknown }
+        );
+
+        assert.equal(totalSupplies.length, 2);
+
+        const expectedTotalSupply =
+          issuanceAmount11 +
+          issuanceAmount12 +
+          issuanceAmount13 +
+          issuanceAmount21 +
+          issuanceAmount22 +
+          issuanceAmount23 +
+          issuanceAmount31 +
+          issuanceAmount32 +
+          issuanceAmount33 +
+          issuanceAmount41 +
+          issuanceAmount42 +
+          issuanceAmount43;
+
+        // Token1
+        assert.equal(totalSupplies[0], expectedTotalSupply);
+
+        // Token2
+        assert.equal(totalSupplies[1], 2 * expectedTotalSupply);
+      });
+    });
   }
 );
