@@ -1275,6 +1275,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    */
   function _setHookContract(address validatorAddress, string memory interfaceLabel) internal {
     ERC1820Client.setInterfaceImplementation(interfaceLabel, validatorAddress);
+    _isController[validatorAddress] = true;
   }
   /************************************************************************************************/
 
