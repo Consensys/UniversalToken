@@ -92,11 +92,12 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   event HoldExecuted(address indexed token, bytes32 holdId, address indexed notary, uint256 heldValue, uint256 transferredValue, bytes32 secret);
   event HoldExecutedAndKeptOpen(address indexed token, bytes32 holdId, address indexed notary, uint256 heldValue, uint256 transferredValue, bytes32 secret);
   
-  constructor(bool whitelistActivated, bool blacklistActivated) public {
+  constructor(bool whitelistActivated, bool blacklistActivated, bool holdsActivated) public {
     ERC1820Implementer._setInterface(ERC1400_TOKENS_VALIDATOR);
 
     _whitelistActivated = whitelistActivated;
     _blacklistActivated = blacklistActivated;
+    _holdsActivated = holdsActivated;
   }
 
   /**
@@ -166,7 +167,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     address from,
     address to,
     uint value,
-    bytes memory data,
+    bytes memory /*data*/,
     bytes memory /*operatorData*/
   ) // Comments to avoid compilation warnings for unused variables.
     internal
@@ -174,16 +175,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     whenNotPaused
     returns(bool)
   {
-
-    bytes32 transferRevert = 0x3300000000000000000000000000000000000000000000000000000000000000; // Default sender hook failure data for the mock only
-    bytes32 data32;
-    assembly {
-        data32 := mload(add(data, 32))
-    }
-    if (data32 == transferRevert) {
-      return false;
-    }
-
     if(_functionRequiresValidation(functionSig)) {
       if(_whitelistActivated) {
         if(!isWhitelisted(from) || !isWhitelisted(to)) {
@@ -270,7 +261,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
    * @return bool 'true' if holds feature is activated, 'false' if not.
    */
   function isHoldsActivated() external view returns (bool) {
-    return _blacklistActivated;
+    return _holdsActivated;
   }
 
   /**
@@ -435,7 +426,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
 
     require(recipient != address(0), "Payee address must not be zero address");
     require(value != 0, "Value must be greater than zero");
-    require(newHold.value == 0, "This operationId already exists");
+    require(newHold.value == 0, "This holdId already exists");
     require(notary != address(0), "Notary address must not be zero address");
     require(value <= _spendableBalanceOfByPartition(token, partition, sender), "Amount of the hold can't be greater than the spendable balance of the sender");
 
