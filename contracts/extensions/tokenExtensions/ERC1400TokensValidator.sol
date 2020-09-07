@@ -17,8 +17,8 @@ import "../../interface/ERC1820Implementer.sol";
 
 import "../../IERC1400.sol";
 
-import "../userExtensions/IERC1400TokensSender.sol";
-import "../userExtensions/IERC1400TokensRecipient.sol";
+// import "../userExtensions/IERC1400TokensSender.sol";
+// import "../userExtensions/IERC1400TokensRecipient.sol";
 
 import "./IERC1400TokensValidator.sol";
 
@@ -558,8 +558,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
       holdId,
       value,
       secret,
-      false,
-      true
+      false
     );
   }
 
@@ -572,7 +571,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
       holdId,
       value,
       secret,
-      true,
       true
     );
   }
@@ -585,8 +583,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     bytes32 holdId,
     uint256 value,
     bytes32 secret,
-    bool keepOpenIfHoldHasBalance,
-    bool doTransfer
+    bool keepOpenIfHoldHasBalance
   ) internal returns (bool)
   {
     Hold storage executableHold = _holds[token][holdId];
@@ -623,9 +620,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
       );
     }
 
-    if (doTransfer) {
-      IERC1400(token).operatorTransferByPartition(executableHold.partition, executableHold.sender, executableHold.recipient, value, "", "");
-    }
+    IERC1400(token).operatorTransferByPartition(executableHold.partition, executableHold.sender, executableHold.recipient, value, "", "");
 
     return true;
   }

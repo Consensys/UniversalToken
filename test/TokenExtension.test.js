@@ -76,6 +76,56 @@ const HOLD_STATUS_RELEASED_ON_EXPIRATION = 6;
 const issuanceAmount = 1000;
 const holdAmount = 600;
 
+const SECONDS_IN_AN_HOUR = 3600;
+const SECONDS_IN_A_DAY = 24*SECONDS_IN_AN_HOUR;
+
+// ---------- Module to accelerate time -----------------------
+const advanceTime = (time) => {
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.send(
+      {
+        jsonrpc: "2.0",
+        method: "evm_increaseTime",
+        params: [time],
+        id: new Date().getTime(),
+      },
+      (err, result) => {
+        if (err) {
+          return reject(err);
+        }
+        return resolve(result);
+      }
+    );
+  });
+};
+
+const advanceBlock = () => {
+  return new Promise((resolve, reject) => {
+    web3.currentProvider.send(
+      {
+        jsonrpc: "2.0",
+        method: "evm_mine",
+        id: new Date().getTime(),
+      },
+      (err, result) => {
+        if (err) {
+          return reject(err);
+        }
+        const newBlockHash = web3.eth.getBlock("latest").hash;
+
+        return resolve(newBlockHash);
+      }
+    );
+  });
+};
+
+const advanceTimeAndBlock = async (time) => {
+  await advanceTime(time);
+  await advanceBlock();
+  return Promise.resolve(web3.eth.getBlock("latest"));
+};
+// ---------- Module to accelerate time (end)------------------
+
 const assertTotalSupply = async (_contract, _amount) => {
   totalSupply = await _contract.totalSupply();
   assert.equal(totalSupply, _amount);
@@ -870,7 +920,7 @@ contract("ERC1400 with validator hook", function ([
                 describe("when validator is not ok", function () {
                   it("returns Ethereum status code 54 (canTransferByPartition)", async function () {
                     const secretHashPair = newSecretHashPair();  
-                    await this.validatorContract.hold(this.token.address, newHoldId(), recipient, notary, partition1, issuanceAmount, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
+                    await this.validatorContract.hold(this.token.address, newHoldId(), recipient, notary, partition1, issuanceAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
                     const response = await this.token.canTransferByPartition(
                       partition1,
                       recipient,
@@ -1652,7 +1702,7 @@ contract("ERC1400 with validator hook", function ([
 
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, holdAmount, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
+        await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
         const spendableBalance = parseInt(await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder))
 
         const transferAmount = spendableBalance + 1
@@ -1728,7 +1778,7 @@ contract("ERC1400 with validator hook", function ([
                 const time = await this.clock.getTime();
                 const holdId = newHoldId();
                 const secretHashPair = newSecretHashPair();
-                await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, holdAmount, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
+                await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
 
                 const finalBalance = await this.token.balanceOf(tokenHolder)
                 const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
@@ -1762,24 +1812,24 @@ contract("ERC1400 with validator hook", function ([
                 assert.equal(finalTotalSupplyOnHold, holdAmount)
                 assert.equal(finalTotalSupplyOnHoldByPartition, holdAmount)
 
-                const holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
-                assert.equal(holdData[0], partition1);
-                assert.equal(holdData[1], tokenHolder);
-                assert.equal(holdData[2], recipient);
-                assert.equal(holdData[3], notary);
-                assert.equal(parseInt(holdData[4]), holdAmount);
-                assert.isAtLeast(parseInt(holdData[5]), parseInt(time)+3600);
-                assert.isBelow(parseInt(holdData[5]), parseInt(time)+3700);
-                assert.equal(holdData[6], secretHashPair.hash);
-                assert.equal(holdData[7], EMPTY_BYTE32);
-                assert.equal(holdData[8], ZERO_ADDRESS);
-                assert.equal(parseInt(holdData[9]), 0);
-                assert.equal(parseInt(holdData[10]), HOLD_STATUS_ORDERED);
+                this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
+                assert.equal(this.holdData[0], partition1);
+                assert.equal(this.holdData[1], tokenHolder);
+                assert.equal(this.holdData[2], recipient);
+                assert.equal(this.holdData[3], notary);
+                assert.equal(parseInt(this.holdData[4]), holdAmount);
+                assert.isAtLeast(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR);
+                assert.isBelow(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR+100);
+                assert.equal(this.holdData[6], secretHashPair.hash);
+                assert.equal(this.holdData[7], EMPTY_BYTE32);
+                assert.equal(this.holdData[8], ZERO_ADDRESS);
+                assert.equal(parseInt(this.holdData[9]), 0);
+                assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_ORDERED);
               });
               it("can transfer less than spendable balance", async function () {
                 const holdId = newHoldId();
                 const secretHashPair = newSecretHashPair();
-                await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, holdAmount, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
+                await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
                 const initialSpendableBalance = parseInt(await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder))
                 const initialSenderBalance = parseInt(await this.token.balanceOfByPartition(partition1, tokenHolder))
                 const initialRecipientBalance = parseInt(await this.token.balanceOfByPartition(partition1, recipient))
@@ -1803,7 +1853,7 @@ contract("ERC1400 with validator hook", function ([
               it("can not transfer more than spendable balance", async function () {
                 const holdId = newHoldId();
                 const secretHashPair = newSecretHashPair();
-                await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, holdAmount, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
+                await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
                 const initialSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder)
 
                 const transferAmount = initialSpendableBalance + 1
@@ -1813,7 +1863,7 @@ contract("ERC1400 with validator hook", function ([
                 const holdId = newHoldId();
                 const secretHashPair = newSecretHashPair();
                 const time = await this.clock.getTime();
-                const { logs } = await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, holdAmount, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
+                const { logs } = await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
 
                 assert.equal(logs[0].event, "HoldCreated");
                 assert.equal(logs[0].args.token, this.token.address);
@@ -1823,8 +1873,8 @@ contract("ERC1400 with validator hook", function ([
                 assert.equal(logs[0].args.recipient, recipient);
                 assert.equal(logs[0].args.notary, notary);
                 assert.equal(logs[0].args.value, holdAmount);
-                assert.isAtLeast(parseInt(logs[0].args.expiration), parseInt(time)+3600);
-                assert.isBelow(parseInt(logs[0].args.expiration), parseInt(time)+3700);
+                assert.isAtLeast(parseInt(logs[0].args.expiration), parseInt(time)+SECONDS_IN_AN_HOUR);
+                assert.isBelow(parseInt(logs[0].args.expiration), parseInt(time)+SECONDS_IN_AN_HOUR+100);
                 assert.equal(logs[0].args.secretHash, secretHashPair.hash);
                 assert.equal(logs[0].args.paymentToken, ZERO_ADDRESS);
                 assert.equal(logs[0].args.paymentAmount, 0);
@@ -1835,7 +1885,7 @@ contract("ERC1400 with validator hook", function ([
                 const holdId = newHoldId();
                 const secretHashPair = newSecretHashPair();
                 const initialSpendableBalance = parseInt(await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder))
-                await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, initialSpendableBalance+1, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
+                await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, initialSpendableBalance+1, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
               });
             });
           });
@@ -1843,7 +1893,7 @@ contract("ERC1400 with validator hook", function ([
             it("reverts", async function () {
               const holdId = newHoldId();
               const secretHashPair = newSecretHashPair();
-              await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, recipient, ZERO_ADDRESS, partition1, holdAmount, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
+              await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, recipient, ZERO_ADDRESS, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
             });
           });
         });
@@ -1851,8 +1901,8 @@ contract("ERC1400 with validator hook", function ([
           it("reverts", async function () {
             const holdId = newHoldId();
             const secretHashPair = newSecretHashPair();
-            await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, 1, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
-            await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, 1, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
+            await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, 1, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
+            await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, 1, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
           });
         });
       });
@@ -1860,7 +1910,7 @@ contract("ERC1400 with validator hook", function ([
         it("reverts", async function () {
           const holdId = newHoldId();
           const secretHashPair = newSecretHashPair();
-          await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, 0, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
+          await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, 0, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
         });
       });
     });
@@ -1868,7 +1918,7 @@ contract("ERC1400 with validator hook", function ([
       it("reverts", async function () {
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, ZERO_ADDRESS, notary, partition1, holdAmount, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
+        await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, ZERO_ADDRESS, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
       });
     });
   });
@@ -1913,10 +1963,10 @@ contract("ERC1400 with validator hook", function ([
           const time = parseInt(await this.clock.getTime());
           const holdId = newHoldId();
           const secretHashPair = newSecretHashPair();
-          const { logs } = await this.validatorContract.holdWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time+3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
-          assert.equal(parseInt(logs[0].args.expiration), time+3600);
-          const holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
-          assert.equal(parseInt(holdData[5]), time+3600);
+          const { logs } = await this.validatorContract.holdWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
+          assert.equal(parseInt(logs[0].args.expiration), time+SECONDS_IN_AN_HOUR);
+          this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
+          assert.equal(parseInt(this.holdData[5]), time+SECONDS_IN_AN_HOUR);
         });
       });
       describe("when there is no expiration date", function () {
@@ -1926,8 +1976,8 @@ contract("ERC1400 with validator hook", function ([
           const secretHashPair = newSecretHashPair();
           const { logs } = await this.validatorContract.holdWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, 0, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
           assert.equal(parseInt(logs[0].args.expiration), 0);
-          const holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
-          assert.equal(parseInt(holdData[5]), 0);
+          this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
+          assert.equal(parseInt(this.holdData[5]), 0);
         });
       });
     });
@@ -1981,7 +2031,7 @@ contract("ERC1400 with validator hook", function ([
           assert.equal(parseInt(await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)), 0);
           const holdId = newHoldId();
           const secretHashPair = newSecretHashPair();
-          await this.validatorContract.holdFrom(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller });
+          await this.validatorContract.holdFrom(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller });
           assert.equal(parseInt(await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)), holdAmount);
         });
       });
@@ -1989,7 +2039,7 @@ contract("ERC1400 with validator hook", function ([
         it("reverts", async function () {
           const holdId = newHoldId();
           const secretHashPair = newSecretHashPair();
-          await shouldFail.reverting(this.validatorContract.holdFrom(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: recipient }));
+          await shouldFail.reverting(this.validatorContract.holdFrom(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: recipient }));
         });
       });
     });
@@ -1997,7 +2047,7 @@ contract("ERC1400 with validator hook", function ([
       it("reverts", async function () {
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await shouldFail.reverting(this.validatorContract.holdFrom(this.token.address, holdId, ZERO_ADDRESS, recipient, notary, partition1, holdAmount, 3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller }));
+        await shouldFail.reverting(this.validatorContract.holdFrom(this.token.address, holdId, ZERO_ADDRESS, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller }));
       });
     });
   });
@@ -2045,12 +2095,12 @@ contract("ERC1400 with validator hook", function ([
               const time = parseInt(await this.clock.getTime());
               const holdId = newHoldId();
               const secretHashPair = newSecretHashPair();
-              const { logs } = await this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, time+3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller });
+              const { logs } = await this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller });
               assert.equal(parseInt(await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)), holdAmount);
 
-              assert.equal(parseInt(logs[0].args.expiration), time+3600);
-              const holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
-              assert.equal(parseInt(holdData[5]), time+3600);
+              assert.equal(parseInt(logs[0].args.expiration), time+SECONDS_IN_AN_HOUR);
+              this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
+              assert.equal(parseInt(this.holdData[5]), time+SECONDS_IN_AN_HOUR);
             });
           });
           describe("when hold is not created by an operator", function () {
@@ -2058,7 +2108,7 @@ contract("ERC1400 with validator hook", function ([
               const time = parseInt(await this.clock.getTime());
               const holdId = newHoldId();
               const secretHashPair = newSecretHashPair();
-              await shouldFail.reverting(this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, time+3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: recipient }));
+              await shouldFail.reverting(this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: recipient }));
             });
           });
         });
@@ -2067,7 +2117,7 @@ contract("ERC1400 with validator hook", function ([
             const time = parseInt(await this.clock.getTime());
             const holdId = newHoldId();
             const secretHashPair = newSecretHashPair();
-            await shouldFail.reverting(this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, ZERO_ADDRESS, recipient, notary, partition1, holdAmount, time+3600, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller }));
+            await shouldFail.reverting(this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, ZERO_ADDRESS, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller }));
           });
         });
       });
@@ -2081,8 +2131,8 @@ contract("ERC1400 with validator hook", function ([
           assert.equal(parseInt(await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)), holdAmount);
 
           assert.equal(parseInt(logs[0].args.expiration), 0);
-          const holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
-          assert.equal(parseInt(holdData[5]), 0);
+          this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
+          assert.equal(parseInt(this.holdData[5]), 0);
         });
       });
     });
@@ -2092,6 +2142,720 @@ contract("ERC1400 with validator hook", function ([
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
         await shouldFail.reverting(this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, time-1, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller }));
+      });
+    });
+  });
+
+  // RELEASE HOLD
+
+  describe("releaseHold", function () {
+    before(async function () {
+      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, {
+        from: owner,
+      });
+    });
+
+    beforeEach(async function () {
+      this.token = await ERC1400.new(
+        "ERC1400Token",
+        "DAU",
+        1,
+        [controller],
+        CERTIFICATE_SIGNER,
+        true,
+        partitions
+      );
+      await this.token.issueByPartition(
+        partition1,
+        tokenHolder,
+        issuanceAmount,
+        VALID_CERTIFICATE,
+        { from: owner }
+      );
+
+      await this.token.setHookContract(
+        this.validatorContract.address,
+        ERC1400_TOKENS_VALIDATOR,
+        { from: owner }
+      );
+
+      // Create hold in state Ordered
+      this.time = await this.clock.getTime();
+      this.holdId = newHoldId();
+      this.secretHashPair = newSecretHashPair();
+      await this.validatorContract.hold(this.token.address, this.holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, this.secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
+    });
+
+    describe("when hold is in status Ordered", function () {
+      describe("when hold can be released", function () {
+        describe("when hold expiration date is past", function () {
+          it("releases the hold", async function () {
+            const initialBalance = await this.token.balanceOf(tokenHolder)
+            const initialPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+
+            const initialBalanceOnHold = await this.validatorContract.balanceOnHold(this.token.address, tokenHolder)
+            const initialBalanceOnHoldByPartition = await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)
+
+            const initialSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder)
+            const initialSpendableBalanceByPartition = await this.validatorContract.spendableBalanceOfByPartition(this.token.address, partition1, tokenHolder)
+
+            const initialTotalSupplyOnHold = await this.validatorContract.totalSupplyOnHold(this.token.address)
+            const initialTotalSupplyOnHoldByPartition = await this.validatorContract.totalSupplyOnHoldByPartition(this.token.address, partition1)
+
+            // Wait for 1 hour
+            await advanceTimeAndBlock(SECONDS_IN_AN_HOUR + 100);
+            await this.validatorContract.releaseHold(this.token.address, this.holdId, { from: tokenHolder });
+
+            const finalBalance = await this.token.balanceOf(tokenHolder)
+            const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+
+            const finalBalanceOnHold = await this.validatorContract.balanceOnHold(this.token.address, tokenHolder)
+            const finalBalanceOnHoldByPartition = await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)
+
+            const finalSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder)
+            const finalSpendableBalanceByPartition = await this.validatorContract.spendableBalanceOfByPartition(this.token.address, partition1, tokenHolder)
+
+            const finalTotalSupplyOnHold = await this.validatorContract.totalSupplyOnHold(this.token.address)
+            const finalTotalSupplyOnHoldByPartition = await this.validatorContract.totalSupplyOnHoldByPartition(this.token.address, partition1)
+
+            assert.equal(initialBalance, issuanceAmount)
+            assert.equal(finalBalance, issuanceAmount)
+            assert.equal(initialPartitionBalance, issuanceAmount)
+            assert.equal(finalPartitionBalance, issuanceAmount)
+
+            assert.equal(initialBalanceOnHold, holdAmount)
+            assert.equal(initialBalanceOnHoldByPartition, holdAmount)
+            assert.equal(finalBalanceOnHold, 0)
+            assert.equal(finalBalanceOnHoldByPartition, 0)
+
+            assert.equal(initialSpendableBalance, issuanceAmount - holdAmount)
+            assert.equal(initialSpendableBalanceByPartition, issuanceAmount - holdAmount)
+            assert.equal(finalSpendableBalance, issuanceAmount)
+            assert.equal(finalSpendableBalanceByPartition, issuanceAmount)
+
+            assert.equal(initialTotalSupplyOnHold, holdAmount)
+            assert.equal(initialTotalSupplyOnHoldByPartition, holdAmount)
+            assert.equal(finalTotalSupplyOnHold, 0)
+            assert.equal(finalTotalSupplyOnHoldByPartition, 0)
+
+            this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+            assert.equal(this.holdData[0], partition1);
+            assert.equal(this.holdData[1], tokenHolder);
+            assert.equal(this.holdData[2], recipient);
+            assert.equal(this.holdData[3], notary);
+            assert.equal(parseInt(this.holdData[4]), holdAmount);
+            assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+            assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
+            assert.equal(this.holdData[6], this.secretHashPair.hash);
+            assert.equal(this.holdData[7], EMPTY_BYTE32);
+            assert.equal(this.holdData[8], ZERO_ADDRESS);
+            assert.equal(parseInt(this.holdData[9]), 0);
+            assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_RELEASED_ON_EXPIRATION);
+          });
+          it("emits an event", async function () {
+            // Wait for 1 hour
+            await advanceTimeAndBlock(SECONDS_IN_AN_HOUR + 100);
+            const { logs } = await this.validatorContract.releaseHold(this.token.address, this.holdId, { from: tokenHolder });
+          
+            assert.equal(logs[0].event, "HoldReleased");
+            assert.equal(logs[0].args.token, this.token.address);
+            assert.equal(logs[0].args.holdId, this.holdId);
+            assert.equal(logs[0].args.notary, notary);
+            assert.equal(logs[0].args.status, HOLD_STATUS_RELEASED_ON_EXPIRATION);
+          });
+        });
+        describe("when hold is released by the notary", function () {
+          it("releases the hold", async function () {
+            const initialSpendableBalance = parseInt(await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder))
+            assert.equal(initialSpendableBalance, issuanceAmount - holdAmount);
+
+            const { logs } = await this.validatorContract.releaseHold(this.token.address, this.holdId, { from: notary });
+
+            const finalSpendableBalance = parseInt(await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder))
+            assert.equal(finalSpendableBalance, issuanceAmount);
+
+            this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+            assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_RELEASED_BY_NOTARY);
+            assert.equal(logs[0].args.status, HOLD_STATUS_RELEASED_BY_NOTARY);
+          });
+        });
+        describe("when hold is released by the recipient", function () {
+          it("releases the hold", async function () {
+            const initialSpendableBalance = parseInt(await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder))
+            assert.equal(initialSpendableBalance, issuanceAmount - holdAmount);
+
+            const { logs } = await this.validatorContract.releaseHold(this.token.address, this.holdId, { from: recipient });
+
+            const finalSpendableBalance = parseInt(await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder))
+            assert.equal(finalSpendableBalance, issuanceAmount);
+
+            this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+            assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_RELEASED_BY_PAYEE);
+            assert.equal(logs[0].args.status, HOLD_STATUS_RELEASED_BY_PAYEE);
+          });
+        });
+      });
+      describe("when hold can not be released", function () {
+        describe("when hold is released by the hold sender", function () {
+          it("reverts", async function () {
+            await shouldFail.reverting(this.validatorContract.releaseHold(this.token.address, this.holdId, { from: tokenHolder }));
+          });
+        });
+      });
+    });
+    describe("when hold is in status ExecutedAndKeptOpen", function () {
+      it("releases the hold", async function () {
+        const initialSpendableBalance = parseInt(await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder))
+        assert.equal(initialSpendableBalance, issuanceAmount - holdAmount);
+
+        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+        assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_ORDERED);
+
+        const executedAmount = 10;
+        await this.validatorContract.executeHoldAndKeepOpen(this.token.address, this.holdId, executedAmount, EMPTY_BYTE32, { from: notary });
+        
+        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+        assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_EXECUTED_AND_KEPT_OPEN);
+        
+        const { logs } = await this.validatorContract.releaseHold(this.token.address, this.holdId, { from: notary });
+
+        const finalSpendableBalance = parseInt(await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder))
+        assert.equal(finalSpendableBalance, issuanceAmount-executedAmount);
+
+        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+        assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_RELEASED_BY_NOTARY);
+        assert.equal(logs[0].args.status, HOLD_STATUS_RELEASED_BY_NOTARY);
+      });
+    });
+    describe("when hold is neither in status Ordered, nor ExecutedAndKeptOpen", function () {
+      it("reverts", async function () {
+        await this.validatorContract.releaseHold(this.token.address, this.holdId, { from: notary });
+        
+        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+        assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_RELEASED_BY_NOTARY);
+        
+        await shouldFail.reverting(this.validatorContract.releaseHold(this.token.address, this.holdId, { from: notary }));
+      });
+    });
+  });
+
+  // RENEW HOLD
+
+  describe("renewHold", function () {
+    before(async function () {
+      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, {
+        from: owner,
+      });
+    });
+
+    beforeEach(async function () {
+      this.token = await ERC1400.new(
+        "ERC1400Token",
+        "DAU",
+        1,
+        [controller],
+        CERTIFICATE_SIGNER,
+        true,
+        partitions
+      );
+      await this.token.issueByPartition(
+        partition1,
+        tokenHolder,
+        issuanceAmount,
+        VALID_CERTIFICATE,
+        { from: owner }
+      );
+
+      await this.token.setHookContract(
+        this.validatorContract.address,
+        ERC1400_TOKENS_VALIDATOR,
+        { from: owner }
+      );
+
+      // Create hold in state Ordered
+      this.time = await this.clock.getTime();
+      this.holdId = newHoldId();
+      this.secretHashPair = newSecretHashPair();
+      await this.validatorContract.hold(this.token.address, this.holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, this.secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
+    });
+
+    describe("when hold can be renewed", function () {
+      describe("when hold is in status Ordered", function () {
+        describe("when hold is not expired", function () {
+          describe("when hold is renewed by the sender", function () {
+            it("renews the hold", async function () {
+              this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+              assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
+
+              this.time = await this.clock.getTime();
+              await this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: tokenHolder });
+              
+              this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY);
+              assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY+100);
+            });
+            it("emits an event", async function () {
+              const { logs } = await this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: tokenHolder });
+
+              assert.equal(logs[0].event, "HoldRenewed");
+              assert.equal(logs[0].args.token, this.token.address);
+              assert.equal(logs[0].args.holdId, this.holdId);
+              assert.equal(logs[0].args.notary, notary);
+              assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+              assert.isBelow(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
+              assert.isAtLeast(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY);
+              assert.isBelow(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY+100);
+            });
+          });
+          describe("when hold is renewed by an operator", function () {
+            it("renews the hold", async function () {
+              this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+              assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
+
+              this.time = await this.clock.getTime();
+              await this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: controller });
+              
+              this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY);
+              assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY+100);
+            });
+          });
+          describe("when hold is neither renewed by the sender, nor by an operator", function () {
+            it("reverts", async function () {
+              await shouldFail.reverting(this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: recipient }));
+            });
+          });
+        });
+        describe("when hold is expired", function () {
+          it("reverts", async function () {
+            this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+            assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+            assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
+
+            // Wait for more than an hour
+            await advanceTimeAndBlock(SECONDS_IN_AN_HOUR + 100);
+
+            await shouldFail.reverting(this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: tokenHolder }));
+          });
+        });
+      });
+      describe("when hold is in status ExecutedAndKeptOpen", function () {
+        it("renews the hold", async function () {
+          this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+          assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_ORDERED);
+
+          const executedAmount = 10;
+          await this.validatorContract.executeHoldAndKeepOpen(this.token.address, this.holdId, executedAmount, EMPTY_BYTE32, { from: notary });
+          
+          this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+          assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_EXECUTED_AND_KEPT_OPEN);
+
+          this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+          assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
+
+          this.time = await this.clock.getTime();
+          await this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: tokenHolder });
+          
+          this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY);
+          assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY+100);
+        });
+      });
+    });
+    describe("when hold can not be renewed", function () {
+      describe("when hold is neither in status Ordered, nor ExecutedAndKeptOpen", function () {
+        it("reverts", async function () {
+          await this.validatorContract.releaseHold(this.token.address, this.holdId, { from: notary });
+
+          this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+          assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_RELEASED_BY_NOTARY);
+
+          await shouldFail.reverting(this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: tokenHolder }));
+        });
+      });
+    });
+  });
+
+  // EXECUTE HOLD
+
+  describe("executeHold", function () {
+    before(async function () {
+      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, {
+        from: owner,
+      });
+    });
+
+    beforeEach(async function () {
+      this.token = await ERC1400.new(
+        "ERC1400Token",
+        "DAU",
+        1,
+        [controller],
+        CERTIFICATE_SIGNER,
+        true,
+        partitions
+      );
+      await this.token.issueByPartition(
+        partition1,
+        tokenHolder,
+        issuanceAmount,
+        VALID_CERTIFICATE,
+        { from: owner }
+      );
+
+      await this.token.setHookContract(
+        this.validatorContract.address,
+        ERC1400_TOKENS_VALIDATOR,
+        { from: owner }
+      );
+
+      // Create hold in state Ordered
+      this.time = await this.clock.getTime();
+      this.holdId = newHoldId();
+      this.secretHashPair = newSecretHashPair();
+      await this.validatorContract.hold(this.token.address, this.holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, this.secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
+    });
+
+    describe("when hold can be executed", function () {
+      describe("when hold is in status Ordered", function () {
+        describe("when value is not nil", function () {
+          describe("when hold is executed by the notary", function () {
+            describe("when hold is not expired", function () {
+              describe("when value is not higher than hold value", function () {
+                describe("when hold shall not be kept open", function () {
+                  describe("when the whole amount is executed", function () {
+                    it("executes the hold", async function() {
+                      const initialBalance = await this.token.balanceOf(tokenHolder)
+                      const initialPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+      
+                      const initialBalanceOnHold = await this.validatorContract.balanceOnHold(this.token.address, tokenHolder)
+                      const initialBalanceOnHoldByPartition = await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)
+      
+                      const initialSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder)
+                      const initialSpendableBalanceByPartition = await this.validatorContract.spendableBalanceOfByPartition(this.token.address, partition1, tokenHolder)
+      
+                      const initialTotalSupplyOnHold = await this.validatorContract.totalSupplyOnHold(this.token.address)
+                      const initialTotalSupplyOnHoldByPartition = await this.validatorContract.totalSupplyOnHoldByPartition(this.token.address, partition1)
+      
+                      const initialRecipientBalance = await this.token.balanceOf(recipient)
+                      const initialRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+  
+                      await this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount, EMPTY_BYTE32, { from: notary })
+      
+                      const finalBalance = await this.token.balanceOf(tokenHolder)
+                      const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+      
+                      const finalBalanceOnHold = await this.validatorContract.balanceOnHold(this.token.address, tokenHolder)
+                      const finalBalanceOnHoldByPartition = await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)
+      
+                      const finalSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder)
+                      const finalSpendableBalanceByPartition = await this.validatorContract.spendableBalanceOfByPartition(this.token.address, partition1, tokenHolder)
+      
+                      const finalTotalSupplyOnHold = await this.validatorContract.totalSupplyOnHold(this.token.address)
+                      const finalTotalSupplyOnHoldByPartition = await this.validatorContract.totalSupplyOnHoldByPartition(this.token.address, partition1)
+  
+                      const finalRecipientBalance = await this.token.balanceOf(recipient)
+                      const finalRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+  
+                      assert.equal(initialBalance, issuanceAmount)
+                      assert.equal(finalBalance, issuanceAmount-holdAmount)
+                      assert.equal(initialPartitionBalance, issuanceAmount)
+                      assert.equal(finalPartitionBalance, issuanceAmount-holdAmount)
+      
+                      assert.equal(initialBalanceOnHold, holdAmount)
+                      assert.equal(initialBalanceOnHoldByPartition, holdAmount)
+                      assert.equal(finalBalanceOnHold, 0)
+                      assert.equal(finalBalanceOnHoldByPartition, 0)
+      
+                      assert.equal(initialSpendableBalance, issuanceAmount-holdAmount)
+                      assert.equal(initialSpendableBalanceByPartition, issuanceAmount-holdAmount)
+                      assert.equal(finalSpendableBalance, issuanceAmount-holdAmount)
+                      assert.equal(finalSpendableBalanceByPartition, issuanceAmount-holdAmount)
+      
+                      assert.equal(initialTotalSupplyOnHold, holdAmount)
+                      assert.equal(initialTotalSupplyOnHoldByPartition, holdAmount)
+                      assert.equal(finalTotalSupplyOnHold, 0)
+                      assert.equal(finalTotalSupplyOnHoldByPartition, 0)
+  
+                      assert.equal(initialRecipientBalance, 0)
+                      assert.equal(initialRecipientPartitionBalance, 0)
+                      assert.equal(finalRecipientBalance, holdAmount)
+                      assert.equal(finalRecipientPartitionBalance, holdAmount)
+      
+                      this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+                      assert.equal(this.holdData[0], partition1);
+                      assert.equal(this.holdData[1], tokenHolder);
+                      assert.equal(this.holdData[2], recipient);
+                      assert.equal(this.holdData[3], notary);
+                      assert.equal(parseInt(this.holdData[4]), holdAmount);
+                      assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+                      assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
+                      assert.equal(this.holdData[6], this.secretHashPair.hash);
+                      assert.equal(this.holdData[7], EMPTY_BYTE32);
+                      assert.equal(this.holdData[8], ZERO_ADDRESS);
+                      assert.equal(parseInt(this.holdData[9]), 0);
+                      assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_EXECUTED);
+                    });
+                    it("emits an event", async function() {
+                      const { logs } = await this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount, EMPTY_BYTE32, { from: notary })
+      
+                      assert.equal(logs[0].event, "HoldExecuted");
+                      assert.equal(logs[0].args.token, this.token.address);
+                      assert.equal(logs[0].args.holdId, this.holdId);
+                      assert.equal(logs[0].args.notary, notary);
+                      assert.equal(logs[0].args.heldValue, holdAmount);
+                      assert.equal(logs[0].args.transferredValue, holdAmount);
+                      assert.equal(logs[0].args.secret, EMPTY_BYTE32);
+                    });
+                  });
+                  describe("when a partial amount is executed", function () {
+                    it("executes the hold", async function() {
+                      const initialPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+                      const initialRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+  
+                      const executedAmount = 400
+                      await this.validatorContract.executeHold(this.token.address, this.holdId, executedAmount, EMPTY_BYTE32, { from: notary })
+      
+                      const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+                      const finalRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+  
+                      assert.equal(initialPartitionBalance, issuanceAmount)
+                      assert.equal(finalPartitionBalance, issuanceAmount-executedAmount)
+      
+                      assert.equal(initialRecipientPartitionBalance, 0)
+                      assert.equal(finalRecipientPartitionBalance, executedAmount)
+      
+                      this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+                      assert.equal(parseInt(this.holdData[4]), holdAmount);
+                    });
+                    it("emits an event", async function() {
+                      const executedAmount = 400
+                      const { logs } = await this.validatorContract.executeHold(this.token.address, this.holdId, executedAmount, EMPTY_BYTE32, { from: notary })
+      
+                      assert.equal(logs[0].event, "HoldExecuted");
+                      assert.equal(logs[0].args.token, this.token.address);
+                      assert.equal(logs[0].args.holdId, this.holdId);
+                      assert.equal(logs[0].args.notary, notary);
+                      assert.equal(logs[0].args.heldValue, holdAmount);
+                      assert.equal(logs[0].args.transferredValue, executedAmount);
+                      assert.equal(logs[0].args.secret, EMPTY_BYTE32);
+                    });
+                  });
+                });
+                describe("when hold shall be kept open", function () {
+                  describe("when value is lower than hold value", function () {
+                    it("executes the hold", async function() {
+                      const initialBalance = await this.token.balanceOf(tokenHolder)
+                      const initialPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+      
+                      const initialBalanceOnHold = await this.validatorContract.balanceOnHold(this.token.address, tokenHolder)
+                      const initialBalanceOnHoldByPartition = await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)
+      
+                      const initialSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder)
+                      const initialSpendableBalanceByPartition = await this.validatorContract.spendableBalanceOfByPartition(this.token.address, partition1, tokenHolder)
+      
+                      const initialTotalSupplyOnHold = await this.validatorContract.totalSupplyOnHold(this.token.address)
+                      const initialTotalSupplyOnHoldByPartition = await this.validatorContract.totalSupplyOnHoldByPartition(this.token.address, partition1)
+      
+                      const initialRecipientBalance = await this.token.balanceOf(recipient)
+                      const initialRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+  
+                      const executedAmount = 400
+                      await this.validatorContract.executeHoldAndKeepOpen(this.token.address, this.holdId, executedAmount, EMPTY_BYTE32, { from: notary })
+      
+                      const finalBalance = await this.token.balanceOf(tokenHolder)
+                      const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+      
+                      const finalBalanceOnHold = await this.validatorContract.balanceOnHold(this.token.address, tokenHolder)
+                      const finalBalanceOnHoldByPartition = await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)
+      
+                      const finalSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder)
+                      const finalSpendableBalanceByPartition = await this.validatorContract.spendableBalanceOfByPartition(this.token.address, partition1, tokenHolder)
+      
+                      const finalTotalSupplyOnHold = await this.validatorContract.totalSupplyOnHold(this.token.address)
+                      const finalTotalSupplyOnHoldByPartition = await this.validatorContract.totalSupplyOnHoldByPartition(this.token.address, partition1)
+  
+                      const finalRecipientBalance = await this.token.balanceOf(recipient)
+                      const finalRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+  
+                      assert.equal(initialBalance, issuanceAmount)
+                      assert.equal(finalBalance, issuanceAmount-executedAmount)
+                      assert.equal(initialPartitionBalance, issuanceAmount)
+                      assert.equal(finalPartitionBalance, issuanceAmount-executedAmount)
+      
+                      assert.equal(initialBalanceOnHold, holdAmount)
+                      assert.equal(initialBalanceOnHoldByPartition, holdAmount)
+                      assert.equal(finalBalanceOnHold, holdAmount-executedAmount)
+                      assert.equal(finalBalanceOnHoldByPartition, holdAmount-executedAmount)
+      
+                      assert.equal(initialSpendableBalance, issuanceAmount-holdAmount)
+                      assert.equal(initialSpendableBalanceByPartition, issuanceAmount-holdAmount)
+                      assert.equal(finalSpendableBalance, issuanceAmount-holdAmount)
+                      assert.equal(finalSpendableBalanceByPartition, issuanceAmount-holdAmount)
+      
+                      assert.equal(initialTotalSupplyOnHold, holdAmount)
+                      assert.equal(initialTotalSupplyOnHoldByPartition, holdAmount)
+                      assert.equal(finalTotalSupplyOnHold, holdAmount-executedAmount)
+                      assert.equal(finalTotalSupplyOnHoldByPartition, holdAmount-executedAmount)
+  
+                      assert.equal(initialRecipientBalance, 0)
+                      assert.equal(initialRecipientPartitionBalance, 0)
+                      assert.equal(finalRecipientBalance, executedAmount)
+                      assert.equal(finalRecipientPartitionBalance, executedAmount)
+      
+                      this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+                      assert.equal(this.holdData[0], partition1);
+                      assert.equal(this.holdData[1], tokenHolder);
+                      assert.equal(this.holdData[2], recipient);
+                      assert.equal(this.holdData[3], notary);
+                      assert.equal(parseInt(this.holdData[4]), holdAmount-executedAmount);
+                      assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+                      assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
+                      assert.equal(this.holdData[6], this.secretHashPair.hash);
+                      assert.equal(this.holdData[7], EMPTY_BYTE32);
+                      assert.equal(this.holdData[8], ZERO_ADDRESS);
+                      assert.equal(parseInt(this.holdData[9]), 0);
+                      assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_EXECUTED_AND_KEPT_OPEN);
+                    });
+                    it("emits an event", async function() {
+                      const executedAmount = 400
+                      const { logs } = await this.validatorContract.executeHoldAndKeepOpen(this.token.address, this.holdId, executedAmount, EMPTY_BYTE32, { from: notary })
+                      
+                      assert.equal(logs[0].event, "HoldExecutedAndKeptOpen");
+                      assert.equal(logs[0].args.token, this.token.address);
+                      assert.equal(logs[0].args.holdId, this.holdId);
+                      assert.equal(logs[0].args.notary, notary);
+                      assert.equal(logs[0].args.heldValue, holdAmount-executedAmount);
+                      assert.equal(logs[0].args.transferredValue, executedAmount);
+                      assert.equal(logs[0].args.secret, EMPTY_BYTE32);
+                    });
+                  });
+                  describe("when value is equal to hold value", function () {
+                    it("executes the hold", async function() {
+                      const initialPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+                      const initialRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+
+                      await this.validatorContract.executeHoldAndKeepOpen(this.token.address, this.holdId, holdAmount, EMPTY_BYTE32, { from: notary })
+      
+                      const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+                      const finalRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+  
+                      assert.equal(initialPartitionBalance, issuanceAmount)
+                      assert.equal(finalPartitionBalance, issuanceAmount-holdAmount)
+      
+                      assert.equal(initialRecipientPartitionBalance, 0)
+                      assert.equal(finalRecipientPartitionBalance, holdAmount)
+                    });
+                    it("emits an event", async function() {
+                      const { logs } = await this.validatorContract.executeHoldAndKeepOpen(this.token.address, this.holdId, holdAmount, EMPTY_BYTE32, { from: notary })
+                      
+                      assert.equal(logs[0].event, "HoldExecuted");
+                      assert.equal(logs[0].args.token, this.token.address);
+                      assert.equal(logs[0].args.holdId, this.holdId);
+                      assert.equal(logs[0].args.notary, notary);
+                      assert.equal(logs[0].args.heldValue, holdAmount);
+                      assert.equal(logs[0].args.transferredValue, holdAmount);
+                      assert.equal(logs[0].args.secret, EMPTY_BYTE32);
+                    });
+                  });
+                });
+              });
+              describe("when value is higher than hold value", function () {
+                it("reverts", async function() {
+                  await shouldFail.reverting(this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount+1, EMPTY_BYTE32, { from: notary }));
+                });
+              });
+            });
+            describe("when hold is expired", function () {
+              it("reverts", async function () {
+                // Wait for more than an hour
+                await advanceTimeAndBlock(SECONDS_IN_AN_HOUR + 100);
+
+                await shouldFail.reverting(this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount, EMPTY_BYTE32, { from: notary }));
+              });
+            });
+          });
+          describe("when hold is executed by the token sender", function () {
+            describe("when the token sender provides the correct secret", function () {
+              it("executes the hold", async function () {
+                const initialPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+                const initialRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+
+                const { logs } = await this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount, this.secretHashPair.secret, { from: recipient })
+
+                const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+                const finalRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+
+                assert.equal(initialPartitionBalance, issuanceAmount)
+                assert.equal(finalPartitionBalance, issuanceAmount-holdAmount)
+
+                assert.equal(initialRecipientPartitionBalance, 0)
+                assert.equal(finalRecipientPartitionBalance, holdAmount)
+
+                this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+                assert.equal(parseInt(this.holdData[4]), holdAmount);
+
+                assert.equal(logs[0].event, "HoldExecuted");
+                assert.equal(logs[0].args.secret, this.secretHashPair.secret); // HTLC mechanism
+              });
+            });
+            describe("when the token sender doesn't provide the correct secret", function () {
+              it("reverts", async function () {
+                await shouldFail.reverting(this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount, EMPTY_BYTE32, { from: recipient }));
+              });
+            });
+          });
+        });
+        describe("when value is nil", function () {
+          it("reverts", async function () {
+            await shouldFail.reverting(this.validatorContract.executeHold(this.token.address, this.holdId, 0, EMPTY_BYTE32, { from: notary }));
+          });
+        });
+      });
+      describe("when hold is in status ExecutedAndKeptOpen", function () {
+        it("executes the hold", async function () {
+          this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+          assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_ORDERED);
+
+          const partitionBalance1 = await this.token.balanceOfByPartition(partition1, tokenHolder)
+          const recipientPartitionBalance1 = await this.token.balanceOfByPartition(partition1, recipient)
+
+          const executedAmount = 10;
+          await this.validatorContract.executeHoldAndKeepOpen(this.token.address, this.holdId, executedAmount, EMPTY_BYTE32, { from: notary });
+
+          this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+          assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_EXECUTED_AND_KEPT_OPEN);
+
+          const partitionBalance2 = await this.token.balanceOfByPartition(partition1, tokenHolder)
+          const recipientPartitionBalance2 = await this.token.balanceOfByPartition(partition1, recipient)
+
+          await this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount-executedAmount, EMPTY_BYTE32, { from: notary })
+
+          const partitionBalance3 = await this.token.balanceOfByPartition(partition1, tokenHolder)
+          const recipientPartitionBalance3 = await this.token.balanceOfByPartition(partition1, recipient)
+
+          assert.equal(partitionBalance1, issuanceAmount)
+          assert.equal(recipientPartitionBalance1, 0)
+
+          assert.equal(partitionBalance2, issuanceAmount-executedAmount)
+          assert.equal(recipientPartitionBalance2, executedAmount)
+
+          assert.equal(partitionBalance3, issuanceAmount-holdAmount)
+          assert.equal(recipientPartitionBalance3, holdAmount)
+        });
+      });
+    });
+    describe("when hold can not be executed", function () {
+      it("reverts", async function () {
+        await this.validatorContract.releaseHold(this.token.address, this.holdId, { from: notary });
+
+        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+        assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_RELEASED_BY_NOTARY);
+
+        await shouldFail.reverting(this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount, EMPTY_BYTE32, { from: notary }));
       });
     });
   });

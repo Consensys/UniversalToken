@@ -211,4 +211,18 @@ contract ERC1400CertificateMock is ERC1400, CertificateControllerMock {
   }
   /************************************************************************************************/
 
+  /******************* Token extension (hooks triggered by the contract) **************************/
+  /**
+   * @dev Set validator contract address.
+   * The validator contract needs to verify "ERC1400TokensValidator" interface.
+   * Once setup, the validator will be called everytime a transfer is executed.
+   * @param validatorAddress Address of the validator contract.
+   * @param interfaceLabel Interface label of hook contract.
+   */
+  function _setHookContract(address validatorAddress, string memory interfaceLabel) internal {
+    ERC1400._setHookContract(validatorAddress, interfaceLabel);
+    _setCertificateSigner(validatorAddress, true);
+  }
+  /************************************************************************************************/
+
 }
