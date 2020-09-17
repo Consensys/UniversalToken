@@ -11,13 +11,19 @@ import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 import "erc1820/contracts/ERC1820Client.sol";
 import "../../interface/ERC1820Implementer.sol";
 
-import "../../ERC1400.sol";
+import "../../IERC1400.sol";
 
 import "../userExtensions/IERC1400TokensSender.sol";
 import "../userExtensions/IERC1400TokensRecipient.sol";
 
 import "./IERC1400TokensValidator.sol";
 import "./IERC1400TokensChecker.sol";
+
+interface IERC1400Extended {
+    // Not a real interface but added here since 'granularity' doesn't belong to IERC1400
+
+    function granularity() external view returns(uint256);
+}
 
 contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Implementer {
   using SafeMath for uint256;
@@ -77,10 +83,10 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
      view
      returns (byte, bytes32, bytes32)
    {
-     if(!ERC1400(msg.sender).isOperatorForPartition(partition, operator, from))
+     if(!IERC1400(msg.sender).isOperatorForPartition(partition, operator, from))
        return(hex"58", "", partition); // 0x58	invalid operator (transfer agent)
 
-     if((IERC20(msg.sender).balanceOf(from) < value) || (ERC1400(msg.sender).balanceOfByPartition(partition, from) < value))
+     if((IERC20(msg.sender).balanceOf(from) < value) || (IERC1400(msg.sender).balanceOfByPartition(partition, from) < value))
        return(hex"52", "", partition); // 0x52	insufficient balance
 
      if(to == address(0))
@@ -100,10 +106,10 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
 
      hookImplementation = ERC1820Client.interfaceAddr(msg.sender, ERC1400_TOKENS_VALIDATOR);
      if((hookImplementation != address(0))
-       && !IERC1400TokensValidator(hookImplementation).canValidate(functionSig, partition, operator, from, to, value, data, operatorData))
+       && !IERC1400TokensValidator(hookImplementation).canValidate(msg.sender, functionSig, partition, operator, from, to, value, data, operatorData))
        return(hex"54", "", partition); // 0x54	transfers halted (contract paused)
 
-     uint256 granularity = ERC1400(msg.sender).granularity();
+     uint256 granularity = IERC1400Extended(msg.sender).granularity();
      if(!(value.div(granularity).mul(granularity) == value))
        return(hex"50", "", partition); // 0x50	transfer failure
 
@@ -122,12 +128,12 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
   //   view
   //   returns (byte, bytes32)
   // {
-  //   if(!ERC1400(msg.sender).isOperator(operator, from))
+  //   if(!IERC1400(msg.sender).isOperator(operator, from))
   //      return(hex"58", ""); // 0x58	invalid operator (transfer agent)
 
   //   byte esc;
 
-  //   bytes32[] memory defaultPartitions = ERC1400(msg.sender).getDefaultPartitions();
+  //   bytes32[] memory defaultPartitions = IERC1400(msg.sender).getDefaultPartitions();
 
   //   if(defaultPartitions.length == 0) {
   //     return(hex"55", ""); // 0x55	funds locked (lockup period)
@@ -137,7 +143,7 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
   //   uint256 _localBalance;
 
   //   for (uint i = 0; i < defaultPartitions.length; i++) {
-  //     _localBalance = ERC1400(msg.sender).balanceOfByPartition(defaultPartitions[i], from);
+  //     _localBalance = IERC1400(msg.sender).balanceOfByPartition(defaultPartitions[i], from);
   //     if(_remainingValue <= _localBalance) {
   //       (esc,,) = _canTransferByPartition(functionSig, defaultPartitions[i], operator, from, to, _remainingValue, data, operatorData);
   //       _remainingValue = 0;
