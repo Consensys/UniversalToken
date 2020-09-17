@@ -102,6 +102,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
 
   /**
    * @dev Verify if a token transfer can be executed or not, on the validator's perspective.
+   * @param token Address of the token.
    * @param functionSig ID of the function that is called.
    * @param partition Name of the partition (left empty for ERC20 transfer).
    * @param operator Address which triggered the balance decrease (through transfer or redemption).
@@ -113,6 +114,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
    * @return 'true' if the token transfer can be validated, 'false' if not.
    */
   function canValidate(
+    address token,
     bytes4 functionSig,
     bytes32 partition,
     address operator,
@@ -126,7 +128,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     view 
     returns(bool)
   {
-    return(_canValidate(functionSig, partition, operator, from, to, value, data, operatorData));
+    return(_canValidate(token, functionSig, partition, operator, from, to, value, data, operatorData));
   }
 
   /**
@@ -153,7 +155,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   ) // Comments to avoid compilation warnings for unused variables.
     external
   {
-    require(_canValidate(functionSig, partition, operator, from, to, value, data, operatorData), "55"); // 0x55	funds locked (lockup period)
+    require(_canValidate(msg.sender, functionSig, partition, operator, from, to, value, data, operatorData), "55"); // 0x55	funds locked (lockup period)
   }
 
   /**
@@ -161,6 +163,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
    * @return 'true' if the token transfer can be validated, 'false' if not.
    */
   function _canValidate(
+    address token,
     bytes4 functionSig,
     bytes32 partition,
     address /*operator*/,
@@ -189,7 +192,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     }
 
     if (_holdsActivated) {
-      if(value > _spendableBalanceOfByPartition(msg.sender, partition, from)) {
+      if(value > _spendableBalanceOfByPartition(token, partition, from)) {
         return false;
       }
     }

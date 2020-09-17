@@ -11,6 +11,7 @@ pragma solidity ^0.5.0;
 interface IERC1400TokensValidator {
 
   function canValidate(
+    address token,
     bytes4 functionSig,
     bytes32 partition,
     address operator,
