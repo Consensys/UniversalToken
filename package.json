@@ -84,6 +84,9 @@
     "truffle": "5.0.1",
     "truffle-hdwallet-provider": "1.0.1"
   },
+  "resolutions": {
+    "web3": "1.3.0"
+  },
   "husky": {
     "hooks": {
       "pre-push": "truffle test"
