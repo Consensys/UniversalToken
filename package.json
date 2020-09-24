@@ -95,9 +95,6 @@
   "lint-staged": {
     "*.js": [
       "eslint --fix"
-    ],
-    "*.sol": [
-      "solium --no-soliumignore -d contracts"
     ]
   }
 }
