@@ -22,8 +22,6 @@
     "lint:all": "yarn run lint && yarn run lint:sol",
     "lint:all:fix": "yarn run lint:fix && yarn run lint:sol:fix",
     "console": "truffle console",
-    "truffle": "truffle",
-    "version": "scripts/version.js",
     "remix": "python -mwebbrowser http://localhost:8080 && ./node_modules/remix-ide/bin/remix-ide"
   },
   "repository": {
