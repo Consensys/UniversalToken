@@ -10,7 +10,7 @@
  ***************************************************************************************************************
  */
 
-const { shouldFail } = require("openzeppelin-test-helpers");
+const { expectRevert } = require("@openzeppelin/test-helpers");
 const { soliditySha3 } = require("web3-utils");
 
 const FundIssuerContract = artifacts.require("FundIssuer");
@@ -1409,7 +1409,7 @@ contract("Fund issuance", function ([
           describe("when subscriptionPeriodLength is nil", function () {
             it("reverts", async function () {
               const chainTime = (await web3.eth.getBlock("latest")).timestamp;
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 this.fic.setAssetRules(
                   this.asset.address,
                   partition1,
@@ -1430,7 +1430,7 @@ contract("Fund issuance", function ([
           describe("when valuationPeriodLength is nil", function () {
             it("reverts", async function () {
               const chainTime = (await web3.eth.getBlock("latest")).timestamp;
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 this.fic.setAssetRules(
                   this.asset.address,
                   partition1,
@@ -1451,7 +1451,7 @@ contract("Fund issuance", function ([
           describe("when paymentPeriodLength is nil", function () {
             it("reverts", async function () {
               const chainTime = (await web3.eth.getBlock("latest")).timestamp;
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 this.fic.setAssetRules(
                   this.asset.address,
                   partition1,
@@ -1475,7 +1475,7 @@ contract("Fund issuance", function ([
         it("reverts", async function () {
           const chainTime = (await web3.eth.getBlock("latest")).timestamp;
 
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             setAssetRules(
               this.fic,
               tokenController1,
@@ -1498,7 +1498,7 @@ contract("Fund issuance", function ([
     describe("when caller is not the token controller", function () {
       it("reverts", async function () {
         const chainTime = (await web3.eth.getBlock("latest")).timestamp;
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           setAssetRules(
             this.fic,
             tokenController2,
@@ -1580,7 +1580,7 @@ contract("Fund issuance", function ([
           });
           describe("when value is nil", function () {
             it("reverts", async function () {
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 subscribe(
                   this.fic,
                   this.asset.address,
@@ -1618,7 +1618,7 @@ contract("Fund issuance", function ([
           });
           describe("when amount is nil", function () {
             it("reverts", async function () {
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 subscribe(
                   this.fic,
                   this.asset.address,
@@ -1657,7 +1657,7 @@ contract("Fund issuance", function ([
             true
           );
 
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             subscribe(
               this.fic,
               this.asset.address,
@@ -1813,7 +1813,7 @@ contract("Fund issuance", function ([
               false
             );
 
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               subscribe(
                 this.fic,
                 this.asset.address,
@@ -1833,7 +1833,7 @@ contract("Fund issuance", function ([
       });
       describe("when rules are not defined for the asset", function () {
         it("reverts", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             subscribe(
               this.fic,
               this.asset.address,
@@ -1931,7 +1931,7 @@ contract("Fund issuance", function ([
             const orderIndex = (
               await this.fic.getInvestorOrders(tokenHolder1)
             )[0].toNumber();
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.fic.cancelOrder(orderIndex, { from: tokenHolder2 })
             );
           });
@@ -1959,7 +1959,7 @@ contract("Fund issuance", function ([
           const orderIndex = (
             await this.fic.getInvestorOrders(tokenHolder1)
           )[0].toNumber();
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.fic.cancelOrder(orderIndex, { from: tokenHolder1 })
           );
         });
@@ -1968,7 +1968,7 @@ contract("Fund issuance", function ([
     describe("when order can not be rejected", function () {
       describe("when order doesnt exist", function () {
         it("reverts", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.fic.cancelOrder(999999, { from: tokenHolder1 })
           );
         });
@@ -2149,7 +2149,7 @@ contract("Fund issuance", function ([
                 0
               );
 
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 this.fic.valuate(cycleIndex, 1000, 0, {
                   from: tokenController2,
                 })
@@ -2171,7 +2171,7 @@ contract("Fund issuance", function ([
               0
             );
 
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.fic.valuate(cycleIndex, 1000, 1000, {
                 from: tokenController1,
               })
@@ -2251,7 +2251,7 @@ contract("Fund issuance", function ([
             0
           );
 
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.fic.valuate(cycleIndex, 0, 1000, { from: tokenController1 })
           );
         });
@@ -2279,7 +2279,7 @@ contract("Fund issuance", function ([
           0
         );
 
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.fic.valuate(cycleIndex, 1000, 0, { from: tokenController1 })
         );
       });
@@ -2318,7 +2318,7 @@ contract("Fund issuance", function ([
           0
         );
 
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.fic.valuate(cycleIndex, 1000, 0, { from: tokenController1 })
         );
       });

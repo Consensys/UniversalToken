@@ -1,4 +1,4 @@
-const { shouldFail } = require("openzeppelin-test-helpers");
+const { expectRevert } = require("@openzeppelin/test-helpers");
 const { soliditySha3 } = require("web3-utils");
 
 const DVPContract = artifacts.require("DVP");
@@ -1532,7 +1532,7 @@ contract("DVP", function ([
                               const tradeAcceptanceData = getTradeAcceptanceData(
                                 1
                               );
-                              await shouldFail.reverting(
+                              await expectRevert.unspecified(
                                 this.emoney1400.operatorTransferByPartition(
                                   partition1,
                                   recipient1,
@@ -1563,7 +1563,7 @@ contract("DVP", function ([
                             token2Amount
                           );
                           const tradeAcceptanceData = getTradeAcceptanceData(1);
-                          await shouldFail.reverting(
+                          await expectRevert.unspecified(
                             this.emoney1400.operatorTransferByPartition(
                               partition1,
                               recipient1,
@@ -1602,7 +1602,7 @@ contract("DVP", function ([
                           token2Amount
                         );
                         const tradeAcceptanceData = getTradeAcceptanceData(1);
-                        await shouldFail.reverting(
+                        await expectRevert.unspecified(
                           this.emoney1400.operatorTransferByPartition(
                             partition2,
                             recipient1,
@@ -1655,7 +1655,7 @@ contract("DVP", function ([
                         token2Amount
                       );
                       const tradeAcceptanceData = getTradeAcceptanceData(1);
-                      await shouldFail.reverting(
+                      await expectRevert.unspecified(
                         this.wrongEmoney1400.operatorTransferByPartition(
                           partition1,
                           recipient1,
@@ -1694,7 +1694,7 @@ contract("DVP", function ([
                       token2Amount
                     );
                     const tradeAcceptanceData = getTradeAcceptanceData(1);
-                    await shouldFail.reverting(
+                    await expectRevert.unspecified(
                       this.emoney1400.operatorTransferByPartition(
                         partition1,
                         recipient2,
@@ -1763,7 +1763,7 @@ contract("DVP", function ([
                   ACCEPTED_TRUE
                 );
                 const tradeAcceptanceData = getTradeAcceptanceData(1);
-                await shouldFail.reverting(
+                await expectRevert.unspecified(
                   this.emoney1400.operatorTransferByPartition(
                     partition1,
                     recipient1,
@@ -1794,7 +1794,7 @@ contract("DVP", function ([
               token2Amount
             );
             const fakeTradeAcceptanceData = getTradeAcceptanceData(1, true);
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.emoney1400.operatorTransferByPartition(
                 partition1,
                 recipient1,
@@ -1838,7 +1838,7 @@ contract("DVP", function ([
             partition1,
             ERC1400STANDARD
           );
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.fakeSecurity1400.operatorTransferByPartition(
               partition1,
               tokenHolder1,
@@ -1865,7 +1865,7 @@ contract("DVP", function ([
           partition1,
           ERC1400STANDARD
         );
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.dvp.tokensReceived(
             "0x00000000",
             partition1,
@@ -2185,7 +2185,7 @@ contract("DVP", function ([
                   const chainTime = (await web3.eth.getBlock("latest"))
                     .timestamp;
                   const expirationDate = chainTime + 2 * SECONDS_IN_A_WEEK;
-                  await shouldFail.reverting(
+                  await expectRevert.unspecified(
                     this.dvp.requestTrade(
                       ZERO_ADDRESS,
                       recipient1,
@@ -2261,7 +2261,7 @@ contract("DVP", function ([
               await this.security20.approve(this.dvp.address, token1Amount, {
                 from: tokenHolder1,
               });
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 createTradeRequest(
                   this.dvp,
                   this.security20,
@@ -2314,7 +2314,7 @@ contract("DVP", function ([
               await this.security20.approve(this.dvp.address, token1Amount, {
                 from: tokenHolder1,
               });
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 createTradeRequest(
                   this.dvp,
                   this.security20,
@@ -2338,7 +2338,7 @@ contract("DVP", function ([
               await this.security20.approve(this.dvp.address, token1Amount, {
                 from: tokenHolder1,
               });
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 createTradeRequest(
                   this.dvp,
                   this.security20,
@@ -2404,7 +2404,7 @@ contract("DVP", function ([
       });
       describe("when proposed trade type is Swap", function () {
         it("creates the trade request", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             createTradeRequest(
               this.dvp,
               this.security20,
@@ -2611,7 +2611,7 @@ contract("DVP", function ([
                 token1Amount,
                 token2Amount
               );
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 this.dvp.acceptTrade(1, {
                   from: recipient1,
                   value: token2Amount - 1,
@@ -2642,7 +2642,7 @@ contract("DVP", function ([
               await this.token2.approve(this.dvp.address, token2Amount - 1, {
                 from: recipient1,
               });
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 acceptTradeRequest(
                   this.dvp,
                   this.token1,
@@ -2704,7 +2704,7 @@ contract("DVP", function ([
                 token2Amount - 1,
                 { from: recipient1 }
               );
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 this.dvp.acceptTrade(1, { from: recipient1 })
               );
             });
@@ -2768,7 +2768,7 @@ contract("DVP", function ([
                 token2Amount
               );
               // await this.token2.approve(this.dvp.address, token2Amount, { from: recipient1 });
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 acceptTradeRequest(
                   this.dvp,
                   this.token1,
@@ -2845,7 +2845,7 @@ contract("DVP", function ([
                 token2Amount
               );
               // await this.token2.approve(this.dvp.address, issuanceTokenId, { from: recipient1 });
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 acceptTradeRequest(
                   this.dvp,
                   this.token1,
@@ -2942,7 +2942,7 @@ contract("DVP", function ([
                 token2Amount
               );
               // await this.token2.approveByPartition(partition1, this.dvp.address, token2Amount, { from: recipient1 });
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 acceptTradeRequest(
                   this.dvp,
                   this.token1,
@@ -3013,7 +3013,7 @@ contract("DVP", function ([
           await this.token2.approve(this.dvp.address, token2Amount, {
             from: recipient1,
           });
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.dvp.acceptTrade(999, { from: recipient1 })
           );
         });
@@ -3042,7 +3042,7 @@ contract("DVP", function ([
             from: recipient1,
           });
           await this.dvp.acceptTrade(1, { from: recipient1 });
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.dvp.acceptTrade(1, { from: recipient1 })
           );
         });
@@ -3364,7 +3364,7 @@ contract("DVP", function ([
 
           assert.equal(await this.dvp.getTradeApprovalStatus(1), false);
 
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.dvp.approveTrade(1, true, { from: unknown })
           );
         });
@@ -3406,7 +3406,7 @@ contract("DVP", function ([
 
           assert.equal(await this.dvp.getTradeApprovalStatus(1), false);
 
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.dvp.approveTrade(999, true, { from: tokenController1 })
           );
         });
@@ -3449,7 +3449,7 @@ contract("DVP", function ([
           await this.dvp.approveTrade(1, true, { from: tokenController1 });
           await assertTradeState(this.dvp, 1, STATE_EXECUTED);
 
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.dvp.approveTrade(1, true, { from: tokenController1 })
           );
         });
@@ -3610,7 +3610,7 @@ contract("DVP", function ([
                           await this.token2.approve(this.dvp.address, 0, {
                             from: recipient1,
                           });
-                          await shouldFail.reverting(
+                          await expectRevert.unspecified(
                             executeTradeRequest(
                               this.dvp,
                               this.token1,
@@ -3963,7 +3963,7 @@ contract("DVP", function ([
                   // Wait for 1 hour
                   await advanceTimeAndBlock(2 * SECONDS_IN_A_WEEK + 1);
 
-                  await shouldFail.reverting(
+                  await expectRevert.unspecified(
                     executeTradeRequest(
                       this.dvp,
                       this.token1,
@@ -4062,7 +4062,7 @@ contract("DVP", function ([
                 from: recipient1,
               });
               // await acceptTradeRequest(this.dvp, this.token1, this.token2, 1, recipient1, STATE_PENDING, ACCEPTED_TRUE);
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 executeTradeRequest(
                   this.dvp,
                   this.token1,
@@ -4113,7 +4113,7 @@ contract("DVP", function ([
               STATE_PENDING,
               ACCEPTED_TRUE
             );
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               executeTradeRequest(
                 this.dvp,
                 this.token1,
@@ -4157,7 +4157,7 @@ contract("DVP", function ([
             STATE_PENDING,
             ACCEPTED_TRUE
           );
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             executeTradeRequest(this.dvp, this.token1, this.token2, 1, unknown)
           );
         });
@@ -4165,7 +4165,7 @@ contract("DVP", function ([
     });
     describe("when trade index is not valid", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.dvp.executeTrade(999, { from: executer })
         );
       });
@@ -4241,7 +4241,7 @@ contract("DVP", function ([
                     token1Amount,
                     token2Amount
                   );
-                  await shouldFail.reverting(
+                  await expectRevert.unspecified(
                     forceTradeRequest(
                       this.dvp,
                       this.token1,
@@ -4303,7 +4303,7 @@ contract("DVP", function ([
                     token1Amount,
                     token2Amount
                   );
-                  await shouldFail.reverting(
+                  await expectRevert.unspecified(
                     forceTradeRequest(
                       this.dvp,
                       this.token1,
@@ -4332,7 +4332,7 @@ contract("DVP", function ([
                   token1Amount,
                   token2Amount
                 );
-                await shouldFail.reverting(
+                await expectRevert.unspecified(
                   forceTradeRequest(
                     this.dvp,
                     this.token1,
@@ -4394,7 +4394,7 @@ contract("DVP", function ([
                   token1Amount,
                   token2Amount
                 );
-                await shouldFail.reverting(
+                await expectRevert.unspecified(
                   forceTradeRequest(
                     this.dvp,
                     this.token1,
@@ -4434,7 +4434,7 @@ contract("DVP", function ([
               token1Amount,
               token2Amount
             );
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               forceTradeRequest(
                 this.dvp,
                 this.token1,
@@ -4478,7 +4478,7 @@ contract("DVP", function ([
             STATE_PENDING,
             ACCEPTED_TRUE
           );
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             forceTradeRequest(this.dvp, this.token1, this.token2, 1, executer)
           );
         });
@@ -4486,7 +4486,7 @@ contract("DVP", function ([
     });
     describe("when trade index is not valid", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.dvp.forceTrade(999, { from: executer })
         );
       });
@@ -4675,7 +4675,7 @@ contract("DVP", function ([
                 ACCEPTED_TRUE
               );
 
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 cancelTradeRequest(
                   this.dvp,
                   this.token1,
@@ -4766,7 +4766,7 @@ contract("DVP", function ([
                 ACCEPTED_TRUE
               );
 
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 cancelTradeRequest(
                   this.dvp,
                   this.token1,
@@ -4905,7 +4905,7 @@ contract("DVP", function ([
               // await this.token2.approve(this.dvp.address, token2Amount, { from: recipient1 });
               // await acceptTradeRequest(this.dvp, this.token1, this.token2, 1, recipient1, STATE_PENDING, ACCEPTED_TRUE);
 
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 cancelTradeRequest(
                   this.dvp,
                   this.token1,
@@ -4944,7 +4944,7 @@ contract("DVP", function ([
               // Wait for 1 hour
               await advanceTimeAndBlock(2 * SECONDS_IN_A_WEEK + 1);
 
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 cancelTradeRequest(
                   this.dvp,
                   this.token1,
@@ -4978,7 +4978,7 @@ contract("DVP", function ([
               // await this.token2.approve(this.dvp.address, token2Amount, { from: recipient1 });
               // await acceptTradeRequest(this.dvp, this.token1, this.token2, 1, recipient1, STATE_PENDING, ACCEPTED_TRUE);
 
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 cancelTradeRequest(
                   this.dvp,
                   this.token1,
@@ -5109,7 +5109,7 @@ contract("DVP", function ([
               // Wait for 1 hour
               await advanceTimeAndBlock(2 * SECONDS_IN_A_WEEK + 1);
 
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 cancelTradeRequest(
                   this.dvp,
                   this.token1,
@@ -5151,7 +5151,7 @@ contract("DVP", function ([
                 ACCEPTED_FALSE
               );
 
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 cancelTradeRequest(
                   this.dvp,
                   this.token1,
@@ -5238,7 +5238,7 @@ contract("DVP", function ([
                 ACCEPTED_FALSE
               );
 
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 cancelTradeRequest(
                   this.dvp,
                   this.token1,
@@ -5351,7 +5351,7 @@ contract("DVP", function ([
               token2Amount
             );
 
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.dvp.cancelTrade(1, { from: unknown })
             );
           });
@@ -5360,7 +5360,7 @@ contract("DVP", function ([
     });
     describe("when trade index is not valid", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.dvp.cancelTrade(999, { from: executer })
         );
       });
@@ -5384,14 +5384,14 @@ contract("DVP", function ([
         assert.equal(await this.dvp.owner(), ZERO_ADDRESS);
 
         // can not set trade executers anymore
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.dvp.setTradeExecuters([owner, executer], { from: owner })
         );
       });
     });
     describe("when the caller is not the contract owner", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.dvp.renounceOwnership({ from: unknown })
         );
       });
@@ -5422,7 +5422,7 @@ contract("DVP", function ([
           this.dvp = await DVPContract.new(false, false);
         });
         it("reverts", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.dvp.setTradeExecuters([owner, executer], { from: owner })
           );
         });
@@ -5430,7 +5430,7 @@ contract("DVP", function ([
     });
     describe("when the caller is not the contract owner", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.dvp.setTradeExecuters([owner, executer], { from: executer })
         );
       });
@@ -5495,7 +5495,7 @@ contract("DVP", function ([
     });
     describe("when the caller is neither the token contract owner nor a token controller", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.dvp.setTokenControllers(
             this.token1.address,
             [tokenController1, tokenController2],
@@ -5554,7 +5554,7 @@ contract("DVP", function ([
     });
     describe("when the caller is neither the token contract owner nor a token price oracle", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.dvp.setPriceOracles(this.token1.address, [oracle, unknown], {
             from: tokenHolder2,
           })
@@ -5619,7 +5619,7 @@ contract("DVP", function ([
     });
     describe("when sender is not price oracle of the token", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.dvp.setPriceOwnership(
             this.token1.address,
             this.token2.address,
@@ -5773,7 +5773,7 @@ contract("DVP", function ([
               false
             );
 
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.dvp.setTokenPrice(
                 this.token1.address,
                 this.token2.address,
@@ -5806,7 +5806,7 @@ contract("DVP", function ([
               true
             );
 
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.dvp.setTokenPrice(
                 this.token1.address,
                 this.token2.address,
@@ -5821,7 +5821,7 @@ contract("DVP", function ([
       });
       describe("when the price ownership is not taken", function () {
         it("sets the price for token1", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.dvp.setTokenPrice(
               this.token1.address,
               this.token2.address,
@@ -5850,7 +5850,7 @@ contract("DVP", function ([
         );
       });
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.dvp.setTokenPrice(
             this.token1.address,
             this.token2.address,
@@ -5907,7 +5907,7 @@ contract("DVP", function ([
         it("reverts", async function () {
           let chainTime = (await web3.eth.getBlock("latest")).timestamp;
           let variablePriceStartDate = chainTime + SECONDS_IN_A_WEEK - 1;
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.dvp.setVariablePriceStartDate(
               this.token1.address,
               variablePriceStartDate,
@@ -5921,7 +5921,7 @@ contract("DVP", function ([
       it("reverts", async function () {
         let chainTime = (await web3.eth.getBlock("latest")).timestamp;
         let variablePriceStartDate = chainTime + SECONDS_IN_A_WEEK + 10;
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.dvp.setVariablePriceStartDate(
             this.token1.address,
             variablePriceStartDate,
@@ -6457,7 +6457,7 @@ contract("DVP", function ([
                           partition2,
                           0
                         );
-                        await shouldFail.reverting(
+                        await expectRevert.unspecified(
                           this.dvp.executeTrade(2, { from: executer })
                         );
                         // await assertBalanceOfByPartition(this.token3, tokenHolder1, partition1, issuanceAmount - token3Amount);
@@ -6530,7 +6530,7 @@ contract("DVP", function ([
           );
         });
         it("reverts", async function () {
-          await shouldFail.reverting(this.dvp.getPrice(1));
+          await expectRevert.unspecified(this.dvp.getPrice(1));
         });
       });
     });
