@@ -1,4 +1,4 @@
-const { shouldFail } = require("openzeppelin-test-helpers");
+const { expectRevert } = require("@openzeppelin/test-helpers");
 
 const ERC1400 = artifacts.require("ERC1400CertificateMock");
 
@@ -96,26 +96,24 @@ contract(
         });
         describe("when the certificate signer address is not valid", function () {
           it("reverts", async function () {
-            await shouldFail.reverting.withMessage(
+            await expectRevert.unspecified(
               this.token.setCertificateSigner(ZERO_ADDRESS, true, {
                 from: owner,
-              }),
-              "" // Action Blocked - Not a valid address
+              }) // Action Blocked - Not a valid address
             );
           });
           it("reverts", async function () {
-            await shouldFail.reverting.withMessage(
+            await expectRevert.unspecified(
               this.token.setCertificateSigner(ZERO_ADDRESS, false, {
                 from: owner,
-              }),
-              "" // Action Blocked - Not a valid address
+              }) // Action Blocked - Not a valid address
             );
           });
         });
       });
       describe("when the sender is not the contract owner", function () {
         it("reverts", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.setCertificateSigner(operator, true, { from: unknown })
           );
         });
@@ -170,7 +168,7 @@ contract(
           });
           assert.isTrue(await this.token.certificateControllerActivated());
 
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.issueByPartition(
               partition1,
               tokenHolder,
@@ -190,7 +188,7 @@ contract(
       });
       describe("when the sender is not the contract owner", function () {
         it("reverts", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.setCertificateControllerActivated(true, {
               from: unknown,
             })
@@ -285,7 +283,7 @@ contract(
       });
       describe("when thecertifiacte is not valid", function () {
         it("reverts", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.transferByPartition(
               partition1,
               recipient,

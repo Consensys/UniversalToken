@@ -1,4 +1,4 @@
-const { shouldFail } = require("openzeppelin-test-helpers");
+const { expectRevert } = require("@openzeppelin/test-helpers");
 
 const { soliditySha3 } = require("web3-utils");
 
@@ -124,7 +124,7 @@ contract("ERC1400 with sender and recipient hooks", function ([
     describe("when the transfer fails", function () {
       it("sender hook reverts", async function () {
         // Default sender hook failure data for the mock only: 0x1100000000000000000000000000000000000000000000000000000000000000
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.transferWithData(to, amount, INVALID_CERTIFICATE_SENDER, {
             from: tokenHolder,
           })
@@ -132,7 +132,7 @@ contract("ERC1400 with sender and recipient hooks", function ([
       });
       it("recipient hook reverts", async function () {
         // Default recipient hook failure data for the mock only: 0x2200000000000000000000000000000000000000000000000000000000000000
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.transferWithData(
             to,
             amount,

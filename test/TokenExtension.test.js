@@ -1,4 +1,4 @@
-const { shouldFail } = require("openzeppelin-test-helpers");
+const { expectRevert } = require("@openzeppelin/test-helpers");
 
 const crypto = require('crypto')
 
@@ -259,7 +259,7 @@ contract("ERC1400 with validator hook", function ([
     });
     describe("when the caller is not the contract owner", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.setHookContract(
             this.validatorContract.address,
             ERC1400_TOKENS_VALIDATOR,
@@ -337,7 +337,7 @@ contract("ERC1400 with validator hook", function ([
             await this.validatorContract.isBlacklistAdmin(unknown),
             false
           );
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.validatorContract.addBlacklistAdmin(unknown, { from: unknown })
           );
           assert.equal(
@@ -359,7 +359,7 @@ contract("ERC1400 with validator hook", function ([
         await this.blacklistMock.addBlacklisted(unknown, { from: owner });
         assert.equal(await this.blacklistMock.isBlacklisted(unknown), true);
 
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.blacklistMock.setBlacklistActivated(true, { from: unknown })
         );
       });
@@ -627,7 +627,7 @@ contract("ERC1400 with validator hook", function ([
           await assertBalance(this.token, tokenHolder, issuanceAmount);
           await assertBalance(this.token, recipient, 0);
 
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.transfer(recipient, issuanceAmount, {
               from: tokenHolder,
             })
@@ -640,7 +640,7 @@ contract("ERC1400 with validator hook", function ([
           await assertBalance(this.token, recipient, 0);
 
           await this.token.authorizeOperator(operator, { from: tokenHolder });
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.transferFrom(tokenHolder, recipient, issuanceAmount, {
               from: operator,
             })
@@ -696,7 +696,7 @@ contract("ERC1400 with validator hook", function ([
     });
     describe("when the caller is not the contract owner", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.validatorContract.setWhitelistActivated(true, { from: unknown })
         );
       });
@@ -749,7 +749,7 @@ contract("ERC1400 with validator hook", function ([
     });
     describe("when the caller is not the contract owner", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.validatorContract.setBlacklistActivated(true, { from: unknown })
         );
       });
@@ -1147,7 +1147,7 @@ contract("ERC1400 with validator hook", function ([
           );
         });
         it("reverts", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.transfer(recipient, amount, { from: tokenHolder })
           );
         });
@@ -1170,7 +1170,7 @@ contract("ERC1400 with validator hook", function ([
           );
         });
         it("reverts", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.transfer(recipient, amount, { from: tokenHolder })
           );
         });
@@ -1210,7 +1210,7 @@ contract("ERC1400 with validator hook", function ([
           const amount = issuanceAmount;
 
           it("reverts", async function () {
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.token.transfer(recipient, amount, { from: tokenHolder })
             );
           });
@@ -1222,7 +1222,7 @@ contract("ERC1400 with validator hook", function ([
             await this.validatorContract.removeBlacklisted(recipient, {
               from: owner,
             });
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.token.transfer(recipient, amount, { from: tokenHolder })
             );
           });
@@ -1234,7 +1234,7 @@ contract("ERC1400 with validator hook", function ([
             await this.validatorContract.removeBlacklisted(tokenHolder, {
               from: owner,
             });
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.token.transfer(recipient, amount, { from: tokenHolder })
             );
           });
@@ -1408,7 +1408,7 @@ contract("ERC1400 with validator hook", function ([
                 const amount = approvedAmount + 1;
 
                 it("reverts", async function () {
-                  await shouldFail.reverting(
+                  await expectRevert.unspecified(
                     this.token.transferFrom(tokenHolder, recipient, amount, {
                       from: operator,
                     })
@@ -1421,7 +1421,7 @@ contract("ERC1400 with validator hook", function ([
               const amount = issuanceAmount;
 
               it("reverts", async function () {
-                await shouldFail.reverting(
+                await expectRevert.unspecified(
                   this.token.transferFrom(tokenHolder, ZERO_ADDRESS, amount, {
                     from: operator,
                   })
@@ -1447,7 +1447,7 @@ contract("ERC1400 with validator hook", function ([
                 VALID_CERTIFICATE,
                 { from: owner }
               );
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 this.token.transferFrom(tokenHolder, recipient, 3, {
                   from: operator,
                 })
@@ -1481,7 +1481,7 @@ contract("ERC1400 with validator hook", function ([
           });
           describe("when the operator is not approved and not authorized", function () {
             it("reverts", async function () {
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 this.token.transferFrom(tokenHolder, recipient, amount, {
                   from: operator,
                 })
@@ -1507,7 +1507,7 @@ contract("ERC1400 with validator hook", function ([
           );
         });
         it("reverts", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.transferFrom(tokenHolder, recipient, amount, {
               from: operator,
             })
@@ -1531,7 +1531,7 @@ contract("ERC1400 with validator hook", function ([
           );
         });
         it("reverts", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.transferFrom(tokenHolder, recipient, amount, {
               from: operator,
             })
@@ -1636,7 +1636,7 @@ contract("ERC1400 with validator hook", function ([
       });
       it("reverts", async function () {
         await assertBalance(this.token, tokenHolder, issuanceAmount);
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.transfer(recipient, issuanceAmount, { from: tokenHolder })
         );
       });
@@ -1648,7 +1648,7 @@ contract("ERC1400 with validator hook", function ([
           issuanceAmount
         );
 
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.transferByPartition(
             partition1,
             recipient,
@@ -1706,7 +1706,7 @@ contract("ERC1400 with validator hook", function ([
         const spendableBalance = parseInt(await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder))
 
         const transferAmount = spendableBalance + 1
-        await shouldFail.reverting(this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder }))
+        await expectRevert.unspecified(this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder }))
 
         await this.validatorContract.setHoldsActivated(false, { from: owner })
         assert.equal(await this.validatorContract.isHoldsActivated(), false)
@@ -1718,7 +1718,7 @@ contract("ERC1400 with validator hook", function ([
     });
     describe("when holds are not activated by the owner", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(this.validatorContract.setHoldsActivated(true, { from: tokenHolder }));
+        await expectRevert.unspecified(this.validatorContract.setHoldsActivated(true, { from: tokenHolder }));
       });
     });
   });
@@ -1857,7 +1857,7 @@ contract("ERC1400 with validator hook", function ([
                 const initialSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder)
 
                 const transferAmount = initialSpendableBalance + 1
-                await shouldFail.reverting(this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder }))
+                await expectRevert.unspecified(this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder }))
               });
               it("emits an event", async function () {
                 const holdId = newHoldId();
@@ -1885,7 +1885,7 @@ contract("ERC1400 with validator hook", function ([
                 const holdId = newHoldId();
                 const secretHashPair = newSecretHashPair();
                 const initialSpendableBalance = parseInt(await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder))
-                await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, initialSpendableBalance+1, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
+                await expectRevert.unspecified(this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, initialSpendableBalance+1, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
               });
             });
           });
@@ -1893,7 +1893,7 @@ contract("ERC1400 with validator hook", function ([
             it("reverts", async function () {
               const holdId = newHoldId();
               const secretHashPair = newSecretHashPair();
-              await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, recipient, ZERO_ADDRESS, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
+              await expectRevert.unspecified(this.validatorContract.hold(this.token.address, holdId, recipient, ZERO_ADDRESS, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
             });
           });
         });
@@ -1902,7 +1902,7 @@ contract("ERC1400 with validator hook", function ([
             const holdId = newHoldId();
             const secretHashPair = newSecretHashPair();
             await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, 1, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder })
-            await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, 1, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
+            await expectRevert.unspecified(this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, 1, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
           });
         });
       });
@@ -1910,7 +1910,7 @@ contract("ERC1400 with validator hook", function ([
         it("reverts", async function () {
           const holdId = newHoldId();
           const secretHashPair = newSecretHashPair();
-          await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, 0, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
+          await expectRevert.unspecified(this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, 0, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
         });
       });
     });
@@ -1918,7 +1918,7 @@ contract("ERC1400 with validator hook", function ([
       it("reverts", async function () {
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await shouldFail.reverting(this.validatorContract.hold(this.token.address, holdId, ZERO_ADDRESS, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
+        await expectRevert.unspecified(this.validatorContract.hold(this.token.address, holdId, ZERO_ADDRESS, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
       });
     });
   });
@@ -1986,7 +1986,7 @@ contract("ERC1400 with validator hook", function ([
         const time = parseInt(await this.clock.getTime());
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await shouldFail.reverting(this.validatorContract.holdWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time-1, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
+        await expectRevert.unspecified(this.validatorContract.holdWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time-1, secretHashPair.hash, ZERO_ADDRESS, 0, { from: tokenHolder }))
       });
     });
   });
@@ -2039,7 +2039,7 @@ contract("ERC1400 with validator hook", function ([
         it("reverts", async function () {
           const holdId = newHoldId();
           const secretHashPair = newSecretHashPair();
-          await shouldFail.reverting(this.validatorContract.holdFrom(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: recipient }));
+          await expectRevert.unspecified(this.validatorContract.holdFrom(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: recipient }));
         });
       });
     });
@@ -2047,7 +2047,7 @@ contract("ERC1400 with validator hook", function ([
       it("reverts", async function () {
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await shouldFail.reverting(this.validatorContract.holdFrom(this.token.address, holdId, ZERO_ADDRESS, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller }));
+        await expectRevert.unspecified(this.validatorContract.holdFrom(this.token.address, holdId, ZERO_ADDRESS, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller }));
       });
     });
   });
@@ -2108,7 +2108,7 @@ contract("ERC1400 with validator hook", function ([
               const time = parseInt(await this.clock.getTime());
               const holdId = newHoldId();
               const secretHashPair = newSecretHashPair();
-              await shouldFail.reverting(this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: recipient }));
+              await expectRevert.unspecified(this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: recipient }));
             });
           });
         });
@@ -2117,7 +2117,7 @@ contract("ERC1400 with validator hook", function ([
             const time = parseInt(await this.clock.getTime());
             const holdId = newHoldId();
             const secretHashPair = newSecretHashPair();
-            await shouldFail.reverting(this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, ZERO_ADDRESS, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller }));
+            await expectRevert.unspecified(this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, ZERO_ADDRESS, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller }));
           });
         });
       });
@@ -2141,7 +2141,7 @@ contract("ERC1400 with validator hook", function ([
         const time = parseInt(await this.clock.getTime());
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await shouldFail.reverting(this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, time-1, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller }));
+        await expectRevert.unspecified(this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, time-1, secretHashPair.hash, ZERO_ADDRESS, 0, { from: controller }));
       });
     });
   });
@@ -2298,7 +2298,7 @@ contract("ERC1400 with validator hook", function ([
       describe("when hold can not be released", function () {
         describe("when hold is released by the hold sender", function () {
           it("reverts", async function () {
-            await shouldFail.reverting(this.validatorContract.releaseHold(this.token.address, this.holdId, { from: tokenHolder }));
+            await expectRevert.unspecified(this.validatorContract.releaseHold(this.token.address, this.holdId, { from: tokenHolder }));
           });
         });
       });
@@ -2334,7 +2334,7 @@ contract("ERC1400 with validator hook", function ([
         this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
         assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_RELEASED_BY_NOTARY);
         
-        await shouldFail.reverting(this.validatorContract.releaseHold(this.token.address, this.holdId, { from: notary }));
+        await expectRevert.unspecified(this.validatorContract.releaseHold(this.token.address, this.holdId, { from: notary }));
       });
     });
   });
@@ -2435,7 +2435,7 @@ contract("ERC1400 with validator hook", function ([
           });
           describe("when hold is neither renewed by the sender, nor by an operator", function () {
             it("reverts", async function () {
-              await shouldFail.reverting(this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: recipient }));
+              await expectRevert.unspecified(this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: recipient }));
             });
           });
         });
@@ -2448,7 +2448,7 @@ contract("ERC1400 with validator hook", function ([
             // Wait for more than an hour
             await advanceTimeAndBlock(SECONDS_IN_AN_HOUR + 100);
 
-            await shouldFail.reverting(this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: tokenHolder }));
+            await expectRevert.unspecified(this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: tokenHolder }));
           });
         });
       });
@@ -2484,7 +2484,7 @@ contract("ERC1400 with validator hook", function ([
           this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
           assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_RELEASED_BY_NOTARY);
 
-          await shouldFail.reverting(this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: tokenHolder }));
+          await expectRevert.unspecified(this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: tokenHolder }));
         });
       });
     });
@@ -2576,7 +2576,7 @@ contract("ERC1400 with validator hook", function ([
     describe("when expiration date is not valid", function () {
       it("reverts", async function () {
         this.time = await this.clock.getTime();
-        await shouldFail.reverting(this.validatorContract.renewHoldWithExpirationDate(this.token.address, this.holdId, this.time-1, { from: tokenHolder }));
+        await expectRevert.unspecified(this.validatorContract.renewHoldWithExpirationDate(this.token.address, this.holdId, this.time-1, { from: tokenHolder }));
       });
     });
   });
@@ -2867,7 +2867,7 @@ contract("ERC1400 with validator hook", function ([
               });
               describe("when value is higher than hold value", function () {
                 it("reverts", async function() {
-                  await shouldFail.reverting(this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount+1, EMPTY_BYTE32, { from: notary }));
+                  await expectRevert.unspecified(this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount+1, EMPTY_BYTE32, { from: notary }));
                 });
               });
             });
@@ -2876,7 +2876,7 @@ contract("ERC1400 with validator hook", function ([
                 // Wait for more than an hour
                 await advanceTimeAndBlock(SECONDS_IN_AN_HOUR + 100);
 
-                await shouldFail.reverting(this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount, EMPTY_BYTE32, { from: notary }));
+                await expectRevert.unspecified(this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount, EMPTY_BYTE32, { from: notary }));
               });
             });
           });
@@ -2906,14 +2906,14 @@ contract("ERC1400 with validator hook", function ([
             });
             describe("when the token sender doesn't provide the correct secret", function () {
               it("reverts", async function () {
-                await shouldFail.reverting(this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount, EMPTY_BYTE32, { from: recipient }));
+                await expectRevert.unspecified(this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount, EMPTY_BYTE32, { from: recipient }));
               });
             });
           });
         });
         describe("when value is nil", function () {
           it("reverts", async function () {
-            await shouldFail.reverting(this.validatorContract.executeHold(this.token.address, this.holdId, 0, EMPTY_BYTE32, { from: notary }));
+            await expectRevert.unspecified(this.validatorContract.executeHold(this.token.address, this.holdId, 0, EMPTY_BYTE32, { from: notary }));
           });
         });
       });
@@ -2957,7 +2957,7 @@ contract("ERC1400 with validator hook", function ([
         this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
         assert.equal(parseInt(this.holdData[10]), HOLD_STATUS_RELEASED_BY_NOTARY);
 
-        await shouldFail.reverting(this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount, EMPTY_BYTE32, { from: notary }));
+        await expectRevert.unspecified(this.validatorContract.executeHold(this.token.address, this.holdId, holdAmount, EMPTY_BYTE32, { from: notary }));
       });
     });
   });

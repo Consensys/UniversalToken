@@ -22,7 +22,7 @@
     "lint:all": "yarn run lint && yarn run lint:sol",
     "lint:all:fix": "yarn run lint:fix && yarn run lint:sol:fix",
     "console": "truffle console",
-    "remix": "python -mwebbrowser http://localhost:8080 && ./node_modules/remix-ide/bin/remix-ide"
+    "remix": "python -mwebbrowser http://localhost:8080 && remix-ide"
   },
   "repository": {
     "type": "git",
@@ -66,11 +66,10 @@
     "ethereumjs-testrpc-sc": "6.1.6",
     "ethereumjs-util": "^5.1.2",
     "fs-extra": "^7.0.1",
-    "ganache-cli": "^6.4.0",
     "husky": "^4.3.0",
     "lint-staged": "^10.4.0",
-    "openzeppelin-test-helpers": "^0.1.2",
-    "remix-ide": "^0.7.4",
+    "@openzeppelin/test-helpers": "^0.5.6",
+    "remix-ide": "^0.10.3",
     "sol-merger": "0.1.4",
     "solidity-coverage": "0.7.10",
     "solium": "^1.2.5",

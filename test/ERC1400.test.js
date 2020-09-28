@@ -1,4 +1,4 @@
-const { shouldFail } = require("openzeppelin-test-helpers");
+const { expectRevert } = require("@openzeppelin/test-helpers");
 
 const { soliditySha3 } = require("web3-utils");
 
@@ -224,7 +224,7 @@ contract("ERC1400", function ([
 
   describe("contract creation", function () {
     it("fails deploying the contract if granularity is lower than 1", async function () {
-      await shouldFail.reverting(
+      await expectRevert.unspecified(
         ERC1400.new("ERC1400Token", "DAU", 0, [controller], partitions)
       );
     });
@@ -328,7 +328,7 @@ contract("ERC1400", function ([
           const amount = issuanceAmount + 1;
 
           it("reverts", async function () {
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.token.transfer(recipient, amount, { from: tokenHolder })
             );
           });
@@ -339,7 +339,7 @@ contract("ERC1400", function ([
         const amount = issuanceAmount;
 
         it("reverts", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.transfer(ZERO_ADDRESS, amount, { from: tokenHolder })
           );
         });
@@ -361,7 +361,7 @@ contract("ERC1400", function ([
           ZERO_BYTES32,
           { from: owner }
         );
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.transfer(recipient, 3, { from: tokenHolder })
         );
       });
@@ -447,7 +447,7 @@ contract("ERC1400", function ([
               const amount = approvedAmount + 1;
 
               it("reverts", async function () {
-                await shouldFail.reverting(
+                await expectRevert.unspecified(
                   this.token.transferFrom(tokenHolder, recipient, amount, {
                     from: operator,
                   })
@@ -460,7 +460,7 @@ contract("ERC1400", function ([
             const amount = issuanceAmount;
 
             it("reverts", async function () {
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 this.token.transferFrom(tokenHolder, ZERO_ADDRESS, amount, {
                   from: operator,
                 })
@@ -484,7 +484,7 @@ contract("ERC1400", function ([
               ZERO_BYTES32,
               { from: owner }
             );
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.token.transferFrom(tokenHolder, recipient, 3, {
                 from: operator,
               })
@@ -513,7 +513,7 @@ contract("ERC1400", function ([
         });
         describe("when the operator is not approved and not authorized", function () {
           it("reverts", async function () {
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.token.transferFrom(tokenHolder, recipient, amount, {
                 from: operator,
               })
@@ -559,7 +559,7 @@ contract("ERC1400", function ([
     });
     describe("when the operator to approve is the zero address", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.approve(ZERO_ADDRESS, amount, { from: tokenHolder })
         );
       });
@@ -615,7 +615,7 @@ contract("ERC1400", function ([
       });
       describe("when sender is not a controller", function () {
         it("reverts", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.setDocument(documentName, documentURI, documentHash, {
               from: unknown,
             })
@@ -639,7 +639,7 @@ contract("ERC1400", function ([
       });
       describe("when docuemnt does not exist", function () {
         it("reverts", async function () {
-          await shouldFail.reverting(this.token.getDocument(documentName));
+          await expectRevert.unspecified(this.token.getDocument(documentName));
         });
       });
     });
@@ -825,7 +825,7 @@ contract("ERC1400", function ([
               await this.token.setDefaultPartitions(reversedPartitions, {
                 from: owner,
               });
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 this.token.transferWithData(
                   recipient,
                   3.5 * issuanceAmount,
@@ -847,7 +847,7 @@ contract("ERC1400", function ([
               issuanceAmount,
             ]);
 
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.token.transferWithData(
                 ZERO_ADDRESS,
                 2.5 * issuanceAmount,
@@ -883,7 +883,7 @@ contract("ERC1400", function ([
             issuanceAmount,
           ]);
 
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.transferWithData(recipient, 3, ZERO_BYTES32, {
               from: tokenHolder,
             })
@@ -907,7 +907,7 @@ contract("ERC1400", function ([
           partitions,
           [issuanceAmount, issuanceAmount, issuanceAmount]
         );
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.transferWithData(
             recipient,
             2.5 * issuanceAmount,
@@ -1028,7 +1028,7 @@ contract("ERC1400", function ([
                 await this.token.setDefaultPartitions(reversedPartitions, {
                   from: owner,
                 });
-                await shouldFail.reverting(
+                await expectRevert.unspecified(
                   this.token.transferFromWithData(
                     tokenHolder,
                     recipient,
@@ -1054,7 +1054,7 @@ contract("ERC1400", function ([
                   { from: owner }
                 );
 
-                await shouldFail.reverting(
+                await expectRevert.unspecified(
                   this.token.transferFromWithData(
                     tokenHolder,
                     recipient,
@@ -1069,7 +1069,7 @@ contract("ERC1400", function ([
           describe("when defaultPartitions have not been defined", function () {
             it("reverts", async function () {
               await this.token.setDefaultPartitions([], { from: owner });
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 this.token.transferFromWithData(
                   tokenHolder,
                   recipient,
@@ -1092,7 +1092,7 @@ contract("ERC1400", function ([
               issuanceAmount,
             ]);
 
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.token.transferFromWithData(
                 tokenHolder,
                 ZERO_ADDRESS,
@@ -1129,7 +1129,7 @@ contract("ERC1400", function ([
             issuanceAmount,
           ]);
 
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.transferFromWithData(
               tokenHolder,
               recipient,
@@ -1146,7 +1146,7 @@ contract("ERC1400", function ([
         await this.token.setDefaultPartitions(reversedPartitions, {
           from: owner,
         });
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.transferFromWithData(
             tokenHolder,
             recipient,
@@ -1245,7 +1245,7 @@ contract("ERC1400", function ([
       });
       describe("when the transfer amount is equal to 0", function () {
         it("reverts", async function () {
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.transferByPartition(
               partition2,
               recipient,
@@ -1259,7 +1259,7 @@ contract("ERC1400", function ([
     });
     describe("when the sender does not have enough balance for this partition", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.transferByPartition(
             partition2,
             recipient,
@@ -1393,7 +1393,7 @@ contract("ERC1400", function ([
             ),
             approvedAmount
           );
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.operatorTransferByPartition(
               partition1,
               tokenHolder,
@@ -1641,7 +1641,7 @@ contract("ERC1400", function ([
           await this.token.authorizeOperatorByPartition(partition1, operator, {
             from: tokenHolder,
           });
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.operatorTransferByPartition(
               partition1,
               tokenHolder,
@@ -1692,7 +1692,7 @@ contract("ERC1400", function ([
     });
     describe("when the sender is neither an operator, nor approved", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.operatorTransferByPartition(
             partition1,
             tokenHolder,
@@ -1738,7 +1738,7 @@ contract("ERC1400", function ([
     });
     describe("when sender authorizes himself", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.authorizeOperator(tokenHolder, { from: tokenHolder })
         );
       });
@@ -1780,7 +1780,7 @@ contract("ERC1400", function ([
     });
     describe("when sender revokes himself", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.revokeOperator(tokenHolder, { from: tokenHolder })
         );
       });
@@ -2081,7 +2081,7 @@ contract("ERC1400", function ([
             });
             describe("when the recipient is not the zero address", function () {
               it("issues the requested amount", async function () {
-                await shouldFail.reverting(
+                await expectRevert.unspecified(
                   this.token.issue(ZERO_ADDRESS, issuanceAmount, ZERO_BYTES32, {
                     from: owner,
                   })
@@ -2098,7 +2098,7 @@ contract("ERC1400", function ([
                 [controller],
                 partitions
               );
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 this.token.issue(tokenHolder, 1, ZERO_BYTES32, { from: owner })
               );
             });
@@ -2113,7 +2113,7 @@ contract("ERC1400", function ([
               [controller],
               []
             );
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.token.issue(tokenHolder, issuanceAmount, ZERO_BYTES32, {
                 from: owner,
               })
@@ -2126,7 +2126,7 @@ contract("ERC1400", function ([
           assert.isTrue(await this.token.isIssuable());
           await this.token.renounceIssuance({ from: owner });
           assert.isTrue(!(await this.token.isIssuable()));
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.issue(tokenHolder, issuanceAmount, ZERO_BYTES32, {
               from: owner,
             })
@@ -2136,7 +2136,7 @@ contract("ERC1400", function ([
     });
     describe("when sender is not the issuer", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.issue(tokenHolder, issuanceAmount, ZERO_BYTES32, {
             from: unknown,
           })
@@ -2241,7 +2241,7 @@ contract("ERC1400", function ([
           assert.isTrue(await this.token.isIssuable());
           await this.token.renounceIssuance({ from: owner });
           assert.isTrue(!(await this.token.isIssuable()));
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.issueByPartition(
               partition1,
               tokenHolder,
@@ -2255,7 +2255,7 @@ contract("ERC1400", function ([
     });
     describe("when sender is not the issuer", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.issueByPartition(
             partition1,
             tokenHolder,
@@ -2356,7 +2356,7 @@ contract("ERC1400", function ([
             await this.token.setDefaultPartitions(reversedPartitions, {
               from: owner,
             });
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.token.redeem(3.5 * issuanceAmount, ZERO_BYTES32, {
                 from: tokenHolder,
               })
@@ -2389,7 +2389,7 @@ contract("ERC1400", function ([
             issuanceAmount,
           ]);
 
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.redeem(3, ZERO_BYTES32, { from: tokenHolder })
           );
         });
@@ -2398,7 +2398,7 @@ contract("ERC1400", function ([
     describe("when defaultPartitions have not been defined", function () {
       it("reverts", async function () {
         await this.token.setDefaultPartitions([], { from: owner });
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.redeem(2.5 * issuanceAmount, ZERO_BYTES32, {
             from: tokenHolder,
           })
@@ -2510,7 +2510,7 @@ contract("ERC1400", function ([
                   issuanceAmount,
                 ]);
 
-                await shouldFail.reverting(
+                await expectRevert.unspecified(
                   this.token.redeemFrom(
                     ZERO_ADDRESS,
                     2.5 * issuanceAmount,
@@ -2538,7 +2538,7 @@ contract("ERC1400", function ([
                   from: owner,
                 });
 
-                await shouldFail.reverting(
+                await expectRevert.unspecified(
                   this.token.redeemFrom(
                     ZERO_ADDRESS,
                     2.5 * issuanceAmount,
@@ -2574,7 +2574,7 @@ contract("ERC1400", function ([
                 issuanceAmount,
               ]);
 
-              await shouldFail.reverting(
+              await expectRevert.unspecified(
                 this.token.redeemFrom(tokenHolder, 3, ZERO_BYTES32, {
                   from: operator,
                 })
@@ -2587,7 +2587,7 @@ contract("ERC1400", function ([
             await this.token.setDefaultPartitions(reversedPartitions, {
               from: owner,
             });
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.token.redeemFrom(
                 tokenHolder,
                 3.5 * issuanceAmount,
@@ -2617,7 +2617,7 @@ contract("ERC1400", function ([
               from: owner,
             });
 
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.token.redeemFrom(
                 tokenHolder,
                 3.5 * issuanceAmount,
@@ -2631,7 +2631,7 @@ contract("ERC1400", function ([
       describe("when defaultPartitions have not been defined", function () {
         it("reverts", async function () {
           await this.token.setDefaultPartitions([], { from: owner });
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.redeemFrom(
               tokenHolder,
               2.5 * issuanceAmount,
@@ -2647,7 +2647,7 @@ contract("ERC1400", function ([
         await this.token.setDefaultPartitions(reversedPartitions, {
           from: owner,
         });
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.redeemFrom(
             tokenHolder,
             2.5 * issuanceAmount,
@@ -2721,7 +2721,7 @@ contract("ERC1400", function ([
     });
     describe("when the redeemer does not have enough balance for this partition", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.redeemByPartition(partition2, redeemAmount, ZERO_BYTES32, {
             from: tokenHolder,
           })
@@ -2737,7 +2737,7 @@ contract("ERC1400", function ([
           ZERO_BYTES32,
           { from: owner }
         );
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.redeemByPartition(partition2, 0, ZERO_BYTES32, {
             from: tokenHolder,
           })
@@ -2826,7 +2826,7 @@ contract("ERC1400", function ([
               { from: tokenHolder }
             );
 
-            await shouldFail.reverting(
+            await expectRevert.unspecified(
               this.token.operatorRedeemByPartition(
                 partition1,
                 tokenHolder,
@@ -2861,7 +2861,7 @@ contract("ERC1400", function ([
     });
     describe("when the sender is not an operator", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.operatorRedeemByPartition(
             partition1,
             tokenHolder,
@@ -3138,7 +3138,7 @@ contract("ERC1400", function ([
     });
     describe("when the caller is not the contract owner", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.setControllers(
             [controller_alternative1, controller_alternative2],
             { from: unknown }
@@ -3339,7 +3339,7 @@ contract("ERC1400", function ([
     });
     describe("when the caller is not the contract owner", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.setPartitionControllers(
             partition1,
             [controller_alternative1, controller_alternative2],
@@ -3380,7 +3380,7 @@ contract("ERC1400", function ([
     });
     describe("when the sender is not the contract owner", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.setDefaultPartitions(reversedPartitions, { from: unknown })
         );
       });
@@ -3442,7 +3442,7 @@ contract("ERC1400", function ([
     });
     describe("when the operator to approve is the zero address", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.approveByPartition(partition1, ZERO_ADDRESS, amount, {
             from: tokenHolder,
           })
@@ -3547,7 +3547,7 @@ contract("ERC1400", function ([
           );
           await assertBalanceOf(this.token, recipient, partition1, 0);
 
-          await shouldFail.reverting(
+          await expectRevert.unspecified(
             this.token.transferByPartition(
               partition1,
               recipient,
@@ -3619,7 +3619,7 @@ contract("ERC1400", function ([
     });
     describe("when the sender is not the contract owner", function () {
       it("reverts", async function () {
-        await shouldFail.reverting(
+        await expectRevert.unspecified(
           this.token.migrate(this.migratedToken.address, true, {
             from: unknown,
           })

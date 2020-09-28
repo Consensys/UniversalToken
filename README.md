@@ -243,8 +243,6 @@ Prerequisites: please make sure you installed "yarn" on your environment.
 $ brew install yarn
 ```
 
-Make sure your node version is <=10.x.x. (yarn command fails for more recent node versions).
-
 Test the smart contract, by running the following commands:
 ```
 $ git clone git@github.com:ConsenSys/ERC1400.git
