@@ -14,7 +14,7 @@ const ERC1400_TOKENS_VALIDATOR = 'ERC1400TokensValidator';
 module.exports = async function (deployer, network, accounts) {
   const tokenInstance = await ERC1400.deployed();
   console.log('\n   > Add token extension for token deployed at address', tokenInstance.address);
-  await deployer.deploy(Extension, true, false, true);
+  await deployer.deploy(Extension, true, false, true, true);
   console.log('\n   > Token extension deployment: Success -->', Extension.address);
   await tokenInstance.setHookContract(Extension.address, ERC1400_TOKENS_VALIDATOR);
   console.log('\n   > Token connection to extension: Success');
