@@ -34,6 +34,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   bool internal _whitelistActivated;
   bool internal _blacklistActivated;
   bool internal _holdsActivated;
+  bool internal _unrestrictedHoldsActivated;
 
   enum HoldStatusCode {
     Nonexistent,
@@ -54,8 +55,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     uint256 expiration;
     bytes32 secretHash;
     bytes32 secret;
-    address paymentToken;
-    uint256 paymentAmount;
     HoldStatusCode status;
   }
 
@@ -74,6 +73,12 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   // Total balance on hold.
   mapping(address => uint256) internal _totalHeldBalance;
 
+  // Mapping from token to token controllers.
+  mapping(address => address[]) internal _tokenControllers;
+
+  // Mapping from (token, operator) to token controller status.
+  mapping(address => mapping(address => bool)) internal _isTokenController;
+
   event HoldCreated(
     address indexed token,
     bytes32 indexed holdId,
@@ -83,21 +88,49 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     address indexed notary,
     uint256 value,
     uint256 expiration,
-    bytes32 secretHash,
-    address paymentToken,
-    uint256 paymentAmount
+    bytes32 secretHash
   );
   event HoldReleased(address indexed token, bytes32 holdId, address indexed notary, HoldStatusCode status);
   event HoldRenewed(address indexed token, bytes32 holdId, address indexed notary, uint256 oldExpiration, uint256 newExpiration);
   event HoldExecuted(address indexed token, bytes32 holdId, address indexed notary, uint256 heldValue, uint256 transferredValue, bytes32 secret);
   event HoldExecutedAndKeptOpen(address indexed token, bytes32 holdId, address indexed notary, uint256 heldValue, uint256 transferredValue, bytes32 secret);
   
-  constructor(bool whitelistActivated, bool blacklistActivated, bool holdsActivated) public {
+  /**
+   * @dev Modifier to verify if sender is a token controller.
+   */
+  modifier onlyTokenController(address tokenAddress) {
+    require(
+      msg.sender == Ownable(tokenAddress).owner() ||
+      _isTokenController[tokenAddress][msg.sender],
+      "Sender is not a token controller."
+    );
+    _;
+  }
+
+  /**
+   * @dev Modifier to verify if hold can be created.
+   */
+  modifier holdcanBeCreated(address token, bytes32 partition, address sender) {
+    if (sender == msg.sender) {
+      require(_unrestrictedHoldsActivated, "Unrestricted hold feature is not activated");
+    } else {
+      require(sender != address(0), "Payer address must not be zero address");
+      if (_unrestrictedHoldsActivated) {
+        require(IERC1400(token).isOperatorForPartition(partition, msg.sender, sender), "This operator is not authorized");
+      } else {
+        require(_isTokenController[token][msg.sender], "Only token controllers of involved tokens can create a hold");
+      }
+    }
+    _;
+  }
+
+  constructor(bool whitelistActivated, bool blacklistActivated, bool holdsActivated, bool unrestrictedHoldsActivated) public {
     ERC1820Implementer._setInterface(ERC1400_TOKENS_VALIDATOR);
 
     _whitelistActivated = whitelistActivated;
     _blacklistActivated = blacklistActivated;
     _holdsActivated = holdsActivated;
+    _unrestrictedHoldsActivated = unrestrictedHoldsActivated;
   }
 
   /**
@@ -275,6 +308,22 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     _holdsActivated = holdsActivated;
   }
 
+    /**
+   * @dev Know if unrestricted holds feature is activated.
+   * @return bool 'true' if unrestricted holds feature is activated, 'false' if not.
+   */
+  function isUnrestrictedHoldsActivated() external view returns (bool) {
+    return _unrestrictedHoldsActivated;
+  }
+
+  /**
+   * @dev Set unrestricted holds activation status.
+   * @param unrestrictedHoldsActivated 'true' if unrestricted holds shall be activated, 'false' if not.
+   */
+  function setUnrestrictedHoldsActivated(bool unrestrictedHoldsActivated) external onlyOwner {
+    _unrestrictedHoldsActivated = unrestrictedHoldsActivated;
+  }
+
   /**
    * @dev Create a new token hold.
    */
@@ -286,10 +335,11 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     bytes32 partition,
     uint256 value,
     uint256 timeToExpiration,
-    bytes32 secretHash,
-    address paymentToken,
-    uint256 paymentAmount
-  ) external returns (bool)
+    bytes32 secretHash
+  ) 
+    external
+    holdcanBeCreated(token, partition, msg.sender)
+    returns (bool)
   {
     return _hold(
       token,
@@ -300,9 +350,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
       partition,
       value,
       _computeExpiration(timeToExpiration),
-      secretHash,
-      paymentToken,
-      paymentAmount
+      secretHash
     );
   }
 
@@ -318,13 +366,12 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     bytes32 partition,
     uint256 value,
     uint256 timeToExpiration,
-    bytes32 secretHash,
-    address paymentToken,
-    uint256 paymentAmount
-  ) external returns (bool)
+    bytes32 secretHash
+  )
+    external
+    holdcanBeCreated(token, partition, sender)
+    returns (bool)
   {
-    _checkHoldFrom(token, partition, msg.sender, sender);
-
     return _hold(
       token,
       holdId,
@@ -334,9 +381,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
       partition,
       value,
       _computeExpiration(timeToExpiration),
-      secretHash,
-      paymentToken,
-      paymentAmount
+      secretHash
     );
   }
 
@@ -351,10 +396,11 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     bytes32 partition,
     uint256 value,
     uint256 expiration,
-    bytes32 secretHash,
-    address paymentToken,
-    uint256 paymentAmount
-  ) external returns (bool)
+    bytes32 secretHash
+  )
+    external
+    holdcanBeCreated(token, partition, msg.sender)
+    returns (bool)
   {
     _checkExpiration(expiration);
 
@@ -367,9 +413,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
       partition,
       value,
       expiration,
-      secretHash,
-      paymentToken,
-      paymentAmount
+      secretHash
     );
   }
 
@@ -385,12 +429,12 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     bytes32 partition,
     uint256 value,
     uint256 expiration,
-    bytes32 secretHash,
-    address paymentToken,
-    uint256 paymentAmount
-  ) external returns (bool)
+    bytes32 secretHash
+  )
+    external
+    holdcanBeCreated(token, partition, sender)
+    returns (bool)
   {
-    _checkHoldFrom(token, partition, msg.sender, sender);
     _checkExpiration(expiration);
 
     return _hold(
@@ -402,9 +446,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
       partition,
       value,
       expiration,
-      secretHash,
-      paymentToken,
-      paymentAmount
+      secretHash
     );
   }
 
@@ -420,9 +462,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     bytes32 partition,
     uint256 value,
     uint256 expiration,
-    bytes32 secretHash,
-    address paymentToken,
-    uint256 paymentAmount
+    bytes32 secretHash
   ) internal returns (bool)
   {
     Hold storage newHold = _holds[token][holdId];
@@ -440,8 +480,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     newHold.value = value;
     newHold.expiration = expiration;
     newHold.secretHash = secretHash;
-    newHold.paymentToken = paymentToken;
-    newHold.paymentAmount = paymentAmount;
     newHold.status = HoldStatusCode.Ordered;
 
     _increaseHeldBalance(token, partition, sender, value);
@@ -455,9 +493,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
       notary,
       value,
       expiration,
-      secretHash,
-      paymentToken,
-      paymentAmount
+      secretHash
     );
 
     return true;
@@ -743,14 +779,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   }
 
   /**
-   * @dev Check if operator can create hold on behalf of token holder.
-   */
-  function _checkHoldFrom(address token, bytes32 partition, address operator, address sender) private view {
-    require(sender != address(0), "Payer address must not be zero address");
-    require(IERC1400(token).isOperatorForPartition(partition, operator, sender), "This operator is not authorized");
-  }
-
-  /**
    * @dev Retrieve hold data.
    */
   function retrieveHoldData(address token, bytes32 holdId) external view returns (
@@ -762,8 +790,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     uint256 expiration,
     bytes32 secretHash,
     bytes32 secret,
-    address paymentToken,
-    uint256 paymentAmount,
     HoldStatusCode status)
   {
     Hold storage retrievedHold = _holds[token][holdId];
@@ -776,8 +802,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
       retrievedHold.expiration,
       retrievedHold.secretHash,
       retrievedHold.secret,
-      retrievedHold.paymentToken,
-      retrievedHold.paymentAmount,
       retrievedHold.status
     );
   }
@@ -836,6 +860,41 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
    */
   function _spendableBalanceOfByPartition(address token, bytes32 partition, address account) internal view returns (uint256) {
     return IERC1400(token).balanceOfByPartition(partition, account) - _heldBalanceByPartition[token][account][partition];
+  }
+
+  /************************** TOKEN CONTROLLERS *******************************/
+
+  /**
+   * @dev Get the list of token controllers for a given token.
+   * @param tokenAddress Token address.
+   * @return List of addresses of all the token controllers for a given token.
+   */
+  function tokenControllers(address tokenAddress) external view returns (address[] memory) {
+    return _tokenControllers[tokenAddress];
+  }
+
+  /**
+   * @dev Set list of token controllers for a given token.
+   * @param tokenAddress Token address.
+   * @param operators Operators addresses.
+   */
+  function setTokenControllers(address tokenAddress, address[] calldata operators) external onlyTokenController(tokenAddress) {
+    _setTokenControllers(tokenAddress, operators);
+  }
+
+  /**
+   * @dev Set list of token controllers for a given token.
+   * @param tokenAddress Token address.
+   * @param operators Operators addresses.
+   */
+  function _setTokenControllers(address tokenAddress, address[] memory operators) internal {
+    for (uint i = 0; i<_tokenControllers[tokenAddress].length; i++){
+      _isTokenController[tokenAddress][_tokenControllers[tokenAddress][i]] = false;
+    }
+    for (uint j = 0; j<operators.length; j++){
+      _isTokenController[tokenAddress][operators[j]] = true;
+    }
+    _tokenControllers[tokenAddress] = operators;
   }
 
 }
