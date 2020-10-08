@@ -71,7 +71,7 @@ Building upon the existing system is the only way to increase adoption.
 
 We’ll now deep dive into those 4 requirements to see what essential features a universal token for assets and payments shall offer.
 
-### Interoperability with the Ethereum ecosystem
+## Interoperability with the Ethereum ecosystem
 
  ![Picture13](images/Picture13.png)
 
@@ -89,14 +89,14 @@ Airswap p2p trading plaform uses those functions to execute delivery-vs-payment 
 #### Possibility to escrow tokens
 Another important aspect for interoperability is the possibility to escrow tokens.
 
-Escrow a token means accepting a smart contract to be owner of the token (instead of a human person).
+Escrow a token means accepting a smart contract to be the owner of the token (instead of a human person).
 Token escrow mechanisms are used by lots of DeFi smart contract:
  - Lending contracts like Compound need escrows to store collateralized tokens
  - Decentralized exchanges like Uniswap or derivatives platforms like Synthetix need escrows to create liquidity pools
 
 In the end, an ERC20 interface + the possibility to escrow tokens are mandatory to be compatible with the Ethereum ecosystem.
 
-### Control Mechanisms
+## Control Mechanisms
 
 Second major topic for assets and payments is control mechanisms.
 
@@ -119,7 +119,7 @@ This is seen by some as a really powerful feature, moving trust at the core of a
 
 Both setups, controllable or not, can be adapted, depending on the use case, and the “renounceControl” function allows to switch from one setup to the other.
 
-### Reliability of investor registry
+## Reliability of investor registry
 
  ![Picture16](images/Picture16.png)
 
@@ -137,17 +137,21 @@ The good point with token holds is they preserve the investor registry, and ensu
 
 Token holds are also very useful when it comes to distributing dividends to investors, in proportion to the amount of token they own, because we’re sure the investor registry is reliable.
 
-### Certainty of Execution for Delivery-vs-Payment
+## Certainty of Execution for Delivery-vs-Payment
 
  ![Picture17](images/Picture17.png)
 
 Delivery-vs-payment is an operation that consists in exchanging token representing cash against tokens representing assets.
 Delivery-vs-payment is a very powerful blockchain use case, as it can be done without middleman, but with certainty of execution.
 
+#### Allowances and escrows
+
 In today’s DeFi, most DvP use cases either rely on allowances or escrows in order to manage token exchanges.
 Both allowances and escrows are not optimal:
  - **Allowance mechanisms** don’t provide certainty of execution for delivery vs payment (since the allowance doesn’t prevent the user for spending his tokens for something else after he has created a trade order)
  - **Escrow mechanisms** do provide certainty of execution, but as described above, escrows do not preserve the accuracy of the registry (since the escrow contract becomes the owner of the tokens, instead of the investor). 
+
+#### Token holds
 
 Since allowances and escrows are not optimal, we’ve decided to use holds.
 A hold, similarly to an allowance, is an authorization created by the token holder, to allow someone else to transfer his tokens on his behalf.
@@ -158,8 +162,10 @@ Delivery-vs-payment based on token holds combines both:
  - The advantage of the escrow, that tokens can not be spent for something else before the trade execution
  - The advantage of the allowance, that preserves a reliable token registry 
 
+#### HTLC (Hash Time Locked Contract)
+
 Moreover, token holds are compatible with HTLC mechanism.
-HTLC (Hash Time Locked Contract) is a useful mechanism (description will be added soon) that allows to manage cases where atomic delivery-vs-payment can not be performed:
+HTLC is a useful mechanism (description will be added soon) that allows to manage cases where atomic delivery-vs-payment can not be performed:
  - Either when the cash token and asset tokens are on 2 different blockchain networks
  - Or when the cash token and asset tokens are private smart contracts (privacy groups, or zkAssets)
 
