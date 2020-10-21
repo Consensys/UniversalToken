@@ -435,7 +435,7 @@ $ yarn coverage
 ```
 
 
-## How to deploy the contract on a blokchain network?
+## How to deploy the contract on a blockchain network?
 
 #### Step1: Define Ethereum wallet and Ethereum network to use in ".env" file
 
@@ -460,7 +460,7 @@ $ yarn global add ganache-cli
 ```
 Then launch ganache:
 ```
-$ ganache-cli
+$ ganache-cli -p 7545
 ```
 
 In a different console, deploy the contract by running the migration script:

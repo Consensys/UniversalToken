@@ -22,7 +22,9 @@
     "lint:all": "yarn run lint && yarn run lint:sol",
     "lint:all:fix": "yarn run lint:fix && yarn run lint:sol:fix",
     "console": "truffle console",
-    "remix": "python -mwebbrowser http://localhost:8080 && remix-ide"
+    "remix": "python -mwebbrowser http://localhost:8080 && remix-ide",
+    "start:chain": "ganache-cli -p 7545",
+    "test": "yarn truffle test"
   },
   "repository": {
     "type": "git",
