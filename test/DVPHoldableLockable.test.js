@@ -6,13 +6,13 @@ const {
   revertToSnapshot,
 } = require("./utils/time");
 const { newSecretHashPair, newHoldId } = require("./utils/crypto");
-const { bytes32 } = require("./utils/regex");
 
 const HoldableToken = artifacts.require("ERC20HoldableToken");
-const SwapHoldableToken = artifacts.require("SwapHoldableToken");
+const DVPHoldableLockable = artifacts.require("DVPHoldableLockableACE");
 const ERC1820Registry = artifacts.require("ERC1820Registry");
 const ERC1400 = artifacts.require("ERC1400CertificateMock");
 const ERC1400TokensValidator = artifacts.require("ERC1400TokensValidator");
+const AztecCryptographyEngineMock = artifacts.require("AztecCryptographyEngineMock");
 
 const ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
 
@@ -66,7 +66,7 @@ const HoldStatusCode = Object.freeze({
 contract(
   "Holdable Token",
   ([
-    swapDeployer,
+    dvpDeployer,
     deployer1,
     deployer2,
     holder1,
@@ -80,10 +80,25 @@ contract(
     const secretHashPair = newSecretHashPair();
 
     before(async () => {
-      this.swap = await SwapHoldableToken.new({ from: swapDeployer });
+      this.ace = await AztecCryptographyEngineMock.new({ from: dvpDeployer });
+      this.dvp = await DVPHoldableLockable.new(this.ace.address, { from: dvpDeployer });
       this.registry = await ERC1820Registry.at(
         "0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24"
       );
+    });
+    describe("DVP setup", () => {
+      it("fail to execute swap with incorrect preimage", async () => {
+        try {
+          await DVPHoldableLockable.new(ZERO_ADDRESS, { from: dvpDeployer });
+          assert(false, "transaction should have failed");
+        } catch (err) {
+          assert.instanceOf(err, Error);
+          assert.match(err.message, /ACE address must not be a zero address/);
+        }
+      });
+      it("validates proofs", async () => {
+        await this.dvp.validateProof(1, ZERO_BYTES32);
+      });
     });
     describe("Holdable ERC20 Tokens", () => {
       const inOneHour = nowSeconds() + SECONDS_IN_AN_HOUR;
@@ -106,7 +121,7 @@ contract(
           await token1.mint(holder1, 1000, { from: deployer1 });
           const token1Result = await token1.hold(
             recipient1,
-            this.swap.address,
+            this.dvp.address,
             600,
             inOneHour,
             secretHashPair.hash,
@@ -118,7 +133,7 @@ contract(
           await token2.mint(holder2, 2000, { from: deployer2 });
           const token2Result = await token2.hold(
             recipient2,
-            this.swap.address,
+            this.dvp.address,
             1200,
             inOneDay,
             secretHashPair.hash,
@@ -148,7 +163,7 @@ contract(
         it("fail to execute swap with incorrect preimage", async () => {
           const incorrectHashLock = newSecretHashPair();
           try {
-            await this.swap.executeHolds(
+            await this.dvp.executeHolds(
               token1.address,
               token1HoldId,
               Standard.HoldableERC20,
@@ -175,7 +190,7 @@ contract(
           assert.equal(await token2.balanceOf(holder2), 800);
           assert.equal(result.receipt.status, 1);
           try {
-            await this.swap.executeHolds(
+            await this.dvp.executeHolds(
               token1.address,
               token1HoldId,
               Standard.HoldableERC20,
@@ -202,7 +217,7 @@ contract(
           assert.equal(await token2.balanceOf(holder2), 2000);
           assert.equal(result.receipt.status, 1);
           try {
-            await this.swap.executeHolds(
+            await this.dvp.executeHolds(
               token1.address,
               token1HoldId,
               Standard.HoldableERC20,
@@ -221,7 +236,7 @@ contract(
           }
         });
         it("Execute swap before expiration period with preimage", async () => {
-          const result = await this.swap.executeHolds(
+          const result = await this.dvp.executeHolds(
             token1.address,
             token1HoldId,
             Standard.HoldableERC20,
@@ -258,7 +273,7 @@ contract(
         });
         it("Execute swap after expiration period with preimage", async () => {
           await advanceTime(inOneDay + 1);
-          const result = await this.swap.executeHolds(
+          const result = await this.dvp.executeHolds(
             token1.address,
             token1HoldId,
             Standard.HoldableERC20,
@@ -304,7 +319,7 @@ contract(
           await token1.mint(holder1, 1000, { from: deployer1 });
           const token1Result = await token1.hold(
             recipient1,
-            this.swap.address,
+            this.dvp.address,
             600,
             inOneHour,
             ZERO_BYTES32,
@@ -320,7 +335,7 @@ contract(
           await token2.mint(holder2, 2000, { from: deployer2 });
           const token2Result = await token2.hold(
             recipient2,
-            this.swap.address,
+            this.dvp.address,
             1200,
             inOneDay,
             ZERO_BYTES32,
@@ -329,7 +344,7 @@ contract(
           token2HoldId = token2Result.receipt.logs[0].args.holdId;
         });
         it("Execute swap before expiration period with preimage", async () => {
-          const result = await this.swap.executeHolds(
+          const result = await this.dvp.executeHolds(
             token1.address,
             token1HoldId,
             Standard.HoldableERC20,
@@ -366,7 +381,7 @@ contract(
         });
         it("Execute swap after expiration period with preimage", async () => {
           await advanceTime(inOneDay + 1);
-          const result = await this.swap.executeHolds(
+          const result = await this.dvp.executeHolds(
             token1.address,
             token1HoldId,
             Standard.HoldableERC20,
@@ -412,7 +427,7 @@ contract(
           await token1.mint(holder1, 1000, { from: deployer1 });
           const token1Result = await token1.hold(
             ZERO_ADDRESS,
-            this.swap.address,
+            this.dvp.address,
             600,
             inOneHour,
             ZERO_BYTES32,
@@ -428,7 +443,7 @@ contract(
           await token2.mint(holder2, 2000, { from: deployer2 });
           const token2Result = await token2.hold(
             ZERO_ADDRESS,
-            this.swap.address,
+            this.dvp.address,
             1200,
             inOneDay,
             ZERO_BYTES32,
@@ -441,7 +456,7 @@ contract(
           );
         });
         it("Execute swap before expiration period with preimage", async () => {
-          const result = await this.swap.methods[
+          const result = await this.dvp.methods[
             "executeHolds(address,bytes32,uint8,address,bytes32,uint8,bytes32,address,address)"
           ](
             token1.address,
@@ -482,7 +497,7 @@ contract(
         });
         it("Execute swap after expiration period with preimage", async () => {
           await advanceTime(inOneDay + 1);
-          const result = await this.swap.methods[
+          const result = await this.dvp.methods[
             "executeHolds(address,bytes32,uint8,address,bytes32,uint8,bytes32,address,address)"
           ](
             token1.address,
@@ -555,7 +570,7 @@ contract(
             { from: deployer1 }
           );
           this.token1HoldId = newHoldId();
-          await this.validatorContract1.hold(this.token1.address, this.token1HoldId, recipient1, /*this.swap.address*/ deployer1, partition1, 600, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: holder1 })
+          await this.validatorContract1.hold(this.token1.address, this.token1HoldId, recipient1, /*this.dvp.address*/ deployer1, partition1, 600, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: holder1 })
   
           this.token2 = await ERC1400.new(
             "ERC1400Token",
@@ -583,7 +598,7 @@ contract(
             { from: deployer2 }
           );
           this.token2HoldId = newHoldId();
-          await this.validatorContract2.hold(this.token2.address, this.token2HoldId, recipient2, /*this.swap.address*/ deployer2, partition2, 1200, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: holder2 })
+          await this.validatorContract2.hold(this.token2.address, this.token2HoldId, recipient2, /*this.dvp.address*/ deployer2, partition2, 1200, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: holder2 })
         });
   
         it("Check initial states", async () => {
@@ -605,7 +620,7 @@ contract(
         it("fail to execute swap with incorrect preimage", async () => {
           const incorrectHashLock = newSecretHashPair();
           try {
-            await this.swap.executeHolds(
+            await this.dvp.executeHolds(
               this.token1.address,
               this.token1HoldId,
               Standard.HoldableERC1400,
@@ -645,7 +660,7 @@ contract(
   
           assert.equal(result.receipt.status, 1);
           try {
-            await this.swap.executeHolds(
+            await this.dvp.executeHolds(
               this.token1.address,
               this.token1HoldId,
               Standard.HoldableERC1400,
@@ -671,7 +686,7 @@ contract(
         });
   
         it("Execute swap before expiration period with preimage", async () => {
-          const result = await this.swap.executeHolds(
+          const result = await this.dvp.executeHolds(
             this.token1.address,
             this.token1HoldId,
             Standard.HoldableERC1400,
@@ -734,7 +749,7 @@ contract(
             { from: deployer1 }
           );
           this.token1HoldId = newHoldId();
-          await this.validatorContract1.hold(this.token1.address, this.token1HoldId, recipient1, this.swap.address, partition1, 600, SECONDS_IN_AN_HOUR, ZERO_BYTES32, { from: holder1 })
+          await this.validatorContract1.hold(this.token1.address, this.token1HoldId, recipient1, this.dvp.address, partition1, 600, SECONDS_IN_AN_HOUR, ZERO_BYTES32, { from: holder1 })
   
           this.token2 = await ERC1400.new(
             "ERC1400Token",
@@ -762,7 +777,7 @@ contract(
             { from: deployer2 }
           );
           this.token2HoldId = newHoldId();
-          await this.validatorContract2.hold(this.token2.address, this.token2HoldId, recipient2, this.swap.address, partition2, 1200, SECONDS_IN_AN_HOUR, ZERO_BYTES32, { from: holder2 })
+          await this.validatorContract2.hold(this.token2.address, this.token2HoldId, recipient2, this.dvp.address, partition2, 1200, SECONDS_IN_AN_HOUR, ZERO_BYTES32, { from: holder2 })
         });
   
         it("Check initial states", async () => {
@@ -782,7 +797,7 @@ contract(
         });
 
         it("Execute swap before expiration period without preimage", async () => {
-          const result = await this.swap.executeHolds(
+          const result = await this.dvp.executeHolds(
             this.token1.address,
             this.token1HoldId,
             Standard.HoldableERC1400,
@@ -847,13 +862,13 @@ contract(
           { from: deployer1 }
         );
         this.token1HoldId = newHoldId();
-        await this.validatorContract1.hold(this.token1.address, this.token1HoldId, recipient1, /*this.swap.address*/ deployer1, partition1, 600, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: holder1 })
+        await this.validatorContract1.hold(this.token1.address, this.token1HoldId, recipient1, /*this.dvp.address*/ deployer1, partition1, 600, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: holder1 })
 
         this.token2 = await HoldableToken.new({ from: deployer2 });
           await this.token2.mint(holder2, 2000, { from: deployer2 });
           const token2Result = await this.token2.hold(
             recipient2,
-            this.swap.address,
+            this.dvp.address,
             1200,
             inOneDay,
             secretHashPair.hash,
@@ -881,7 +896,7 @@ contract(
       });
 
       it("Execute swap before expiration period with preimage", async () => {
-        const result = await this.swap.executeHolds(
+        const result = await this.dvp.executeHolds(
           this.token1.address,
           this.token1HoldId,
           Standard.HoldableERC1400,
@@ -914,6 +929,147 @@ contract(
         assert.equal(await this.token2.holdBalanceOf(recipient2), 0);
         assert.equal(await this.token2.grossBalanceOf(recipient2), 1200);
         assert.equal(await this.token2.totalSupply(), 2000);
+      });
+
+      it("fail to execute swap with incorrect token standard for the first token", async () => {
+        try {
+          await this.dvp.executeHolds(
+            this.token1.address,
+            this.token1HoldId,
+            Standard.Undefined,
+            this.token2.address,
+            this.token2HoldId,
+            Standard.HoldableERC20,
+            secretHashPair.secret,
+            { from: holder1 }
+          );
+          assert(false, "transaction should have failed");
+        } catch (err) {
+          assert.instanceOf(err, Error);
+          assert.match(err.message, /invalid token standard/);
+          assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 1000)
+          assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
+          assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
+          assert.equal(await this.token2.balanceOf(holder2), 800)
+          assert.equal(await this.token2.holdBalanceOf(holder2), 1200)
+          assert.equal(await this.token2.grossBalanceOf(holder2), 2000)
+        }
+      });
+
+      it("fail to execute swap with incorrect token standard for the second token", async () => {
+        try {
+          await this.dvp.executeHolds(
+            this.token1.address,
+            this.token1HoldId,
+            Standard.HoldableERC1400,
+            this.token2.address,
+            this.token2HoldId,
+            Standard.Undefined,
+            secretHashPair.secret,
+            { from: holder1 }
+          );
+          assert(false, "transaction should have failed");
+        } catch (err) {
+          assert.instanceOf(err, Error);
+          assert.match(err.message, /invalid token standard/);
+          assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 1000)
+          assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
+          assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
+          assert.equal(await this.token2.balanceOf(holder2), 800)
+          assert.equal(await this.token2.holdBalanceOf(holder2), 1200)
+          assert.equal(await this.token2.grossBalanceOf(holder2), 2000)
+        }
+      });
+
+      it("fail to execute swap with incorrect token address for the first token", async () => {
+        try {
+          await this.dvp.executeHolds(
+            ZERO_ADDRESS,
+            this.token1HoldId,
+            Standard.HoldableERC1400,
+            this.token2.address,
+            this.token2HoldId,
+            Standard.HoldableERC20,
+            secretHashPair.secret,
+            { from: holder1 }
+          );
+          assert(false, "transaction should have failed");
+        } catch (err) {
+          assert.instanceOf(err, Error);
+          assert.match(err.message, /token can not be a zero address/);
+          assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 1000)
+          assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
+          assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
+          assert.equal(await this.token2.balanceOf(holder2), 800)
+          assert.equal(await this.token2.holdBalanceOf(holder2), 1200)
+          assert.equal(await this.token2.grossBalanceOf(holder2), 2000)
+        }
+      });
+
+      it("fail to execute swap with incorrect token address for the second token", async () => {
+        try {
+          await this.dvp.executeHolds(
+            this.token1.address,
+            this.token1HoldId,
+            Standard.HoldableERC1400,
+            ZERO_ADDRESS,
+            this.token2HoldId,
+            Standard.HoldableERC20,
+            secretHashPair.secret,
+            { from: holder1 }
+          );
+          assert(false, "transaction should have failed");
+        } catch (err) {
+          assert.instanceOf(err, Error);
+          assert.match(err.message, /token can not be a zero address/);
+          assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 1000)
+          assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
+          assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
+          assert.equal(await this.token2.balanceOf(holder2), 800)
+          assert.equal(await this.token2.holdBalanceOf(holder2), 1200)
+          assert.equal(await this.token2.grossBalanceOf(holder2), 2000)
+        }
+      });
+
+      it("fail to execute swap with non-holdable token address for the first token", async () => {
+        try {
+          this.token1withoutHold = await ERC1400.new(
+            "ERC1400Token",
+            "DAU",
+            1,
+            [controller1],
+            CERTIFICATE_SIGNER,
+            true,
+            partitions,
+            { from: deployer1 }
+          );
+          await this.token1withoutHold.issueByPartition(
+            partition1,
+            holder1,
+            1000,
+            VALID_CERTIFICATE,
+            { from: deployer1 }
+          );
+          this.token1HoldId = newHoldId();
+          await this.dvp.executeHolds(
+            this.token1withoutHold.address,
+            this.token1HoldId,
+            Standard.HoldableERC1400,
+            this.token2.address,
+            this.token2HoldId,
+            Standard.HoldableERC20,
+            secretHashPair.secret,
+            { from: holder1 }
+          );
+          assert(false, "transaction should have failed");
+        } catch (err) {
+          assert.instanceOf(err, Error);
+          assert.match(err.message, /token has no holdable token extension/);
+          assert.equal(await this.token1withoutHold.balanceOfByPartition(partition1, holder1), 1000)
+          assert.equal(await this.token2.balanceOf(holder2), 800)
+          assert.equal(await this.token2.holdBalanceOf(holder2), 1200)
+          assert.equal(await this.token2.grossBalanceOf(holder2), 2000)
+        }
       });
 
     });

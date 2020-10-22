@@ -6,7 +6,7 @@ pragma solidity ^0.5.0;
 
 import "erc1820/contracts/ERC1820Client.sol";
 import "../extensions/tokenExtensions/ERC1400TokensValidator.sol";
-import "../interface/IERC20HoldableToken.sol";
+import "../tokens/IERC20HoldableToken.sol";
 
 interface HoldableERC1400TokenExtension {
     enum HoldStatusCode {
@@ -40,10 +40,10 @@ interface HoldableERC1400TokenExtension {
 }
 
 /**
- * @title SwapHoldableToken
+ * @title DVPHoldableLockable
  * @notice Facilitates the atomic settlement of ERC20 and ERC1400 Holdable Tokens.
  */
-contract SwapHoldableToken is ERC1820Client {
+contract DVPHoldableLockable is ERC1820Client {
     string
         internal constant ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
 
@@ -180,7 +180,7 @@ contract SwapHoldableToken is ERC1820Client {
                 preimage
             );
         } else {
-            revert("Invalid token standard");
+            revert("invalid token standard");
         }
 
         // Token 2
@@ -193,7 +193,7 @@ contract SwapHoldableToken is ERC1820Client {
                 preimage
             );
         } else {
-            revert("Invalid token standard");
+            revert("invalid token standard");
         }
 
         emit ExecuteHolds(

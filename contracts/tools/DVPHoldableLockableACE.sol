@@ -4,7 +4,7 @@
  */
 pragma solidity ^0.5.0;
 
-import "./SwapHoldableToken.sol";
+import "./DVPHoldableLockable.sol";
 
 /**
  @notice Interface to the Aztec Cryptography Engine (ACE) to validate proofs
@@ -18,10 +18,10 @@ interface AztecCryptographyEngine {
 }
 
 /**
- @title SwapHoldableTokenAztec
- @notice extends SwapHoldableToken so Aztec notes can be atomically settled.
+ @title DVPHoldableLockableACE
+ @notice extends DVPHoldableLockable so Aztec notes can be atomically settled.
 */
-contract SwapHoldableTokenAztec is SwapHoldableToken {
+contract DVPHoldableLockableACE is DVPHoldableLockable {
     AztecCryptographyEngine aceContract;
 
     /**

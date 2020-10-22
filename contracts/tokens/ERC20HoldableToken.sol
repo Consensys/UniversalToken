@@ -5,7 +5,7 @@
 pragma solidity ^0.5.0;
 
 import "./ERC20Token.sol";
-import "../interface/IERC20HoldableToken.sol";
+import "./IERC20HoldableToken.sol";
 
 /**
  * @title ERC20HoldableToken

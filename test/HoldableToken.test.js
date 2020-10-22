@@ -201,6 +201,20 @@ contract(
           assert.equal(await this.token.grossBalanceOf(holder), 1000);
         }
       });
+      it("Notary can not execute hold with the wrong execute function", async () => {
+        try {
+          await this.token.methods["executeHold(bytes32,bytes32,address)"](holdId, hashLock.secret, recipient2, {
+            from: notary,
+          });
+          assert(false, "transaction should have failed");
+        } catch (err) {
+          assert.instanceOf(err, Error);
+          assert.match(err.message, /can not set a recipient on execution as it was set on hold/);
+          assert.equal(await this.token.balanceOf(holder), 100);
+          assert.equal(await this.token.holdBalanceOf(holder), 900);
+          assert.equal(await this.token.grossBalanceOf(holder), 1000);
+        }
+      });
       it("Recipient can not release the hold", async () => {
         try {
           await this.token.releaseHold(holdId, { from: recipient });
@@ -283,6 +297,20 @@ contract(
         assert.equal(await this.token.grossBalanceOf(recipient2), 80);
 
         assert.equal(await this.token.totalSupply(), 1000);
+      });
+      it("Holder can not transfer 21 tokens with 20 available", async () => {
+        try {
+          await this.token.transfer(recipient2, 101, {
+            from: holder,
+          });
+          assert(false, "transaction should have failed");
+        } catch (err) {
+          assert.instanceOf(err, Error);
+          assert.match(err.message, /amount exceeds available balance/);
+          assert.equal(await this.token.balanceOf(holder), 20);
+          assert.equal(await this.token.holdBalanceOf(holder), 900);
+          assert.equal(await this.token.grossBalanceOf(holder), 920);
+        }
       });
       it("Recipient 2 can not transfer 30 approved tokens from holder as only 20 are available", async () => {
         try {
@@ -1223,6 +1251,20 @@ contract(
         assert.equal(await this.token.grossBalanceOf(recipient), 4);
 
         assert.equal(await this.token.totalSupply(), 122);
+      });
+      it("Recipient can not burn more tokens than total held by the Holder", async () => {
+        try {
+          await this.token.burnFrom(holder, 19, {
+            from: recipient,
+          });
+          assert(false, "transaction should have failed");
+        } catch (err) {
+          assert.instanceOf(err, Error);
+          assert.match(err.message, /amount exceeds available balance/);
+          assert.equal(await this.token.balanceOf(holder), 18);
+          assert.equal(await this.token.holdBalanceOf(holder), 100);
+          assert.equal(await this.token.grossBalanceOf(holder), 118);
+        }
       });
       it("Holder can burn tokens not on hold", async () => {
         const result = await this.token.burn(18, { from: holder });

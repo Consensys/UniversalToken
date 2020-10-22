@@ -33,7 +33,7 @@
       "cwd": "${workspaceFolder}",
       "program": "${workspaceFolder}/node_modules/truffle/build/cli.bundled.js",
       "args": [
-          "test", "./test/HoldableTokenSwap.test.js"
+          "test", "./test/DVPHoldableLockable.test.js"
       ]
 
   }

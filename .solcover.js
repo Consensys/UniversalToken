@@ -9,6 +9,7 @@ module.exports = {
         'mocks/BlacklistMock',
         'mocks/CertificateControllerMock',
         'mocks/ERC1400CertificateMock',
+        'mocks/AztecCryptographyEngineMock',
         'tools/FundIssuer',
     ],
     copyPackages: ['openzeppelin-solidity'],
