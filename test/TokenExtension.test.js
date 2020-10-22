@@ -1,8 +1,7 @@
 const { expectRevert } = require("@openzeppelin/test-helpers");
-
-const crypto = require('crypto')
-
 const { soliditySha3 } = require("web3-utils");
+const { advanceTimeAndBlock } = require("./utils/time")
+const { newSecretHashPair, newHoldId } = require("./utils/crypto")
 
 const ERC1400 = artifacts.require("ERC1400CertificateMock");
 const ERC1820Registry = artifacts.require("ERC1820Registry");
@@ -80,53 +79,6 @@ const smallHoldAmount = 400;
 const SECONDS_IN_AN_HOUR = 3600;
 const SECONDS_IN_A_DAY = 24*SECONDS_IN_AN_HOUR;
 
-// ---------- Module to accelerate time -----------------------
-const advanceTime = (time) => {
-  return new Promise((resolve, reject) => {
-    web3.currentProvider.send(
-      {
-        jsonrpc: "2.0",
-        method: "evm_increaseTime",
-        params: [time],
-        id: new Date().getTime(),
-      },
-      (err, result) => {
-        if (err) {
-          return reject(err);
-        }
-        return resolve(result);
-      }
-    );
-  });
-};
-
-const advanceBlock = () => {
-  return new Promise((resolve, reject) => {
-    web3.currentProvider.send(
-      {
-        jsonrpc: "2.0",
-        method: "evm_mine",
-        id: new Date().getTime(),
-      },
-      (err, result) => {
-        if (err) {
-          return reject(err);
-        }
-        const newBlockHash = web3.eth.getBlock("latest").hash;
-
-        return resolve(newBlockHash);
-      }
-    );
-  });
-};
-
-const advanceTimeAndBlock = async (time) => {
-  await advanceTime(time);
-  await advanceBlock();
-  return Promise.resolve(web3.eth.getBlock("latest"));
-};
-// ---------- Module to accelerate time (end)------------------
-
 const assertTotalSupply = async (_contract, _amount) => {
   totalSupply = await _contract.totalSupply();
   assert.equal(totalSupply, _amount);
@@ -175,30 +127,6 @@ const assertEscResponse = async (
   assert.equal(_response[1], _additionalCode);
   assert.equal(_response[2], _destinationPartition);
 };
-
-
-// Format required for sending bytes through eth client:
-//  - hex string representation
-//  - prefixed with 0x
-const bufToStr = b => '0x' + b.toString('hex')
-const random32 = () => crypto.randomBytes(32)
-const sha256 = x =>
-  crypto
-    .createHash('sha256')
-    .update(x)
-    .digest()
-const newSecretHashPair = () => {
-  const secret = random32()
-  const hash = sha256(secret)
-  return {
-    secret: bufToStr(secret),
-    hash: bufToStr(hash),
-  }
-}
-
-const newHoldId = () => {
-  return bufToStr(random32())
-}
 
 contract("ERC1400 with validator hook", function ([
   owner,
