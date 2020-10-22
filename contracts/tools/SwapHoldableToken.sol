@@ -9,12 +9,34 @@ import "../extensions/tokenExtensions/ERC1400TokensValidator.sol";
 import "../interface/IERC20HoldableToken.sol";
 
 interface HoldableERC1400TokenExtension {
+    enum HoldStatusCode {
+        Nonexistent,
+        Ordered,
+        Executed,
+        ExecutedAndKeptOpen,
+        ReleasedByNotary,
+        ReleasedByPayee,
+        ReleasedOnExpiration
+    }
+
     function executeHold(
         address token,
         bytes32 holdId,
         uint256 value,
         bytes32 lockPreimage
     ) external;
+
+    function retrieveHoldData(address token, bytes32 holdId) external view returns (
+        bytes32 partition,
+        address sender,
+        address recipient,
+        address notary,
+        uint256 value,
+        uint256 expiration,
+        bytes32 secretHash,
+        bytes32 secret,
+        HoldStatusCode status
+    );
 }
 
 /**
@@ -155,8 +177,7 @@ contract SwapHoldableToken is ERC1820Client {
             _executeERC1400Hold(
                 token1,
                 token1HoldId,
-                preimage,
-                token1Recipient
+                preimage
             );
         } else {
             revert("Invalid token standard");
@@ -169,8 +190,7 @@ contract SwapHoldableToken is ERC1820Client {
             _executeERC1400Hold(
                 token2,
                 token2HoldId,
-                preimage,
-                token2Recipient
+                preimage
             );
         } else {
             revert("Invalid token standard");
@@ -209,8 +229,7 @@ contract SwapHoldableToken is ERC1820Client {
     function _executeERC1400Hold(
         address token,
         bytes32 tokenHoldId,
-        bytes32 preimage,
-        address tokenRecipient
+        bytes32 preimage
     ) internal {
         require(token != address(0), "token can not be a zero address");
 
@@ -220,10 +239,13 @@ contract SwapHoldableToken is ERC1820Client {
             "token has no holdable token extension"
         );
 
+        uint256 holdValue;
+        (,,,,holdValue,,,,) = HoldableERC1400TokenExtension(tokenExtension).retrieveHoldData(token, tokenHoldId);
+
         HoldableERC1400TokenExtension(tokenExtension).executeHold(
             token,
             tokenHoldId,
-            0,
+            holdValue,
             preimage
         );
     }
