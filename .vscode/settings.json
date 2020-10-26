@@ -1,15 +1,15 @@
 {
-    "solidity.packageDefaultDependenciesContractsDirectory": "",
-    "solidity.packageDefaultDependenciesDirectory": "node_modules",
-    "solidity.linter": "solium",
-    "solidity.soliumRules": {
-        "quotes": ["error", "double"],
-        "no-empty-blocks": "off",
-        "indentation": ["error", 2],
-        "arg-overflow": ["warning", 3],
-        "no-constant": ["error"],
-        "security/enforce-explicit-visibility": ["error"],
-        "security/no-block-members": ["warning"],
-        "security/no-inline-assembly": ["warning"]
-    },
+  "solidity.packageDefaultDependenciesContractsDirectory": "",
+  "solidity.packageDefaultDependenciesDirectory": "node_modules",
+  "solidity.linter": "solium",
+  "solidity.soliumRules": {
+    "quotes": ["error", "double"],
+    "no-empty-blocks": "off",
+    "indentation": ["error", 2],
+    "arg-overflow": ["warning", 3],
+    "no-constant": ["error"],
+    "security/enforce-explicit-visibility": ["error"],
+    "security/no-block-members": ["warning"],
+    "security/no-inline-assembly": ["warning"]
+  }
 }
