@@ -17,12 +17,8 @@ const { advanceTimeAndBlock } = require("./utils/time")
 const FundIssuerContract = artifacts.require("FundIssuer");
 const ERC1400 = artifacts.require("ERC1400CertificateMock");
 const ERC1820Registry = artifacts.require("ERC1820Registry");
-const ERC20 = artifacts.require("ERC20Token");
-const ERC721 = artifacts.require("ERC721Token");
 
 const ERC1400_TOKENS_RECIPIENT_INTERFACE = "ERC1400TokensRecipient";
-
-const FakeERC1400 = artifacts.require("FakeERC1400Mock");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const ZERO_BYTE = "0x";

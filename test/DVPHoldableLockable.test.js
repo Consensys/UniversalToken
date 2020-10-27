@@ -117,7 +117,7 @@ contract(
         let token1HoldId;
         let token2HoldId;
         beforeEach(async () => {
-          token1 = await HoldableToken.new({ from: deployer1 });
+          token1 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer1 });
           await token1.mint(holder1, 1000, { from: deployer1 });
           const token1Result = await token1.hold(
             recipient1,
@@ -129,7 +129,7 @@ contract(
           );
           token1HoldId = token1Result.receipt.logs[0].args.holdId;
 
-          token2 = await HoldableToken.new({ from: deployer2 });
+          token2 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer2 });
           await token2.mint(holder2, 2000, { from: deployer2 });
           const token2Result = await token2.hold(
             recipient2,
@@ -315,7 +315,7 @@ contract(
         let token1HoldId;
         let token2HoldId;
         beforeEach(async () => {
-          token1 = await HoldableToken.new({ from: deployer1 });
+          token1 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer1 });
           await token1.mint(holder1, 1000, { from: deployer1 });
           const token1Result = await token1.hold(
             recipient1,
@@ -331,7 +331,7 @@ contract(
             HoldStatusCode.Held
           );
 
-          token2 = await HoldableToken.new({ from: deployer2 });
+          token2 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer2 });
           await token2.mint(holder2, 2000, { from: deployer2 });
           const token2Result = await token2.hold(
             recipient2,
@@ -423,7 +423,7 @@ contract(
         let token1HoldId;
         let token2HoldId;
         beforeEach(async () => {
-          token1 = await HoldableToken.new({ from: deployer1 });
+          token1 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer1 });
           await token1.mint(holder1, 1000, { from: deployer1 });
           const token1Result = await token1.hold(
             ZERO_ADDRESS,
@@ -439,7 +439,7 @@ contract(
             HoldStatusCode.Held
           );
 
-          token2 = await HoldableToken.new({ from: deployer2 });
+          token2 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer2 });
           await token2.mint(holder2, 2000, { from: deployer2 });
           const token2Result = await token2.hold(
             ZERO_ADDRESS,
@@ -864,7 +864,7 @@ contract(
         this.token1HoldId = newHoldId();
         await this.validatorContract1.hold(this.token1.address, this.token1HoldId, recipient1, /*this.dvp.address*/ deployer1, partition1, 600, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: holder1 })
 
-        this.token2 = await HoldableToken.new({ from: deployer2 });
+        this.token2 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer2 });
           await this.token2.mint(holder2, 2000, { from: deployer2 });
           const token2Result = await this.token2.hold(
             recipient2,

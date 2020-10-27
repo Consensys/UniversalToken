@@ -41,6 +41,8 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
         _;
     }
 
+    constructor(string memory name, string memory symbol, uint8 decimals) public ERC20Token(name, symbol, decimals) {}
+
     /**
      @notice Called by the sender to hold some tokens for a recipient that the sender can not release back to themself until after the expiration date.
      @param recipient optional account the tokens will be transferred to on execution. If a zero address, the recipient must be specified on execution of the hold.

@@ -2722,19 +2722,19 @@ contract("ERC1400 with validator hook", function ([
           describe("when hold is renewed by the sender", function () {
             it("renews the hold (expiration date future)", async function () {
               this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
-              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
               assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
 
               this.time = await this.clock.getTime();
               await this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: tokenHolder });
               
               this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
-              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY);
+              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-1);
               assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY+100);
             });
             it("renews the hold (expiration date now)", async function () {
               this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
-              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
               assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
 
               this.time = await this.clock.getTime();
@@ -2750,23 +2750,23 @@ contract("ERC1400 with validator hook", function ([
               assert.equal(logs[0].args.token, this.token.address);
               assert.equal(logs[0].args.holdId, this.holdId);
               assert.equal(logs[0].args.notary, notary);
-              assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+              assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
               assert.isBelow(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
-              assert.isAtLeast(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY);
+              assert.isAtLeast(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY-1);
               assert.isBelow(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY+100);
             });
           });
           describe("when hold is renewed by an operator", function () {
             it("renews the hold", async function () {
               this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
-              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
               assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
 
               this.time = await this.clock.getTime();
               await this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: controller });
               
               this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
-              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY);
+              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-1);
               assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY+100);
             });
           });
@@ -2779,7 +2779,7 @@ contract("ERC1400 with validator hook", function ([
         describe("when hold is expired", function () {
           it("reverts", async function () {
             this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
-            assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+            assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
             assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
 
             // Wait for more than an hour
@@ -2801,14 +2801,14 @@ contract("ERC1400 with validator hook", function ([
           assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_EXECUTED_AND_KEPT_OPEN);
 
           this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
-          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
           assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
 
           this.time = await this.clock.getTime();
           await this.validatorContract.renewHold(this.token.address, this.holdId, SECONDS_IN_A_DAY, { from: tokenHolder });
           
           this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
-          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-1);
           assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY+100);
         });
       });
@@ -2871,30 +2871,30 @@ contract("ERC1400 with validator hook", function ([
       describe("when expiration date is in the future", function () {
         it("renews the hold", async function () {
           this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
-          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
           assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
 
           this.time = parseInt(await this.clock.getTime());
           const { logs } = await this.validatorContract.renewHoldWithExpirationDate(this.token.address, this.holdId, this.time+SECONDS_IN_A_DAY, { from: tokenHolder });
           
           this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
-          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-1);
           assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY+100);
 
           assert.equal(logs[0].event, "HoldRenewed");
           assert.equal(logs[0].args.token, this.token.address);
           assert.equal(logs[0].args.holdId, this.holdId);
           assert.equal(logs[0].args.notary, notary);
-          assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+          assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
           assert.isBelow(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
-          assert.isAtLeast(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY);
+          assert.isAtLeast(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY-1);
           assert.isBelow(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY+100);
         });
       });
       describe("when there is no expiration date", function () {
         it("renews the hold", async function () {
           this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
-          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
           assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
 
           const { logs } = await this.validatorContract.renewHoldWithExpirationDate(this.token.address, this.holdId, 0, { from: tokenHolder });
@@ -2904,7 +2904,7 @@ contract("ERC1400 with validator hook", function ([
           assert.equal(parseInt(this.holdData[5]), 0);
 
           assert.equal(logs[0].event, "HoldRenewed");
-          assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+          assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
           assert.isBelow(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
           assert.equal(parseInt(logs[0].args.newExpiration), 0);
         });

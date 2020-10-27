@@ -10,6 +10,8 @@ module.exports = {
         'mocks/CertificateControllerMock',
         'mocks/ERC1400CertificateMock',
         'mocks/AztecCryptographyEngineMock',
+        'tokens/ERC20Token',
+        'tokens/ERC721Token',
         'tools/FundIssuer',
     ],
     copyPackages: ['openzeppelin-solidity'],
