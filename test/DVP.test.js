@@ -1842,8 +1842,8 @@ contract("DVP", function ([
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.security20 = await ERC20.new();
-      this.emoney20 = await ERC20.new();
+      this.security20 = await ERC20.new("ERC20Token", "DAU", 18);
+      this.emoney20 = await ERC20.new("ERC20Token", "DAU", 18);
 
       await this.security20.mint(tokenHolder1, issuanceAmount, { from: owner });
       await this.emoney20.mint(recipient1, issuanceAmount, { from: owner });
@@ -1880,7 +1880,7 @@ contract("DVP", function ([
                 });
                 describe("when token standard is ERC721", function () {
                   it("creates and accepts the trade request", async function () {
-                    this.security721 = await ERC721.new();
+                    this.security721 = await ERC721.new("ERC721Token", "DAU721");
                     await this.security721.mint(tokenHolder1, issuanceTokenId, {
                       from: owner,
                     });
@@ -2002,7 +2002,7 @@ contract("DVP", function ([
                 });
                 describe("when token standard is ERC721", function () {
                   it("creates and accepts the trade request", async function () {
-                    this.security721 = await ERC721.new();
+                    this.security721 = await ERC721.new("ERC721Token", "DAU721");
                     await this.security721.mint(tokenHolder1, issuanceTokenId, {
                       from: owner,
                     });
@@ -2386,8 +2386,8 @@ contract("DVP", function ([
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.security20 = await ERC20.new();
-      this.emoney20 = await ERC20.new();
+      this.security20 = await ERC20.new("ERC20Token", "DAU", 18);
+      this.emoney20 = await ERC20.new("ERC20Token", "DAU", 18);
 
       await this.security20.mint(tokenHolder1, issuanceAmount, { from: owner });
       await this.emoney20.mint(recipient1, issuanceAmount, { from: owner });
@@ -2738,7 +2738,7 @@ contract("DVP", function ([
         });
         describe("when token standard is ERC721", function () {
           beforeEach(async function () {
-            this.security721 = await ERC721.new();
+            this.security721 = await ERC721.new("ERC721Token", "DAU721");
             this.token2 = this.security721;
             await this.token2.mint(recipient1, issuanceTokenId, {
               from: owner,
@@ -3010,8 +3010,8 @@ contract("DVP", function ([
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.security20 = await ERC20.new();
-      this.emoney20 = await ERC20.new();
+      this.security20 = await ERC20.new("ERC20Token", "DAU", 18);
+      this.emoney20 = await ERC20.new("ERC20Token", "DAU", 18);
 
       await this.security20.mint(tokenHolder1, issuanceAmount, { from: owner });
       await this.emoney20.mint(recipient1, issuanceAmount, { from: owner });
@@ -3417,8 +3417,8 @@ contract("DVP", function ([
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.security20 = await ERC20.new();
-      this.emoney20 = await ERC20.new();
+      this.security20 = await ERC20.new("ERC20Token", "DAU", 18);
+      this.emoney20 = await ERC20.new("ERC20Token", "DAU", 18);
 
       await this.security20.mint(tokenHolder1, issuanceAmount, { from: owner });
       await this.emoney20.mint(recipient1, issuanceAmount, { from: owner });
@@ -3758,7 +3758,7 @@ contract("DVP", function ([
                 });
                 describe("when token standard is ERC721 vs ERC20", function () {
                   beforeEach(async function () {
-                    this.security721 = await ERC721.new();
+                    this.security721 = await ERC721.new("ERC721Token", "DAU721");
                     await this.security721.mint(tokenHolder1, issuanceTokenId, {
                       from: owner,
                     });
@@ -4132,8 +4132,8 @@ contract("DVP", function ([
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.security20 = await ERC20.new();
-      this.emoney20 = await ERC20.new();
+      this.security20 = await ERC20.new("ERC20Token", "DAU", 18);
+      this.emoney20 = await ERC20.new("ERC20Token", "DAU", 18);
 
       await this.security20.mint(tokenHolder1, issuanceAmount, { from: owner });
       await this.emoney20.mint(recipient1, issuanceAmount, { from: owner });
@@ -4453,8 +4453,8 @@ contract("DVP", function ([
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.security20 = await ERC20.new();
-      this.emoney20 = await ERC20.new();
+      this.security20 = await ERC20.new("ERC20Token", "DAU", 18);
+      this.emoney20 = await ERC20.new("ERC20Token", "DAU", 18);
 
       await this.security20.mint(tokenHolder1, issuanceAmount, { from: owner });
       await this.emoney20.mint(recipient1, issuanceAmount, { from: owner });
@@ -5397,7 +5397,7 @@ contract("DVP", function ([
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.token1 = await ERC20.new({ from: tokenHolder1 });
+      this.token1 = await ERC20.new("ERC20Token", "DAU", 18, { from: tokenHolder1 });
     });
     describe("when the caller is the token contract owner", function () {
       it("sets the operators as token controllers", async function () {
@@ -5466,7 +5466,7 @@ contract("DVP", function ([
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.token1 = await ERC20.new({ from: tokenHolder1 });
+      this.token1 = await ERC20.new("ERC20Token", "DAU", 18, { from: tokenHolder1 });
     });
     describe("when the caller is the token contract owner", function () {
       it("sets the operators as token price oracle", async function () {
@@ -5522,12 +5522,12 @@ contract("DVP", function ([
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.token1 = await ERC20.new({ from: owner });
+      this.token1 = await ERC20.new("ERC20Token", "DAU", 18, { from: owner });
       await this.dvp.setPriceOracles(this.token1.address, [oracle], {
         from: owner,
       });
 
-      this.token2 = await ERC20.new({ from: owner });
+      this.token2 = await ERC20.new("ERC20Token", "DAU", 18, { from: owner });
       await this.dvp.setPriceOracles(this.token2.address, [unknown], {
         from: owner,
       });
@@ -5592,12 +5592,12 @@ contract("DVP", function ([
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.token1 = await ERC20.new({ from: owner });
+      this.token1 = await ERC20.new("ERC20Token", "DAU", 18, { from: owner });
       await this.dvp.setPriceOracles(this.token1.address, [oracle], {
         from: owner,
       });
 
-      this.token2 = await ERC20.new({ from: owner });
+      this.token2 = await ERC20.new("ERC20Token", "DAU", 18, { from: owner });
       await this.dvp.setPriceOracles(this.token2.address, [unknown], {
         from: owner,
       });
@@ -5823,7 +5823,7 @@ contract("DVP", function ([
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.token1 = await ERC20.new({ from: owner });
+      this.token1 = await ERC20.new("ERC20Token", "DAU", 18, { from: owner });
       await this.dvp.setPriceOracles(this.token1.address, [oracle], {
         from: owner,
       });
