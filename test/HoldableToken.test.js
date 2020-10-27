@@ -31,7 +31,7 @@ contract(
       before(async () => {
         snapshot = await takeSnapshot();
         snapshotId = snapshot["result"];
-        this.token = await HoldableToken.new({ from: deployer });
+        this.token = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer });
       });
       after(async () => {
         await revertToSnapshot(snapshotId);
@@ -436,7 +436,7 @@ contract(
       before(async () => {
         const snapshot = await takeSnapshot();
         snapshotId = snapshot["result"];
-        this.token = await HoldableToken.new({ from: deployer });
+        this.token = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer });
       });
       after(async () => {
         await revertToSnapshot(snapshotId);
@@ -573,7 +573,7 @@ contract(
       before(async () => {
         snapshot = await takeSnapshot();
         snapshotId = snapshot["result"];
-        this.token = await HoldableToken.new({ from: deployer });
+        this.token = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer });
       });
       after(async () => {
         await revertToSnapshot(snapshotId);
@@ -669,7 +669,7 @@ contract(
       before(async () => {
         snapshot = await takeSnapshot();
         snapshotId = snapshot["result"];
-        this.token = await HoldableToken.new({ from: deployer });
+        this.token = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer });
       });
       after(async () => {
         await revertToSnapshot(snapshotId);
@@ -763,7 +763,7 @@ contract(
       before(async () => {
         snapshot = await takeSnapshot();
         snapshotId = snapshot["result"];
-        this.token = await HoldableToken.new({ from: deployer });
+        this.token = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer });
       });
       after(async () => {
         await revertToSnapshot(snapshotId);
@@ -825,7 +825,7 @@ contract(
       before(async () => {
         snapshot = await takeSnapshot();
         snapshotId = snapshot["result"];
-        this.token = await HoldableToken.new({ from: deployer });
+        this.token = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer });
       });
       after(async () => {
         await revertToSnapshot(snapshotId);
@@ -977,7 +977,7 @@ contract(
       before(async () => {
         snapshot = await takeSnapshot();
         snapshotId = snapshot["result"];
-        this.token = await HoldableToken.new({ from: deployer });
+        this.token = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer });
       });
       after(async () => {
         await revertToSnapshot(snapshotId);
@@ -1039,7 +1039,7 @@ contract(
       before(async () => {
         snapshot = await takeSnapshot();
         snapshotId = snapshot["result"];
-        this.token = await HoldableToken.new({ from: deployer });
+        this.token = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer });
       });
       after(async () => {
         await revertToSnapshot(snapshotId);
@@ -1100,7 +1100,7 @@ contract(
       before(async () => {
         snapshot = await takeSnapshot();
         snapshotId = snapshot["result"];
-        this.token = await HoldableToken.new({ from: deployer });
+        this.token = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer });
       });
       after(async () => {
         await revertToSnapshot(snapshotId);
@@ -1156,7 +1156,7 @@ contract(
       before(async () => {
         snapshot = await takeSnapshot();
         snapshotId = snapshot["result"];
-        this.token = await HoldableToken.new({ from: deployer });
+        this.token = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer });
       });
       after(async () => {
         await revertToSnapshot(snapshotId);
