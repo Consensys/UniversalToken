@@ -219,6 +219,9 @@ contract ERC1400CertificateNonce is ERC1400, CertificateController {
    * @param interfaceLabel Interface label of hook contract.
    */
   function _setHookContract(address validatorAddress, string memory interfaceLabel) internal {
+    address oldValidatorAddress = interfaceAddr(address(this), interfaceLabel);
+    _setCertificateSigner(oldValidatorAddress, false);
+
     ERC1400._setHookContract(validatorAddress, interfaceLabel);
     _setCertificateSigner(validatorAddress, true);
   }

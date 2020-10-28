@@ -22,6 +22,14 @@ import "../../IERC1400.sol";
 
 import "./IERC1400TokensValidator.sol";
 
+/**
+ @notice Interface to the Minterrole contract
+*/
+interface IMinterRole {
+  function isMinter(address account) external view returns (bool);
+}
+
+
 
 contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, WhitelistedRole, BlacklistedRole, ERC1820Client, ERC1820Implementer {
   using SafeMath for uint256;
@@ -311,6 +319,66 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   }
 
   /**
+   * @dev Create a new token pre-hold.
+   */
+  function preHoldFor(
+    address token,
+    bytes32 holdId,
+    address recipient,
+    address notary,
+    bytes32 partition,
+    uint256 value,
+    uint256 timeToExpiration,
+    bytes32 secretHash
+  )
+    external
+    returns (bool)
+  {
+    return _createHold(
+      token,
+      holdId,
+      address(0),
+      recipient,
+      notary,
+      partition,
+      value,
+      _computeExpiration(timeToExpiration),
+      secretHash
+    );
+  }
+
+  /**
+   * @dev Create a new token pre-hold with expiration date.
+   */
+  function preHoldForWithExpirationDate(
+    address token,
+    bytes32 holdId,
+    address recipient,
+    address notary,
+    bytes32 partition,
+    uint256 value,
+    uint256 expiration,
+    bytes32 secretHash
+  )
+    external
+    returns (bool)
+  {
+    _checkExpiration(expiration);
+
+    return _createHold(
+      token,
+      holdId,
+      address(0),
+      recipient,
+      notary,
+      partition,
+      value,
+      expiration,
+      secretHash
+    );
+  }
+
+  /**
    * @dev Create a new token hold.
    */
   function hold(
@@ -326,7 +394,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     external
     returns (bool)
   {
-    return _hold(
+    return _createHold(
       token,
       holdId,
       msg.sender,
@@ -357,7 +425,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     returns (bool)
   {
     require(sender != address(0), "Payer address must not be zero address");
-    return _hold(
+    return _createHold(
       token,
       holdId,
       sender,
@@ -388,7 +456,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   {
     _checkExpiration(expiration);
 
-    return _hold(
+    return _createHold(
       token,
       holdId,
       msg.sender,
@@ -402,7 +470,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   }
 
   /**
-   * @dev Create a new token hold with expiration date.
+   * @dev Create a new token hold with expiration date on behalf of the token holder.
    */
   function holdFromWithExpirationDate(
     address token,
@@ -421,7 +489,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     _checkExpiration(expiration);
     require(sender != address(0), "Payer address must not be zero address");
 
-    return _hold(
+    return _createHold(
       token,
       holdId,
       sender,
@@ -437,7 +505,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   /**
    * @dev Create a new token hold.
    */
-  function _hold(
+  function _createHold(
     address token,
     bytes32 holdId,
     address sender,
@@ -455,12 +523,20 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     require(value != 0, "Value must be greater than zero");
     require(newHold.value == 0, "This holdId already exists");
     require(notary != address(0), "Notary address must not be zero address");
-    require(value <= _spendableBalanceOfByPartition(token, partition, sender), "Amount of the hold can't be greater than the spendable balance of the sender");
-    require(
-      _canHold(token, partition, msg.sender, sender),
-      "The hold can only be renewed by the issuer or the payer"
-    );
-
+    
+    if (sender == address(0)) { // pre-hold (tokens do not already exist)
+      require(
+        _canPreHold(token, msg.sender),
+        "The pre-hold can only be created by the minter"
+      );
+    } else { // post-hold (tokens already exist)
+      require(value <= _spendableBalanceOfByPartition(token, partition, sender), "Amount of the hold can't be greater than the spendable balance of the sender");
+      require(
+        _canPostHold(token, partition, msg.sender, sender),
+        "The hold can only be renewed by the issuer or the payer"
+      );
+    }
+    
     newHold.partition = partition;
     newHold.sender = sender;
     newHold.recipient = recipient;
@@ -470,7 +546,10 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     newHold.secretHash = secretHash;
     newHold.status = HoldStatusCode.Ordered;
 
-    _increaseHeldBalance(token, newHold, holdId);
+    if(sender != address(0)) {
+      // In case tokens already exist, increase held balance
+      _increaseHeldBalance(token, newHold, holdId);
+    }
 
     emit HoldCreated(
       token,
@@ -521,7 +600,9 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
         }
     }
 
-    _decreaseHeldBalance(token, releasableHold, releasableHold.value);
+    if(releasableHold.sender != address(0)) { // In case tokens already exist, decrease held balance
+      _decreaseHeldBalance(token, releasableHold, releasableHold.value);
+    }
 
     emit HoldReleased(token, holdId, releasableHold.notary, releasableHold.status);
 
@@ -556,10 +637,18 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
       "A hold can only be renewed in status Ordered or ExecutedAndKeptOpen"
     );
     require(!_isExpired(renewableHold.expiration), "An expired hold can not be renewed");
-    require(
-      _canHold(token, renewableHold.partition, msg.sender, renewableHold.sender),
-      "The hold can only be renewed by the issuer or the payer"
-    );
+
+    if (renewableHold.sender == address(0)) { // pre-hold (tokens do not already exist)
+      require(
+        _canPreHold(token, msg.sender),
+        "The pre-hold can only be renewed by the minter"
+      );
+    } else { // post-hold (tokens already exist)
+      require(
+        _canPostHold(token, renewableHold.partition, msg.sender, renewableHold.sender),
+        "The hold can only be renewed by the issuer or the payer"
+      );
+    }
     
     uint256 oldExpiration = renewableHold.expiration;
     renewableHold.expiration = expiration;
@@ -646,7 +735,12 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
         );
       }
 
-      IERC1400(token).operatorTransferByPartition(executableHold.partition, executableHold.sender, executableHold.recipient, value, "", "");
+      if (executableHold.sender == address(0)) { // pre-hold (tokens do not already exist)
+        IERC1400(token).issueByPartition(executableHold.partition, executableHold.recipient, value, "");
+      } else { // post-hold (tokens already exist)
+        IERC1400(token).operatorTransferByPartition(executableHold.partition, executableHold.sender, executableHold.recipient, value, "", "");
+      }
+      
     } else {
       revert("hold can not be executed");
     }
@@ -665,7 +759,9 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     bytes32 secret
   ) internal
   {
-    _decreaseHeldBalance(token, executableHold, heldBalanceDecrease);
+    if(executableHold.sender != address(0)) { // In case tokens already exist, decrease held balance
+      _decreaseHeldBalance(token, executableHold, heldBalanceDecrease);
+    }
 
     executableHold.status = HoldStatusCode.Executed;
 
@@ -691,7 +787,9 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     bytes32 secret
   ) internal
   {
-    _decreaseHeldBalance(token, executableHold, heldBalanceDecrease);
+    if(executableHold.sender != address(0)) { // In case tokens already exist, decrease held balance
+      _decreaseHeldBalance(token, executableHold, heldBalanceDecrease);
+    } 
 
     executableHold.status = HoldStatusCode.ExecutedAndKeptOpen;
     executableHold.value = executableHold.value.sub(value);
@@ -985,10 +1083,18 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   }
 
   /**
+   * @dev Check if operator can create pre-holds.
+   * @return 'true' if the operator can create pre-holds, 'false' if not.
+   */
+  function _canPreHold(address token, address operator) internal view returns(bool) { 
+    return IMinterRole(token).isMinter(operator);
+  }
+
+  /**
    * @dev Check if operator can create/update holds.
    * @return 'true' if the operator can create/update holds, 'false' if not.
    */
-  function _canHold(address token, bytes32 partition, address operator, address sender) internal view returns(bool) {    
+  function _canPostHold(address token, bytes32 partition, address operator, address sender) internal view returns(bool) {    
     if (_selfHoldsActivated) {
       return IERC1400(token).isOperatorForPartition(partition, operator, sender);
     } else {
