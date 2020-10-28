@@ -3754,6 +3754,49 @@ contract("ERC1400 with validator hook", function ([
         assert.equal(this.holdData[7], secretHashPair.secret);
         assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_EXECUTED);
       });
+      it("creates and executes pre-hold in 2 times", async function () {
+        const initialBalance = await this.token.balanceOf(recipient)
+
+        const time = await this.clock.getTime();
+        const holdId = newHoldId();
+        const secretHashPair = newSecretHashPair();
+        await this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+        await this.validatorContract.executeHoldAndKeepOpen(this.token.address, holdId, holdAmount-100, secretHashPair.secret, { from: recipient })
+
+        const intermediateBalance = await this.token.balanceOf(recipient)
+
+        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
+        assert.equal(this.holdData[0], partition1);
+        assert.equal(this.holdData[1], ZERO_ADDRESS);
+        assert.equal(this.holdData[2], recipient);
+        assert.equal(this.holdData[3], notary);
+        assert.equal(parseInt(this.holdData[4]), 100);
+        assert.isAtLeast(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR);
+        assert.isBelow(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR+100);
+        assert.equal(this.holdData[6], secretHashPair.hash);
+        assert.equal(this.holdData[7], secretHashPair.secret);
+        assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_EXECUTED_AND_KEPT_OPEN);
+
+        await this.validatorContract.executeHold(this.token.address, holdId, 100, secretHashPair.secret, { from: recipient })
+
+        const finalBalance = await this.token.balanceOf(recipient)
+        
+        assert.equal(initialBalance, 0)
+        assert.equal(intermediateBalance, holdAmount-100)
+        assert.equal(finalBalance, holdAmount)
+
+        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
+        assert.equal(this.holdData[0], partition1);
+        assert.equal(this.holdData[1], ZERO_ADDRESS);
+        assert.equal(this.holdData[2], recipient);
+        assert.equal(this.holdData[3], notary);
+        assert.equal(parseInt(this.holdData[4]), 100);
+        assert.isAtLeast(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR);
+        assert.isBelow(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR+100);
+        assert.equal(this.holdData[6], secretHashPair.hash);
+        assert.equal(this.holdData[7], secretHashPair.secret);
+        assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_EXECUTED);
+      });
     });
     describe("when pre-hold can not be created", function () {
       describe("when expiration date is not valid", function () {
