@@ -5,6 +5,8 @@
 pragma solidity ^0.5.0;
 
 import "erc1820/contracts/ERC1820Client.sol";
+import "../interface/ERC1820Implementer.sol";
+
 import "../extensions/tokenExtensions/ERC1400TokensValidator.sol";
 import "../tokens/IERC20HoldableToken.sol";
 
@@ -43,9 +45,10 @@ interface HoldableERC1400TokenExtension {
  * @title DVPHoldableLockable
  * @notice Facilitates the atomic settlement of ERC20 and ERC1400 Holdable Tokens.
  */
-contract DVPHoldableLockable is ERC1820Client {
-    string
-        internal constant ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
+contract DVPHoldableLockable is ERC1820Client, ERC1820Implementer {
+    string internal constant DVP_HOLDABLE_LOCKABLE = "DVPHoldableLockable";
+    
+    string internal constant ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
 
     enum Standard {Undefined, HoldableERC20, HoldableERC1400}
 
@@ -87,6 +90,13 @@ contract DVPHoldableLockable is ERC1820Client {
         bytes metadata
     );
     event DestroyNote(address indexed owner, bytes32 indexed noteHash);
+
+    /**
+     * [DVP CONSTRUCTOR]
+     */
+    constructor() public {
+        ERC1820Implementer._setInterface(DVP_HOLDABLE_LOCKABLE);
+    }
 
     /**
      @notice Execute holds where the hold recipients are already known

@@ -24,10 +24,14 @@ interface AztecCryptographyEngine {
 contract DVPHoldableLockableACE is DVPHoldableLockable {
     AztecCryptographyEngine aceContract;
 
+    string internal constant DVP_HOLDABLE_LOCKABLE_ACE = "DVPHoldableLockableACE";
+
     /**
      @param _aceContract contract address of the deployed Aztec Cryptography Engine (ACE). eg 0xb9Bb032206Da5B033a47E62D905F26269DAbE839 for mainnet
      */
-    constructor(address _aceContract) public {
+    constructor(address _aceContract) public DVPHoldableLockable() {
+        ERC1820Implementer._setInterface(DVP_HOLDABLE_LOCKABLE_ACE);
+
         require(
             _aceContract != address(0),
             "ACE address must not be a zero address"
