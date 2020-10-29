@@ -220,6 +220,11 @@ contract ERC1400CertificateMock is ERC1400, CertificateControllerMock {
    * @param interfaceLabel Interface label of hook contract.
    */
   function _setHookContract(address validatorAddress, string memory interfaceLabel) internal {
+    address oldValidatorAddress = interfaceAddr(address(this), interfaceLabel);
+    if (oldValidatorAddress != address(0)) {
+      _setCertificateSigner(oldValidatorAddress, false);
+    }
+
     ERC1400._setHookContract(validatorAddress, interfaceLabel);
     _setCertificateSigner(validatorAddress, true);
   }

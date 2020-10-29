@@ -1,12 +1,14 @@
 const { expectRevert } = require("@openzeppelin/test-helpers");
 const { soliditySha3 } = require("web3-utils");
 const { advanceTimeAndBlock } = require("./utils/time")
-const { newSecretHashPair, newHoldId } = require("./utils/crypto")
+const { newSecretHashPair, newHoldId } = require("./utils/crypto");
+const { assert } = require("chai");
 
 const ERC1400 = artifacts.require("ERC1400CertificateMock");
 const ERC1820Registry = artifacts.require("ERC1820Registry");
 
 const ERC1400TokensValidator = artifacts.require("ERC1400TokensValidator");
+const ERC1400TokensValidatorMock = artifacts.require("ERC1400TokensValidatorMock");
 const ERC1400TokensChecker = artifacts.require("ERC1400TokensChecker");
 
 const BlacklistMock = artifacts.require("BlacklistMock.sol");
@@ -164,24 +166,164 @@ contract("ERC1400 with validator hook", function ([
       });
     });
     describe("when the caller is the contract owner", function () {
-      it("sets the validator hook", async function () {
-        let hookImplementer = await this.registry.getInterfaceImplementer(
-          this.token.address,
-          soliditySha3(ERC1400_TOKENS_VALIDATOR)
-        );
-        assert.equal(hookImplementer, ZERO_ADDRESS);
+      describe("when the the validator contract is not already a minter", function () {
+        describe("when there is was no previous validator contract", function () {
+          it("sets the validator hook", async function () {
+            let hookImplementer = await this.registry.getInterfaceImplementer(
+              this.token.address,
+              soliditySha3(ERC1400_TOKENS_VALIDATOR)
+            );
+            assert.equal(hookImplementer, ZERO_ADDRESS);
+            assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), false)
+            assert.equal(await this.token.isMinter(this.validatorContract.address), false)
+            assert.equal(await this.token.certificateSigners(this.validatorContract.address), false)
+    
+            await this.token.setHookContract(
+              this.validatorContract.address,
+              ERC1400_TOKENS_VALIDATOR,
+              { from: owner }
+            );
+    
+            hookImplementer = await this.registry.getInterfaceImplementer(
+              this.token.address,
+              soliditySha3(ERC1400_TOKENS_VALIDATOR)
+            );
+            assert.equal(hookImplementer, this.validatorContract.address);
+            assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), true)
+            assert.equal(await this.token.isMinter(this.validatorContract.address), true)
+            assert.equal(await this.token.certificateSigners(this.validatorContract.address), true)
+          });
+        });
+        describe("when there is was a previous validator contract", function () {
+          describe("when the previous validator contract was a minter", function () {
+            it("sets the validator hook", async function () {
+              let hookImplementer = await this.registry.getInterfaceImplementer(
+                this.token.address,
+                soliditySha3(ERC1400_TOKENS_VALIDATOR)
+              );
+              assert.equal(hookImplementer, ZERO_ADDRESS);
+      
+              await this.token.setHookContract(
+                this.validatorContract.address,
+                ERC1400_TOKENS_VALIDATOR,
+                { from: owner }
+              );
 
-        await this.token.setHookContract(
-          this.validatorContract.address,
-          ERC1400_TOKENS_VALIDATOR,
-          { from: owner }
-        );
+              assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), true)
+              assert.equal(await this.token.isMinter(this.validatorContract.address), true)
+              assert.equal(await this.token.certificateSigners(this.validatorContract.address), true)
 
-        hookImplementer = await this.registry.getInterfaceImplementer(
-          this.token.address,
-          soliditySha3(ERC1400_TOKENS_VALIDATOR)
-        );
-        assert.equal(hookImplementer, this.validatorContract.address);
+              this.validatorContract2 = await ERC1400TokensValidator.new(false, true, true, true, {
+                from: owner,
+              });
+      
+              await this.token.setHookContract(
+                this.validatorContract2.address,
+                ERC1400_TOKENS_VALIDATOR,
+                { from: owner }
+              );
+
+              assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), false)
+              assert.equal(await this.token.isMinter(this.validatorContract.address), false)
+              assert.equal(await this.token.certificateSigners(this.validatorContract.address), false)
+      
+              hookImplementer = await this.registry.getInterfaceImplementer(
+                this.token.address,
+                soliditySha3(ERC1400_TOKENS_VALIDATOR)
+              );
+              assert.equal(hookImplementer, this.validatorContract2.address);
+              assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), true)
+              assert.equal(await this.token.isMinter(this.validatorContract2.address), true)
+              assert.equal(await this.token.certificateSigners(this.validatorContract2.address), true)
+            });
+          });
+          describe("when the previous validator contract was not a minter", function () {
+            it("sets the validator hook", async function () {
+              this.validatorContract2 = await ERC1400TokensValidatorMock.new(false, true, true, true, {
+                from: owner,
+              });
+
+              let hookImplementer = await this.registry.getInterfaceImplementer(
+                this.token.address,
+                soliditySha3(ERC1400_TOKENS_VALIDATOR)
+              );
+              assert.equal(hookImplementer, ZERO_ADDRESS);
+              assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), false)
+              assert.equal(await this.token.isMinter(this.validatorContract2.address), false)
+              assert.equal(await this.token.certificateSigners(this.validatorContract2.address), false)
+      
+              await this.token.setHookContract(
+                this.validatorContract2.address,
+                ERC1400_TOKENS_VALIDATOR,
+                { from: owner }
+              );
+
+              hookImplementer = await this.registry.getInterfaceImplementer(
+                this.token.address,
+                soliditySha3(ERC1400_TOKENS_VALIDATOR)
+              );
+              assert.equal(hookImplementer, this.validatorContract2.address);
+              assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), true)
+              assert.equal(await this.token.isMinter(this.validatorContract2.address), true)
+              assert.equal(await this.token.certificateSigners(this.validatorContract2.address), true)
+
+              await this.validatorContract2.renounceMinter(this.token.address);
+
+              assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), true)
+              assert.equal(await this.token.isMinter(this.validatorContract2.address), false)
+              assert.equal(await this.token.certificateSigners(this.validatorContract2.address), true)
+      
+              await this.token.setHookContract(
+                this.validatorContract.address,
+                ERC1400_TOKENS_VALIDATOR,
+                { from: owner }
+              );
+
+              assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), false)
+              assert.equal(await this.token.isMinter(this.validatorContract2.address), false)
+              assert.equal(await this.token.certificateSigners(this.validatorContract2.address), false)
+      
+              hookImplementer = await this.registry.getInterfaceImplementer(
+                this.token.address,
+                soliditySha3(ERC1400_TOKENS_VALIDATOR)
+              );
+              assert.equal(hookImplementer, this.validatorContract.address);
+              assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), true)
+              assert.equal(await this.token.isMinter(this.validatorContract.address), true)
+              assert.equal(await this.token.certificateSigners(this.validatorContract.address), true)
+            });
+          });
+        });
+      });
+      describe("when the the validator contract is already a minter", function () {
+        it("sets the validator hook", async function () {
+          let hookImplementer = await this.registry.getInterfaceImplementer(
+            this.token.address,
+            soliditySha3(ERC1400_TOKENS_VALIDATOR)
+          );
+          assert.equal(hookImplementer, ZERO_ADDRESS);
+
+          await this.token.addMinter(this.validatorContract.address, { from: owner });
+
+          assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), false)
+          assert.equal(await this.token.isMinter(this.validatorContract.address), true)
+          assert.equal(await this.token.certificateSigners(this.validatorContract.address), false)
+  
+          await this.token.setHookContract(
+            this.validatorContract.address,
+            ERC1400_TOKENS_VALIDATOR,
+            { from: owner }
+          );
+  
+          hookImplementer = await this.registry.getInterfaceImplementer(
+            this.token.address,
+            soliditySha3(ERC1400_TOKENS_VALIDATOR)
+          );
+          assert.equal(hookImplementer, this.validatorContract.address);
+          assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), true)
+          assert.equal(await this.token.isMinter(this.validatorContract.address), true)
+          assert.equal(await this.token.certificateSigners(this.validatorContract.address), true)
+        });
       });
     });
     describe("when the caller is not the contract owner", function () {
@@ -3381,4 +3523,299 @@ contract("ERC1400 with validator hook", function ([
     });
   });
   
+  // PRE-HOLDS
+  describe("pre-hold", function () {
+    before(async function () {
+      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, false, {
+        from: owner,
+      });
+    });
+
+    beforeEach(async function () {
+      this.token = await ERC1400.new(
+        "ERC1400Token",
+        "DAU",
+        1,
+        [controller],
+        CERTIFICATE_SIGNER,
+        true,
+        partitions,
+        { from: owner }
+      );
+
+      await this.token.setHookContract(
+        this.validatorContract.address,
+        ERC1400_TOKENS_VALIDATOR,
+        { from: owner }
+      );
+    });
+    describe("when pre-hold can be created", function () {
+      it("creates a pre-hold", async function () {
+        const initialBalance = await this.token.balanceOf(recipient)
+        const initialPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+
+        const initialBalanceOnHold = await this.validatorContract.balanceOnHold(this.token.address, recipient)
+        const initialBalanceOnHoldByPartition = await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, recipient)
+
+        const initialSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, recipient)
+        const initialSpendableBalanceByPartition = await this.validatorContract.spendableBalanceOfByPartition(this.token.address, partition1, recipient)
+
+        const initialTotalSupplyOnHold = await this.validatorContract.totalSupplyOnHold(this.token.address)
+        const initialTotalSupplyOnHoldByPartition = await this.validatorContract.totalSupplyOnHoldByPartition(this.token.address, partition1)
+
+        const time = await this.clock.getTime();
+        const holdId = newHoldId();
+        const secretHashPair = newSecretHashPair();
+        await this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+
+        const finalBalance = await this.token.balanceOf(recipient)
+        const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+
+        const finalBalanceOnHold = await this.validatorContract.balanceOnHold(this.token.address, recipient)
+        const finalBalanceOnHoldByPartition = await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, recipient)
+
+        const finalSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, recipient)
+        const finalSpendableBalanceByPartition = await this.validatorContract.spendableBalanceOfByPartition(this.token.address, partition1, recipient)
+
+        const finalTotalSupplyOnHold = await this.validatorContract.totalSupplyOnHold(this.token.address)
+        const finalTotalSupplyOnHoldByPartition = await this.validatorContract.totalSupplyOnHoldByPartition(this.token.address, partition1)
+
+        assert.equal(initialBalance, 0)
+        assert.equal(finalBalance, 0)
+        assert.equal(initialPartitionBalance, 0)
+        assert.equal(finalPartitionBalance, 0)
+
+        assert.equal(initialBalanceOnHold, 0)
+        assert.equal(initialBalanceOnHoldByPartition, 0)
+        assert.equal(finalBalanceOnHold, 0)
+        assert.equal(finalBalanceOnHoldByPartition, 0)
+
+        assert.equal(initialSpendableBalance, 0)
+        assert.equal(initialSpendableBalanceByPartition, 0)
+        assert.equal(finalSpendableBalance, 0)
+        assert.equal(finalSpendableBalanceByPartition, 0)
+
+        assert.equal(initialTotalSupplyOnHold, 0)
+        assert.equal(initialTotalSupplyOnHoldByPartition, 0)
+        assert.equal(finalTotalSupplyOnHold, 0)
+        assert.equal(finalTotalSupplyOnHoldByPartition, 0)
+
+        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
+        assert.equal(this.holdData[0], partition1);
+        assert.equal(this.holdData[1], ZERO_ADDRESS);
+        assert.equal(this.holdData[2], recipient);
+        assert.equal(this.holdData[3], notary);
+        assert.equal(parseInt(this.holdData[4]), holdAmount);
+        assert.isAtLeast(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR);
+        assert.isBelow(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR+100);
+        assert.equal(this.holdData[6], secretHashPair.hash);
+        assert.equal(this.holdData[7], EMPTY_BYTE32);
+        assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_ORDERED);
+      });
+      it("emits an event", async function () {
+        const holdId = newHoldId();
+        const secretHashPair = newSecretHashPair();
+        const time = await this.clock.getTime();
+        const { logs } = await this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+
+        assert.equal(logs[0].event, "HoldCreated");
+        assert.equal(logs[0].args.token, this.token.address);
+        assert.equal(logs[0].args.holdId, holdId);
+        assert.equal(logs[0].args.partition, partition1);
+        assert.equal(logs[0].args.sender, ZERO_ADDRESS);
+        assert.equal(logs[0].args.recipient, recipient);
+        assert.equal(logs[0].args.notary, notary);
+        assert.equal(logs[0].args.value, holdAmount);
+        assert.isAtLeast(parseInt(logs[0].args.expiration), parseInt(time)+SECONDS_IN_AN_HOUR);
+        assert.isBelow(parseInt(logs[0].args.expiration), parseInt(time)+SECONDS_IN_AN_HOUR+100);
+        assert.equal(logs[0].args.secretHash, secretHashPair.hash);
+      });
+      it("creates a pre-hold with expiration time", async function () {
+        const time = parseInt(await this.clock.getTime());
+        const holdId = newHoldId();
+        const secretHashPair = newSecretHashPair();
+        await this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+
+        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
+        assert.equal(this.holdData[0], partition1);
+        assert.equal(this.holdData[1], ZERO_ADDRESS);
+        assert.equal(this.holdData[2], recipient);
+        assert.equal(this.holdData[3], notary);
+        assert.equal(parseInt(this.holdData[4]), holdAmount);
+        assert.equal(parseInt(this.holdData[5]), time+SECONDS_IN_AN_HOUR);
+        assert.equal(this.holdData[6], secretHashPair.hash);
+        assert.equal(this.holdData[7], EMPTY_BYTE32);
+        assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_ORDERED);
+      });
+      it("creates and releases a pre-hold", async function () {
+        const time = parseInt(await this.clock.getTime());
+        const holdId = newHoldId();
+        const secretHashPair = newSecretHashPair();
+        await this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+        await this.validatorContract.releaseHold(this.token.address, holdId, { from: notary });
+
+        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
+        assert.equal(this.holdData[0], partition1);
+        assert.equal(this.holdData[1], ZERO_ADDRESS);
+        assert.equal(this.holdData[2], recipient);
+        assert.equal(this.holdData[3], notary);
+        assert.equal(parseInt(this.holdData[4]), holdAmount);
+        assert.equal(parseInt(this.holdData[5]), time+SECONDS_IN_AN_HOUR);
+        assert.equal(this.holdData[6], secretHashPair.hash);
+        assert.equal(this.holdData[7], EMPTY_BYTE32);
+        assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_RELEASED_BY_NOTARY);
+      });
+      it("creates and renews a pre-hold", async function () {
+        const time = parseInt(await this.clock.getTime());
+        const holdId = newHoldId();
+        const secretHashPair = newSecretHashPair();
+        await this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+        await this.validatorContract.renewHold(this.token.address, holdId, SECONDS_IN_A_DAY, { from: owner });
+
+        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
+        assert.equal(this.holdData[0], partition1);
+        assert.equal(this.holdData[1], ZERO_ADDRESS);
+        assert.equal(this.holdData[2], recipient);
+        assert.equal(this.holdData[3], notary);
+        assert.equal(parseInt(this.holdData[4]), holdAmount);
+        assert.isAtLeast(parseInt(this.holdData[5]), time+SECONDS_IN_A_DAY-1);
+        assert.isBelow(parseInt(this.holdData[5]), time+SECONDS_IN_A_DAY+100);
+        assert.equal(this.holdData[6], secretHashPair.hash);
+        assert.equal(this.holdData[7], EMPTY_BYTE32);
+        assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_ORDERED);
+      });
+      it("creates a pre-hold and fails renewing it", async function () {
+        const time = parseInt(await this.clock.getTime());
+        const holdId = newHoldId();
+        const secretHashPair = newSecretHashPair();
+        await this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+        await expectRevert.unspecified(this.validatorContract.renewHold(this.token.address, holdId, SECONDS_IN_A_DAY, { from: controller }));
+      });
+      it("creates and executes pre-hold", async function () {
+        const initialBalance = await this.token.balanceOf(recipient)
+        const initialPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+
+        const initialBalanceOnHold = await this.validatorContract.balanceOnHold(this.token.address, recipient)
+        const initialBalanceOnHoldByPartition = await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, recipient)
+
+        const initialSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, recipient)
+        const initialSpendableBalanceByPartition = await this.validatorContract.spendableBalanceOfByPartition(this.token.address, partition1, recipient)
+
+        const initialTotalSupplyOnHold = await this.validatorContract.totalSupplyOnHold(this.token.address)
+        const initialTotalSupplyOnHoldByPartition = await this.validatorContract.totalSupplyOnHoldByPartition(this.token.address, partition1)
+
+        const time = await this.clock.getTime();
+        const holdId = newHoldId();
+        const secretHashPair = newSecretHashPair();
+        await this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+        await this.validatorContract.executeHold(this.token.address, holdId, holdAmount, secretHashPair.secret, { from: recipient })
+
+        const finalBalance = await this.token.balanceOf(recipient)
+        const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+
+        const finalBalanceOnHold = await this.validatorContract.balanceOnHold(this.token.address, recipient)
+        const finalBalanceOnHoldByPartition = await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, recipient)
+
+        const finalSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, recipient)
+        const finalSpendableBalanceByPartition = await this.validatorContract.spendableBalanceOfByPartition(this.token.address, partition1, recipient)
+
+        const finalTotalSupplyOnHold = await this.validatorContract.totalSupplyOnHold(this.token.address)
+        const finalTotalSupplyOnHoldByPartition = await this.validatorContract.totalSupplyOnHoldByPartition(this.token.address, partition1)
+
+        assert.equal(initialBalance, 0)
+        assert.equal(finalBalance, holdAmount)
+        assert.equal(initialPartitionBalance, 0)
+        assert.equal(finalPartitionBalance, holdAmount)
+
+        assert.equal(initialBalanceOnHold, 0)
+        assert.equal(initialBalanceOnHoldByPartition, 0)
+        assert.equal(finalBalanceOnHold, 0)
+        assert.equal(finalBalanceOnHoldByPartition, 0)
+
+        assert.equal(initialSpendableBalance, 0)
+        assert.equal(initialSpendableBalanceByPartition, 0)
+        assert.equal(finalSpendableBalance, holdAmount)
+        assert.equal(finalSpendableBalanceByPartition, holdAmount)
+
+        assert.equal(initialTotalSupplyOnHold, 0)
+        assert.equal(initialTotalSupplyOnHoldByPartition, 0)
+        assert.equal(finalTotalSupplyOnHold, 0)
+        assert.equal(finalTotalSupplyOnHoldByPartition, 0)
+
+        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
+        assert.equal(this.holdData[0], partition1);
+        assert.equal(this.holdData[1], ZERO_ADDRESS);
+        assert.equal(this.holdData[2], recipient);
+        assert.equal(this.holdData[3], notary);
+        assert.equal(parseInt(this.holdData[4]), holdAmount);
+        assert.isAtLeast(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR);
+        assert.isBelow(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR+100);
+        assert.equal(this.holdData[6], secretHashPair.hash);
+        assert.equal(this.holdData[7], secretHashPair.secret);
+        assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_EXECUTED);
+      });
+      it("creates and executes pre-hold in 2 times", async function () {
+        const initialBalance = await this.token.balanceOf(recipient)
+
+        const time = await this.clock.getTime();
+        const holdId = newHoldId();
+        const secretHashPair = newSecretHashPair();
+        await this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+        await this.validatorContract.executeHoldAndKeepOpen(this.token.address, holdId, holdAmount-100, secretHashPair.secret, { from: recipient })
+
+        const intermediateBalance = await this.token.balanceOf(recipient)
+
+        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
+        assert.equal(this.holdData[0], partition1);
+        assert.equal(this.holdData[1], ZERO_ADDRESS);
+        assert.equal(this.holdData[2], recipient);
+        assert.equal(this.holdData[3], notary);
+        assert.equal(parseInt(this.holdData[4]), 100);
+        assert.isAtLeast(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR);
+        assert.isBelow(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR+100);
+        assert.equal(this.holdData[6], secretHashPair.hash);
+        assert.equal(this.holdData[7], secretHashPair.secret);
+        assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_EXECUTED_AND_KEPT_OPEN);
+
+        await this.validatorContract.executeHold(this.token.address, holdId, 100, secretHashPair.secret, { from: recipient })
+
+        const finalBalance = await this.token.balanceOf(recipient)
+        
+        assert.equal(initialBalance, 0)
+        assert.equal(intermediateBalance, holdAmount-100)
+        assert.equal(finalBalance, holdAmount)
+
+        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
+        assert.equal(this.holdData[0], partition1);
+        assert.equal(this.holdData[1], ZERO_ADDRESS);
+        assert.equal(this.holdData[2], recipient);
+        assert.equal(this.holdData[3], notary);
+        assert.equal(parseInt(this.holdData[4]), 100);
+        assert.isAtLeast(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR);
+        assert.isBelow(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR+100);
+        assert.equal(this.holdData[6], secretHashPair.hash);
+        assert.equal(this.holdData[7], secretHashPair.secret);
+        assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_EXECUTED);
+      });
+    });
+    describe("when pre-hold can not be created", function () {
+      describe("when expiration date is not valid", function () {
+        it("reverts", async function () {
+          const time = parseInt(await this.clock.getTime());
+          const holdId = newHoldId();
+          const secretHashPair = newSecretHashPair();
+          await expectRevert.unspecified(this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time-1, secretHashPair.hash, { from: owner }))
+        });
+      });
+      describe("when caller is not a minter", function () {
+        it("reverts", async function () {
+          const holdId = newHoldId();
+          const secretHashPair = newSecretHashPair();
+          const time = await this.clock.getTime();
+          await expectRevert.unspecified(this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller }));
+        });
+      });
+    });
+  });
+
 });

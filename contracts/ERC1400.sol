@@ -1274,7 +1274,19 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param interfaceLabel Interface label of hook contract.
    */
   function _setHookContract(address validatorAddress, string memory interfaceLabel) internal {
+    address oldValidatorAddress = interfaceAddr(address(this), interfaceLabel);
+
+    if (oldValidatorAddress != address(0)) {
+      if(isMinter(oldValidatorAddress)) {
+        _removeMinter(oldValidatorAddress);
+      }
+      _isController[oldValidatorAddress] = false;
+    }
+
     ERC1820Client.setInterfaceImplementation(interfaceLabel, validatorAddress);
+    if(!isMinter(validatorAddress)) {
+      _addMinter(validatorAddress);
+    }
     _isController[validatorAddress] = true;
   }
   /************************************************************************************************/
