@@ -1,6 +1,6 @@
 const { expectRevert } = require("@openzeppelin/test-helpers");
 
-const ERC1400 = artifacts.require("ERC1400CertificateMock");
+const ERC1400HoldableCertificate = artifacts.require("ERC1400HoldableCertificateTokenMock");
 
 const CERTIFICATE_SIGNER = "0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630";
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
@@ -63,14 +63,17 @@ contract(
 
     describe("setCertificateSigner", function () {
       beforeEach(async function () {
-        this.token = await ERC1400.new(
+        this.token = await ERC1400HoldableCertificate.new(
           "ERC1400Token",
           "DAU",
           1,
           [controller],
+          partitions,
+          ZERO_ADDRESS,
+          ZERO_ADDRESS,
           CERTIFICATE_SIGNER,
           true,
-          partitions
+          { from: owner }
         );
       });
       describe("when the sender is the contract owner", function () {
@@ -124,14 +127,17 @@ contract(
 
     describe("setCertificateControllerActivated", function () {
       beforeEach(async function () {
-        this.token = await ERC1400.new(
+        this.token = await ERC1400HoldableCertificate.new(
           "ERC1400Token",
           "DAU",
           1,
           [controller],
+          partitions,
+          ZERO_ADDRESS,
+          ZERO_ADDRESS,
           CERTIFICATE_SIGNER,
           true,
-          partitions
+          { from: owner }
         );
       });
       describe("when the sender is the contract owner", function () {
@@ -203,14 +209,17 @@ contract(
       const transferAmount = 300;
 
       beforeEach(async function () {
-        this.token = await ERC1400.new(
+        this.token = await ERC1400HoldableCertificate.new(
           "ERC1400Token",
           "DAU",
           1,
           [controller],
+          partitions,
+          ZERO_ADDRESS,
+          ZERO_ADDRESS,
           CERTIFICATE_SIGNER,
           true,
-          partitions
+          { from: owner }
         );
         await this.token.issueByPartition(
           partition1,

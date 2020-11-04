@@ -6,32 +6,28 @@ pragma solidity ^0.5.0;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "openzeppelin-solidity/contracts/lifecycle/Pausable.sol";
-import "openzeppelin-solidity/contracts/access/roles/WhitelistedRole.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import "./roles/BlacklistedRole.sol";
+import "./roles/Pausable.sol";
+import "./roles/AllowlistedRole.sol";
+import "./roles/BlocklistedRole.sol";
 
 import "erc1820/contracts/ERC1820Client.sol";
 import "../../interface/ERC1820Implementer.sol";
 
 import "../../IERC1400.sol";
 
-// import "../userExtensions/IERC1400TokensSender.sol";
-// import "../userExtensions/IERC1400TokensRecipient.sol";
-
 import "./IERC1400TokensValidator.sol";
 
 /**
- @notice Interface to the Minterrole contract
-*/
+ * @notice Interface to the Minterrole contract
+ */
 interface IMinterRole {
   function isMinter(address account) external view returns (bool);
 }
 
 
-
-contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, WhitelistedRole, BlacklistedRole, ERC1820Client, ERC1820Implementer {
+contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, AllowlistedRole, BlocklistedRole, ERC1820Client, ERC1820Implementer {
   using SafeMath for uint256;
 
   string constant internal ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
@@ -39,10 +35,23 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   bytes4 constant internal ERC20_TRANSFER_FUNCTION_ID = bytes4(keccak256("transfer(address,uint256)"));
   bytes4 constant internal ERC20_TRANSFERFROM_FUNCTION_ID = bytes4(keccak256("transferFrom(address,address,uint256)"));
 
-  bool internal _whitelistActivated;
-  bool internal _blacklistActivated;
-  bool internal _holdsActivated;
-  bool internal _selfHoldsActivated;
+  // Mapping from token to allowlist activation status.
+  mapping(address => bool) internal _allowlistActivated;
+
+  // Mapping from token to blocklist activation status.
+  mapping(address => bool) internal _blocklistActivated;
+
+  // Mapping from token to holds activation status.
+  mapping(address => bool) internal _holdsActivated;
+
+  // Mapping from token to self-holds activation status.
+  mapping(address => bool) internal _selfHoldsActivated;
+
+  // Mapping from token to token controllers.
+  mapping(address => address[]) internal _tokenControllers;
+
+  // Mapping from (token, operator) to token controller status.
+  mapping(address => mapping(address => bool)) internal _isTokenController;
 
   enum HoldStatusCode {
     Nonexistent,
@@ -81,12 +90,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   // Total balance on hold.
   mapping(address => uint256) internal _totalHeldBalance;
 
-  // Mapping from token to token controllers.
-  mapping(address => address[]) internal _tokenControllers;
-
-  // Mapping from (token, operator) to token controller status.
-  mapping(address => mapping(address => bool)) internal _isTokenController;
-
   // Mapping from hold parameter's hash to hold's nonce.
   mapping(bytes32 => uint256) internal _hashNonce;
 
@@ -112,22 +115,104 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   /**
    * @dev Modifier to verify if sender is a token controller.
    */
-  modifier onlyTokenController(address tokenAddress) {
+  modifier onlyTokenController(address token) {
     require(
-      msg.sender == Ownable(tokenAddress).owner() ||
-      _isTokenController[tokenAddress][msg.sender],
+      msg.sender == token ||
+      msg.sender == Ownable(token).owner() ||
+      _isTokenController[token][msg.sender],
       "Sender is not a token controller."
     );
     _;
   }
 
-  constructor(bool whitelistActivated, bool blacklistActivated, bool holdsActivated, bool selfHoldsActivated) public {
-    ERC1820Implementer._setInterface(ERC1400_TOKENS_VALIDATOR);
+  /**
+   * @dev Modifier to verify if sender is a pauser.
+   */
+  modifier onlyPauser(address token) {
+    require(
+      msg.sender == Ownable(token).owner() ||
+      _isTokenController[token][msg.sender] ||
+      isPauser(token, msg.sender),
+      "Sender is not a pauser"
+    );
+    _;
+  }
 
-    _whitelistActivated = whitelistActivated;
-    _blacklistActivated = blacklistActivated;
-    _holdsActivated = holdsActivated;
-    _selfHoldsActivated = selfHoldsActivated;
+  /**
+   * @dev Modifier to verify if sender is an allowlist admin.
+   */
+  modifier onlyAllowlistAdmin(address token) {
+    require(
+      msg.sender == Ownable(token).owner() ||
+      _isTokenController[token][msg.sender] ||
+      isAllowlistAdmin(token, msg.sender),
+      "Sender is not an allowlist admin"
+    );
+    _;
+  }
+
+  /**
+   * @dev Modifier to verify if sender is a blocklist admin.
+   */
+  modifier onlyBlocklistAdmin(address token) {
+    require(
+      msg.sender == Ownable(token).owner() ||
+      _isTokenController[token][msg.sender] ||
+      isBlocklistAdmin(token, msg.sender),
+      "Sender is not a blocklist admin"
+    );
+    _;
+  }
+
+  constructor() public {
+    ERC1820Implementer._setInterface(ERC1400_TOKENS_VALIDATOR);
+  }
+
+  /**
+   * @dev Get the list of token controllers for a given token.
+   * @return Setup of a given token.
+   */
+  function retrieveTokenSetup(address token) external view returns (bool, bool, bool, bool, address[] memory) {
+    return (
+      _allowlistActivated[token],
+      _blocklistActivated[token],
+      _holdsActivated[token],
+      _selfHoldsActivated[token],
+      _tokenControllers[token]
+    );
+  }
+
+  /**
+   * @dev Register token setup.
+   */
+  function registerTokenSetup(
+    address token,
+    bool allowlistActivated,
+    bool blocklistActivated,
+    bool holdsActivated,
+    bool selfHoldsActivated,
+    address[] calldata operators
+  ) external onlyTokenController(token) {
+    _allowlistActivated[token] = allowlistActivated;
+    _blocklistActivated[token] = blocklistActivated;
+    _holdsActivated[token] = holdsActivated;
+    _selfHoldsActivated[token] = selfHoldsActivated;
+    _setTokenControllers(token, operators);
+  }
+
+  /**
+   * @dev Set list of token controllers for a given token.
+   * @param token Token address.
+   * @param operators Operators addresses.
+   */
+  function _setTokenControllers(address token, address[] memory operators) internal {
+    for (uint i = 0; i<_tokenControllers[token].length; i++){
+      _isTokenController[token][_tokenControllers[token][i]] = false;
+    }
+    for (uint j = 0; j<operators.length; j++){
+      _isTokenController[token][operators[j]] = true;
+    }
+    _tokenControllers[token] = operators;
   }
 
   /**
@@ -189,7 +274,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     (bool canValidateToken, bytes32 holdId) = _canValidate(msg.sender, functionSig, partition, operator, from, to, value, data, operatorData);
     require(canValidateToken, "55"); // 0x55	funds locked (lockup period)
 
-    if (_holdsActivated && holdId != "") {
+    if (_holdsActivated[msg.sender] && holdId != "") {
       Hold storage executableHold = _holds[msg.sender][holdId];
       _setHoldToExecuted(
         msg.sender,
@@ -220,23 +305,23 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   ) // Comments to avoid compilation warnings for unused variables.
     internal
     view
-    whenNotPaused
+    whenNotPaused(token)
     returns(bool, bytes32)
   {
     if(_functionRequiresValidation(functionSig)) {
-      if(_whitelistActivated) {
-        if(!isWhitelisted(from) || !isWhitelisted(to)) {
+      if(_allowlistActivated[token]) {
+        if(!isAllowlisted(token, from) || !isAllowlisted(token, to)) {
           return (false, "");
         }
       }
-      if(_blacklistActivated) {
-        if(isBlacklisted(from) || isBlacklisted(to)) {
+      if(_blocklistActivated[token]) {
+        if(isBlocklisted(token, from) || isBlocklisted(token, to)) {
           return (false, "");
         }
       }
     }
 
-    if (_holdsActivated) {
+    if (_holdsActivated[token]) {
       if(functionSig == ERC20_TRANSFERFROM_FUNCTION_ID) {
         (,, bytes32 holdId) = _retrieveHoldHashNonceId(token, partition, operator, from, to, value);
         Hold storage hold = _holds[token][holdId];
@@ -252,70 +337,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
     }
     
     return (true, "");
-  }
-
-  /**
-   * @dev Know if whitelist feature is activated.
-   * @return bool 'true' if whitelist feature is activated, 'false' if not.
-   */
-  function isWhitelistActivated() external view returns (bool) {
-    return _whitelistActivated;
-  }
-
-  /**
-   * @dev Set whitelist activation status.
-   * @param whitelistActivated 'true' if whitelist shall be activated, 'false' if not.
-   */
-  function setWhitelistActivated(bool whitelistActivated) external onlyOwner {
-    _whitelistActivated = whitelistActivated;
-  }
-
-  /**
-   * @dev Know if blacklist feature is activated.
-   * @return bool 'true' if blakclist feature is activated, 'false' if not.
-   */
-  function isBlacklistActivated() external view returns (bool) {
-    return _blacklistActivated;
-  }
-
-  /**
-   * @dev Set blacklist activation status.
-   * @param blacklistActivated 'true' if blacklist shall be activated, 'false' if not.
-   */
-  function setBlacklistActivated(bool blacklistActivated) external onlyOwner {
-    _blacklistActivated = blacklistActivated;
-  }
-
-  /**
-   * @dev Know if holds feature is activated.
-   * @return bool 'true' if holds feature is activated, 'false' if not.
-   */
-  function isHoldsActivated() external view returns (bool) {
-    return _holdsActivated;
-  }
-
-  /**
-   * @dev Set holds activation status.
-   * @param holdsActivated 'true' if holds shall be activated, 'false' if not.
-   */
-  function setHoldsActivated(bool holdsActivated) external onlyOwner {
-    _holdsActivated = holdsActivated;
-  }
-
-    /**
-   * @dev Know if unrestricted holds feature is activated.
-   * @return bool 'true' if unrestricted holds feature is activated, 'false' if not.
-   */
-  function isSelfHoldsActivated() external view returns (bool) {
-    return _selfHoldsActivated;
-  }
-
-  /**
-   * @dev Set unrestricted holds activation status.
-   * @param selfHoldsActivated 'true' if unrestricted holds shall be activated, 'false' if not.
-   */
-  function setSelfHoldsActivated(bool selfHoldsActivated) external onlyOwner {
-    _selfHoldsActivated = selfHoldsActivated;
   }
 
   /**
@@ -1050,39 +1071,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
   /************************** TOKEN CONTROLLERS *******************************/
 
   /**
-   * @dev Get the list of token controllers for a given token.
-   * @param tokenAddress Token address.
-   * @return List of addresses of all the token controllers for a given token.
-   */
-  function tokenControllers(address tokenAddress) external view returns (address[] memory) {
-    return _tokenControllers[tokenAddress];
-  }
-
-  /**
-   * @dev Set list of token controllers for a given token.
-   * @param tokenAddress Token address.
-   * @param operators Operators addresses.
-   */
-  function setTokenControllers(address tokenAddress, address[] calldata operators) external onlyTokenController(tokenAddress) {
-    _setTokenControllers(tokenAddress, operators);
-  }
-
-  /**
-   * @dev Set list of token controllers for a given token.
-   * @param tokenAddress Token address.
-   * @param operators Operators addresses.
-   */
-  function _setTokenControllers(address tokenAddress, address[] memory operators) internal {
-    for (uint i = 0; i<_tokenControllers[tokenAddress].length; i++){
-      _isTokenController[tokenAddress][_tokenControllers[tokenAddress][i]] = false;
-    }
-    for (uint j = 0; j<operators.length; j++){
-      _isTokenController[tokenAddress][operators[j]] = true;
-    }
-    _tokenControllers[tokenAddress] = operators;
-  }
-
-  /**
    * @dev Check if operator can create pre-holds.
    * @return 'true' if the operator can create pre-holds, 'false' if not.
    */
@@ -1095,7 +1083,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Ownable, Pausable, W
    * @return 'true' if the operator can create/update holds, 'false' if not.
    */
   function _canPostHold(address token, bytes32 partition, address operator, address sender) internal view returns(bool) {    
-    if (_selfHoldsActivated) {
+    if (_selfHoldsActivated[token]) {
       return IERC1400(token).isOperatorForPartition(partition, operator, sender);
     } else {
       return _isTokenController[token][operator];

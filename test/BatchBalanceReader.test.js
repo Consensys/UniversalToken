@@ -1,6 +1,8 @@
+const { ZERO_ADDRESS } = require("@openzeppelin/test-helpers/src/constants");
+
 const BatchBalanceReader = artifacts.require("BatchBalanceReader.sol");
 
-const ERC1400 = artifacts.require("ERC1400CertificateMock");
+const ERC1400HoldableCertificate = artifacts.require("ERC1400HoldableCertificateTokenMock");
 
 const CERTIFICATE_SIGNER = "0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630";
 
@@ -42,23 +44,29 @@ contract(
   "BatchBalanceReader",
   ([owner, controller, tokenHolder1, tokenHolder2, tokenHolder3, unknown]) => {
     beforeEach(async function () {
-      this.token1 = await ERC1400.new(
+      this.token1 = await ERC1400HoldableCertificate.new(
         "ERC1400Token",
-        "DAU20",
+        "DAU",
         1,
         [controller],
+        partitions,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
         CERTIFICATE_SIGNER,
         true,
-        partitions
+        { from: controller }
       );
-      this.token2 = await ERC1400.new(
+      this.token2 = await ERC1400HoldableCertificate.new(
         "ERC1400Token",
-        "DAU20",
+        "DAU",
         1,
         [controller],
+        partitions,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
         CERTIFICATE_SIGNER,
         true,
-        partitions
+        { from: controller }
       );
       this.balanceReader = await BatchBalanceReader.new();
 
@@ -68,21 +76,21 @@ contract(
         tokenHolder1,
         issuanceAmount11,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token1.issueByPartition(
         partition1,
         tokenHolder2,
         issuanceAmount12,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token1.issueByPartition(
         partition1,
         tokenHolder3,
         issuanceAmount13,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
       await this.token1.issueByPartition(
@@ -90,21 +98,21 @@ contract(
         tokenHolder1,
         issuanceAmount21,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token1.issueByPartition(
         partition2,
         tokenHolder2,
         issuanceAmount22,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token1.issueByPartition(
         partition2,
         tokenHolder3,
         issuanceAmount23,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
       await this.token1.issueByPartition(
@@ -112,21 +120,21 @@ contract(
         tokenHolder1,
         issuanceAmount31,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token1.issueByPartition(
         partition3,
         tokenHolder2,
         issuanceAmount32,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token1.issueByPartition(
         partition3,
         tokenHolder3,
         issuanceAmount33,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
       await this.token1.issueByPartition(
@@ -134,21 +142,21 @@ contract(
         tokenHolder1,
         issuanceAmount41,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token1.issueByPartition(
         partition4,
         tokenHolder2,
         issuanceAmount42,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token1.issueByPartition(
         partition4,
         tokenHolder3,
         issuanceAmount43,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
       // Token2
@@ -157,21 +165,21 @@ contract(
         tokenHolder1,
         2 * issuanceAmount11,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token2.issueByPartition(
         partition1,
         tokenHolder2,
         2 * issuanceAmount12,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token2.issueByPartition(
         partition1,
         tokenHolder3,
         2 * issuanceAmount13,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
       await this.token2.issueByPartition(
@@ -179,21 +187,21 @@ contract(
         tokenHolder1,
         2 * issuanceAmount21,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token2.issueByPartition(
         partition2,
         tokenHolder2,
         2 * issuanceAmount22,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token2.issueByPartition(
         partition2,
         tokenHolder3,
         2 * issuanceAmount23,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
       await this.token2.issueByPartition(
@@ -201,21 +209,21 @@ contract(
         tokenHolder1,
         2 * issuanceAmount31,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token2.issueByPartition(
         partition3,
         tokenHolder2,
         2 * issuanceAmount32,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token2.issueByPartition(
         partition3,
         tokenHolder3,
         2 * issuanceAmount33,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
       await this.token2.issueByPartition(
@@ -223,21 +231,21 @@ contract(
         tokenHolder1,
         2 * issuanceAmount41,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token2.issueByPartition(
         partition4,
         tokenHolder2,
         2 * issuanceAmount42,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
       await this.token2.issueByPartition(
         partition4,
         tokenHolder3,
         2 * issuanceAmount43,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
     });
 

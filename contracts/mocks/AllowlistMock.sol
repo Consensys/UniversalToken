@@ -1,0 +1,20 @@
+pragma solidity ^0.5.0;
+
+// MOCK CONTRACT TO REACH FULL COVERAGE BY CALLING "onlyNotAllowlisted" MODIFIER
+
+import "../extensions/tokenExtensions/roles/AllowlistedRole.sol";
+
+
+contract AllowlistMock is AllowlistedRole {
+
+  bool _mockActivated;
+
+  constructor(address token) public {
+    _addAllowlistAdmin(token, msg.sender);
+  }
+
+  function mockFunction(address token, bool mockActivated) external onlyNotAllowlisted(token) {
+    _mockActivated = mockActivated;
+  }
+
+}

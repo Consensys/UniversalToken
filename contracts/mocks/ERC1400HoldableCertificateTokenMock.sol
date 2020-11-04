@@ -4,41 +4,46 @@
  */
 pragma solidity ^0.5.0;
 
-import "../ERC1400.sol";
-import "./certificateControllers/CertificateControllerNonce.sol";
+import "../tokens/ERC1400HoldableToken.sol";
+import "./CertificateControllerMock.sol";
+
 
 /**
- * @title ERC1400
- * @dev ERC1400 logic
+ * @title ERC1400HoldableCertificateTokenMock
+ * @dev Holdable ERC1400 with certificate controller logic
  */
-contract ERC1400CertificateNonce is ERC1400, CertificateController {
+contract ERC1400HoldableCertificateTokenMock is ERC1400HoldableToken, CertificateControllerMock {
 
   /**
-   * @dev Initialize ERC1400 + initialize certificate controller.
+   * @dev Initialize ERC1400 + setup the token extension + initialize certificate controller.
    * @param name Name of the token.
    * @param symbol Symbol of the token.
    * @param granularity Granularity of the token.
    * @param controllers Array of initial controllers.
+   * @param defaultPartitions Partitions chosen by default, when partition is
+   * not specified, like the case ERC20 tranfers.
+   * @param extension Address of holdable token extension.
+   * @param newOwner Address whom contract ownership shall be transferred to.
    * @param certificateSigner Address of the off-chain service which signs the
    * conditional ownership certificates required for token transfers, issuance,
    * redemption (Cf. CertificateController.sol).
    * @param certificateActivated If set to 'true', the certificate controller
    * is activated at contract creation.
-   * @param defaultPartitions Partitions chosen by default, when partition is
-   * not specified, like the case ERC20 tranfers.
    */
   constructor(
     string memory name,
     string memory symbol,
     uint256 granularity,
     address[] memory controllers,
+    bytes32[] memory defaultPartitions,
+    address extension,
+    address newOwner,
     address certificateSigner,
-    bool certificateActivated,
-    bytes32[] memory defaultPartitions
+    bool certificateActivated
   )
     public
-    ERC1400(name, symbol, granularity, controllers, defaultPartitions)
-    CertificateController(certificateSigner, certificateActivated)
+    ERC1400HoldableToken(name, symbol, granularity, controllers, defaultPartitions, extension, newOwner)
+    CertificateControllerMock(certificateSigner, certificateActivated)
   {}
 
 
@@ -210,20 +215,26 @@ contract ERC1400CertificateNonce is ERC1400, CertificateController {
   }
   /************************************************************************************************/
 
-  /******************* Token extension (hooks triggered by the contract) **************************/
+  /************************************** Token extension *****************************************/
   /**
-   * @dev Set validator contract address.
-   * The validator contract needs to verify "ERC1400TokensValidator" interface.
-   * Once setup, the validator will be called everytime a transfer is executed.
-   * @param validatorAddress Address of the validator contract.
-   * @param interfaceLabel Interface label of hook contract.
+   * @dev Set token extension contract address.
+   * The extension contract can for example verify "ERC1400TokensValidator" or "ERC1400TokensChecker" interfaces.
+   * If the extension is an "ERC1400TokensValidator", it will be called everytime a transfer is executed.
+   * @param extension Address of the extension contract.
+   * @param interfaceLabel Interface label of extension contract.
+   * @param minterExtension If set to 'true', the extension contract will be added as minter.
+   * @param controllerExtension If set to 'true', the extension contract will be added as controller.
    */
-  function _setHookContract(address validatorAddress, string memory interfaceLabel) internal {
-    address oldValidatorAddress = interfaceAddr(address(this), interfaceLabel);
-    _setCertificateSigner(oldValidatorAddress, false);
+  function _setTokenExtension(address extension, string memory interfaceLabel, bool minterExtension, bool controllerExtension) internal {
+    address oldExtension = interfaceAddr(address(this), interfaceLabel);
+    if(minterExtension) {
+      if(oldExtension != address(0)) {
+        _setCertificateSigner(oldExtension, false);
+      }
+      _setCertificateSigner(extension, true);
+    }
 
-    ERC1400._setHookContract(validatorAddress, interfaceLabel);
-    _setCertificateSigner(validatorAddress, true);
+    ERC1400._setTokenExtension(extension, interfaceLabel, minterExtension, controllerExtension);
   }
   /************************************************************************************************/
 
