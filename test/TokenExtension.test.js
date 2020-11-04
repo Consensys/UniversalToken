@@ -4,14 +4,16 @@ const { advanceTimeAndBlock } = require("./utils/time")
 const { newSecretHashPair, newHoldId } = require("./utils/crypto");
 const { assert } = require("chai");
 
-const ERC1400 = artifacts.require("ERC1400CertificateMock");
+const ERC1400HoldableCertificate = artifacts.require("ERC1400HoldableCertificateTokenMock");
 const ERC1820Registry = artifacts.require("ERC1820Registry");
 
 const ERC1400TokensValidator = artifacts.require("ERC1400TokensValidator");
 const ERC1400TokensValidatorMock = artifacts.require("ERC1400TokensValidatorMock");
 const ERC1400TokensChecker = artifacts.require("ERC1400TokensChecker");
 
-const BlacklistMock = artifacts.require("BlacklistMock.sol");
+const PauserMock = artifacts.require("PauserMock.sol");
+const AllowlistMock = artifacts.require("AllowlistMock.sol");
+const BlocklistMock = artifacts.require("BlocklistMock.sol");
 
 const ClockMock = artifacts.require("ClockMock.sol");
 
@@ -130,7 +132,186 @@ const assertEscResponse = async (
   assert.equal(_response[2], _destinationPartition);
 };
 
-contract("ERC1400 with validator hook", function ([
+const assertAllowListActivated = async (
+  _extension,
+  _token,
+  _expectedValue
+) => {
+  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
+  assert.equal(_expectedValue, tokenSetup[0]);
+}
+
+const setAllowListActivated = async (
+  _extension,
+  _token,
+  _sender,
+  _value
+) => {
+  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
+  await _extension.registerTokenSetup(
+    _token.address,
+    _value,
+    tokenSetup[1],
+    tokenSetup[2],
+    tokenSetup[3],
+    tokenSetup[4],
+    { from: _sender }
+  );
+}
+
+const assertBlockListActivated = async (
+  _extension,
+  _token,
+  _expectedValue
+) => {
+  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
+  assert.equal(_expectedValue, tokenSetup[1]);
+}
+
+const setBlockListActivated = async (
+  _extension,
+  _token,
+  _sender,
+  _value
+) => {
+  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
+  await _extension.registerTokenSetup(
+    _token.address,
+    tokenSetup[0],
+    _value,
+    tokenSetup[2],
+    tokenSetup[3],
+    tokenSetup[4],
+    { from: _sender }
+  );
+}
+
+const assertHoldsActivated = async (
+  _extension,
+  _token,
+  _expectedValue
+) => {
+  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
+  assert.equal(_expectedValue, tokenSetup[2]);
+}
+
+const setHoldsActivated = async (
+  _extension,
+  _token,
+  _sender,
+  _value
+) => {
+  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
+  await _extension.registerTokenSetup(
+    _token.address,
+    tokenSetup[0],
+    tokenSetup[1],
+    _value,
+    tokenSetup[3],
+    tokenSetup[4],
+    { from: _sender }
+  );
+}
+
+const assertSelfHoldsActivated = async (
+  _extension,
+  _token,
+  _expectedValue
+) => {
+  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
+  assert.equal(_expectedValue, tokenSetup[3]);
+}
+
+const setSelfHoldsActivated = async (
+  _extension,
+  _token,
+  _sender,
+  _value
+) => {
+  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
+  await _extension.registerTokenSetup(
+    _token.address,
+    tokenSetup[0],
+    tokenSetup[1],
+    tokenSetup[2],
+    _value,
+    tokenSetup[4],
+    { from: _sender }
+  );
+}
+
+const assertTokenHasExtension = async (
+  _registry,
+  _extension,
+  _token,
+) => {
+  let hookImplementer = await _registry.getInterfaceImplementer(
+    _token.address,
+    soliditySha3(ERC1400_TOKENS_VALIDATOR)
+  );
+  assert.equal(hookImplementer, _extension.address);
+}
+
+const addTokenController = async (
+  _extension,
+  _token,
+  _sender,
+  _newController
+) => {
+  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
+  const controllerList = tokenSetup[4];
+  if (!controllerList.includes(_newController)) {
+    controllerList.push(_newController);
+  }
+  await _extension.registerTokenSetup(
+    _token.address,
+    tokenSetup[0],
+    tokenSetup[1],
+    tokenSetup[2],
+    tokenSetup[3],
+    controllerList,
+    { from: _sender }
+  );
+}
+
+const assertIsTokenController = async (
+  _extension,
+  _token,
+  _controller,
+  _value,
+) => {
+  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
+  const controllerList = tokenSetup[4];
+  assert.equal(_value, controllerList.includes(_controller))
+}
+
+const setNewExtensionForToken = async (
+  _extension,
+  _token,
+  _sender,
+) => {
+  const controllers = await _token.controllers();
+  await _extension.registerTokenSetup(
+    _token.address,
+    true,
+    true,
+    true,
+    false,
+    controllers,
+    { from: _sender }
+  );
+
+  await _token.setTokenExtension(
+    _extension.address,
+    ERC1400_TOKENS_VALIDATOR,
+    true,
+    true,
+    { from: _sender }
+  );
+}
+
+contract("ERC1400HoldableCertificate with validator hook", function ([
+  deployer,
   owner,
   operator,
   controller,
@@ -147,28 +328,48 @@ contract("ERC1400 with validator hook", function ([
     );
 
     this.clock = await ClockMock.new();
+
+    this.validatorContract = await ERC1400TokensValidator.new({
+      from: deployer,
+    });
+  });
+
+  beforeEach(async function () {
+    this.token = await ERC1400HoldableCertificate.new(
+      "ERC1400Token",
+      "DAU",
+      1,
+      [controller],
+      partitions,
+      this.validatorContract.address,
+      owner,
+      CERTIFICATE_SIGNER,
+      true,
+      { from: controller }
+    );
   });
 
   // HOOKS
-  describe("setHookContract", function () {
-    beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
-      );
-      this.validatorContract = await ERC1400TokensValidator.new(false, true, true, true, {
-        from: owner,
-      });
-    });
+  describe("setTokenExtension", function () {
     describe("when the caller is the contract owner", function () {
       describe("when the the validator contract is not already a minter", function () {
         describe("when there is was no previous validator contract", function () {
           it("sets the validator hook", async function () {
+            this.token = await ERC1400HoldableCertificate.new(
+              "ERC1400Token",
+              "DAU",
+              1,
+              [controller],
+              partitions,
+              ZERO_ADDRESS,
+              owner,
+              CERTIFICATE_SIGNER,
+              true,
+              { from: controller }
+            );
+
+            assert.equal(await this.token.owner(), owner)
+
             let hookImplementer = await this.registry.getInterfaceImplementer(
               this.token.address,
               soliditySha3(ERC1400_TOKENS_VALIDATOR)
@@ -178,9 +379,11 @@ contract("ERC1400 with validator hook", function ([
             assert.equal(await this.token.isMinter(this.validatorContract.address), false)
             assert.equal(await this.token.certificateSigners(this.validatorContract.address), false)
     
-            await this.token.setHookContract(
+            await this.token.setTokenExtension(
               this.validatorContract.address,
               ERC1400_TOKENS_VALIDATOR,
+              true,
+              true,
               { from: owner }
             );
     
@@ -196,86 +399,115 @@ contract("ERC1400 with validator hook", function ([
         });
         describe("when there is was a previous validator contract", function () {
           describe("when the previous validator contract was a minter", function () {
-            it("sets the validator hook", async function () {
-              let hookImplementer = await this.registry.getInterfaceImplementer(
-                this.token.address,
-                soliditySha3(ERC1400_TOKENS_VALIDATOR)
-              );
-              assert.equal(hookImplementer, ZERO_ADDRESS);
-      
-              await this.token.setHookContract(
-                this.validatorContract.address,
-                ERC1400_TOKENS_VALIDATOR,
-                { from: owner }
-              );
+            it("sets the validator hook (with controller rights)", async function () {
+              assert.equal(await this.token.owner(), owner)
 
+              await assertTokenHasExtension(
+                this.registry,
+                this.validatorContract,
+                this.token,
+              );
               assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), true)
               assert.equal(await this.token.isMinter(this.validatorContract.address), true)
               assert.equal(await this.token.certificateSigners(this.validatorContract.address), true)
-
-              this.validatorContract2 = await ERC1400TokensValidator.new(false, true, true, true, {
-                from: owner,
+  
+              this.validatorContract2 = await ERC1400TokensValidator.new({
+                from: deployer,
               });
       
-              await this.token.setHookContract(
+              await this.token.setTokenExtension(
                 this.validatorContract2.address,
                 ERC1400_TOKENS_VALIDATOR,
+                true,
+                true,
                 { from: owner }
               );
-
+      
+              await assertTokenHasExtension(
+                this.registry,
+                this.validatorContract2,
+                this.token,
+              );
+              assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), true)
+              assert.equal(await this.token.isMinter(this.validatorContract2.address), true)
+              assert.equal(await this.token.certificateSigners(this.validatorContract2.address), true)
+  
               assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), false)
               assert.equal(await this.token.isMinter(this.validatorContract.address), false)
               assert.equal(await this.token.certificateSigners(this.validatorContract.address), false)
-      
-              hookImplementer = await this.registry.getInterfaceImplementer(
-                this.token.address,
-                soliditySha3(ERC1400_TOKENS_VALIDATOR)
+            });
+            it("sets the validator hook (without controller rights)", async function () {
+              assert.equal(await this.token.owner(), owner)
+
+              await assertTokenHasExtension(
+                this.registry,
+                this.validatorContract,
+                this.token,
               );
-              assert.equal(hookImplementer, this.validatorContract2.address);
-              assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), true)
+              assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), true)
+              assert.equal(await this.token.isMinter(this.validatorContract.address), true)
+              assert.equal(await this.token.certificateSigners(this.validatorContract.address), true)
+  
+              this.validatorContract2 = await ERC1400TokensValidator.new({
+                from: deployer,
+              });
+      
+              await this.token.setTokenExtension(
+                this.validatorContract2.address,
+                ERC1400_TOKENS_VALIDATOR,
+                true,
+                false,
+                { from: owner }
+              );
+      
+              await assertTokenHasExtension(
+                this.registry,
+                this.validatorContract2,
+                this.token,
+              );
+              assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), false)
               assert.equal(await this.token.isMinter(this.validatorContract2.address), true)
               assert.equal(await this.token.certificateSigners(this.validatorContract2.address), true)
+  
+              assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), false)
+              assert.equal(await this.token.isMinter(this.validatorContract.address), false)
+              assert.equal(await this.token.certificateSigners(this.validatorContract.address), false)
             });
           });
           describe("when the previous validator contract was not a minter", function () {
-            it("sets the validator hook", async function () {
-              this.validatorContract2 = await ERC1400TokensValidatorMock.new(false, true, true, true, {
-                from: owner,
+            it("sets the validator hook", async function () {  
+              this.validatorContract2 = await ERC1400TokensValidatorMock.new({
+                from: deployer,
               });
-
-              let hookImplementer = await this.registry.getInterfaceImplementer(
-                this.token.address,
-                soliditySha3(ERC1400_TOKENS_VALIDATOR)
-              );
-              assert.equal(hookImplementer, ZERO_ADDRESS);
-              assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), false)
-              assert.equal(await this.token.isMinter(this.validatorContract2.address), false)
-              assert.equal(await this.token.certificateSigners(this.validatorContract2.address), false)
       
-              await this.token.setHookContract(
+              await this.token.setTokenExtension(
                 this.validatorContract2.address,
                 ERC1400_TOKENS_VALIDATOR,
+                true,
+                true,
                 { from: owner }
               );
-
-              hookImplementer = await this.registry.getInterfaceImplementer(
-                this.token.address,
-                soliditySha3(ERC1400_TOKENS_VALIDATOR)
+      
+              await assertTokenHasExtension(
+                this.registry,
+                this.validatorContract2,
+                this.token,
               );
-              assert.equal(hookImplementer, this.validatorContract2.address);
               assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), true)
               assert.equal(await this.token.isMinter(this.validatorContract2.address), true)
               assert.equal(await this.token.certificateSigners(this.validatorContract2.address), true)
 
-              await this.validatorContract2.renounceMinter(this.token.address);
+              await this.validatorContract2.renounceMinter(this.token.address, { from: owner });
 
               assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), true)
               assert.equal(await this.token.isMinter(this.validatorContract2.address), false)
               assert.equal(await this.token.certificateSigners(this.validatorContract2.address), true)
       
-              await this.token.setHookContract(
+              await this.token.setTokenExtension(
                 this.validatorContract.address,
                 ERC1400_TOKENS_VALIDATOR,
+                true,
+                true,
                 { from: owner }
               );
 
@@ -283,11 +515,11 @@ contract("ERC1400 with validator hook", function ([
               assert.equal(await this.token.isMinter(this.validatorContract2.address), false)
               assert.equal(await this.token.certificateSigners(this.validatorContract2.address), false)
       
-              hookImplementer = await this.registry.getInterfaceImplementer(
-                this.token.address,
-                soliditySha3(ERC1400_TOKENS_VALIDATOR)
+              await assertTokenHasExtension(
+                this.registry,
+                this.validatorContract,
+                this.token,
               );
-              assert.equal(hookImplementer, this.validatorContract.address);
               assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), true)
               assert.equal(await this.token.isMinter(this.validatorContract.address), true)
               assert.equal(await this.token.certificateSigners(this.validatorContract.address), true)
@@ -297,187 +529,477 @@ contract("ERC1400 with validator hook", function ([
       });
       describe("when the the validator contract is already a minter", function () {
         it("sets the validator hook", async function () {
-          let hookImplementer = await this.registry.getInterfaceImplementer(
-            this.token.address,
-            soliditySha3(ERC1400_TOKENS_VALIDATOR)
+          this.validatorContract2 = await ERC1400TokensValidatorMock.new({
+            from: deployer,
+          });
+
+          await assertTokenHasExtension(
+            this.registry,
+            this.validatorContract,
+            this.token,
           );
-          assert.equal(hookImplementer, ZERO_ADDRESS);
 
-          await this.token.addMinter(this.validatorContract.address, { from: owner });
+          await this.token.addMinter(this.validatorContract2.address, { from: controller });
 
-          assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), false)
-          assert.equal(await this.token.isMinter(this.validatorContract.address), true)
-          assert.equal(await this.token.certificateSigners(this.validatorContract.address), false)
+          assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), false)
+          assert.equal(await this.token.isMinter(this.validatorContract2.address), true)
+          assert.equal(await this.token.certificateSigners(this.validatorContract2.address), false)
   
-          await this.token.setHookContract(
-            this.validatorContract.address,
+          await this.token.setTokenExtension(
+            this.validatorContract2.address,
             ERC1400_TOKENS_VALIDATOR,
+            true,
+            true,
             { from: owner }
           );
   
-          hookImplementer = await this.registry.getInterfaceImplementer(
-            this.token.address,
-            soliditySha3(ERC1400_TOKENS_VALIDATOR)
+          await assertTokenHasExtension(
+            this.registry,
+            this.validatorContract2,
+            this.token,
           );
-          assert.equal(hookImplementer, this.validatorContract.address);
-          assert.equal(await this.token.isOperator(this.validatorContract.address, unknown), true)
-          assert.equal(await this.token.isMinter(this.validatorContract.address), true)
-          assert.equal(await this.token.certificateSigners(this.validatorContract.address), true)
+          assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), true)
+          assert.equal(await this.token.isMinter(this.validatorContract2.address), true)
+          assert.equal(await this.token.certificateSigners(this.validatorContract2.address), true)
         });
       });
     });
     describe("when the caller is not the contract owner", function () {
       it("reverts", async function () {
+        this.validatorContract2 = await ERC1400TokensValidator.new({
+          from: deployer,
+        });
         await expectRevert.unspecified(
-          this.token.setHookContract(
-            this.validatorContract.address,
+          this.token.setTokenExtension(
+            this.validatorContract2.address,
             ERC1400_TOKENS_VALIDATOR,
-            { from: unknown }
+            true,
+            true,
+            { from: controller }
           )
         );
       });
     });
   });
 
-  // BLACKLIST
-  describe("addBlacklisted/renounceBlacklistAdmin", function () {
+  // PAUSER
+  describe("addPauser/renouncePauser", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
+      await assertTokenHasExtension(
+        this.registry,
+        this.validatorContract,
+        this.token,
       );
-      this.validatorContract = await ERC1400TokensValidator.new(false, true, true, true, {
-        from: owner,
-      });
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
-      );
-      let hookImplementer = await this.registry.getInterfaceImplementer(
-        this.token.address,
-        soliditySha3(ERC1400_TOKENS_VALIDATOR)
-      );
-      assert.equal(hookImplementer, this.validatorContract.address);
 
-      await this.validatorContract.addBlacklisted(tokenHolder, { from: owner });
-      await this.validatorContract.addBlacklisted(recipient, { from: owner });
-      assert.equal(
-        await this.validatorContract.isBlacklisted(tokenHolder),
-        true
-      );
-      assert.equal(await this.validatorContract.isBlacklisted(recipient), true);
+      // await this.validatorContract.addBlocklisted(this.token.address, tokenHolder, { from: controller });
+      // await this.validatorContract.addBlocklisted(this.token.address, recipient, { from: controller });
+      // assert.equal(await this.validatorContract.isBlocklisted(this.token.address, tokenHolder), true);
+      // assert.equal(await this.validatorContract.isBlocklisted(this.token.address, recipient), true);
     });
-    describe("add/remove a blacklist admin", function () {
-      describe("when caller is a blacklist admin", function () {
-        it("adds a blacklist admin", async function () {
+    describe("add/remove a pauser", function () {
+      describe("when caller is a pauser", function () {
+        it("adds a pauser as token owner", async function () {
           assert.equal(
-            await this.validatorContract.isBlacklistAdmin(unknown),
+            await this.validatorContract.isPauser(this.token.address, unknown),
             false
           );
-          await this.validatorContract.addBlacklistAdmin(unknown, {
+          await this.validatorContract.addPauser(this.token.address, unknown, {
             from: owner,
           });
           assert.equal(
-            await this.validatorContract.isBlacklistAdmin(unknown),
+            await this.validatorContract.isPauser(this.token.address, unknown),
             true
           );
         });
-        it("renounces blacklist admin", async function () {
+        it("adds a pauser as token controller", async function () {
           assert.equal(
-            await this.validatorContract.isBlacklistAdmin(unknown),
+            await this.validatorContract.isPauser(this.token.address, unknown),
             false
           );
-          await this.validatorContract.addBlacklistAdmin(unknown, {
-            from: owner,
+          await this.validatorContract.addPauser(this.token.address, unknown, {
+            from: controller,
           });
           assert.equal(
-            await this.validatorContract.isBlacklistAdmin(unknown),
+            await this.validatorContract.isPauser(this.token.address, unknown),
             true
           );
-          await this.validatorContract.renounceBlacklistAdmin({
+        });
+        it("adds a pauser as pauser", async function () {
+          assert.equal(
+            await this.validatorContract.isPauser(this.token.address, unknown),
+            false
+          );
+          await this.validatorContract.addPauser(this.token.address, unknown, {
+            from: controller,
+          });
+          assert.equal(
+            await this.validatorContract.isPauser(this.token.address, unknown),
+            true
+          );
+
+          assert.equal(
+            await this.validatorContract.isPauser(this.token.address, tokenHolder),
+            false
+          );
+          await this.validatorContract.addPauser(this.token.address, tokenHolder, {
             from: unknown,
           });
           assert.equal(
-            await this.validatorContract.isBlacklistAdmin(unknown),
+            await this.validatorContract.isPauser(this.token.address, tokenHolder),
+            true
+          );
+        });
+        it("renounces pauser", async function () {
+          assert.equal(
+            await this.validatorContract.isPauser(this.token.address, unknown),
+            false
+          );
+          await this.validatorContract.addPauser(this.token.address, unknown, {
+            from: controller,
+          });
+          assert.equal(
+            await this.validatorContract.isPauser(this.token.address, unknown),
+            true
+          );
+          await this.validatorContract.renouncePauser(this.token.address, {
+            from: unknown,
+          });
+          assert.equal(
+            await this.validatorContract.isPauser(this.token.address, unknown),
             false
           );
         });
       });
-      describe("when caller is not a blacklist admin", function () {
+      describe("when caller is not a pauser", function () {
         it("reverts", async function () {
           assert.equal(
-            await this.validatorContract.isBlacklistAdmin(unknown),
+            await this.validatorContract.isPauser(this.token.address, unknown),
             false
           );
           await expectRevert.unspecified(
-            this.validatorContract.addBlacklistAdmin(unknown, { from: unknown })
+            this.validatorContract.addPauser(this.token.address, unknown, { from: unknown })
           );
           assert.equal(
-            await this.validatorContract.isBlacklistAdmin(unknown),
+            await this.validatorContract.isPauser(this.token.address, unknown),
             false
           );
         });
       });
     });
   });
-  describe("onlyNotBlacklisted", function () {
+  describe("onlyPauser [mock for coverage]", function () {
     beforeEach(async function () {
-      this.blacklistMock = await BlacklistMock.new({ from: owner });
+      this.pauserMock = await PauserMock.new(this.token.address, { from: owner });
     });
-    describe("can not call function if blacklisted", function () {
+    describe("can not call function if pauser", function () {
       it("reverts", async function () {
-        assert.equal(await this.blacklistMock.isBlacklisted(unknown), false);
-        await this.blacklistMock.setBlacklistActivated(true, { from: unknown });
-        await this.blacklistMock.addBlacklisted(unknown, { from: owner });
-        assert.equal(await this.blacklistMock.isBlacklisted(unknown), true);
+        assert.equal(await this.pauserMock.isPauser(this.token.address, unknown), false);
+        await expectRevert.unspecified(
+          this.pauserMock.mockFunction(this.token.address, true, { from: unknown })
+        );
+        await this.pauserMock.addPauser(this.token.address, unknown, { from: owner });
+        assert.equal(await this.pauserMock.isPauser(this.token.address, unknown), true);
+
+        await this.pauserMock.mockFunction(this.token.address, true, { from: unknown });
+      });
+    });
+  });
+
+  // BLOCKLIST ADMIN
+  describe("addBlocklisted/renounceBlocklistAdmin", function () {
+    beforeEach(async function () {
+      await assertTokenHasExtension(
+        this.registry,
+        this.validatorContract,
+        this.token,
+      );
+
+      await this.validatorContract.addBlocklisted(this.token.address, tokenHolder, { from: controller });
+      await this.validatorContract.addBlocklisted(this.token.address, recipient, { from: controller });
+      assert.equal(await this.validatorContract.isBlocklisted(this.token.address, tokenHolder), true);
+      assert.equal(await this.validatorContract.isBlocklisted(this.token.address, recipient), true);
+    });
+    describe("add/remove a blocklist admin", function () {
+      describe("when caller is a blocklist admin", function () {
+        it("adds a blocklist admin as owner", async function () {
+          assert.equal(
+            await this.validatorContract.isBlocklistAdmin(this.token.address, unknown),
+            false
+          );
+          await this.validatorContract.addBlocklistAdmin(this.token.address, unknown, {
+            from: owner,
+          });
+          assert.equal(
+            await this.validatorContract.isBlocklistAdmin(this.token.address, unknown),
+            true
+          );
+        });
+        it("adds a blocklist admin as token controller", async function () {
+          assert.equal(
+            await this.validatorContract.isBlocklistAdmin(this.token.address, unknown),
+            false
+          );
+          await this.validatorContract.addBlocklistAdmin(this.token.address, unknown, {
+            from: controller,
+          });
+          assert.equal(
+            await this.validatorContract.isBlocklistAdmin(this.token.address, unknown),
+            true
+          );
+        });
+        it("adds a blocklist admin as blocklist admin", async function () {
+          assert.equal(
+            await this.validatorContract.isBlocklistAdmin(this.token.address, unknown),
+            false
+          );
+          await this.validatorContract.addBlocklistAdmin(this.token.address, unknown, {
+            from: controller,
+          });
+          assert.equal(
+            await this.validatorContract.isBlocklistAdmin(this.token.address, unknown),
+            true
+          );
+
+          assert.equal(
+            await this.validatorContract.isBlocklistAdmin(this.token.address, tokenHolder),
+            false
+          );
+          await this.validatorContract.addBlocklistAdmin(this.token.address, tokenHolder, {
+            from: unknown,
+          });
+          assert.equal(
+            await this.validatorContract.isBlocklistAdmin(this.token.address, tokenHolder),
+            true
+          );
+        });
+        it("renounces blocklist admin", async function () {
+          assert.equal(
+            await this.validatorContract.isBlocklistAdmin(this.token.address, unknown),
+            false
+          );
+          await this.validatorContract.addBlocklistAdmin(this.token.address, unknown, {
+            from: controller,
+          });
+          assert.equal(
+            await this.validatorContract.isBlocklistAdmin(this.token.address, unknown),
+            true
+          );
+          await this.validatorContract.renounceBlocklistAdmin(this.token.address, {
+            from: unknown,
+          });
+          assert.equal(
+            await this.validatorContract.isBlocklistAdmin(this.token.address, unknown),
+            false
+          );
+        });
+      });
+      describe("when caller is not a blocklist admin", function () {
+        it("reverts", async function () {
+          assert.equal(
+            await this.validatorContract.isBlocklistAdmin(this.token.address, unknown),
+            false
+          );
+          await expectRevert.unspecified(
+            this.validatorContract.addBlocklistAdmin(this.token.address, unknown, { from: unknown })
+          );
+          assert.equal(
+            await this.validatorContract.isBlocklistAdmin(this.token.address, unknown),
+            false
+          );
+        });
+      });
+    });
+  });
+  describe("onlyNotBlocklisted [mock for coverage]", function () {
+    beforeEach(async function () {
+      this.blocklistMock = await BlocklistMock.new(this.token.address, { from: owner });
+    });
+    describe("can not call function if blocklisted", function () {
+      it("reverts", async function () {
+        assert.equal(await this.blocklistMock.isBlocklisted(this.token.address, unknown), false);
+        await this.blocklistMock.mockFunction(this.token.address, true, { from: unknown });
+        await this.blocklistMock.addBlocklisted(this.token.address, unknown, { from: owner });
+        assert.equal(await this.blocklistMock.isBlocklisted(this.token.address, unknown), true);
 
         await expectRevert.unspecified(
-          this.blacklistMock.setBlacklistActivated(true, { from: unknown })
+          this.blocklistMock.mockFunction(this.token.address, true, { from: unknown })
         );
       });
     });
   });
+  describe("onlyBlocklistAdmin [mock for coverage]", function () {
+    beforeEach(async function () {
+      this.blocklistMock = await BlocklistMock.new(this.token.address, { from: owner });
+    });
+    describe("can not call function if not blocklist admin", function () {
+      it("reverts", async function () {
+        assert.equal(await this.blocklistMock.isBlocklistAdmin(this.token.address, unknown), false);
+        await expectRevert.unspecified(
+          this.blocklistMock.addBlocklistAdmin(this.token.address, unknown, { from: unknown })
+        );
+        assert.equal(await this.blocklistMock.isBlocklistAdmin(this.token.address, unknown), false);
+        await this.blocklistMock.addBlocklistAdmin(this.token.address, unknown, { from: owner })
+        assert.equal(await this.blocklistMock.isBlocklistAdmin(this.token.address, unknown), true);
+      });
+    });
+  });
 
-  // WHITELIST - (section to check if certificate-based functions can still be called even when contract has a whitelist and a blacklist)
-  describe("whitelist", function () {
+  // ALLOWLIST ADMIN
+  describe("addAllowlisted/renounceAllowlistAdmin", function () {
+    beforeEach(async function () {
+      await assertTokenHasExtension(
+        this.registry,
+        this.validatorContract,
+        this.token,
+      );
+
+      await this.validatorContract.addAllowlisted(this.token.address, tokenHolder, { from: controller });
+      await this.validatorContract.addAllowlisted(this.token.address, recipient, { from: controller });
+      assert.equal(await this.validatorContract.isAllowlisted(this.token.address, tokenHolder), true);
+      assert.equal(await this.validatorContract.isAllowlisted(this.token.address, recipient), true);
+    });
+    describe("add/remove a allowlist admin", function () {
+      describe("when caller is a allowlist admin", function () {
+        it("adds a allowlist admin as owner", async function () {
+          assert.equal(
+            await this.validatorContract.isAllowlistAdmin(this.token.address, unknown),
+            false
+          );
+          await this.validatorContract.addAllowlistAdmin(this.token.address, unknown, {
+            from: owner,
+          });
+          assert.equal(
+            await this.validatorContract.isAllowlistAdmin(this.token.address, unknown),
+            true
+          );
+        });
+        it("adds a allowlist admin as token controller", async function () {
+          assert.equal(
+            await this.validatorContract.isAllowlistAdmin(this.token.address, unknown),
+            false
+          );
+          await this.validatorContract.addAllowlistAdmin(this.token.address, unknown, {
+            from: controller,
+          });
+          assert.equal(
+            await this.validatorContract.isAllowlistAdmin(this.token.address, unknown),
+            true
+          );
+        });
+        it("adds a allowlist admin as allowlist admin", async function () {
+          assert.equal(
+            await this.validatorContract.isAllowlistAdmin(this.token.address, unknown),
+            false
+          );
+          await this.validatorContract.addAllowlistAdmin(this.token.address, unknown, {
+            from: controller,
+          });
+          assert.equal(
+            await this.validatorContract.isAllowlistAdmin(this.token.address, unknown),
+            true
+          );
+
+          assert.equal(
+            await this.validatorContract.isAllowlistAdmin(this.token.address, tokenHolder),
+            false
+          );
+          await this.validatorContract.addAllowlistAdmin(this.token.address, tokenHolder, {
+            from: unknown,
+          });
+          assert.equal(
+            await this.validatorContract.isAllowlistAdmin(this.token.address, tokenHolder),
+            true
+          );
+        });
+        it("renounces allowlist admin", async function () {
+          assert.equal(
+            await this.validatorContract.isAllowlistAdmin(this.token.address, unknown),
+            false
+          );
+          await this.validatorContract.addAllowlistAdmin(this.token.address, unknown, {
+            from: controller,
+          });
+          assert.equal(
+            await this.validatorContract.isAllowlistAdmin(this.token.address, unknown),
+            true
+          );
+          await this.validatorContract.renounceAllowlistAdmin(this.token.address, {
+            from: unknown,
+          });
+          assert.equal(
+            await this.validatorContract.isAllowlistAdmin(this.token.address, unknown),
+            false
+          );
+        });
+      });
+      describe("when caller is not a allowlist admin", function () {
+        it("reverts", async function () {
+          assert.equal(
+            await this.validatorContract.isAllowlistAdmin(this.token.address, unknown),
+            false
+          );
+          await expectRevert.unspecified(
+            this.validatorContract.addAllowlistAdmin(this.token.address, unknown, { from: unknown })
+          );
+          assert.equal(
+            await this.validatorContract.isAllowlistAdmin(this.token.address, unknown),
+            false
+          );
+        });
+      });
+    });
+  });
+  describe("onlyNotAllowlisted [mock for coverage]", function () {
+    beforeEach(async function () {
+      this.allowlistMock = await AllowlistMock.new(this.token.address, { from: owner });
+    });
+    describe("can not call function if allowlisted", function () {
+      it("reverts", async function () {
+        assert.equal(await this.allowlistMock.isAllowlisted(this.token.address, unknown), false);
+        await this.allowlistMock.mockFunction(this.token.address, true, { from: unknown });
+        await this.allowlistMock.addAllowlisted(this.token.address, unknown, { from: owner });
+        assert.equal(await this.allowlistMock.isAllowlisted(this.token.address, unknown), true);
+
+        await expectRevert.unspecified(
+          this.allowlistMock.mockFunction(this.token.address, true, { from: unknown })
+        );
+      });
+    });
+  });
+  describe("onlyAllowlistAdmin [mock for coverage]", function () {
+    beforeEach(async function () {
+      this.allowlistMock = await AllowlistMock.new(this.token.address, { from: owner });
+    });
+    describe("can not call function if not allowlist admin", function () {
+      it("reverts", async function () {
+        assert.equal(await this.allowlistMock.isAllowlistAdmin(this.token.address, unknown), false);
+        await expectRevert.unspecified(
+          this.allowlistMock.addAllowlistAdmin(this.token.address, unknown, { from: unknown })
+        );
+        assert.equal(await this.allowlistMock.isAllowlistAdmin(this.token.address, unknown), false);
+        this.allowlistMock.addAllowlistAdmin(this.token.address, unknown, { from: owner })
+        assert.equal(await this.allowlistMock.isAllowlistAdmin(this.token.address, unknown), true);
+      });
+    });
+  });
+
+  // ALLOWLIST - (section to check if certificate-based functions can still be called even when contract has a allowlist and a blocklist)
+  describe("allowlist", function () {
     const redeemAmount = 50;
     const transferAmount = 300;
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
+      await assertTokenHasExtension(
+        this.registry,
+        this.validatorContract,
+        this.token,
       );
-      this.validatorContract = await ERC1400TokensValidator.new(true, true, true, true, {
-        from: owner,
-      });
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
-      );
-      let hookImplementer = await this.registry.getInterfaceImplementer(
-        this.token.address,
-        soliditySha3(ERC1400_TOKENS_VALIDATOR)
-      );
-      assert.equal(hookImplementer, this.validatorContract.address);
 
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
     });
     describe("can still call ERC1400 functions", function () {
@@ -488,7 +1010,7 @@ contract("ERC1400 with validator hook", function ([
             tokenHolder,
             issuanceAmount,
             VALID_CERTIFICATE,
-            { from: owner }
+            { from: controller }
           );
           await assertTotalSupply(this.token, 2 * issuanceAmount);
           await assertBalanceOf(
@@ -737,125 +1259,93 @@ contract("ERC1400 with validator hook", function ([
     });
   });
 
-  // WHITELIST ACTIVATED
+  // ALLOWLIST ACTIVATED
 
-  describe("setWhitelistActivated", function () {
+  describe("setAllowlistActivated", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
+      await assertTokenHasExtension(
+        this.registry,
+        this.validatorContract,
+        this.token,
       );
-      this.validatorContract = await ERC1400TokensValidator.new(false, false, true, true, {
-        from: owner,
-      });
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
-      );
-      let hookImplementer = await this.registry.getInterfaceImplementer(
-        this.token.address,
-        soliditySha3(ERC1400_TOKENS_VALIDATOR)
-      );
-      assert.equal(hookImplementer, this.validatorContract.address);
     });
     describe("when the caller is the contract owner", function () {
-      it("activates the whitelist", async function () {
-        assert.equal(
-          await this.validatorContract.isWhitelistActivated(),
+      it("activates the allowlist", async function () {
+        await assertAllowListActivated(
+          this.validatorContract,
+          this.token,
+          true
+        );
+
+        await setAllowListActivated(
+          this.validatorContract,
+          this.token,
+          controller,
           false
         );
 
-        await this.validatorContract.setWhitelistActivated(true, {
-          from: owner,
-        });
-        assert.equal(await this.validatorContract.isWhitelistActivated(), true);
-
-        await this.validatorContract.setWhitelistActivated(false, {
-          from: owner,
-        });
-        assert.equal(
-          await this.validatorContract.isWhitelistActivated(),
+        await assertAllowListActivated(
+          this.validatorContract,
+          this.token,
           false
-        );
-
-        await this.validatorContract.setWhitelistActivated(true, {
-          from: owner,
-        });
-        assert.equal(await this.validatorContract.isWhitelistActivated(), true);
+        )
       });
     });
     describe("when the caller is not the contract owner", function () {
       it("reverts", async function () {
         await expectRevert.unspecified(
-          this.validatorContract.setWhitelistActivated(true, { from: unknown })
+          setAllowListActivated(
+            this.validatorContract,
+            this.token,
+            unknown,
+            false
+          )
         );
       });
     });
   });
 
-  // BLACKLIST ACTIVATED
+  // BLOCKLIST ACTIVATED
 
-  describe("setBlacklistActivated", function () {
+  describe("setBlocklistActivated", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
+      await assertTokenHasExtension(
+        this.registry,
+        this.validatorContract,
+        this.token,
       );
-      this.validatorContract = await ERC1400TokensValidator.new(false, false, true, true, {
-        from: owner,
-      });
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
-      );
-      let hookImplementer = await this.registry.getInterfaceImplementer(
-        this.token.address,
-        soliditySha3(ERC1400_TOKENS_VALIDATOR)
-      );
-      assert.equal(hookImplementer, this.validatorContract.address);
     });
     describe("when the caller is the contract owner", function () {
-      it("activates the whitelist", async function () {
-        assert.equal(
-          await this.validatorContract.isBlacklistActivated(),
+      it("activates the blocklist", async function () {
+        await assertBlockListActivated(
+          this.validatorContract,
+          this.token,
+          true
+        );
+
+        await setBlockListActivated(
+          this.validatorContract,
+          this.token,
+          controller,
           false
         );
 
-        await this.validatorContract.setBlacklistActivated(true, {
-          from: owner,
-        });
-        assert.equal(await this.validatorContract.isBlacklistActivated(), true);
-
-        await this.validatorContract.setBlacklistActivated(false, {
-          from: owner,
-        });
-        assert.equal(
-          await this.validatorContract.isBlacklistActivated(),
+        await assertBlockListActivated(
+          this.validatorContract,
+          this.token,
           false
-        );
-
-        await this.validatorContract.setBlacklistActivated(true, {
-          from: owner,
-        });
-        assert.equal(await this.validatorContract.isBlacklistActivated(), true);
+        )
       });
     });
     describe("when the caller is not the contract owner", function () {
       it("reverts", async function () {
         await expectRevert.unspecified(
-          this.validatorContract.setBlacklistActivated(true, { from: unknown })
+          setBlockListActivated(
+            this.validatorContract,
+            this.token,
+            unknown,
+            false
+          )
         );
       });
     });
@@ -877,10 +1367,6 @@ contract("ERC1400 with validator hook", function ([
         this.senderContract.address,
         { from: tokenHolder }
       );
-
-      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, true, {
-        from: owner,
-      });
 
       this.recipientContract = await ERC1400TokensRecipient.new({
         from: recipient,
@@ -908,27 +1394,25 @@ contract("ERC1400 with validator hook", function ([
     });
 
     beforeEach(async function () {
-      this.token = await ERC1400.new(
+      this.token2 = await ERC1400HoldableCertificate.new(
         "ERC1400Token",
         "DAU",
         localGranularity,
         [controller],
+        partitions,
+        this.validatorContract.address,
+        owner,
         CERTIFICATE_SIGNER,
         true,
-        partitions
+        { from: controller }
       );
-      await this.token.issueByPartition(
+
+      await this.token2.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
-      );
-
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
+        { from: controller }
       );
     });
 
@@ -940,9 +1424,11 @@ contract("ERC1400 with validator hook", function ([
           });
         });
         beforeEach(async function () {
-          await this.token.setHookContract(
+          await this.token2.setTokenExtension(
             this.checkerContract.address,
             ERC1400_TOKENS_CHECKER,
+            true,
+            true,
             { from: owner }
           );
         });
@@ -954,7 +1440,7 @@ contract("ERC1400 with validator hook", function ([
                   describe("when receiver is eligible", function () {
                     describe("when the amount is a multiple of the granularity", function () {
                       it("returns Ethereum status code 51 (canTransferByPartition)", async function () {
-                        const response = await this.token.canTransferByPartition(
+                        const response = await this.token2.canTransferByPartition(
                           partition1,
                           recipient,
                           amount,
@@ -969,7 +1455,7 @@ contract("ERC1400 with validator hook", function ([
                         );
                       });
                       it("returns Ethereum status code 51 (canOperatorTransferByPartition)", async function () {
-                        const response = await this.token.canOperatorTransferByPartition(
+                        const response = await this.token2.canOperatorTransferByPartition(
                           partition1,
                           tokenHolder,
                           recipient,
@@ -988,10 +1474,10 @@ contract("ERC1400 with validator hook", function ([
                     });
                     describe("when the amount is not a multiple of the granularity", function () {
                       it("returns Ethereum status code 50", async function () {
-                        const response = await this.token.canTransferByPartition(
+                        const response = await this.token2.canTransferByPartition(
                           partition1,
                           recipient,
-                          1,
+                          1, // amount
                           VALID_CERTIFICATE,
                           { from: tokenHolder }
                         );
@@ -1006,7 +1492,7 @@ contract("ERC1400 with validator hook", function ([
                   });
                   describe("when receiver is not eligible", function () {
                     it("returns Ethereum status code 57", async function () {
-                      const response = await this.token.canTransferByPartition(
+                      const response = await this.token2.canTransferByPartition(
                         partition1,
                         recipient,
                         amount,
@@ -1025,8 +1511,8 @@ contract("ERC1400 with validator hook", function ([
                 describe("when validator is not ok", function () {
                   it("returns Ethereum status code 54 (canTransferByPartition)", async function () {
                     const secretHashPair = newSecretHashPair();  
-                    await this.validatorContract.hold(this.token.address, newHoldId(), recipient, notary, partition1, issuanceAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: tokenHolder })
-                    const response = await this.token.canTransferByPartition(
+                    await this.validatorContract.holdFrom(this.token2.address, newHoldId(), tokenHolder, recipient, notary, partition1, issuanceAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller })
+                    const response = await this.token2.canTransferByPartition(
                       partition1,
                       recipient,
                       amount,
@@ -1044,7 +1530,7 @@ contract("ERC1400 with validator hook", function ([
               });
               describe("when sender is not eligible", function () {
                 it("returns Ethereum status code 56", async function () {
-                  const response = await this.token.canTransferByPartition(
+                  const response = await this.token2.canTransferByPartition(
                     partition1,
                     recipient,
                     amount,
@@ -1062,7 +1548,7 @@ contract("ERC1400 with validator hook", function ([
             });
             describe("when receiver is the zero address", function () {
               it("returns Ethereum status code 57", async function () {
-                const response = await this.token.canTransferByPartition(
+                const response = await this.token2.canTransferByPartition(
                   partition1,
                   ZERO_ADDRESS,
                   amount,
@@ -1080,7 +1566,7 @@ contract("ERC1400 with validator hook", function ([
           });
           describe("when balance is not sufficient", function () {
             it("returns Ethereum status code 52 (insuficient global balance)", async function () {
-              const response = await this.token.canTransferByPartition(
+              const response = await this.token2.canTransferByPartition(
                 partition1,
                 recipient,
                 issuanceAmount + localGranularity,
@@ -1095,14 +1581,14 @@ contract("ERC1400 with validator hook", function ([
               );
             });
             it("returns Ethereum status code 52 (insuficient partition balance)", async function () {
-              await this.token.issueByPartition(
+              await this.token2.issueByPartition(
                 partition2,
                 tokenHolder,
                 localGranularity,
                 VALID_CERTIFICATE,
-                { from: owner }
+                { from: controller }
               );
-              const response = await this.token.canTransferByPartition(
+              const response = await this.token2.canTransferByPartition(
                 partition2,
                 recipient,
                 amount,
@@ -1120,7 +1606,7 @@ contract("ERC1400 with validator hook", function ([
         });
         describe("when the operator is not authorized", function () {
           it("returns Ethereum status code 58 (canOperatorTransferByPartition)", async function () {
-            const response = await this.token.canOperatorTransferByPartition(
+            const response = await this.token2.canOperatorTransferByPartition(
               partition1,
               operator,
               recipient,
@@ -1135,7 +1621,7 @@ contract("ERC1400 with validator hook", function ([
       });
       describe("when checker has not been setup", function () {
         it("returns empty Ethereum status code 00 (canTransferByPartition)", async function () {
-          const response = await this.token.canTransferByPartition(
+          const response = await this.token2.canTransferByPartition(
             partition1,
             recipient,
             amount,
@@ -1148,7 +1634,7 @@ contract("ERC1400 with validator hook", function ([
     });
     describe("when certificate is not valid", function () {
       it("returns Ethereum status code 54 (canTransferByPartition)", async function () {
-        const response = await this.token.canTransferByPartition(
+        const response = await this.token2.canTransferByPartition(
           partition1,
           recipient,
           amount,
@@ -1158,7 +1644,7 @@ contract("ERC1400 with validator hook", function ([
         await assertEscResponse(response, ESC_54, EMPTY_BYTE32, partition1);
       });
       it("returns Ethereum status code 54 (canOperatorTransferByPartition)", async function () {
-        const response = await this.token.canOperatorTransferByPartition(
+        const response = await this.token2.canOperatorTransferByPartition(
           partition1,
           tokenHolder,
           recipient,
@@ -1172,57 +1658,46 @@ contract("ERC1400 with validator hook", function ([
     });
   });
 
-  // WHITELIST/BLACKLIST EXTENSION
+  // ALLOWLIST/BLOCKLIST EXTENSION
 
-  describe("whitelist/blacklist", function () {
+  describe("allowlist/blocklist", function () {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
-      );
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
     });
 
-    describe("when token has a withlist", function () {
+    describe("when token allowlist is activated", function () {
       beforeEach(async function () {
-        this.validatorContract = await ERC1400TokensValidator.new(true, false, true, true, {
-          from: owner,
-        });
-        await this.token.setHookContract(
-          this.validatorContract.address,
-          ERC1400_TOKENS_VALIDATOR,
-          { from: owner }
+        await assertAllowListActivated(
+          this.validatorContract,
+          this.token,
+          true
         );
-        let hookImplementer = await this.registry.getInterfaceImplementer(
-          this.token.address,
-          soliditySha3(ERC1400_TOKENS_VALIDATOR)
-        );
-        assert.equal(hookImplementer, this.validatorContract.address);
 
-        await this.validatorContract.addWhitelisted(tokenHolder, {
-          from: owner,
+        await assertTokenHasExtension(
+          this.registry,
+          this.validatorContract,
+          this.token,
+        );
+
+        await this.validatorContract.addAllowlisted(this.token.address, tokenHolder, {
+          from: controller,
         });
-        await this.validatorContract.addWhitelisted(recipient, { from: owner });
+        await this.validatorContract.addAllowlisted(this.token.address, recipient, { from: controller });
       });
-      describe("when the sender and the recipient are whitelisted", function () {
+      describe("when the sender and the recipient are allowlisted", function () {
         beforeEach(async function () {
           assert.equal(
-            await this.validatorContract.isWhitelisted(tokenHolder),
+            await this.validatorContract.isAllowlisted(this.token.address, tokenHolder),
             true
           );
           assert.equal(
-            await this.validatorContract.isWhitelisted(recipient),
+            await this.validatorContract.isAllowlisted(this.token.address, recipient),
             true
           );
         });
@@ -1234,20 +1709,20 @@ contract("ERC1400 with validator hook", function ([
           await assertBalance(this.token, recipient, amount);
         });
       });
-      describe("when the sender is not whitelisted", function () {
+      describe("when the sender is not allowlisted", function () {
         const amount = issuanceAmount;
 
         beforeEach(async function () {
-          await this.validatorContract.removeWhitelisted(tokenHolder, {
+          await this.validatorContract.removeAllowlisted(this.token.address, tokenHolder, {
             from: owner,
           });
 
           assert.equal(
-            await this.validatorContract.isWhitelisted(tokenHolder),
+            await this.validatorContract.isAllowlisted(this.token.address, tokenHolder),
             false
           );
           assert.equal(
-            await this.validatorContract.isWhitelisted(recipient),
+            await this.validatorContract.isAllowlisted(this.token.address, recipient),
             true
           );
         });
@@ -1257,20 +1732,20 @@ contract("ERC1400 with validator hook", function ([
           );
         });
       });
-      describe("when the recipient is not whitelisted", function () {
+      describe("when the recipient is not allowlisted", function () {
         const amount = issuanceAmount;
 
         beforeEach(async function () {
-          await this.validatorContract.removeWhitelisted(recipient, {
+          await this.validatorContract.removeAllowlisted(this.token.address, recipient, {
             from: owner,
           });
 
           assert.equal(
-            await this.validatorContract.isWhitelisted(tokenHolder),
+            await this.validatorContract.isAllowlisted(this.token.address, tokenHolder),
             true
           );
           assert.equal(
-            await this.validatorContract.isWhitelisted(recipient),
+            await this.validatorContract.isAllowlisted(this.token.address, recipient),
             false
           );
         });
@@ -1281,37 +1756,52 @@ contract("ERC1400 with validator hook", function ([
         });
       });
     });
-    describe("when token has a blacklist", function () {
+    describe("when token blocklist is activated", function () {
       beforeEach(async function () {
-        this.validatorContract = await ERC1400TokensValidator.new(false, true, true, true, {
-          from: owner,
-        });
-        await this.token.setHookContract(
-          this.validatorContract.address,
-          ERC1400_TOKENS_VALIDATOR,
-          { from: owner }
+        await assertTokenHasExtension(
+          this.registry,
+          this.validatorContract,
+          this.token,
         );
-        let hookImplementer = await this.registry.getInterfaceImplementer(
-          this.token.address,
-          soliditySha3(ERC1400_TOKENS_VALIDATOR)
-        );
-        assert.equal(hookImplementer, this.validatorContract.address);
 
-        await this.validatorContract.addBlacklisted(tokenHolder, {
-          from: owner,
+        await setAllowListActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        )
+        await assertAllowListActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
+        await setBlockListActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          true
+        )
+        await assertBlockListActivated(
+          this.validatorContract,
+          this.token,
+          true
+        );
+
+        await this.validatorContract.addBlocklisted(this.token.address, tokenHolder, {
+          from: controller,
         });
-        await this.validatorContract.addBlacklisted(recipient, { from: owner });
+        await this.validatorContract.addBlocklisted(this.token.address, recipient, { from: controller });
         assert.equal(
-          await this.validatorContract.isBlacklisted(tokenHolder),
+          await this.validatorContract.isBlocklisted(this.token.address, tokenHolder),
           true
         );
         assert.equal(
-          await this.validatorContract.isBlacklisted(recipient),
+          await this.validatorContract.isBlocklisted(this.token.address, recipient),
           true
         );
       });
-      describe("when the blacklist is activated", function () {
-        describe("when both the sender and the recipient are blacklisted", function () {
+      describe("when the blocklist is activated", function () {
+        describe("when both the sender and the recipient are blocklisted", function () {
           const amount = issuanceAmount;
 
           it("reverts", async function () {
@@ -1320,38 +1810,38 @@ contract("ERC1400 with validator hook", function ([
             );
           });
         });
-        describe("when the sender is blacklisted", function () {
+        describe("when the sender is blocklisted", function () {
           const amount = issuanceAmount;
 
           it("reverts", async function () {
-            await this.validatorContract.removeBlacklisted(recipient, {
-              from: owner,
+            await this.validatorContract.removeBlocklisted(this.token.address, recipient, {
+              from: controller,
             });
             await expectRevert.unspecified(
               this.token.transfer(recipient, amount, { from: tokenHolder })
             );
           });
         });
-        describe("when the recipient is blacklisted", function () {
+        describe("when the recipient is blocklisted", function () {
           const amount = issuanceAmount;
 
           it("reverts", async function () {
-            await this.validatorContract.removeBlacklisted(tokenHolder, {
-              from: owner,
+            await this.validatorContract.removeBlocklisted(this.token.address, tokenHolder, {
+              from: controller,
             });
             await expectRevert.unspecified(
               this.token.transfer(recipient, amount, { from: tokenHolder })
             );
           });
         });
-        describe("when neither the sender nor the recipient are blacklisted", function () {
+        describe("when neither the sender nor the recipient are blocklisted", function () {
           const amount = issuanceAmount;
 
           it("transfers the requested amount", async function () {
-            await this.validatorContract.removeBlacklisted(tokenHolder, {
+            await this.validatorContract.removeBlocklisted(this.token.address, tokenHolder, {
               from: owner,
             });
-            await this.validatorContract.removeBlacklisted(recipient, {
+            await this.validatorContract.removeBlocklisted(this.token.address, recipient, {
               from: owner,
             });
 
@@ -1365,13 +1855,21 @@ contract("ERC1400 with validator hook", function ([
           });
         });
       });
-      describe("when the blacklist is not activated", function () {
+      describe("when the blocklist is not activated", function () {
         beforeEach(async function () {
-          await this.validatorContract.setBlacklistActivated(false, {
-            from: owner,
-          });
+          await setBlockListActivated(
+            this.validatorContract,
+            this.token,
+            controller,
+            false
+          )
+          await assertBlockListActivated(
+            this.validatorContract,
+            this.token,
+            false
+          );
         });
-        describe("when both the sender and the recipient are blacklisted", function () {
+        describe("when both the sender and the recipient are blocklisted", function () {
           const amount = issuanceAmount;
 
           it("transfers the requested amount", async function () {
@@ -1386,8 +1884,34 @@ contract("ERC1400 with validator hook", function ([
         });
       });
     });
-    describe("when token has neither a whitelist, nor a blacklist", function () {
+    describe("when token has neither a allowlist, nor a blocklist", function () {
       const amount = issuanceAmount;
+
+      beforeEach(async function () {
+        await setAllowListActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        )
+        await assertAllowListActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
+
+        await setBlockListActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        )
+        await assertBlockListActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
+      });
 
       it("transfers the requested amount", async function () {
         await this.token.transfer(recipient, amount, { from: tokenHolder });
@@ -1402,59 +1926,47 @@ contract("ERC1400 with validator hook", function ([
   describe("transferFrom", function () {
     const approvedAmount = 10000;
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
-      );
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
     });
 
-    describe("when token has a withelist", function () {
+    describe("when token allowlist is activated", function () {
       beforeEach(async function () {
-        this.validatorContract = await ERC1400TokensValidator.new(true, false, true, true, {
-          from: owner,
-        });
-        await this.token.setHookContract(
-          this.validatorContract.address,
-          ERC1400_TOKENS_VALIDATOR,
-          { from: owner }
+        await assertTokenHasExtension(
+          this.registry,
+          this.validatorContract,
+          this.token,
         );
-        let hookImplementer = await this.registry.getInterfaceImplementer(
-          this.token.address,
-          soliditySha3(ERC1400_TOKENS_VALIDATOR)
-        );
-        assert.equal(hookImplementer, this.validatorContract.address);
 
-        await this.validatorContract.addWhitelisted(tokenHolder, {
-          from: owner,
+        await assertAllowListActivated(
+          this.validatorContract,
+          this.token,
+          true
+        );
+
+        await this.validatorContract.addAllowlisted(this.token.address, tokenHolder, {
+          from: controller,
         });
-        await this.validatorContract.addWhitelisted(recipient, { from: owner });
+        await this.validatorContract.addAllowlisted(this.token.address, recipient, { from: controller });
       });
-      describe("when the sender and the recipient are whitelisted", function () {
+      describe("when the sender and the recipient are allowlisted", function () {
         beforeEach(async function () {
           assert.equal(
-            await this.validatorContract.isWhitelisted(tokenHolder),
+            await this.validatorContract.isAllowlisted(this.token.address, tokenHolder),
             true
           );
           assert.equal(
-            await this.validatorContract.isWhitelisted(recipient),
+            await this.validatorContract.isAllowlisted(this.token.address, recipient),
             true
           );
         });
         describe("when the operator is approved", function () {
           beforeEach(async function () {
-            // await this.token.authorizeOperator(operator, { from: tokenHolder});
             await this.token.approve(operator, approvedAmount, {
               from: tokenHolder,
             });
@@ -1536,24 +2048,48 @@ contract("ERC1400 with validator hook", function ([
           });
           describe("when the amount is not a multiple of the granularity", function () {
             it("reverts", async function () {
-              this.token = await ERC1400.new(
+              this.token2 = await ERC1400HoldableCertificate.new(
                 "ERC1400Token",
                 "DAU",
                 2,
-                [],
+                [controller],
+                partitions,
+                this.validatorContract.address,
+                owner,
                 CERTIFICATE_SIGNER,
                 true,
-                partitions
+                { from: controller }
               );
-              await this.token.issueByPartition(
+              await this.token2.issueByPartition(
                 partition1,
                 tokenHolder,
                 issuanceAmount,
                 VALID_CERTIFICATE,
-                { from: owner }
+                { from: controller }
               );
+              await assertTokenHasExtension(
+                this.registry,
+                this.validatorContract,
+                this.token2,
+              );
+
+              await assertAllowListActivated(
+                this.validatorContract,
+                this.token2,
+                true
+              );
+      
+              await this.validatorContract.addAllowlisted(this.token2.address, tokenHolder, {
+                from: controller,
+              });
+              await this.validatorContract.addAllowlisted(this.token2.address, recipient, { from: controller });
+
+              await this.token2.approve(operator, approvedAmount, {
+                from: tokenHolder,
+              });
+
               await expectRevert.unspecified(
-                this.token.transferFrom(tokenHolder, recipient, 3, {
+                this.token2.transferFrom(tokenHolder, recipient, 3, {
                   from: operator,
                 })
               );
@@ -1595,19 +2131,19 @@ contract("ERC1400 with validator hook", function ([
           });
         });
       });
-      describe("when the sender is not whitelisted", function () {
+      describe("when the sender is not allowlisted", function () {
         const amount = approvedAmount;
         beforeEach(async function () {
-          await this.validatorContract.removeWhitelisted(tokenHolder, {
-            from: owner,
+          await this.validatorContract.removeAllowlisted(this.token.address, tokenHolder, {
+            from: controller,
           });
 
           assert.equal(
-            await this.validatorContract.isWhitelisted(tokenHolder),
+            await this.validatorContract.isAllowlisted(this.token.address, tokenHolder),
             false
           );
           assert.equal(
-            await this.validatorContract.isWhitelisted(recipient),
+            await this.validatorContract.isAllowlisted(this.token.address, recipient),
             true
           );
         });
@@ -1619,19 +2155,19 @@ contract("ERC1400 with validator hook", function ([
           );
         });
       });
-      describe("when the recipient is not whitelisted", function () {
+      describe("when the recipient is not allowlisted", function () {
         const amount = approvedAmount;
         beforeEach(async function () {
-          await this.validatorContract.removeWhitelisted(recipient, {
-            from: owner,
+          await this.validatorContract.removeAllowlisted(this.token.address, recipient, {
+            from: controller,
           });
 
           assert.equal(
-            await this.validatorContract.isWhitelisted(tokenHolder),
+            await this.validatorContract.isAllowlisted(this.token.address, tokenHolder),
             true
           );
           assert.equal(
-            await this.validatorContract.isWhitelisted(recipient),
+            await this.validatorContract.isAllowlisted(this.token.address, recipient),
             false
           );
         });
@@ -1644,16 +2180,61 @@ contract("ERC1400 with validator hook", function ([
         });
       });
     });
-    // describe("when token has no withelist", function () {});
-    describe("when a hold is executed", function () {
+    // describe("when token has no allowlist", function () {});
+    describe("when token holds are activated", function () {
       beforeEach(async function () {
-        this.validatorContract = await ERC1400TokensValidator.new(false, false, true, true, {
-          from: owner,
-        });
-        await this.token.setHookContract(
-          this.validatorContract.address,
-          ERC1400_TOKENS_VALIDATOR,
-          { from: owner }
+        await assertTokenHasExtension(
+          this.registry,
+          this.validatorContract,
+          this.token,
+        );
+
+        await setAllowListActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        )
+        await assertAllowListActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
+
+        await setBlockListActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        )
+        await assertBlockListActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
+
+        await setHoldsActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          true
+        )
+        await assertHoldsActivated(
+          this.validatorContract,
+          this.token,
+          true
+        );
+
+        await setSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          true
+        )
+        await assertSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          true
         );
 
         // Add notary as controller
@@ -1668,203 +2249,196 @@ contract("ERC1400 with validator hook", function ([
         this.secretHashPair = newSecretHashPair();
         await this.validatorContract.hold(this.token.address, this.holdId, recipient, notary, partition1, smallHoldAmount, SECONDS_IN_AN_HOUR, this.secretHashPair.hash, { from: tokenHolder })
       });
-      it("executes the hold", async function() {
-        const initialBalance = await this.token.balanceOf(tokenHolder)
-        const initialPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
-
-        const initialBalanceOnHold = await this.validatorContract.balanceOnHold(this.token.address, tokenHolder)
-        const initialBalanceOnHoldByPartition = await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)
-
-        const initialSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder)
-        const initialSpendableBalanceByPartition = await this.validatorContract.spendableBalanceOfByPartition(this.token.address, partition1, tokenHolder)
-
-        const initialTotalSupplyOnHold = await this.validatorContract.totalSupplyOnHold(this.token.address)
-        const initialTotalSupplyOnHoldByPartition = await this.validatorContract.totalSupplyOnHoldByPartition(this.token.address, partition1)
-
-        const initialRecipientBalance = await this.token.balanceOf(recipient)
-        const initialRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
-
-        await this.token.transferFrom(
-          tokenHolder,
-          recipient,
-          smallHoldAmount,
-          { from: notary }
-        )
-
-        const finalBalance = await this.token.balanceOf(tokenHolder)
-        const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
-
-        const finalBalanceOnHold = await this.validatorContract.balanceOnHold(this.token.address, tokenHolder)
-        const finalBalanceOnHoldByPartition = await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)
-
-        const finalSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder)
-        const finalSpendableBalanceByPartition = await this.validatorContract.spendableBalanceOfByPartition(this.token.address, partition1, tokenHolder)
-
-        const finalTotalSupplyOnHold = await this.validatorContract.totalSupplyOnHold(this.token.address)
-        const finalTotalSupplyOnHoldByPartition = await this.validatorContract.totalSupplyOnHoldByPartition(this.token.address, partition1)
-
-        const finalRecipientBalance = await this.token.balanceOf(recipient)
-        const finalRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
-
-        assert.equal(initialBalance, issuanceAmount)
-        assert.equal(finalBalance, issuanceAmount-smallHoldAmount)
-        assert.equal(initialPartitionBalance, issuanceAmount)
-        assert.equal(finalPartitionBalance, issuanceAmount-smallHoldAmount)
-
-        assert.equal(initialBalanceOnHold, smallHoldAmount)
-        assert.equal(initialBalanceOnHoldByPartition, smallHoldAmount)
-        assert.equal(finalBalanceOnHold, 0)
-        assert.equal(finalBalanceOnHoldByPartition, 0)
-
-        assert.equal(initialSpendableBalance, issuanceAmount-smallHoldAmount)
-        assert.equal(initialSpendableBalanceByPartition, issuanceAmount-smallHoldAmount)
-        assert.equal(finalSpendableBalance, issuanceAmount-smallHoldAmount)
-        assert.equal(finalSpendableBalanceByPartition, issuanceAmount-smallHoldAmount)
-
-        assert.equal(initialTotalSupplyOnHold, smallHoldAmount)
-        assert.equal(initialTotalSupplyOnHoldByPartition, smallHoldAmount)
-        assert.equal(finalTotalSupplyOnHold, 0)
-        assert.equal(finalTotalSupplyOnHoldByPartition, 0)
-
-        assert.equal(initialRecipientBalance, 0)
-        assert.equal(initialRecipientPartitionBalance, 0)
-        assert.equal(finalRecipientBalance, smallHoldAmount)
-        assert.equal(finalRecipientPartitionBalance, smallHoldAmount)
-
-        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
-        assert.equal(this.holdData[0], partition1);
-        assert.equal(this.holdData[1], tokenHolder);
-        assert.equal(this.holdData[2], recipient);
-        assert.equal(this.holdData[3], notary);
-        assert.equal(parseInt(this.holdData[4]), smallHoldAmount);
-        assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
-        assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
-        assert.equal(this.holdData[6], this.secretHashPair.hash);
-        assert.equal(this.holdData[7], EMPTY_BYTE32);
-        assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_EXECUTED);
-      });
-      it("executes 2 holds", async function() {
-        // Create a second hold in state Ordered
-        this.time2 = await this.clock.getTime();
-        this.holdId2 = newHoldId();
-        this.secretHashPair2 = newSecretHashPair();
-        await this.validatorContract.hold(this.token.address, this.holdId2, recipient, notary, partition1, smallHoldAmount, SECONDS_IN_AN_HOUR, this.secretHashPair2.hash, { from: tokenHolder })
-
-        const initialPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
-        const initialRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
-
-        await this.token.transferFrom(
-          tokenHolder,
-          recipient,
-          smallHoldAmount,
-          { from: notary }
-        )
-
-        const intermediatePartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
-        const intermediateRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
-
-        assert.equal(initialPartitionBalance, issuanceAmount)
-        assert.equal(intermediatePartitionBalance, issuanceAmount-smallHoldAmount)
-
-        assert.equal(initialRecipientPartitionBalance, 0)
-        assert.equal(intermediateRecipientPartitionBalance, smallHoldAmount)
-
-        this.holdData2 = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId2);
-        assert.equal(this.holdData2[0], partition1);
-        assert.equal(this.holdData2[1], tokenHolder);
-        assert.equal(this.holdData2[2], recipient);
-        assert.equal(this.holdData2[3], notary);
-        assert.equal(parseInt(this.holdData2[4]), smallHoldAmount);
-        assert.isAtLeast(parseInt(this.holdData2[5]), parseInt(this.time2)+SECONDS_IN_AN_HOUR);
-        assert.isBelow(parseInt(this.holdData2[5]), parseInt(this.time2)+SECONDS_IN_AN_HOUR+100);
-        assert.equal(this.holdData2[6], this.secretHashPair2.hash);
-        assert.equal(this.holdData2[7], EMPTY_BYTE32);
-        assert.equal(parseInt(this.holdData2[8]), HOLD_STATUS_EXECUTED);
-
-        await this.token.transferFrom(
-          tokenHolder,
-          recipient,
-          smallHoldAmount,
-          { from: notary }
-        )
-
-        const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
-        const finalRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
-
-        assert.equal(initialPartitionBalance, issuanceAmount)
-        assert.equal(finalPartitionBalance, issuanceAmount-2*smallHoldAmount)
-
-        assert.equal(initialRecipientPartitionBalance, 0)
-        assert.equal(finalRecipientPartitionBalance, 2*smallHoldAmount)
-
-        this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
-        assert.equal(this.holdData[0], partition1);
-        assert.equal(this.holdData[1], tokenHolder);
-        assert.equal(this.holdData[2], recipient);
-        assert.equal(this.holdData[3], notary);
-        assert.equal(parseInt(this.holdData[4]), smallHoldAmount);
-        assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
-        assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
-        assert.equal(this.holdData[6], this.secretHashPair.hash);
-        assert.equal(this.holdData[7], EMPTY_BYTE32);
-        assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_EXECUTED);
-      });
-
-    });
-    describe("when a hold is not executed", function () {
-      beforeEach(async function () {
-        this.validatorContract = await ERC1400TokensValidator.new(false, false, true, true, {
-          from: owner,
-        });
-        await this.token.setHookContract(
-          this.validatorContract.address,
-          ERC1400_TOKENS_VALIDATOR,
-          { from: owner }
-        );
-
-        // Add notary as controller
-        const controllers = await this.token.controllers();
-        assert.equal(controllers.length, 1);
-        controllers.push(notary);
-        await this.token.setControllers(controllers, { from: owner });
-
-        // Create hold in state Ordered
-        this.time = await this.clock.getTime();
-        this.holdId = newHoldId();
-        this.secretHashPair = newSecretHashPair();
-        await this.validatorContract.hold(this.token.address, this.holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, this.secretHashPair.hash, { from: tokenHolder })
-      
-        this.validatorContract2 = await ERC1400TokensValidator.new(false, false, true, true, {
-          from: owner,
-        });
-        await this.token.setHookContract(
-          this.validatorContract2.address,
-          ERC1400_TOKENS_VALIDATOR,
-          { from: owner }
-        );
-        await this.token.transferFrom(
-          tokenHolder,
-          recipient,
-          holdAmount,
-          { from: notary }
-        )
-        await this.token.setHookContract(
-          this.validatorContract.address,
-          ERC1400_TOKENS_VALIDATOR,
-          { from: owner }
-        );
-      });
-      it("reverts", async function() {
-        await expectRevert.unspecified(
-          this.token.transferFrom(
+      describe("when a hold is executed", function () {
+        it("executes the hold", async function() {
+          const initialBalance = await this.token.balanceOf(tokenHolder)
+          const initialPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+  
+          const initialBalanceOnHold = await this.validatorContract.balanceOnHold(this.token.address, tokenHolder)
+          const initialBalanceOnHoldByPartition = await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)
+  
+          const initialSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder)
+          const initialSpendableBalanceByPartition = await this.validatorContract.spendableBalanceOfByPartition(this.token.address, partition1, tokenHolder)
+  
+          const initialTotalSupplyOnHold = await this.validatorContract.totalSupplyOnHold(this.token.address)
+          const initialTotalSupplyOnHoldByPartition = await this.validatorContract.totalSupplyOnHoldByPartition(this.token.address, partition1)
+  
+          const initialRecipientBalance = await this.token.balanceOf(recipient)
+          const initialRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+  
+          await this.token.transferFrom(
             tokenHolder,
             recipient,
-            holdAmount,
+            smallHoldAmount,
             { from: notary }
           )
-        )
+  
+          const finalBalance = await this.token.balanceOf(tokenHolder)
+          const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+  
+          const finalBalanceOnHold = await this.validatorContract.balanceOnHold(this.token.address, tokenHolder)
+          const finalBalanceOnHoldByPartition = await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)
+  
+          const finalSpendableBalance = await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder)
+          const finalSpendableBalanceByPartition = await this.validatorContract.spendableBalanceOfByPartition(this.token.address, partition1, tokenHolder)
+  
+          const finalTotalSupplyOnHold = await this.validatorContract.totalSupplyOnHold(this.token.address)
+          const finalTotalSupplyOnHoldByPartition = await this.validatorContract.totalSupplyOnHoldByPartition(this.token.address, partition1)
+  
+          const finalRecipientBalance = await this.token.balanceOf(recipient)
+          const finalRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+  
+          assert.equal(initialBalance, issuanceAmount)
+          assert.equal(finalBalance, issuanceAmount-smallHoldAmount)
+          assert.equal(initialPartitionBalance, issuanceAmount)
+          assert.equal(finalPartitionBalance, issuanceAmount-smallHoldAmount)
+  
+          assert.equal(initialBalanceOnHold, smallHoldAmount)
+          assert.equal(initialBalanceOnHoldByPartition, smallHoldAmount)
+          assert.equal(finalBalanceOnHold, 0)
+          assert.equal(finalBalanceOnHoldByPartition, 0)
+  
+          assert.equal(initialSpendableBalance, issuanceAmount-smallHoldAmount)
+          assert.equal(initialSpendableBalanceByPartition, issuanceAmount-smallHoldAmount)
+          assert.equal(finalSpendableBalance, issuanceAmount-smallHoldAmount)
+          assert.equal(finalSpendableBalanceByPartition, issuanceAmount-smallHoldAmount)
+  
+          assert.equal(initialTotalSupplyOnHold, smallHoldAmount)
+          assert.equal(initialTotalSupplyOnHoldByPartition, smallHoldAmount)
+          assert.equal(finalTotalSupplyOnHold, 0)
+          assert.equal(finalTotalSupplyOnHoldByPartition, 0)
+  
+          assert.equal(initialRecipientBalance, 0)
+          assert.equal(initialRecipientPartitionBalance, 0)
+          assert.equal(finalRecipientBalance, smallHoldAmount)
+          assert.equal(finalRecipientPartitionBalance, smallHoldAmount)
+  
+          this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+          assert.equal(this.holdData[0], partition1);
+          assert.equal(this.holdData[1], tokenHolder);
+          assert.equal(this.holdData[2], recipient);
+          assert.equal(this.holdData[3], notary);
+          assert.equal(parseInt(this.holdData[4]), smallHoldAmount);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+          assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
+          assert.equal(this.holdData[6], this.secretHashPair.hash);
+          assert.equal(this.holdData[7], EMPTY_BYTE32);
+          assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_EXECUTED);
+        });
+        it("executes 2 holds", async function() {
+          // Create a second hold in state Ordered
+          this.time2 = await this.clock.getTime();
+          this.holdId2 = newHoldId();
+          this.secretHashPair2 = newSecretHashPair();
+          await this.validatorContract.hold(this.token.address, this.holdId2, recipient, notary, partition1, smallHoldAmount, SECONDS_IN_AN_HOUR, this.secretHashPair2.hash, { from: tokenHolder })
+  
+          const initialPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+          const initialRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+  
+          await this.token.transferFrom(
+            tokenHolder,
+            recipient,
+            smallHoldAmount,
+            { from: notary }
+          )
+  
+          const intermediatePartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+          const intermediateRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+  
+          assert.equal(initialPartitionBalance, issuanceAmount)
+          assert.equal(intermediatePartitionBalance, issuanceAmount-smallHoldAmount)
+  
+          assert.equal(initialRecipientPartitionBalance, 0)
+          assert.equal(intermediateRecipientPartitionBalance, smallHoldAmount)
+  
+          this.holdData2 = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId2);
+          assert.equal(this.holdData2[0], partition1);
+          assert.equal(this.holdData2[1], tokenHolder);
+          assert.equal(this.holdData2[2], recipient);
+          assert.equal(this.holdData2[3], notary);
+          assert.equal(parseInt(this.holdData2[4]), smallHoldAmount);
+          assert.isAtLeast(parseInt(this.holdData2[5]), parseInt(this.time2)+SECONDS_IN_AN_HOUR);
+          assert.isBelow(parseInt(this.holdData2[5]), parseInt(this.time2)+SECONDS_IN_AN_HOUR+100);
+          assert.equal(this.holdData2[6], this.secretHashPair2.hash);
+          assert.equal(this.holdData2[7], EMPTY_BYTE32);
+          assert.equal(parseInt(this.holdData2[8]), HOLD_STATUS_EXECUTED);
+  
+          await this.token.transferFrom(
+            tokenHolder,
+            recipient,
+            smallHoldAmount,
+            { from: notary }
+          )
+  
+          const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+          const finalRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
+  
+          assert.equal(initialPartitionBalance, issuanceAmount)
+          assert.equal(finalPartitionBalance, issuanceAmount-2*smallHoldAmount)
+  
+          assert.equal(initialRecipientPartitionBalance, 0)
+          assert.equal(finalRecipientPartitionBalance, 2*smallHoldAmount)
+  
+          this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, this.holdId);
+          assert.equal(this.holdData[0], partition1);
+          assert.equal(this.holdData[1], tokenHolder);
+          assert.equal(this.holdData[2], recipient);
+          assert.equal(this.holdData[3], notary);
+          assert.equal(parseInt(this.holdData[4]), smallHoldAmount);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR);
+          assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
+          assert.equal(this.holdData[6], this.secretHashPair.hash);
+          assert.equal(this.holdData[7], EMPTY_BYTE32);
+          assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_EXECUTED);
+        });
+  
       });
+      describe("when a hold is not executed", function () {
+        beforeEach(async function () {
+          this.validatorContract2 = await ERC1400TokensValidator.new({ from: deployer });
 
+          await setNewExtensionForToken(
+            this.validatorContract2,
+            this.token,
+            owner,
+          );
+  
+          await setAllowListActivated(
+            this.validatorContract2,
+            this.token,
+            controller,
+            false
+          )
+          await assertAllowListActivated(
+            this.validatorContract2,
+            this.token,
+            false
+          );
+
+          await this.token.transferFrom(
+            tokenHolder,
+            recipient,
+            smallHoldAmount,
+            { from: notary }
+          );
+          await setNewExtensionForToken(
+            this.validatorContract,
+            this.token,
+            owner,
+          );
+        });
+        it("reverts", async function() {
+          await expectRevert.unspecified(
+            this.token.transferFrom(
+              tokenHolder,
+              recipient,
+              smallHoldAmount,
+              { from: notary }
+            )
+          )
+        });
+  
+      });
     });
   });
 
@@ -1874,26 +2448,62 @@ contract("ERC1400 with validator hook", function ([
     const transferAmount = 300;
 
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
-      );
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
+      );
+
+      await setAllowListActivated(
+        this.validatorContract,
+        this.token,
+        controller,
+        false
+      )
+      await assertAllowListActivated(
+        this.validatorContract,
+        this.token,
+        false
       );
     });
 
     describe("when contract is not paused", function () {
+      beforeEach(async function () {
+        await assertTokenHasExtension(
+          this.registry,
+          this.validatorContract,
+          this.token,
+        );
+
+        assert.equal(false, await this.validatorContract.paused(this.token.address));
+      });
       it("transfers the requested amount", async function () {
+        await this.token.transfer(recipient, transferAmount, {
+          from: tokenHolder,
+        });
+        await assertBalance(
+          this.token,
+          tokenHolder,
+          issuanceAmount - transferAmount
+        );
+        await assertBalance(this.token, recipient, transferAmount);
+      });
+      it("transfers the requested amount (after pause/unpause)", async function () {
+        assert.equal(false, await this.validatorContract.paused(this.token.address));
+        await this.validatorContract.pause(this.token.address, { from: controller });
+        await expectRevert.unspecified(
+          this.validatorContract.pause(this.token.address, { from: controller })
+        );
+
+        assert.equal(true, await this.validatorContract.paused(this.token.address));
+        await this.validatorContract.unpause(this.token.address, { from: controller });
+        await expectRevert.unspecified(
+          this.validatorContract.unpause(this.token.address, { from: controller })
+        );
+
+        assert.equal(false, await this.validatorContract.paused(this.token.address));
         await this.token.transfer(recipient, transferAmount, {
           from: tokenHolder,
         });
@@ -1944,21 +2554,15 @@ contract("ERC1400 with validator hook", function ([
     });
     describe("when contract is paused", function () {
       beforeEach(async function () {
-        this.validatorContract = await ERC1400TokensValidator.new(true, false, true, true, {
-          from: owner,
-        });
-        await this.token.setHookContract(
-          this.validatorContract.address,
-          ERC1400_TOKENS_VALIDATOR,
-          { from: owner }
+        await assertTokenHasExtension(
+          this.registry,
+          this.validatorContract,
+          this.token,
         );
-        let hookImplementer = await this.registry.getInterfaceImplementer(
-          this.token.address,
-          soliditySha3(ERC1400_TOKENS_VALIDATOR)
-        );
-        assert.equal(hookImplementer, this.validatorContract.address);
 
-        await this.validatorContract.pause({ from: owner });
+        await this.validatorContract.pause(this.token.address, { from: controller });
+
+        assert.equal(true, await this.validatorContract.paused(this.token.address));
       });
       it("reverts", async function () {
         await assertBalance(this.token, tokenHolder, issuanceAmount);
@@ -1989,53 +2593,62 @@ contract("ERC1400 with validator hook", function ([
 
   // IS HOLDS ACTIVATED
   describe("isHoldsActivated", function () {
-    before(async function () {
-      this.validatorContract = await ERC1400TokensValidator.new(true, false, false, true, {
-        from: owner,
-      });
-    });
 
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
-      );
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
-      );
     });
 
     describe("when holds are activated by the owner", function () {
       it("activates the holds", async function () {
-        assert.equal(await this.validatorContract.isHoldsActivated(), false)
-        await this.validatorContract.setHoldsActivated(true, { from: owner })
-        assert.equal(await this.validatorContract.isHoldsActivated(), true)
+        await setHoldsActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        )
+        await assertHoldsActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
+        await setHoldsActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          true
+        )
+        await assertHoldsActivated(
+          this.validatorContract,
+          this.token,
+          true
+        );
 
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: tokenHolder })
+        await this.validatorContract.holdFrom(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller })
         const spendableBalance = parseInt(await this.validatorContract.spendableBalanceOf(this.token.address, tokenHolder))
 
         const transferAmount = spendableBalance + 1
         await expectRevert.unspecified(this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder }))
 
-        await this.validatorContract.setHoldsActivated(false, { from: owner })
-        assert.equal(await this.validatorContract.isHoldsActivated(), false)
+        await setHoldsActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        )
+        await assertHoldsActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
 
         assert.equal(parseInt(await this.token.balanceOfByPartition(partition1, recipient)), 0)
         await this.token.transferByPartition(partition1, recipient, transferAmount, VALID_CERTIFICATE, { from: tokenHolder })
@@ -2044,64 +2657,99 @@ contract("ERC1400 with validator hook", function ([
     });
     describe("when holds are not activated by the owner", function () {
       it("reverts", async function () {
-        await expectRevert.unspecified(this.validatorContract.setHoldsActivated(true, { from: tokenHolder }));
+        await setHoldsActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        )
+        await assertHoldsActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
+
+        await expectRevert.unspecified(
+          setHoldsActivated(
+            this.validatorContract,
+            this.token,
+            tokenHolder,
+            true
+          )
+        );
       });
     });
   });
 
   // IS SELF HOLDS ACTIVATED
   describe("isSelfHoldsActivated", function () {
-    before(async function () {
-      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, false, {
-        from: owner,
-      });
-    });
 
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
-      );
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
-      );
-
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
+        { from: controller }
       );
     });
 
     describe("when unrestricted holds are activated by the owner", function () {
       it("activates the unrestricted holds", async function () {
         const smallHoldAmount = 33
-        assert.equal(await this.validatorContract.isSelfHoldsActivated(), false)
-        await this.validatorContract.setSelfHoldsActivated(true, { from: owner })
-        assert.equal(await this.validatorContract.isSelfHoldsActivated(), true)
+
+        await assertSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
+        await setSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          true
+        )
+        await assertSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          true
+        );
 
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
         await this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, smallHoldAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: tokenHolder })
 
-        await this.validatorContract.setSelfHoldsActivated(false, { from: owner })
-        assert.equal(await this.validatorContract.isSelfHoldsActivated(), false)
+        await setSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        )
+        await assertSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
 
         await expectRevert.unspecified(this.validatorContract.hold(this.token.address, holdId, recipient, notary, partition1, smallHoldAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: tokenHolder }));
       });
     });
     describe("when unrestricted holds are not activated by the owner", function () {
       it("reverts", async function () {
-        await expectRevert.unspecified(this.validatorContract.setSelfHoldsActivated(true, { from: tokenHolder }));
+        await assertSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
+
+        await expectRevert.unspecified(
+          setSelfHoldsActivated(
+            this.validatorContract,
+            this.token,
+            tokenHolder,
+            true
+          )
+        );
       });
     });
   });
@@ -2109,38 +2757,41 @@ contract("ERC1400 with validator hook", function ([
   // HOLD
 
   describe("hold", function () {
-    before(async function () {
-      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, true, {
-        from: owner,
-      });
-    });
-
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
-      );
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
+      await setSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        controller,
+        true
+      )
+      await assertSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
+      );
+      await assertHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
       );
     });
 
     describe("when unrestricted holds are authorized", function () {
+      beforeEach(async function () {
+        await assertSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          true
+        );
+      });
       describe("when hold recipient is not the zero address", function () {
         describe("when hold value is greater than 0", function () {
           describe("when hold ID doesn't already exist", function () {
@@ -2304,8 +2955,17 @@ contract("ERC1400 with validator hook", function ([
     });
     describe("when unrestricted holds are not authorized", function () {
       beforeEach(async function () {
-        await this.validatorContract.setSelfHoldsActivated(false, { from: owner })
-        assert.equal(await this.validatorContract.isSelfHoldsActivated(), false)
+        await setSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        )
+        await assertSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
       });
       it("reverts", async function () {
         const holdId = newHoldId();
@@ -2319,34 +2979,31 @@ contract("ERC1400 with validator hook", function ([
   // HOLD WITH EXPIRATION DATE
 
   describe("holdWithExpirationDate", function () {
-    before(async function () {
-      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, true, {
-        from: owner,
-      });
-    });
 
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
-      );
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
+      await setSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        controller,
+        true
+      )
+      await assertSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
+      );
+      await assertHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
       );
     });
 
@@ -2386,8 +3043,17 @@ contract("ERC1400 with validator hook", function ([
     });
     describe("when unrestricted holds are not authorized", function () {
       beforeEach(async function () {
-        await this.validatorContract.setSelfHoldsActivated(false, { from: owner })
-        assert.equal(await this.validatorContract.isSelfHoldsActivated(), false)
+        await setSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        )
+        await assertSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
       });
       it("reverts", async function () {
         const time = parseInt(await this.clock.getTime());
@@ -2401,34 +3067,31 @@ contract("ERC1400 with validator hook", function ([
   // HOLD FROM
 
   describe("holdFrom", function () {
-    before(async function () {
-      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, true, {
-        from: owner,
-      });
-    });
 
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
-      );
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
+      await setSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        controller,
+        true
+      )
+      await assertSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
+      );
+      await assertHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
       );
     });
 
@@ -2461,19 +3124,38 @@ contract("ERC1400 with validator hook", function ([
     });
     describe("when unrestricted holds are not authorized", function () {
       beforeEach(async function () {
-        await this.validatorContract.setSelfHoldsActivated(false, { from: owner })
-        assert.equal(await this.validatorContract.isSelfHoldsActivated(), false)
+        await setSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        )
+        await assertSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
       });
       describe("when hold is created by a token controller", function () {
         beforeEach(async function () {
-          await this.validatorContract.setTokenControllers(
-            this.token.address,
-            [tokenController1],
-            { from: owner }
-          );
-          tokenControllers = await this.validatorContract.tokenControllers(this.token.address);
-          assert.equal(tokenControllers.length, 1);
-          assert.equal(tokenControllers[0], tokenController1);
+          await assertIsTokenController(
+            this.validatorContract,
+            this.token,
+            tokenController1,
+            false,
+          )
+          await addTokenController(
+            this.validatorContract,
+            this.token,
+            controller,
+            tokenController1
+          )
+          await assertIsTokenController(
+            this.validatorContract,
+            this.token,
+            tokenController1,
+            true,
+          )
         });
         it("creates a hold", async function () {
           assert.equal(parseInt(await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)), 0);
@@ -2489,7 +3171,7 @@ contract("ERC1400 with validator hook", function ([
           assert.equal(parseInt(await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)), 0);
           const holdId = newHoldId();
           const secretHashPair = newSecretHashPair();
-          await expectRevert.unspecified(this.validatorContract.holdFrom(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller }));
+          await expectRevert.unspecified(this.validatorContract.holdFrom(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: tokenController2 }));
         });
       });
     });
@@ -2498,34 +3180,30 @@ contract("ERC1400 with validator hook", function ([
   // HOLD FROM WITH EXPIRATION DATE
 
   describe("holdFromWithExpirationDate", function () {
-    before(async function () {
-      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, true, {
-        from: owner,
-      });
-    });
-
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
-      );
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
+      await setSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        controller,
+        true
+      )
+      await assertSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
+      );
+      await assertHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
       );
     });
 
@@ -2591,19 +3269,38 @@ contract("ERC1400 with validator hook", function ([
     });
     describe("when unrestricted holds are not authorized", function () {
       beforeEach(async function () {
-        await this.validatorContract.setSelfHoldsActivated(false, { from: owner })
-        assert.equal(await this.validatorContract.isSelfHoldsActivated(), false)
+        await setSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        )
+        await assertSelfHoldsActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
       });
       describe("when hold is created by a token controller", function () {
         beforeEach(async function () {
-          await this.validatorContract.setTokenControllers(
-            this.token.address,
-            [tokenController1],
-            { from: owner }
-          );
-          tokenControllers = await this.validatorContract.tokenControllers(this.token.address);
-          assert.equal(tokenControllers.length, 1);
-          assert.equal(tokenControllers[0], tokenController1);
+          await assertIsTokenController(
+            this.validatorContract,
+            this.token,
+            tokenController1,
+            false,
+          )
+          await addTokenController(
+            this.validatorContract,
+            this.token,
+            controller,
+            tokenController1
+          )
+          await assertIsTokenController(
+            this.validatorContract,
+            this.token,
+            tokenController1,
+            true,
+          )
         });
         it("creates a hold", async function () {
           assert.equal(parseInt(await this.validatorContract.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)), 0);
@@ -2621,7 +3318,7 @@ contract("ERC1400 with validator hook", function ([
           const time = parseInt(await this.clock.getTime());
           const holdId = newHoldId();
           const secretHashPair = newSecretHashPair();
-          await expectRevert.unspecified(this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller }));
+          await expectRevert.unspecified(this.validatorContract.holdFromWithExpirationDate(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: tokenController2 }));
         });
       });
     });
@@ -2630,34 +3327,30 @@ contract("ERC1400 with validator hook", function ([
   // RELEASE HOLD
 
   describe("releaseHold", function () {
-    before(async function () {
-      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, true, {
-        from: owner,
-      });
-    });
-
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
-      );
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
+      await setSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        controller,
+        true
+      )
+      await assertSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
+      );
+      await assertHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
       );
 
       // Create hold in state Ordered
@@ -2821,34 +3514,30 @@ contract("ERC1400 with validator hook", function ([
   // RENEW HOLD
 
   describe("renewHold", function () {
-    before(async function () {
-      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, true, {
-        from: owner,
-      });
-    });
-
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
-      );
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
+      await setSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        controller,
+        true
+      )
+      await assertSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
+      );
+      await assertHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
       );
 
       // Create hold in state Ordered
@@ -2972,34 +3661,30 @@ contract("ERC1400 with validator hook", function ([
   // RENEW HOLD WITH EXPIRATION DATE
 
   describe("renewHoldWithExpirationDate", function () {
-    before(async function () {
-      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, true, {
-        from: owner,
-      });
-    });
-
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
-      );
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
+      await setSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        controller,
+        true
+      )
+      await assertSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
+      );
+      await assertHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
       );
 
       // Create hold in state Ordered
@@ -3063,34 +3748,30 @@ contract("ERC1400 with validator hook", function ([
   // EXECUTE HOLD
 
   describe("executeHold", function () {
-    before(async function () {
-      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, true, {
-        from: owner,
-      });
-    });
-
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions
-      );
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
         VALID_CERTIFICATE,
-        { from: owner }
+        { from: controller }
       );
 
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
+      await setSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        controller,
+        true
+      )
+      await assertSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
+      );
+      await assertHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
       );
 
       // Create hold in state Ordered
@@ -3442,81 +4123,116 @@ contract("ERC1400 with validator hook", function ([
 
   describe("setTokenControllers", function () {
     beforeEach(async function () {
-      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, true, {
-        from: owner,
-      });
-      this.token1 = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions,
-       { from: tokenHolder } 
+      await this.token.issueByPartition(
+        partition1,
+        tokenHolder,
+        issuanceAmount,
+        VALID_CERTIFICATE,
+        { from: controller }
       );
 
-      await this.token1.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: tokenHolder }
+      await setSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        controller,
+        true
+      )
+      await assertSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
+      );
+      await assertHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
       );
     });
     describe("when the caller is the token contract owner", function () {
       it("sets the operators as token controllers", async function () {
-        let tokenControllers = await this.validatorContract.tokenControllers(
-          this.token1.address
-        );
-        assert.equal(tokenControllers.length, 0);
-
-        await this.validatorContract.setTokenControllers(
-          this.token1.address,
-          [tokenController1, tokenController2],
-          { from: tokenHolder }
+        await assertIsTokenController(
+          this.validatorContract,
+          this.token,
+          controller,
+          true,
         );
 
-        tokenControllers = await this.validatorContract.tokenControllers(this.token1.address);
-        assert.equal(tokenControllers.length, 2);
-        assert.equal(tokenControllers[0], tokenController1);
-        assert.equal(tokenControllers[1], tokenController2);
+        await assertIsTokenController(
+          this.validatorContract,
+          this.token,
+          tokenController1,
+          false,
+        );
+        await addTokenController(
+          this.validatorContract,
+          this.token,
+          owner,
+          tokenController1
+        );
+        await assertIsTokenController(
+          this.validatorContract,
+          this.token,
+          tokenController1,
+          true,
+        );
       });
     });
     describe("when the caller is an other token controller", function () {
       it("sets the operators as token controllers", async function () {
-        let tokenControllers = await this.validatorContract.tokenControllers(
-          this.token1.address
-        );
-        assert.equal(tokenControllers.length, 0);
-
-        await this.validatorContract.setTokenControllers(
-          this.token1.address,
-          [tokenController2],
-          { from: tokenHolder }
+        await assertIsTokenController(
+          this.validatorContract,
+          this.token,
+          controller,
+          true,
         );
 
-        tokenControllers = await this.validatorContract.tokenControllers(this.token1.address);
-        assert.equal(tokenControllers.length, 1);
-        assert.equal(tokenControllers[0], tokenController2);
-
-        await this.validatorContract.setTokenControllers(
-          this.token1.address,
-          [tokenController1, unknown],
-          { from: tokenController2 }
+        await assertIsTokenController(
+          this.validatorContract,
+          this.token,
+          tokenController1,
+          false,
+        );
+        await addTokenController(
+          this.validatorContract,
+          this.token,
+          owner,
+          tokenController1
+        );
+        await assertIsTokenController(
+          this.validatorContract,
+          this.token,
+          tokenController1,
+          true,
         );
 
-        tokenControllers = await this.validatorContract.tokenControllers(this.token1.address);
-        assert.equal(tokenControllers.length, 2);
-        assert.equal(tokenControllers[0], tokenController1);
-        assert.equal(tokenControllers[1], unknown);
+        await assertIsTokenController(
+          this.validatorContract,
+          this.token,
+          tokenController2,
+          false,
+        );
+        await addTokenController(
+          this.validatorContract,
+          this.token,
+          tokenController1,
+          tokenController2
+        );
+        await assertIsTokenController(
+          this.validatorContract,
+          this.token,
+          tokenController2,
+          true,
+        );
       });
     });
     describe("when the caller is neither the token contract owner nor a token controller", function () {
       it("reverts", async function () {
         await expectRevert.unspecified(
-          this.validatorContract.setTokenControllers(
-            this.token1.address,
-            [tokenController1, tokenController2],
-            { from: unknown }
+          addTokenController(
+            this.validatorContract,
+            this.token,
+            unknown,
+            tokenController1
           )
         );
       });
@@ -3525,30 +4241,33 @@ contract("ERC1400 with validator hook", function ([
   
   // PRE-HOLDS
   describe("pre-hold", function () {
-    before(async function () {
-      this.validatorContract = await ERC1400TokensValidator.new(true, false, true, false, {
-        from: owner,
-      });
-    });
-
     beforeEach(async function () {
-      this.token = await ERC1400.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        CERTIFICATE_SIGNER,
-        true,
-        partitions,
-        { from: owner }
+      await this.token.issueByPartition(
+        partition1,
+        tokenHolder,
+        issuanceAmount,
+        VALID_CERTIFICATE,
+        { from: controller }
       );
 
-      await this.token.setHookContract(
-        this.validatorContract.address,
-        ERC1400_TOKENS_VALIDATOR,
-        { from: owner }
+      await setSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        controller,
+        true
+      )
+      await assertSelfHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
+      );
+      await assertHoldsActivated(
+        this.validatorContract,
+        this.token,
+        true
       );
     });
+
     describe("when pre-hold can be created", function () {
       it("creates a pre-hold", async function () {
         const initialBalance = await this.token.balanceOf(recipient)
@@ -3566,7 +4285,7 @@ contract("ERC1400 with validator hook", function ([
         const time = await this.clock.getTime();
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+        await this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller })
 
         const finalBalance = await this.token.balanceOf(recipient)
         const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
@@ -3616,7 +4335,7 @@ contract("ERC1400 with validator hook", function ([
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
         const time = await this.clock.getTime();
-        const { logs } = await this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+        const { logs } = await this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller })
 
         assert.equal(logs[0].event, "HoldCreated");
         assert.equal(logs[0].args.token, this.token.address);
@@ -3634,7 +4353,7 @@ contract("ERC1400 with validator hook", function ([
         const time = parseInt(await this.clock.getTime());
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+        await this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller })
 
         this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
         assert.equal(this.holdData[0], partition1);
@@ -3651,7 +4370,7 @@ contract("ERC1400 with validator hook", function ([
         const time = parseInt(await this.clock.getTime());
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+        await this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller })
         await this.validatorContract.releaseHold(this.token.address, holdId, { from: notary });
 
         this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
@@ -3669,8 +4388,8 @@ contract("ERC1400 with validator hook", function ([
         const time = parseInt(await this.clock.getTime());
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
-        await this.validatorContract.renewHold(this.token.address, holdId, SECONDS_IN_A_DAY, { from: owner });
+        await this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller })
+        await this.validatorContract.renewHold(this.token.address, holdId, SECONDS_IN_A_DAY, { from: controller });
 
         this.holdData = await this.validatorContract.retrieveHoldData(this.token.address, holdId);
         assert.equal(this.holdData[0], partition1);
@@ -3688,8 +4407,8 @@ contract("ERC1400 with validator hook", function ([
         const time = parseInt(await this.clock.getTime());
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
-        await expectRevert.unspecified(this.validatorContract.renewHold(this.token.address, holdId, SECONDS_IN_A_DAY, { from: controller }));
+        await this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time+SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller })
+        await expectRevert.unspecified(this.validatorContract.renewHold(this.token.address, holdId, SECONDS_IN_A_DAY, { from: recipient }));
       });
       it("creates and executes pre-hold", async function () {
         const initialBalance = await this.token.balanceOf(recipient)
@@ -3707,7 +4426,7 @@ contract("ERC1400 with validator hook", function ([
         const time = await this.clock.getTime();
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+        await this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller })
         await this.validatorContract.executeHold(this.token.address, holdId, holdAmount, secretHashPair.secret, { from: recipient })
 
         const finalBalance = await this.token.balanceOf(recipient)
@@ -3760,7 +4479,7 @@ contract("ERC1400 with validator hook", function ([
         const time = await this.clock.getTime();
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: owner })
+        await this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller })
         await this.validatorContract.executeHoldAndKeepOpen(this.token.address, holdId, holdAmount-100, secretHashPair.secret, { from: recipient })
 
         const intermediateBalance = await this.token.balanceOf(recipient)
@@ -3804,15 +4523,14 @@ contract("ERC1400 with validator hook", function ([
           const time = parseInt(await this.clock.getTime());
           const holdId = newHoldId();
           const secretHashPair = newSecretHashPair();
-          await expectRevert.unspecified(this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time-1, secretHashPair.hash, { from: owner }))
+          await expectRevert.unspecified(this.validatorContract.preHoldForWithExpirationDate(this.token.address, holdId, recipient, notary, partition1, holdAmount, time-1, secretHashPair.hash, { from: controller }))
         });
       });
       describe("when caller is not a minter", function () {
         it("reverts", async function () {
           const holdId = newHoldId();
           const secretHashPair = newSecretHashPair();
-          const time = await this.clock.getTime();
-          await expectRevert.unspecified(this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller }));
+          await expectRevert.unspecified(this.validatorContract.preHoldFor(this.token.address, holdId, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: notary }));
         });
       });
     });

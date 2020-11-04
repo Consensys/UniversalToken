@@ -1,5 +1,6 @@
 const ERC1400 = artifacts.require('./ERC1400.sol');
 const Extension = artifacts.require('./ERC1400TokensValidator.sol');
+const ERC1400HoldableCertificateTokenMock = artifacts.require('./ERC1400HoldableCertificateTokenMock.sol');
 
 const CERTIFICATE_SIGNER = '0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630';
 const controller = '0xb5747835141b46f7C472393B31F8F5A57F74A44f';
@@ -11,11 +12,25 @@ const partitions = [partition1, partition2, partition3];
 
 const ERC1400_TOKENS_VALIDATOR = 'ERC1400TokensValidator';
 
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
+
 module.exports = async function (deployer, network, accounts) {
+  await deployer.deploy(Extension);
+  const tokenExtension = await Extension.deployed();
+  console.log('\n   > Holdable token extension deployment: Success -->', tokenExtension.address);
+
   const tokenInstance = await ERC1400.deployed();
-  console.log('\n   > Add token extension for token deployed at address', tokenInstance.address);
-  await deployer.deploy(Extension, true, false, true, true);
-  console.log('\n   > Token extension deployment: Success -->', Extension.address);
-  await tokenInstance.setHookContract(Extension.address, ERC1400_TOKENS_VALIDATOR);
-  console.log('\n   > Token connection to extension: Success');
+  console.log('\n   > Token deployment: Success -->', tokenInstance.address);
+  
+  await tokenExtension.registerTokenSetup(tokenInstance.address, true, true, true, false, [controller]);
+  console.log('\n   > Manual holdable token extension setup: Success');
+
+  await tokenInstance.setTokenExtension(tokenExtension.address, ERC1400_TOKENS_VALIDATOR, true, true);
+  console.log('\n   > Manual token connection to holdable token extension: Success');
+
+  await tokenInstance.transferOwnership(controller);
+  console.log('\n   > Manual token ownership transfer: Success');
+
+  await deployer.deploy(ERC1400HoldableCertificateTokenMock, 'ERC1400HoldableCertificateTokenMock', 'DAU', 1, [controller], partitions, tokenExtension.address, ZERO_ADDRESS, CERTIFICATE_SIGNER, true);
+  console.log('\n   > Automated holdable token deployment anad setup: Success');
 };

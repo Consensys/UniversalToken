@@ -4,9 +4,11 @@ const { expectRevert } = require("@openzeppelin/test-helpers");
 
 const BatchTokenIssuer = artifacts.require("BatchTokenIssuer.sol");
 
-const ERC1400 = artifacts.require("ERC1400CertificateMock");
+const ERC1400HoldableCertificate = artifacts.require("ERC1400HoldableCertificateTokenMock");
 
 const CERTIFICATE_SIGNER = "0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630";
+
+const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
 const partition1_short =
   "7265736572766564000000000000000000000000000000000000000000000000"; // reserved in hex
@@ -41,14 +43,17 @@ contract(
   "BatchTokenIssuer",
   ([owner, controller, tokenMinter1, tokenMinter2, unknown]) => {
     beforeEach(async function () {
-      this.token = await ERC1400.new(
+      this.token = await ERC1400HoldableCertificate.new(
         "ERC1400Token",
-        "DAU20",
+        "DAU",
         1,
         [controller],
+        [partition1],
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
         CERTIFICATE_SIGNER,
         true,
-        [partition1]
+        { from: owner }
       );
       this.batchIssuer = await BatchTokenIssuer.new();
 

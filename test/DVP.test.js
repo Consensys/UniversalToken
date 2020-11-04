@@ -3,7 +3,7 @@ const { soliditySha3 } = require("web3-utils");
 const { advanceTimeAndBlock } = require("./utils/time");
 
 const DVPContract = artifacts.require("DVP");
-const ERC1400 = artifacts.require("ERC1400CertificateMock");
+const ERC1400HoldableCertificate = artifacts.require("ERC1400HoldableCertificateTokenMock");
 const ERC20 = artifacts.require("ERC20Token");
 const ERC721 = artifacts.require("ERC721Token");
 
@@ -1166,14 +1166,17 @@ contract("DVP", function ([
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.emoney1400 = await ERC1400.new(
+      this.emoney1400 = await ERC1400HoldableCertificate.new(
         "ERC1400Token",
-        "DAU20",
+        "DAU",
         1,
         [owner],
+        partitions,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
         CERTIFICATE_SIGNER,
         true,
-        partitions
+        { from: owner }
       );
 
       const chainTime = (await web3.eth.getBlock("latest")).timestamp;
@@ -1306,14 +1309,17 @@ contract("DVP", function ([
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.security1400 = await ERC1400.new(
+      this.security1400 = await ERC1400HoldableCertificate.new(
         "ERC1400Token",
-        "DAU20",
+        "DAU",
         1,
         [owner],
+        partitions,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
         CERTIFICATE_SIGNER,
         true,
-        partitions
+        { from: owner }
       );
       await this.security1400.setCertificateSigner(this.dvp.address, true, {
         from: owner,
@@ -1326,14 +1332,17 @@ contract("DVP", function ([
         { from: owner }
       );
 
-      this.emoney1400 = await ERC1400.new(
+      this.emoney1400 = await ERC1400HoldableCertificate.new(
         "ERC1400Token",
-        "DAU20",
+        "DAU",
         1,
         [owner],
+        partitions,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
         CERTIFICATE_SIGNER,
         true,
-        partitions
+        { from: owner }
       );
       await this.emoney1400.setCertificateSigner(this.dvp.address, true, {
         from: owner,
@@ -1572,14 +1581,17 @@ contract("DVP", function ([
                   });
                   describe("when token is not the correct token", function () {
                     beforeEach(async function () {
-                      this.wrongEmoney1400 = await ERC1400.new(
+                      this.wrongEmoney1400 = await ERC1400HoldableCertificate.new(
                         "ERC1400Token",
-                        "DAU20",
+                        "DAU",
                         1,
                         [owner],
+                        partitions,
+                        ZERO_ADDRESS,
+                        ZERO_ADDRESS,
                         CERTIFICATE_SIGNER,
                         true,
-                        partitions
+                        { from: owner }
                       );
                       await this.wrongEmoney1400.setCertificateSigner(
                         this.dvp.address,
@@ -1909,14 +1921,17 @@ contract("DVP", function ([
                 });
                 describe("when token standard is ERC1400", function () {
                   it("creates and accepts the trade request", async function () {
-                    this.security1400 = await ERC1400.new(
+                    this.security1400 = await ERC1400HoldableCertificate.new(
                       "ERC1400Token",
-                      "DAU20",
+                      "DAU",
                       1,
                       [],
+                      partitions,
+                      ZERO_ADDRESS,
+                      ZERO_ADDRESS,
                       CERTIFICATE_SIGNER,
                       true,
-                      partitions
+                      { from: owner }
                     );
                     await this.security1400.setCertificateSigner(
                       this.dvp.address,
@@ -2031,14 +2046,17 @@ contract("DVP", function ([
                 });
                 describe("when token standard is ERC1400", function () {
                   it("creates and accepts the trade request", async function () {
-                    this.security1400 = await ERC1400.new(
+                    this.security1400 = await ERC1400HoldableCertificate.new(
                       "ERC1400Token",
-                      "DAU20",
+                      "DAU",
                       1,
                       [],
+                      partitions,
+                      ZERO_ADDRESS,
+                      ZERO_ADDRESS,
                       CERTIFICATE_SIGNER,
                       true,
-                      partitions
+                      { from: owner }
                     );
                     await this.security1400.issueByPartition(
                       partition1,
@@ -2611,14 +2629,17 @@ contract("DVP", function ([
           });
           describe("when token standard is ERC1400", function () {
             beforeEach(async function () {
-              this.security1400 = await ERC1400.new(
+              this.security1400 = await ERC1400HoldableCertificate.new(
                 "ERC1400Token",
-                "DAU20",
+                "DAU",
                 1,
                 [],
+                partitions,
+                ZERO_ADDRESS,
+                ZERO_ADDRESS,
                 CERTIFICATE_SIGNER,
                 true,
-                partitions
+                { from: owner }
               );
               await this.security1400.setCertificateSigner(
                 this.dvp.address,
@@ -2815,14 +2836,17 @@ contract("DVP", function ([
         });
         describe("when token standard is ERC1400", function () {
           beforeEach(async function () {
-            this.security1400 = await ERC1400.new(
+            this.security1400 = await ERC1400HoldableCertificate.new(
               "ERC1400Token",
-              "DAU20",
+              "DAU",
               1,
               [],
+              partitions,
+              ZERO_ADDRESS,
+              ZERO_ADDRESS,
               CERTIFICATE_SIGNER,
               true,
-              partitions
+              { from: owner }
             );
             await this.security1400.setCertificateSigner(
               this.dvp.address,
@@ -3812,14 +3836,17 @@ contract("DVP", function ([
                 describe("when token standard is ERC1400 vs ERC20", function () {
                   describe("when trade type is Escrow", function () {
                     beforeEach(async function () {
-                      this.security1400 = await ERC1400.new(
+                      this.security1400 = await ERC1400HoldableCertificate.new(
                         "ERC1400Token",
-                        "DAU20",
+                        "DAU",
                         1,
                         [owner],
+                        partitions,
+                        ZERO_ADDRESS,
+                        ZERO_ADDRESS,
                         CERTIFICATE_SIGNER,
                         true,
-                        partitions
+                        { from: owner }
                       );
                       await this.security1400.setCertificateSigner(
                         this.dvp.address,
@@ -5899,14 +5926,16 @@ contract("DVP", function ([
     beforeEach(async function () {
       this.dvp = await DVPContract.new(false, false);
 
-      this.token1 = await ERC1400.new(
+      this.token1 = await ERC1400HoldableCertificate.new(
         "ERC1400Token",
-        "DAU20",
+        "DAU",
         1,
         [owner],
+        partitions,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
         CERTIFICATE_SIGNER,
         true,
-        partitions,
         { from: owner }
       );
       await this.token1.setCertificateSigner(this.dvp.address, true, {
@@ -5923,14 +5952,16 @@ contract("DVP", function ([
         from: owner,
       });
 
-      this.token2 = await ERC1400.new(
+      this.token2 = await ERC1400HoldableCertificate.new(
         "ERC1400Token",
-        "DAU20",
+        "DAU",
         1,
         [owner],
+        partitions,
+        ZERO_ADDRESS,
+        ZERO_ADDRESS,
         CERTIFICATE_SIGNER,
         true,
-        partitions,
         { from: owner }
       );
       await this.token2.setCertificateSigner(this.dvp.address, true, {
@@ -6204,14 +6235,16 @@ contract("DVP", function ([
           });
           describe("when the second token has more value than the first token", function () {
             beforeEach(async function () {
-              this.token3 = await ERC1400.new(
+              this.token3 = await ERC1400HoldableCertificate.new(
                 "ERC1400Token",
-                "DAU20",
+                "DAU",
                 1,
                 [owner],
+                partitions,
+                ZERO_ADDRESS,
+                ZERO_ADDRESS,
                 CERTIFICATE_SIGNER,
                 true,
-                partitions,
                 { from: owner }
               );
               await this.token3.setCertificateSigner(this.dvp.address, true, {
@@ -6228,14 +6261,16 @@ contract("DVP", function ([
                 from: owner,
               });
 
-              this.token4 = await ERC1400.new(
+              this.token4 = await ERC1400HoldableCertificate.new(
                 "ERC1400Token",
-                "DAU20",
+                "DAU",
                 1,
                 [owner],
+                partitions,
+                ZERO_ADDRESS,
+                ZERO_ADDRESS,
                 CERTIFICATE_SIGNER,
                 true,
-                partitions,
                 { from: owner }
               );
               await this.token4.setCertificateSigner(this.dvp.address, true, {

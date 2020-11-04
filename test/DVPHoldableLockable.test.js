@@ -10,7 +10,7 @@ const { newSecretHashPair, newHoldId } = require("./utils/crypto");
 const HoldableToken = artifacts.require("ERC20HoldableToken");
 const DVPHoldableLockable = artifacts.require("DVPHoldableLockableACE");
 const ERC1820Registry = artifacts.require("ERC1820Registry");
-const ERC1400 = artifacts.require("ERC1400CertificateMock");
+const ERC1400HoldableCertificate = artifacts.require("ERC1400HoldableCertificateTokenMock");
 const ERC1400TokensValidator = artifacts.require("ERC1400TokensValidator");
 const AztecCryptographyEngineMock = artifacts.require("AztecCryptographyEngineMock");
 
@@ -67,8 +67,8 @@ contract(
   "Holdable Token",
   ([
     dvpDeployer,
-    deployer1,
-    deployer2,
+    owner1,
+    owner2,
     holder1,
     holder2,
     recipient1,
@@ -85,6 +85,9 @@ contract(
       this.registry = await ERC1820Registry.at(
         "0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24"
       );
+      this.validatorContract = await ERC1400TokensValidator.new({
+        from: dvpDeployer,
+      });
     });
     describe("DVP setup", () => {
       it("fail to execute swap with incorrect preimage", async () => {
@@ -117,8 +120,8 @@ contract(
         let token1HoldId;
         let token2HoldId;
         beforeEach(async () => {
-          token1 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer1 });
-          await token1.mint(holder1, 1000, { from: deployer1 });
+          token1 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: owner1 });
+          await token1.mint(holder1, 1000, { from: owner1 });
           const token1Result = await token1.hold(
             recipient1,
             this.dvp.address,
@@ -129,8 +132,8 @@ contract(
           );
           token1HoldId = token1Result.receipt.logs[0].args.holdId;
 
-          token2 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer2 });
-          await token2.mint(holder2, 2000, { from: deployer2 });
+          token2 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: owner2 });
+          await token2.mint(holder2, 2000, { from: owner2 });
           const token2Result = await token2.hold(
             recipient2,
             this.dvp.address,
@@ -315,8 +318,8 @@ contract(
         let token1HoldId;
         let token2HoldId;
         beforeEach(async () => {
-          token1 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer1 });
-          await token1.mint(holder1, 1000, { from: deployer1 });
+          token1 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: owner1 });
+          await token1.mint(holder1, 1000, { from: owner1 });
           const token1Result = await token1.hold(
             recipient1,
             this.dvp.address,
@@ -331,8 +334,8 @@ contract(
             HoldStatusCode.Held
           );
 
-          token2 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer2 });
-          await token2.mint(holder2, 2000, { from: deployer2 });
+          token2 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: owner2 });
+          await token2.mint(holder2, 2000, { from: owner2 });
           const token2Result = await token2.hold(
             recipient2,
             this.dvp.address,
@@ -423,8 +426,8 @@ contract(
         let token1HoldId;
         let token2HoldId;
         beforeEach(async () => {
-          token1 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer1 });
-          await token1.mint(holder1, 1000, { from: deployer1 });
+          token1 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: owner1 });
+          await token1.mint(holder1, 1000, { from: owner1 });
           const token1Result = await token1.hold(
             ZERO_ADDRESS,
             this.dvp.address,
@@ -439,8 +442,8 @@ contract(
             HoldStatusCode.Held
           );
 
-          token2 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer2 });
-          await token2.mint(holder2, 2000, { from: deployer2 });
+          token2 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: owner2 });
+          await token2.mint(holder2, 2000, { from: owner2 });
           const token2Result = await token2.hold(
             ZERO_ADDRESS,
             this.dvp.address,
@@ -544,76 +547,64 @@ contract(
 
       describe("swap as secret holder, recipient set on hold, hash lock", () => {
         beforeEach(async () => {
-          this.token1 = await ERC1400.new(
+          this.token1 = await ERC1400HoldableCertificate.new(
             "ERC1400Token",
             "DAU",
             1,
             [controller1],
+            partitions,
+            this.validatorContract.address,
+            owner1,
             CERTIFICATE_SIGNER,
             true,
-            partitions,
-            { from: deployer1 }
-          );
-          this.validatorContract1 = await ERC1400TokensValidator.new(true, false, false, true, {
-            from: deployer1,
-          });
-          await this.token1.setHookContract(
-            this.validatorContract1.address,
-            ERC1400_TOKENS_VALIDATOR,
-            { from: deployer1 }
+            { from: controller1 }
           );
           await this.token1.issueByPartition(
             partition1,
             holder1,
             1000,
             VALID_CERTIFICATE,
-            { from: deployer1 }
+            { from: controller1 }
           );
           this.token1HoldId = newHoldId();
-          await this.validatorContract1.hold(this.token1.address, this.token1HoldId, recipient1, /*this.dvp.address*/ deployer1, partition1, 600, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: holder1 })
+          await this.validatorContract.holdFrom(this.token1.address, this.token1HoldId, holder1, recipient1, /*this.dvp.address*/ owner1, partition1, 600, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller1 })
   
-          this.token2 = await ERC1400.new(
+          this.token2 = await ERC1400HoldableCertificate.new(
             "ERC1400Token",
             "DAU",
             1,
             [controller2],
+            partitions,
+            this.validatorContract.address,
+            owner2,
             CERTIFICATE_SIGNER,
             true,
-            partitions,
-            { from: deployer2 }
-          );
-          this.validatorContract2 = await ERC1400TokensValidator.new(true, false, false, true, {
-            from: deployer2,
-          });
-          await this.token2.setHookContract(
-            this.validatorContract2.address,
-            ERC1400_TOKENS_VALIDATOR,
-            { from: deployer2 }
+            { from: controller2 }
           );
           await this.token2.issueByPartition(
             partition2,
             holder2,
             2000,
             VALID_CERTIFICATE,
-            { from: deployer2 }
+            { from: controller2 }
           );
           this.token2HoldId = newHoldId();
-          await this.validatorContract2.hold(this.token2.address, this.token2HoldId, recipient2, /*this.dvp.address*/ deployer2, partition2, 1200, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: holder2 })
+          await this.validatorContract.holdFrom(this.token2.address, this.token2HoldId, holder2, recipient2, /*this.dvp.address*/ owner2, partition2, 1200, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller2 })
         });
   
         it("Check initial states", async () => {
           assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 1000)
-          assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
-          assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
   
-          this.holdData1 = await this.validatorContract1.retrieveHoldData(this.token1.address, this.token1HoldId);
+          this.holdData1 = await this.validatorContract.retrieveHoldData(this.token1.address, this.token1HoldId);
           assert.equal(parseInt(this.holdData1[8]), HOLD_STATUS_ORDERED);
   
           assert.equal(await this.token2.balanceOfByPartition(partition2, holder2), 2000)
-          assert.equal(await this.validatorContract2.balanceOnHoldByPartition(this.token2.address, partition2, holder2), 1200)
-          assert.equal(await this.validatorContract2.spendableBalanceOfByPartition(this.token2.address, partition2, holder2), 800)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token2.address, partition2, holder2), 1200)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token2.address, partition2, holder2), 800)
   
-          this.holdData2 = await this.validatorContract2.retrieveHoldData(this.token2.address, this.token2HoldId);
+          this.holdData2 = await this.validatorContract.retrieveHoldData(this.token2.address, this.token2HoldId);
           assert.equal(parseInt(this.holdData2[8]), HOLD_STATUS_ORDERED);
         });
   
@@ -636,26 +627,26 @@ contract(
             assert.match(err.message, /hold can not be executed/);
   
             assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 1000)
-            this.holdData1 = await this.validatorContract1.retrieveHoldData(this.token1.address, this.token1HoldId);
+            this.holdData1 = await this.validatorContract.retrieveHoldData(this.token1.address, this.token1HoldId);
             assert.equal(parseInt(this.holdData1[8]), HOLD_STATUS_ORDERED);
   
             assert.equal(await this.token2.balanceOfByPartition(partition2, holder2), 2000)
-            this.holdData2 = await this.validatorContract2.retrieveHoldData(this.token2.address, this.token2HoldId);
+            this.holdData2 = await this.validatorContract.retrieveHoldData(this.token2.address, this.token2HoldId);
             assert.equal(parseInt(this.holdData2[8]), HOLD_STATUS_ORDERED);
           }
         });
   
         it("fail to execute swap after token 1 has been released by holder", async () => {
           await advanceTime(inOneHour + 1);
-          const result = await this.validatorContract1.releaseHold(this.token1.address, this.token1HoldId, {
+          const result = await this.validatorContract.releaseHold(this.token1.address, this.token1HoldId, {
             from: holder1,
           });
           assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 1000)
-          this.holdData1 = await this.validatorContract1.retrieveHoldData(this.token1.address, this.token1HoldId);
+          this.holdData1 = await this.validatorContract.retrieveHoldData(this.token1.address, this.token1HoldId);
           assert.equal(parseInt(this.holdData1[8]), HOLD_STATUS_RELEASED_ON_EXPIRATION);
   
           assert.equal(await this.token2.balanceOfByPartition(partition2, holder2), 2000)
-          this.holdData2 = await this.validatorContract2.retrieveHoldData(this.token2.address, this.token2HoldId);
+          this.holdData2 = await this.validatorContract.retrieveHoldData(this.token2.address, this.token2HoldId);
           assert.equal(parseInt(this.holdData2[8]), HOLD_STATUS_ORDERED);
   
           assert.equal(result.receipt.status, 1);
@@ -676,11 +667,11 @@ contract(
             assert.match(err.message, /hold can not be executed/);
   
             assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 1000)
-            this.holdData1 = await this.validatorContract1.retrieveHoldData(this.token1.address, this.token1HoldId);
+            this.holdData1 = await this.validatorContract.retrieveHoldData(this.token1.address, this.token1HoldId);
             assert.equal(parseInt(this.holdData1[8]), HOLD_STATUS_RELEASED_ON_EXPIRATION);
     
             assert.equal(await this.token2.balanceOfByPartition(partition2, holder2), 2000)
-            this.holdData2 = await this.validatorContract2.retrieveHoldData(this.token2.address, this.token2HoldId);
+            this.holdData2 = await this.validatorContract.retrieveHoldData(this.token2.address, this.token2HoldId);
             assert.equal(parseInt(this.holdData2[8]), HOLD_STATUS_ORDERED);
           }
         });
@@ -699,23 +690,23 @@ contract(
           assert.equal(result.receipt.status, 1);
           
           assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 400)
-          assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 0)
-          assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 0)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
           assert.equal(await this.token1.balanceOfByPartition(partition1, recipient1), 600)
-          assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, recipient1), 0)
-          assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, recipient1), 600)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token1.address, partition1, recipient1), 0)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token1.address, partition1, recipient1), 600)
   
-          this.holdData1 = await this.validatorContract1.retrieveHoldData(this.token1.address, this.token1HoldId);
+          this.holdData1 = await this.validatorContract.retrieveHoldData(this.token1.address, this.token1HoldId);
           assert.equal(parseInt(this.holdData1[8]), HOLD_STATUS_EXECUTED);
   
           assert.equal(await this.token2.balanceOfByPartition(partition2, holder2), 800)
-          assert.equal(await this.validatorContract2.balanceOnHoldByPartition(this.token2.address, partition2, holder2), 0)
-          assert.equal(await this.validatorContract2.spendableBalanceOfByPartition(this.token2.address, partition2, holder2), 800)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token2.address, partition2, holder2), 0)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token2.address, partition2, holder2), 800)
           assert.equal(await this.token2.balanceOfByPartition(partition2, recipient2), 1200)
-          assert.equal(await this.validatorContract2.balanceOnHoldByPartition(this.token2.address, partition2, recipient2), 0)
-          assert.equal(await this.validatorContract2.spendableBalanceOfByPartition(this.token2.address, partition2, recipient2), 1200)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token2.address, partition2, recipient2), 0)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token2.address, partition2, recipient2), 1200)
   
-          this.holdData2 = await this.validatorContract2.retrieveHoldData(this.token2.address, this.token2HoldId);
+          this.holdData2 = await this.validatorContract.retrieveHoldData(this.token2.address, this.token2HoldId);
           assert.equal(parseInt(this.holdData2[8]), HOLD_STATUS_EXECUTED);
         });
 
@@ -723,76 +714,64 @@ contract(
       
       describe("swap as notary, recipient set on hold, hash lock", () => {
         beforeEach(async () => {
-          this.token1 = await ERC1400.new(
+          this.token1 = await ERC1400HoldableCertificate.new(
             "ERC1400Token",
             "DAU",
             1,
             [controller1],
+            partitions,
+            this.validatorContract.address,
+            owner1,
             CERTIFICATE_SIGNER,
             true,
-            partitions,
-            { from: deployer1 }
-          );
-          this.validatorContract1 = await ERC1400TokensValidator.new(true, false, false, true, {
-            from: deployer1,
-          });
-          await this.token1.setHookContract(
-            this.validatorContract1.address,
-            ERC1400_TOKENS_VALIDATOR,
-            { from: deployer1 }
+            { from: controller1 }
           );
           await this.token1.issueByPartition(
             partition1,
             holder1,
             1000,
             VALID_CERTIFICATE,
-            { from: deployer1 }
+            { from: controller1 }
           );
           this.token1HoldId = newHoldId();
-          await this.validatorContract1.hold(this.token1.address, this.token1HoldId, recipient1, this.dvp.address, partition1, 600, SECONDS_IN_AN_HOUR, ZERO_BYTES32, { from: holder1 })
+          await this.validatorContract.holdFrom(this.token1.address, this.token1HoldId, holder1, recipient1, this.dvp.address, partition1, 600, SECONDS_IN_AN_HOUR, ZERO_BYTES32, { from: controller1 })
   
-          this.token2 = await ERC1400.new(
+          this.token2 = await ERC1400HoldableCertificate.new(
             "ERC1400Token",
             "DAU",
             1,
             [controller2],
+            partitions,
+            this.validatorContract.address,
+            owner2,
             CERTIFICATE_SIGNER,
             true,
-            partitions,
-            { from: deployer2 }
-          );
-          this.validatorContract2 = await ERC1400TokensValidator.new(true, false, false, true, {
-            from: deployer2,
-          });
-          await this.token2.setHookContract(
-            this.validatorContract2.address,
-            ERC1400_TOKENS_VALIDATOR,
-            { from: deployer2 }
+            { from: controller2 }
           );
           await this.token2.issueByPartition(
             partition2,
             holder2,
             2000,
             VALID_CERTIFICATE,
-            { from: deployer2 }
+            { from: controller2 }
           );
           this.token2HoldId = newHoldId();
-          await this.validatorContract2.hold(this.token2.address, this.token2HoldId, recipient2, this.dvp.address, partition2, 1200, SECONDS_IN_AN_HOUR, ZERO_BYTES32, { from: holder2 })
+          await this.validatorContract.holdFrom(this.token2.address, this.token2HoldId, holder2, recipient2, this.dvp.address, partition2, 1200, SECONDS_IN_AN_HOUR, ZERO_BYTES32, { from: controller2 })
         });
   
         it("Check initial states", async () => {
           assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 1000)
-          assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
-          assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
   
-          this.holdData1 = await this.validatorContract1.retrieveHoldData(this.token1.address, this.token1HoldId);
+          this.holdData1 = await this.validatorContract.retrieveHoldData(this.token1.address, this.token1HoldId);
           assert.equal(parseInt(this.holdData1[8]), HOLD_STATUS_ORDERED);
   
           assert.equal(await this.token2.balanceOfByPartition(partition2, holder2), 2000)
-          assert.equal(await this.validatorContract2.balanceOnHoldByPartition(this.token2.address, partition2, holder2), 1200)
-          assert.equal(await this.validatorContract2.spendableBalanceOfByPartition(this.token2.address, partition2, holder2), 800)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token2.address, partition2, holder2), 1200)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token2.address, partition2, holder2), 800)
   
-          this.holdData2 = await this.validatorContract2.retrieveHoldData(this.token2.address, this.token2HoldId);
+          this.holdData2 = await this.validatorContract.retrieveHoldData(this.token2.address, this.token2HoldId);
           assert.equal(parseInt(this.holdData2[8]), HOLD_STATUS_ORDERED);
         });
 
@@ -810,23 +789,23 @@ contract(
           assert.equal(result.receipt.status, 1);
           
           assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 400)
-          assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 0)
-          assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 0)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
           assert.equal(await this.token1.balanceOfByPartition(partition1, recipient1), 600)
-          assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, recipient1), 0)
-          assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, recipient1), 600)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token1.address, partition1, recipient1), 0)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token1.address, partition1, recipient1), 600)
   
-          this.holdData1 = await this.validatorContract1.retrieveHoldData(this.token1.address, this.token1HoldId);
+          this.holdData1 = await this.validatorContract.retrieveHoldData(this.token1.address, this.token1HoldId);
           assert.equal(parseInt(this.holdData1[8]), HOLD_STATUS_EXECUTED);
   
           assert.equal(await this.token2.balanceOfByPartition(partition2, holder2), 800)
-          assert.equal(await this.validatorContract2.balanceOnHoldByPartition(this.token2.address, partition2, holder2), 0)
-          assert.equal(await this.validatorContract2.spendableBalanceOfByPartition(this.token2.address, partition2, holder2), 800)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token2.address, partition2, holder2), 0)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token2.address, partition2, holder2), 800)
           assert.equal(await this.token2.balanceOfByPartition(partition2, recipient2), 1200)
-          assert.equal(await this.validatorContract2.balanceOnHoldByPartition(this.token2.address, partition2, recipient2), 0)
-          assert.equal(await this.validatorContract2.spendableBalanceOfByPartition(this.token2.address, partition2, recipient2), 1200)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token2.address, partition2, recipient2), 0)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token2.address, partition2, recipient2), 1200)
   
-          this.holdData2 = await this.validatorContract2.retrieveHoldData(this.token2.address, this.token2HoldId);
+          this.holdData2 = await this.validatorContract.retrieveHoldData(this.token2.address, this.token2HoldId);
           assert.equal(parseInt(this.holdData2[8]), HOLD_STATUS_EXECUTED);
         });
       });
@@ -836,36 +815,30 @@ contract(
     describe("Holdable ERC20 and ERC1400 Tokens", () => {
       const inOneDay = nowSeconds() + SECONDS_IN_A_DAY;
       beforeEach(async () => {
-        this.token1 = await ERC1400.new(
+        this.token1 = await ERC1400HoldableCertificate.new(
           "ERC1400Token",
           "DAU",
           1,
           [controller1],
+          partitions,
+          this.validatorContract.address,
+          owner1,
           CERTIFICATE_SIGNER,
           true,
-          partitions,
-          { from: deployer1 }
-        );
-        this.validatorContract1 = await ERC1400TokensValidator.new(true, false, false, true, {
-          from: deployer1,
-        });
-        await this.token1.setHookContract(
-          this.validatorContract1.address,
-          ERC1400_TOKENS_VALIDATOR,
-          { from: deployer1 }
+          { from: controller1 }
         );
         await this.token1.issueByPartition(
           partition1,
           holder1,
           1000,
           VALID_CERTIFICATE,
-          { from: deployer1 }
+          { from: controller1 }
         );
         this.token1HoldId = newHoldId();
-        await this.validatorContract1.hold(this.token1.address, this.token1HoldId, recipient1, /*this.dvp.address*/ deployer1, partition1, 600, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: holder1 })
+        await this.validatorContract.holdFrom(this.token1.address, this.token1HoldId, holder1, recipient1, /*this.dvp.address*/ owner1, partition1, 600, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller1 })
 
-        this.token2 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: deployer2 });
-          await this.token2.mint(holder2, 2000, { from: deployer2 });
+        this.token2 = await HoldableToken.new("ERC20Token", "DAU20", 18, { from: owner2 });
+          await this.token2.mint(holder2, 2000, { from: owner2 });
           const token2Result = await this.token2.hold(
             recipient2,
             this.dvp.address,
@@ -879,10 +852,10 @@ contract(
 
       it("Check initial states", async () => {
         assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 1000)
-        assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
-        assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
+        assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
+        assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
 
-        this.holdData1 = await this.validatorContract1.retrieveHoldData(this.token1.address, this.token1HoldId);
+        this.holdData1 = await this.validatorContract.retrieveHoldData(this.token1.address, this.token1HoldId);
         assert.equal(parseInt(this.holdData1[8]), HOLD_STATUS_ORDERED);
 
         assert.equal(
@@ -909,13 +882,13 @@ contract(
         assert.equal(result.receipt.status, 1);
         
         assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 400)
-        assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 0)
-        assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
+        assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 0)
+        assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
         assert.equal(await this.token1.balanceOfByPartition(partition1, recipient1), 600)
-        assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, recipient1), 0)
-        assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, recipient1), 600)
+        assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token1.address, partition1, recipient1), 0)
+        assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token1.address, partition1, recipient1), 600)
 
-        this.holdData1 = await this.validatorContract1.retrieveHoldData(this.token1.address, this.token1HoldId);
+        this.holdData1 = await this.validatorContract.retrieveHoldData(this.token1.address, this.token1HoldId);
         assert.equal(parseInt(this.holdData1[8]), HOLD_STATUS_EXECUTED);
 
         assert.equal(
@@ -948,8 +921,8 @@ contract(
           assert.instanceOf(err, Error);
           assert.match(err.message, /invalid token standard/);
           assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 1000)
-          assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
-          assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
           assert.equal(await this.token2.balanceOf(holder2), 800)
           assert.equal(await this.token2.holdBalanceOf(holder2), 1200)
           assert.equal(await this.token2.grossBalanceOf(holder2), 2000)
@@ -973,8 +946,8 @@ contract(
           assert.instanceOf(err, Error);
           assert.match(err.message, /invalid token standard/);
           assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 1000)
-          assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
-          assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
           assert.equal(await this.token2.balanceOf(holder2), 800)
           assert.equal(await this.token2.holdBalanceOf(holder2), 1200)
           assert.equal(await this.token2.grossBalanceOf(holder2), 2000)
@@ -998,8 +971,8 @@ contract(
           assert.instanceOf(err, Error);
           assert.match(err.message, /token can not be a zero address/);
           assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 1000)
-          assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
-          assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
           assert.equal(await this.token2.balanceOf(holder2), 800)
           assert.equal(await this.token2.holdBalanceOf(holder2), 1200)
           assert.equal(await this.token2.grossBalanceOf(holder2), 2000)
@@ -1023,8 +996,8 @@ contract(
           assert.instanceOf(err, Error);
           assert.match(err.message, /token can not be a zero address/);
           assert.equal(await this.token1.balanceOfByPartition(partition1, holder1), 1000)
-          assert.equal(await this.validatorContract1.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
-          assert.equal(await this.validatorContract1.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
+          assert.equal(await this.validatorContract.balanceOnHoldByPartition(this.token1.address, partition1, holder1), 600)
+          assert.equal(await this.validatorContract.spendableBalanceOfByPartition(this.token1.address, partition1, holder1), 400)
           assert.equal(await this.token2.balanceOf(holder2), 800)
           assert.equal(await this.token2.holdBalanceOf(holder2), 1200)
           assert.equal(await this.token2.grossBalanceOf(holder2), 2000)
@@ -1033,22 +1006,24 @@ contract(
 
       it("fail to execute swap with non-holdable token address for the first token", async () => {
         try {
-          this.token1withoutHold = await ERC1400.new(
+          this.token1withoutHold = await ERC1400HoldableCertificate.new(
             "ERC1400Token",
             "DAU",
             1,
             [controller1],
+            partitions,
+            ZERO_ADDRESS,
+            owner1,
             CERTIFICATE_SIGNER,
             true,
-            partitions,
-            { from: deployer1 }
+            { from: controller1 }
           );
           await this.token1withoutHold.issueByPartition(
             partition1,
             holder1,
             1000,
             VALID_CERTIFICATE,
-            { from: deployer1 }
+            { from: controller1 }
           );
           this.token1HoldId = newHoldId();
           await this.dvp.executeHolds(

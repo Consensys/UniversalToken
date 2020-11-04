@@ -14,7 +14,7 @@ import "./interface/ERC1820Implementer.sol";
 
 import "./IERC1400.sol";
 
-// Extensions (hooks triggered by the contract)
+// Extensions
 import "./extensions/tokenExtensions/IERC1400TokensValidator.sol";
 import "./extensions/tokenExtensions/IERC1400TokensChecker.sol";
 import "./extensions/userExtensions/IERC1400TokensSender.sol";
@@ -32,11 +32,11 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   string constant internal ERC1400_INTERFACE_NAME = "ERC1400Token";
   string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
 
-  // Token extensions (hooks triggered by the contract)
+  // Token extensions
   string constant internal ERC1400_TOKENS_CHECKER = "ERC1400TokensChecker";
   string constant internal ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
 
-  // User extensions (hooks triggered by the contract)
+  // User extensions
   string constant internal ERC1400_TOKENS_SENDER = "ERC1400TokensSender";
   string constant internal ERC1400_TOKENS_RECIPIENT = "ERC1400TokensRecipient";
 
@@ -724,16 +724,18 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   /************************************************************************************************/
 
   
-  /******************* Token extension (hooks triggered by the contract) **************************/
+  /************************************** Token extension *****************************************/
   /**
-   * @dev Set validator contract address.
-   * The validator contract needs to verify "ERC1400TokensValidator" interface.
-   * Once setup, the validator will be called everytime a transfer is executed.
-   * @param validatorAddress Address of the validator contract.
-   * @param interfaceLabel Interface label of hook contract.
+   * @dev Set token extension contract address.
+   * The extension contract can for example verify "ERC1400TokensValidator" or "ERC1400TokensChecker" interfaces.
+   * If the extension is an "ERC1400TokensValidator", it will be called everytime a transfer is executed.
+   * @param extension Address of the extension contract.
+   * @param interfaceLabel Interface label of extension contract.
+   * @param minterExtension If set to 'true', the extension contract will be added as minter.
+   * @param controllerExtension If set to 'true', the extension contract will be added as controller.
    */
-  function setHookContract(address validatorAddress, string calldata interfaceLabel) external onlyOwner {
-    _setHookContract(validatorAddress, interfaceLabel);
+  function setTokenExtension(address extension, string calldata interfaceLabel, bool minterExtension, bool controllerExtension) external onlyOwner {
+    _setTokenExtension(extension, interfaceLabel, minterExtension, controllerExtension);
   }
   /************************************************************************************************/
 
@@ -1265,29 +1267,33 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   /************************************************************************************************/
 
 
-  /******************* Token extension (hooks triggered by the contract) **************************/
+  /************************************** Token extension *****************************************/
   /**
-   * @dev Set validator contract address.
-   * The validator contract needs to verify "ERC1400TokensValidator" interface.
-   * Once setup, the validator will be called everytime a transfer is executed.
-   * @param validatorAddress Address of the validator contract.
-   * @param interfaceLabel Interface label of hook contract.
+   * @dev Set token extension contract address.
+   * The extension contract can for example verify "ERC1400TokensValidator" or "ERC1400TokensChecker" interfaces.
+   * If the extension is an "ERC1400TokensValidator", it will be called everytime a transfer is executed.
+   * @param extension Address of the extension contract.
+   * @param interfaceLabel Interface label of extension contract.
+   * @param minterExtension If set to 'true', the extension contract will be added as minter.
+   * @param controllerExtension If set to 'true', the extension contract will be added as controller.
    */
-  function _setHookContract(address validatorAddress, string memory interfaceLabel) internal {
-    address oldValidatorAddress = interfaceAddr(address(this), interfaceLabel);
+  function _setTokenExtension(address extension, string memory interfaceLabel, bool minterExtension, bool controllerExtension) internal {
+    address oldExtension = interfaceAddr(address(this), interfaceLabel);
 
-    if (oldValidatorAddress != address(0)) {
-      if(isMinter(oldValidatorAddress)) {
-        _removeMinter(oldValidatorAddress);
+    if (oldExtension != address(0)) {
+      if(minterExtension && isMinter(oldExtension)) {
+        _removeMinter(oldExtension);
       }
-      _isController[oldValidatorAddress] = false;
+      _isController[oldExtension] = false;
     }
 
-    ERC1820Client.setInterfaceImplementation(interfaceLabel, validatorAddress);
-    if(!isMinter(validatorAddress)) {
-      _addMinter(validatorAddress);
+    ERC1820Client.setInterfaceImplementation(interfaceLabel, extension);
+    if(minterExtension && !isMinter(extension)) {
+      _addMinter(extension);
     }
-    _isController[validatorAddress] = true;
+    if (controllerExtension) {
+      _isController[extension] = true;
+    }
   }
   /************************************************************************************************/
 

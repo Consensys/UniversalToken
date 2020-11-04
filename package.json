@@ -8,10 +8,10 @@
   ],
   "scripts": {
     "build:ERC1400": "sol-merger \"./contracts/ERC1400.sol\" ./artifacts",
-    "build:ERC1400CertificateNonce": "sol-merger \"./contracts/certificate/ERC1400CertificateNonce.sol\" ./artifacts",
-    "build:ERC1400CertificateSalt": "sol-merger \"./contracts/certificate/ERC1400CertificateSalt.sol\" ./artifacts",
+    "build:ERC1400HoldableCertificateNonceToken": "sol-merger \"./contracts/certificate/ERC1400HoldableCertificateNonceToken.sol\" ./artifacts",
+    "build:ERC1400HoldableCertificateSaltToken": "sol-merger \"./contracts/certificate/ERC1400HoldableCertificateSaltToken.sol\" ./artifacts",
     "build:ERC1400TokensValidator": "sol-merger \"./contracts/extensions/tokenExtensions/ERC1400TokensValidator.sol\" ./artifacts",
-    "build": "yarn run clean && yarn run build:ERC1400 && yarn run build:ERC1400TokensValidator && yarn run build:ERC1400CertificateNonce && yarn run build:ERC1400CertificateSalt",
+    "build": "yarn run clean && yarn run build:ERC1400 && yarn run build:ERC1400TokensValidator && yarn run build:ERC1400HoldableCertificateNonceToken && yarn run build:ERC1400HoldableCertificateSaltToken",
     "clean": "rm -rf artifacts",
     "coverage": "yarn truffle run coverage",
     "env": "node setup.js",

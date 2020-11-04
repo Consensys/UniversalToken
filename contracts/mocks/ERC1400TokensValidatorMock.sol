@@ -11,11 +11,7 @@ interface IMinterRoleMock {
 
 contract ERC1400TokensValidatorMock is ERC1400TokensValidator {
 
-  constructor(bool whitelistActivated, bool blacklistActivated, bool holdsActivated, bool selfHoldsActivated)
-    public ERC1400TokensValidator(whitelistActivated, blacklistActivated, holdsActivated, selfHoldsActivated)
-  {}
-
-  function renounceMinter(address token) external onlyOwner {
+  function renounceMinter(address token) external onlyTokenController(token) {
     IMinterRoleMock(token).renounceMinter();
   }
 
