@@ -10,6 +10,7 @@ interface IExtension {
     address token,
     bool allowlistActivated,
     bool blocklistActivated,
+    bool granularityByPartitionActivated,
     bool holdsActivated,
     bool selfHoldsActivated,
     address[] calldata operators
@@ -44,7 +45,7 @@ contract ERC1400HoldableToken is ERC1400 {
     ERC1400(name, symbol, granularity, controllers, defaultPartitions)
   {
     if(extension != address(0)) {
-      IExtension(extension).registerTokenSetup(address(this), true, true, true, false, controllers);
+      IExtension(extension).registerTokenSetup(address(this), true, true, true, true, false, controllers);
 
       _setTokenExtension(extension, ERC1400_TOKENS_VALIDATOR, true, true);
     }
