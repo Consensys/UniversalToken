@@ -22,7 +22,7 @@ module.exports = async function (deployer, network, accounts) {
   const tokenInstance = await ERC1400.deployed();
   console.log('\n   > Token deployment: Success -->', tokenInstance.address);
   
-  await tokenExtension.registerTokenSetup(tokenInstance.address, true, true, true, false, [controller]);
+  await tokenExtension.registerTokenSetup(tokenInstance.address, true, true, true, true, false, [controller]);
   console.log('\n   > Manual holdable token extension setup: Success');
 
   await tokenInstance.setTokenExtension(tokenExtension.address, ERC1400_TOKENS_VALIDATOR, true, true);

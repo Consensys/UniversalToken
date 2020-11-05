@@ -41,6 +41,9 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
   // Mapping from token to blocklist activation status.
   mapping(address => bool) internal _blocklistActivated;
 
+  // Mapping from token to partition granularity activation status.
+  mapping(address => bool) internal _granularityByPartitionActivated;
+
   // Mapping from token to holds activation status.
   mapping(address => bool) internal _holdsActivated;
 
@@ -75,6 +78,9 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
     HoldStatusCode status;
   }
 
+  // Mapping from (token, partition) to partition granularity.
+  mapping(address => mapping(bytes32 => uint256)) internal _granularityByPartition;
+  
   // Mapping from (token, holdId) to hold.
   mapping(address => mapping(bytes32 => Hold)) internal _holds;
 
@@ -172,10 +178,11 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
    * @dev Get the list of token controllers for a given token.
    * @return Setup of a given token.
    */
-  function retrieveTokenSetup(address token) external view returns (bool, bool, bool, bool, address[] memory) {
+  function retrieveTokenSetup(address token) external view returns (bool, bool, bool, bool, bool, address[] memory) {
     return (
       _allowlistActivated[token],
       _blocklistActivated[token],
+      _granularityByPartitionActivated[token],
       _holdsActivated[token],
       _selfHoldsActivated[token],
       _tokenControllers[token]
@@ -189,12 +196,14 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
     address token,
     bool allowlistActivated,
     bool blocklistActivated,
+    bool granularityByPartitionActivated,
     bool holdsActivated,
     bool selfHoldsActivated,
     address[] calldata operators
   ) external onlyTokenController(token) {
     _allowlistActivated[token] = allowlistActivated;
     _blocklistActivated[token] = blocklistActivated;
+    _granularityByPartitionActivated[token] = granularityByPartitionActivated;
     _holdsActivated[token] = holdsActivated;
     _selfHoldsActivated[token] = selfHoldsActivated;
     _setTokenControllers(token, operators);
@@ -321,6 +330,15 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
       }
     }
 
+    if(_granularityByPartitionActivated[token]) {
+      if(
+        _granularityByPartition[token][partition] > 0 &&
+        !_isMultiple(_granularityByPartition[token][partition], value)
+      ) {
+        return (false, "");
+      } 
+    }
+
     if (_holdsActivated[token]) {
       if(functionSig == ERC20_TRANSFERFROM_FUNCTION_ID) {
         (,, bytes32 holdId) = _retrieveHoldHashNonceId(token, partition, operator, from, to, value);
@@ -337,6 +355,30 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
     }
     
     return (true, "");
+  }
+
+  /**
+   * @dev Get granularity for a given partition.
+   * @param token Address of the token.
+   * @param partition Name of the partition.
+   * @return Granularity of the partition.
+   */
+  function granularityByPartition(address token, bytes32 partition) external view returns (uint256) {
+    return _granularityByPartition[token][partition];
+  }
+  
+  /**
+   * @dev Set partition granularity
+   */
+  function setGranularityByPartition(
+    address token,
+    bytes32 partition,
+    uint256 granularity
+  )
+    external
+    onlyTokenController(token)
+  {
+    _granularityByPartition[token][partition] = granularity;
   }
 
   /**
@@ -1115,6 +1157,16 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
       }
     }
     return true;
+  }
+
+  /**
+   * @dev Check if 'value' is multiple of 'granularity'.
+   * @param granularity The granularity that want's to be checked.
+   * @param value The quantity that want's to be checked.
+   * @return 'true' if 'value' is a multiple of 'granularity'.
+   */
+  function _isMultiple(uint256 granularity, uint256 value) internal pure returns(bool) {
+    return(value.div(granularity).mul(granularity) == value);
   }
 
 }

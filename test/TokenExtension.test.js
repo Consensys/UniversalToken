@@ -1,6 +1,6 @@
 const { expectRevert } = require("@openzeppelin/test-helpers");
 const { soliditySha3 } = require("web3-utils");
-const { advanceTimeAndBlock } = require("./utils/time")
+const { advanceTimeAndBlock } = require("./utils/time");
 const { newSecretHashPair, newHoldId } = require("./utils/crypto");
 const { assert } = require("chai");
 
@@ -155,6 +155,7 @@ const setAllowListActivated = async (
     tokenSetup[2],
     tokenSetup[3],
     tokenSetup[4],
+    tokenSetup[5],
     { from: _sender }
   );
 }
@@ -182,11 +183,12 @@ const setBlockListActivated = async (
     tokenSetup[2],
     tokenSetup[3],
     tokenSetup[4],
+    tokenSetup[5],
     { from: _sender }
   );
 }
 
-const assertHoldsActivated = async (
+const assertGranularityByPartitionActivated = async (
   _extension,
   _token,
   _expectedValue
@@ -195,7 +197,7 @@ const assertHoldsActivated = async (
   assert.equal(_expectedValue, tokenSetup[2]);
 }
 
-const setHoldsActivated = async (
+const setGranularityByPartitionActivated = async (
   _extension,
   _token,
   _sender,
@@ -209,6 +211,35 @@ const setHoldsActivated = async (
     _value,
     tokenSetup[3],
     tokenSetup[4],
+    tokenSetup[5],
+    { from: _sender }
+  );
+}
+
+const assertHoldsActivated = async (
+  _extension,
+  _token,
+  _expectedValue
+) => {
+  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
+  assert.equal(_expectedValue, tokenSetup[3]);
+}
+
+const setHoldsActivated = async (
+  _extension,
+  _token,
+  _sender,
+  _value
+) => {
+  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
+  await _extension.registerTokenSetup(
+    _token.address,
+    tokenSetup[0],
+    tokenSetup[1],
+    tokenSetup[2],
+    _value,
+    tokenSetup[4],
+    tokenSetup[5],
     { from: _sender }
   );
 }
@@ -219,7 +250,7 @@ const assertSelfHoldsActivated = async (
   _expectedValue
 ) => {
   const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
-  assert.equal(_expectedValue, tokenSetup[3]);
+  assert.equal(_expectedValue, tokenSetup[4]);
 }
 
 const setSelfHoldsActivated = async (
@@ -234,8 +265,9 @@ const setSelfHoldsActivated = async (
     tokenSetup[0],
     tokenSetup[1],
     tokenSetup[2],
+    tokenSetup[3],
     _value,
-    tokenSetup[4],
+    tokenSetup[5],
     { from: _sender }
   );
 }
@@ -259,7 +291,7 @@ const addTokenController = async (
   _newController
 ) => {
   const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
-  const controllerList = tokenSetup[4];
+  const controllerList = tokenSetup[5];
   if (!controllerList.includes(_newController)) {
     controllerList.push(_newController);
   }
@@ -269,6 +301,7 @@ const addTokenController = async (
     tokenSetup[1],
     tokenSetup[2],
     tokenSetup[3],
+    tokenSetup[4],
     controllerList,
     { from: _sender }
   );
@@ -281,7 +314,7 @@ const assertIsTokenController = async (
   _value,
 ) => {
   const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
-  const controllerList = tokenSetup[4];
+  const controllerList = tokenSetup[5];
   assert.equal(_value, controllerList.includes(_controller))
 }
 
@@ -293,6 +326,7 @@ const setNewExtensionForToken = async (
   const controllers = await _token.controllers();
   await _extension.registerTokenSetup(
     _token.address,
+    true,
     true,
     true,
     true,
@@ -977,7 +1011,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           this.allowlistMock.addAllowlistAdmin(this.token.address, unknown, { from: unknown })
         );
         assert.equal(await this.allowlistMock.isAllowlistAdmin(this.token.address, unknown), false);
-        this.allowlistMock.addAllowlistAdmin(this.token.address, unknown, { from: owner })
+        await this.allowlistMock.addAllowlistAdmin(this.token.address, unknown, { from: owner })
         assert.equal(await this.allowlistMock.isAllowlistAdmin(this.token.address, unknown), true);
       });
     });
@@ -1350,6 +1384,53 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
       });
     });
   });
+
+  // PARTITION GRANULARITY ACTIVATED
+
+  describe("setPartitionGranularityActivated", function () {
+    beforeEach(async function () {
+      await assertTokenHasExtension(
+        this.registry,
+        this.validatorContract,
+        this.token,
+      );
+    });
+    describe("when the caller is the contract owner", function () {
+      it("activates the partition granularity", async function () {
+        await assertGranularityByPartitionActivated(
+          this.validatorContract,
+          this.token,
+          true
+        );
+
+        await setGranularityByPartitionActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        );
+
+        await assertGranularityByPartitionActivated(
+          this.validatorContract,
+          this.token,
+          false
+        )
+      });
+    });
+    describe("when the caller is not the contract owner", function () {
+      it("reverts", async function () {
+        await expectRevert.unspecified(
+          setGranularityByPartitionActivated(
+            this.validatorContract,
+            this.token,
+            unknown,
+            false
+          )
+        );
+      });
+    });
+  });
+
 
   // CANTRANSFER
 
@@ -1919,6 +2000,196 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         await assertBalance(this.token, recipient, amount);
       });
     });
+  });
+
+  // GRANULARITY EXTENSION
+
+  describe("partition granularity", function () {
+    const localGranularity = 10;
+    const amount = 10 * localGranularity;
+
+    beforeEach(async function () {
+      await this.token.issueByPartition(
+        partition1,
+        tokenHolder,
+        issuanceAmount,
+        VALID_CERTIFICATE,
+        { from: controller }
+      );
+      await this.token.issueByPartition(
+        partition2,
+        tokenHolder,
+        issuanceAmount,
+        VALID_CERTIFICATE,
+        { from: controller }
+      );
+
+      await assertTokenHasExtension(
+        this.registry,
+        this.validatorContract,
+        this.token,
+      );
+    });
+
+    describe("when partition granularity is activated", function () {
+      beforeEach(async function () {
+        await assertGranularityByPartitionActivated(
+          this.validatorContract,
+          this.token,
+          true
+        );
+      });
+      describe("when partition granularity is updated by a token controller", function () {
+        it("updates the partition granularity", async function () {
+          assert.equal(0, await this.validatorContract.granularityByPartition(this.token.address, partition1));
+          assert.equal(0, await this.validatorContract.granularityByPartition(this.token.address, partition2));
+          await this.validatorContract.setGranularityByPartition(this.token.address, partition2, localGranularity, { from: controller });
+          assert.equal(0, await this.validatorContract.granularityByPartition(this.token.address, partition1));
+          assert.equal(localGranularity, await this.validatorContract.granularityByPartition(this.token.address, partition2));
+        });
+      });
+      describe("when partition granularity is not updated by a token controller", function () {
+        it("reverts", async function () {
+          await expectRevert.unspecified(this.validatorContract.setGranularityByPartition(this.token.address, partition2, localGranularity, { from: unknown }));
+        });
+      });
+      describe("when partition granularity is defined", function () {
+        beforeEach(async function () {
+          assert.equal(0, await this.validatorContract.granularityByPartition(this.token.address, partition1));
+          assert.equal(0, await this.validatorContract.granularityByPartition(this.token.address, partition2));
+          await this.validatorContract.setGranularityByPartition(this.token.address, partition2, localGranularity, { from: controller });
+          assert.equal(0, await this.validatorContract.granularityByPartition(this.token.address, partition1));
+          assert.equal(localGranularity, await this.validatorContract.granularityByPartition(this.token.address, partition2));
+        });
+        it("transfers the requested amount when higher than the granularity", async function () {
+          await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount);
+          await assertBalanceOfByPartition(this.token, recipient, partition1, 0);
+          await assertBalanceOfByPartition(this.token, tokenHolder, partition2, issuanceAmount);
+          await assertBalanceOfByPartition(this.token, recipient, partition2, 0);
+  
+          await this.token.transferByPartition(
+            partition1,
+            recipient,
+            amount,
+            VALID_CERTIFICATE,
+            { from: tokenHolder }
+          );
+          await this.token.transferByPartition(
+            partition2,
+            recipient,
+            amount,
+            VALID_CERTIFICATE,
+            { from: tokenHolder }
+          );
+
+          await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount-amount);
+          await assertBalanceOfByPartition(this.token, recipient, partition1, amount);
+          await assertBalanceOfByPartition(this.token, tokenHolder, partition2, issuanceAmount-amount);
+          await assertBalanceOfByPartition(this.token, recipient, partition2, amount);
+        });
+        it("reverts when the requested amount when lower than the granularity", async function () {
+          await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount);
+          await assertBalanceOfByPartition(this.token, recipient, partition1, 0);
+          await assertBalanceOfByPartition(this.token, tokenHolder, partition2, issuanceAmount);
+          await assertBalanceOfByPartition(this.token, recipient, partition2, 0);
+  
+          await this.token.transferByPartition(
+            partition1,
+            recipient,
+            1,
+            VALID_CERTIFICATE,
+            { from: tokenHolder }
+          );
+          await expectRevert.unspecified(this.token.transferByPartition(
+            partition2,
+            recipient,
+            1,
+            VALID_CERTIFICATE,
+            { from: tokenHolder }
+          ));
+
+          await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount-1);
+          await assertBalanceOfByPartition(this.token, recipient, partition1, 1);
+          await assertBalanceOfByPartition(this.token, tokenHolder, partition2, issuanceAmount);
+          await assertBalanceOfByPartition(this.token, recipient, partition2, 0);
+        });
+      });
+      describe("when partition granularity is not defined", function () {
+        beforeEach(async function () {
+          assert.equal(0, await this.validatorContract.granularityByPartition(this.token.address, partition1));
+          assert.equal(0, await this.validatorContract.granularityByPartition(this.token.address, partition2));
+        });
+        it("transfers the requested amount", async function () {
+          await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount);
+          await assertBalanceOfByPartition(this.token, recipient, partition1, 0);
+          await assertBalanceOfByPartition(this.token, tokenHolder, partition2, issuanceAmount);
+          await assertBalanceOfByPartition(this.token, recipient, partition2, 0);
+  
+          await this.token.transferByPartition(
+            partition1,
+            recipient,
+            1,
+            VALID_CERTIFICATE,
+            { from: tokenHolder }
+          );
+          await this.token.transferByPartition(
+            partition2,
+            recipient,
+            1,
+            VALID_CERTIFICATE,
+            { from: tokenHolder }
+          );
+
+          await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount-1);
+          await assertBalanceOfByPartition(this.token, recipient, partition1, 1);
+          await assertBalanceOfByPartition(this.token, tokenHolder, partition2, issuanceAmount-1);
+          await assertBalanceOfByPartition(this.token, recipient, partition2, 1);
+        });
+      });
+    });
+    describe("when partition granularity is not activated", function () {
+      beforeEach(async function () {
+        await setGranularityByPartitionActivated(
+          this.validatorContract,
+          this.token,
+          controller,
+          false
+        );
+
+        await assertGranularityByPartitionActivated(
+          this.validatorContract,
+          this.token,
+          false
+        );
+      });
+      it("transfers the requested amount", async function () {
+        await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount);
+        await assertBalanceOfByPartition(this.token, recipient, partition1, 0);
+        await assertBalanceOfByPartition(this.token, tokenHolder, partition2, issuanceAmount);
+        await assertBalanceOfByPartition(this.token, recipient, partition2, 0);
+
+        await this.token.transferByPartition(
+          partition1,
+          recipient,
+          1,
+          VALID_CERTIFICATE,
+          { from: tokenHolder }
+        );
+        await this.token.transferByPartition(
+          partition2,
+          recipient,
+          1,
+          VALID_CERTIFICATE,
+          { from: tokenHolder }
+        );
+
+        await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount-1);
+        await assertBalanceOfByPartition(this.token, recipient, partition1, 1);
+        await assertBalanceOfByPartition(this.token, tokenHolder, partition2, issuanceAmount-1);
+        await assertBalanceOfByPartition(this.token, recipient, partition2, 1);
+      });
+    });
+
   });
 
   // TRANSFERFROM
