@@ -2039,7 +2039,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           true
         );
       });
-      describe("when partition granularity is defined by a token controller", function () {
+      describe("when partition granularity is updated by a token controller", function () {
         it("updates the partition granularity", async function () {
           assert.equal(0, await this.validatorContract.granularityByPartition(this.token.address, partition1));
           assert.equal(0, await this.validatorContract.granularityByPartition(this.token.address, partition2));
@@ -2048,7 +2048,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           assert.equal(localGranularity, await this.validatorContract.granularityByPartition(this.token.address, partition2));
         });
       });
-      describe("when partition granularity is not defined by a token controller", function () {
+      describe("when partition granularity is not updated by a token controller", function () {
         it("reverts", async function () {
           await expectRevert.unspecified(this.validatorContract.setGranularityByPartition(this.token.address, partition2, localGranularity, { from: unknown }));
         });
@@ -2161,6 +2161,32 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           this.token,
           false
         );
+      });
+      it("transfers the requested amount", async function () {
+        await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount);
+        await assertBalanceOfByPartition(this.token, recipient, partition1, 0);
+        await assertBalanceOfByPartition(this.token, tokenHolder, partition2, issuanceAmount);
+        await assertBalanceOfByPartition(this.token, recipient, partition2, 0);
+
+        await this.token.transferByPartition(
+          partition1,
+          recipient,
+          1,
+          VALID_CERTIFICATE,
+          { from: tokenHolder }
+        );
+        await this.token.transferByPartition(
+          partition2,
+          recipient,
+          1,
+          VALID_CERTIFICATE,
+          { from: tokenHolder }
+        );
+
+        await assertBalanceOfByPartition(this.token, tokenHolder, partition1, issuanceAmount-1);
+        await assertBalanceOfByPartition(this.token, recipient, partition1, 1);
+        await assertBalanceOfByPartition(this.token, tokenHolder, partition2, issuanceAmount-1);
+        await assertBalanceOfByPartition(this.token, recipient, partition2, 1);
       });
     });
 
