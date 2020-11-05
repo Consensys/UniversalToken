@@ -1,5 +1,6 @@
 const { expectRevert } = require("@openzeppelin/test-helpers");
 const { soliditySha3 } = require("web3-utils");
+const { advanceTimeAndBlock } = require("./utils/time");
 const { newSecretHashPair, newHoldId } = require("./utils/crypto");
 const { assert } = require("chai");
 
