@@ -424,12 +424,14 @@ To improve the token holder experience, canTransfer MUST return a reason byte co
 Prerequisites: please make sure you installed "yarn" on your environment.
 ```
 $ brew install yarn
+$ brew install nvm
 ```
 
 Test the smart contract, by running the following commands:
 ```
 $ git clone git@github.com:ConsenSys/ERC1400.git
 $ cd ERC1400
+$ nvm use
 $ yarn
 $ yarn coverage
 ```
