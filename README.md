@@ -8,7 +8,12 @@
 
 # Introduction
 
-Never heard of tokenization --> See introduction [here](https://medium.com/@consensyscodefi/how-to-explain-tokenization-to-six-year-olds-well-sort-of-consensys-codefi-a40780c5d4ca).
+Never heard of tokenization
+  --> See introduction [here](https://medium.com/@consensyscodefi/how-to-explain-tokenization-to-six-year-olds-well-sort-of-consensys-codefi-a40780c5d4ca).
+
+Never hear of Universal Token for Assets and Payments
+  --> See webinar recording [here](https://www.youtube.com/watch?v=rlWO9rPL06U&feature=youtu.be).
+  --> See blog article [here](https://codefi.consensys.net/blog/understanding-the-universal-token-for-assets-and-payments).
 
 Blockchain technology and more specifically the emergence of "programmable" tokens have opened a world of new possibilities for financial assets: the creation of digital assets.
 Digital assets are financial assets, which have been "tokenized". This means each asset is represented by a token on the blockchain.
