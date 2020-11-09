@@ -11,7 +11,7 @@ module.exports = async function (deployer, network, accounts) {
     console.log('\n   > ERC1820 deployment: Success -->', res.contractAddress);
   }).catch((err) => {
     // eslint-disable-next-line no-useless-escape
-    if (err.message.search(/the tx doesn\'t have the correct nonce|nonce too low/g) >= 0) {
+    if (err.message.search(/the tx doesn\'t have the correct nonce|Nonce too low/g) >= 0) {
       console.log('\n   > ERC1820 deployment: Invalid nonce, probably already deployed');
     } else {
       console.log('\n   > ERC1820 deployment: Unknown error', err);

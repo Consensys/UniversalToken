@@ -1833,7 +1833,7 @@ contract("DVP", function ([
         );
         await expectRevert.unspecified(
           this.dvp.tokensReceived(
-            "0x00000000",
+            "0x",
             partition1,
             tokenHolder1,
             tokenHolder1,

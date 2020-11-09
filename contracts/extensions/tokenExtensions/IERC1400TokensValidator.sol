@@ -12,7 +12,7 @@ interface IERC1400TokensValidator {
 
   function canValidate(
     address token,
-    bytes4 functionSig,
+    bytes calldata payload,
     bytes32 partition,
     address operator,
     address from,
@@ -23,7 +23,7 @@ interface IERC1400TokensValidator {
   ) external view returns(bool);
 
   function tokensToValidate(
-    bytes4 functionSig,
+    bytes calldata payload,
     bytes32 partition,
     address operator,
     address from,

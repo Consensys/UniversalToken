@@ -9,6 +9,7 @@ import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
 import "./roles/Pausable.sol";
+import "./roles/CertificateSignerRole.sol";
 import "./roles/AllowlistedRole.sol";
 import "./roles/BlocklistedRole.sol";
 
@@ -27,19 +28,40 @@ interface IMinterRole {
 }
 
 
-contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, AllowlistedRole, BlocklistedRole, ERC1820Client, ERC1820Implementer {
+contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, CertificateSignerRole, AllowlistedRole, BlocklistedRole, ERC1820Client, ERC1820Implementer {
   using SafeMath for uint256;
 
   string constant internal ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
 
-  bytes4 constant internal ERC20_TRANSFER_FUNCTION_ID = bytes4(keccak256("transfer(address,uint256)"));
-  bytes4 constant internal ERC20_TRANSFERFROM_FUNCTION_ID = bytes4(keccak256("transferFrom(address,address,uint256)"));
+  bytes4 constant internal ERC20_TRANSFER_ID = bytes4(keccak256("transfer(address,uint256)"));
+  bytes4 constant internal ERC20_TRANSFERFROM_ID = bytes4(keccak256("transferFrom(address,address,uint256)"));
+
+  // Mapping from token to token controllers.
+  mapping(address => address[]) internal _tokenControllers;
+
+  // Mapping from (token, operator) to token controller status.
+  mapping(address => mapping(address => bool)) internal _isTokenController;
 
   // Mapping from token to allowlist activation status.
   mapping(address => bool) internal _allowlistActivated;
 
   // Mapping from token to blocklist activation status.
   mapping(address => bool) internal _blocklistActivated;
+
+  // Mapping from token to certificate activation status.
+  mapping(address => CertificateValidation) internal _certificateActivated;
+
+  enum CertificateValidation {
+    None,
+    NonceBased,
+    SaltBased
+  }
+
+  // Mapping from (token, certificateNonce) to "used" status to ensure a certificate can be used only once
+  mapping(address => mapping(address => uint256)) internal _usedCertificateNonce;
+
+  // Mapping from (token, certificateSalt) to "used" status to ensure a certificate can be used only once
+  mapping(address => mapping(bytes32 => bool)) internal _usedCertificateSalt;
 
   // Mapping from token to partition granularity activation status.
   mapping(address => bool) internal _granularityByPartitionActivated;
@@ -49,12 +71,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
 
   // Mapping from token to self-holds activation status.
   mapping(address => bool) internal _selfHoldsActivated;
-
-  // Mapping from token to token controllers.
-  mapping(address => address[]) internal _tokenControllers;
-
-  // Mapping from (token, operator) to token controller status.
-  mapping(address => mapping(address => bool)) internal _isTokenController;
 
   enum HoldStatusCode {
     Nonexistent,
@@ -136,6 +152,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
    */
   modifier onlyPauser(address token) {
     require(
+      msg.sender == token ||
       msg.sender == Ownable(token).owner() ||
       _isTokenController[token][msg.sender] ||
       isPauser(token, msg.sender),
@@ -145,10 +162,25 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
   }
 
   /**
+   * @dev Modifier to verify if sender is a pauser.
+   */
+  modifier onlyCertificateSigner(address token) {
+    require(
+      msg.sender == token ||
+      msg.sender == Ownable(token).owner() ||
+      _isTokenController[token][msg.sender] ||
+      isCertificateSigner(token, msg.sender),
+      "Sender is not a certificate signer"
+    );
+    _;
+  }
+
+  /**
    * @dev Modifier to verify if sender is an allowlist admin.
    */
   modifier onlyAllowlistAdmin(address token) {
     require(
+      msg.sender == token ||
       msg.sender == Ownable(token).owner() ||
       _isTokenController[token][msg.sender] ||
       isAllowlistAdmin(token, msg.sender),
@@ -162,6 +194,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
    */
   modifier onlyBlocklistAdmin(address token) {
     require(
+      msg.sender == token ||
       msg.sender == Ownable(token).owner() ||
       _isTokenController[token][msg.sender] ||
       isBlocklistAdmin(token, msg.sender),
@@ -178,8 +211,9 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
    * @dev Get the list of token controllers for a given token.
    * @return Setup of a given token.
    */
-  function retrieveTokenSetup(address token) external view returns (bool, bool, bool, bool, bool, address[] memory) {
+  function retrieveTokenSetup(address token) external view returns (CertificateValidation, bool, bool, bool, bool, bool, address[] memory) {
     return (
+      _certificateActivated[token],
       _allowlistActivated[token],
       _blocklistActivated[token],
       _granularityByPartitionActivated[token],
@@ -194,6 +228,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
    */
   function registerTokenSetup(
     address token,
+    CertificateValidation certificateActivated,
     bool allowlistActivated,
     bool blocklistActivated,
     bool granularityByPartitionActivated,
@@ -201,6 +236,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
     bool selfHoldsActivated,
     address[] calldata operators
   ) external onlyTokenController(token) {
+    _certificateActivated[token] = certificateActivated;
     _allowlistActivated[token] = allowlistActivated;
     _blocklistActivated[token] = blocklistActivated;
     _granularityByPartitionActivated[token] = granularityByPartitionActivated;
@@ -226,8 +262,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
 
   /**
    * @dev Verify if a token transfer can be executed or not, on the validator's perspective.
-   * @param token Address of the token.
-   * @param functionSig ID of the function that is called.
+   * @param token Token address.
+   * @param payload Payload of the initial transaction.
    * @param partition Name of the partition (left empty for ERC20 transfer).
    * @param operator Address which triggered the balance decrease (through transfer or redemption).
    * @param from Token holder.
@@ -239,7 +275,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
    */
   function canValidate(
     address token,
-    bytes4 functionSig,
+    bytes calldata payload,
     bytes32 partition,
     address operator,
     address from,
@@ -252,13 +288,22 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
     view 
     returns(bool)
   {
-    (bool canValidateToken,) = _canValidate(token, functionSig, partition, operator, from, to, value, data, operatorData);
+    (bool canValidateToken,,) = _canValidateCertificateToken(token, payload, operator, operatorData.length != 0 ? operatorData : data);
+
+    canValidateToken = canValidateToken && _canValidateAllowlistAndBlocklistToken(token, payload, from, to);
+    
+    canValidateToken = canValidateToken && !paused(token);
+
+    canValidateToken = canValidateToken && _canValidateGranularToken(token, partition, value);
+
+    canValidateToken = canValidateToken && _canValidateHoldableToken(token, partition, operator, from, to, value);
+
     return canValidateToken;
   }
 
   /**
    * @dev Function called by the token contract before executing a transfer.
-   * @param functionSig ID of the function that is called.
+   * @param payload Payload of the initial transaction.
    * @param partition Name of the partition (left empty for ERC20 transfer).
    * @param operator Address which triggered the balance decrease (through transfer or redemption).
    * @param from Token holder.
@@ -269,7 +314,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
    * @return 'true' if the token transfer can be validated, 'false' if not.
    */
   function tokensToValidate(
-    bytes4 functionSig,
+    bytes calldata payload,
     bytes32 partition,
     address operator,
     address from,
@@ -280,9 +325,25 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
   ) // Comments to avoid compilation warnings for unused variables.
     external
   {
-    (bool canValidateToken, bytes32 holdId) = _canValidate(msg.sender, functionSig, partition, operator, from, to, value, data, operatorData);
-    require(canValidateToken, "55"); // 0x55	funds locked (lockup period)
+    (bool canValidateCertificateToken, CertificateValidation certificateControl, bytes32 salt) = _canValidateCertificateToken(msg.sender, payload, operator, operatorData.length != 0 ? operatorData : data);
+    require(canValidateCertificateToken, "51"); // 0x55	funds locked (lockup period)
 
+    // Declare certificate as used
+    if (certificateControl == CertificateValidation.NonceBased) {
+      _usedCertificateNonce[msg.sender][operator] += 1;
+    } else if (certificateControl == CertificateValidation.SaltBased) {
+      _usedCertificateSalt[msg.sender][salt] = true;
+    }
+
+    require(_canValidateAllowlistAndBlocklistToken(msg.sender, payload, from, to), "52"); // 0x55	funds locked (lockup period)
+
+    require(!paused(msg.sender), "53"); // 0x55	funds locked (lockup period)
+
+    require(_canValidateGranularToken(msg.sender, partition, value), "54"); // 0x50	transfer failure
+
+    require(_canValidateHoldableToken(msg.sender, partition, operator, from, to, value), "56"); // 0x55	funds locked (lockup period)
+
+    (,, bytes32 holdId) = _retrieveHoldHashNonceId(msg.sender, partition, operator, from, to, value);
     if (_holdsActivated[msg.sender] && holdId != "") {
       Hold storage executableHold = _holds[msg.sender][holdId];
       _setHoldToExecuted(
@@ -301,65 +362,157 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
    * @return 'true' if the token transfer can be validated, 'false' if not.
    * @return hold ID in case a hold can be executed for the given parameters.
    */
-  function _canValidate(
+  function _canValidateCertificateToken(
     address token,
-    bytes4 functionSig,
-    bytes32 partition,
+    bytes memory payload,
     address operator,
-    address from,
-    address to,
-    uint value,
-    bytes memory /*data*/,
-    bytes memory /*operatorData*/
-  ) // Comments to avoid compilation warnings for unused variables.
+    bytes memory certificate
+  )
     internal
     view
-    whenNotPaused(token)
-    returns(bool, bytes32)
+    returns(bool, CertificateValidation, bytes32)
   {
-    if(_functionRequiresValidation(functionSig)) {
-      if(_allowlistActivated[token]) {
-        if(!isAllowlisted(token, from) || !isAllowlisted(token, to)) {
-          return (false, "");
+    if(
+      _certificateActivated[token] > CertificateValidation.None &&
+      _functionSupportsCertificateValidation(payload) &&
+      operator != address(this)
+    ) {
+      if(_certificateActivated[token] == CertificateValidation.SaltBased) {
+        (bool valid, bytes32 salt) = _checkSaltBasedCertificate(
+          token,
+          operator,
+          payload,
+          certificate
+        );
+        if(!valid) {
+          return (true, CertificateValidation.SaltBased, salt);
+        } else {
+          return (false, CertificateValidation.SaltBased, "");
         }
-      }
-      if(_blocklistActivated[token]) {
-        if(isBlocklisted(token, from) || isBlocklisted(token, to)) {
-          return (false, "");
+        
+      } else if (_certificateActivated[token] == CertificateValidation.NonceBased) {
+        if(
+          _checkNonceBasedCertificate(
+            token,
+            operator,
+            payload,
+            certificate
+          )
+        ) {
+          return (true, CertificateValidation.NonceBased, "");
+        } else {
+          return (false, CertificateValidation.SaltBased, "");
         }
       }
     }
 
+    return (true, CertificateValidation.None, "");
+  }
+
+  /**
+   * @dev Verify if a token transfer can be executed or not, on the validator's perspective.
+   * @return 'true' if the token transfer can be validated, 'false' if not.
+   * @return hold ID in case a hold can be executed for the given parameters.
+   */
+  function _canValidateAllowlistAndBlocklistToken(
+    address token,
+    bytes memory payload,
+    address from,
+    address to
+  ) // Comments to avoid compilation warnings for unused variables.
+    internal
+    view
+    returns(bool)
+  {
+    if(
+      !_functionSupportsCertificateValidation(payload) ||
+      _certificateActivated[token] == CertificateValidation.None
+    ) {
+      if(_allowlistActivated[token]) {
+        if(from != address(0) && !isAllowlisted(token, from)) {
+          return false;
+        }
+        if(to != address(0) && !isAllowlisted(token, to)) {
+          return false;
+        }
+      }
+      if(_blocklistActivated[token]) {
+        if(from != address(0) && isBlocklisted(token, from)) {
+          return false;
+        }
+        if(to != address(0) && isBlocklisted(token, to)) {
+          return false;
+        }
+      }
+    }
+    
+    return true;
+  }
+
+  /**
+   * @dev Verify if a token transfer can be executed or not, on the validator's perspective.
+   * @return 'true' if the token transfer can be validated, 'false' if not.
+   * @return hold ID in case a hold can be executed for the given parameters.
+   */
+  function _canValidateGranularToken(
+    address token,
+    bytes32 partition,
+    uint value
+  )
+    internal
+    view
+    returns(bool)
+  {
     if(_granularityByPartitionActivated[token]) {
       if(
         _granularityByPartition[token][partition] > 0 &&
         !_isMultiple(_granularityByPartition[token][partition], value)
       ) {
-        return (false, "");
+        return false;
       } 
     }
 
-    if (_holdsActivated[token]) {
-      if(functionSig == ERC20_TRANSFERFROM_FUNCTION_ID) {
+    return true;
+  }
+
+  /**
+   * @dev Verify if a token transfer can be executed or not, on the validator's perspective.
+   * @return 'true' if the token transfer can be validated, 'false' if not.
+   * @return hold ID in case a hold can be executed for the given parameters.
+   */
+  function _canValidateHoldableToken(
+    address token,
+    bytes32 partition,
+    address operator,
+    address from,
+    address to,
+    uint value
+  )
+    internal
+    view
+    returns(bool)
+  {
+    if (_holdsActivated[token] && from != address(0)) {
+      if(operator != from) {
         (,, bytes32 holdId) = _retrieveHoldHashNonceId(token, partition, operator, from, to, value);
         Hold storage hold = _holds[token][holdId];
         
         if (_holdCanBeExecutedAsNotary(hold, operator, value) && value <= IERC1400(token).balanceOfByPartition(partition, from)) {
-          return (true, holdId);
+          return true;
         }
       }
       
       if(value > _spendableBalanceOfByPartition(token, partition, from)) {
-        return (false, "");
+        return false;
       }
     }
-    
-    return (true, "");
+
+    return true;
   }
 
   /**
    * @dev Get granularity for a given partition.
-   * @param token Address of the token.
+   * @param token Token address.
    * @param partition Name of the partition.
    * @return Granularity of the partition.
    */
@@ -1135,15 +1288,25 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
 
   /**
    * @dev Check if validator is activated for the function called in the smart contract.
-   * @param functionSig ID of the function that is called.
+   * @param payload Payload of the initial transaction.
    * @return 'true' if the function requires validation, 'false' if not.
    */
-  function _functionRequiresValidation(bytes4 functionSig) internal pure returns(bool) {
-    if(_areEqual(functionSig, ERC20_TRANSFER_FUNCTION_ID) || _areEqual(functionSig, ERC20_TRANSFERFROM_FUNCTION_ID)) {
-      return true;
-    } else {
+  function _functionSupportsCertificateValidation(bytes memory payload) internal pure returns(bool) {
+    bytes4 functionSig = _getFunctionSig(payload);
+    if(_areEqual(functionSig, ERC20_TRANSFER_ID) || _areEqual(functionSig, ERC20_TRANSFERFROM_ID)) {
       return false;
+    } else {
+      return true;
     }
+  }
+
+  /**
+   * @dev Extract function signature from payload.
+   * @param payload Payload of the initial transaction.
+   * @return Function signature.
+   */
+  function _getFunctionSig(bytes memory payload) internal pure returns(bytes4) {
+    return (bytes4(payload[0]) | bytes4(payload[1]) >> 8 | bytes4(payload[2]) >> 16 | bytes4(payload[3]) >> 24);
   }
 
   /**
@@ -1167,6 +1330,178 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Allowliste
    */
   function _isMultiple(uint256 granularity, uint256 value) internal pure returns(bool) {
     return(value.div(granularity).mul(granularity) == value);
+  }
+
+  /**
+   * @dev Get state of certificate (used or not).
+   * @param token Token address.
+   * @param sender Address whom to check the counter of.
+   * @return uint256 Number of transaction already sent for this token contract.
+   */
+  function usedCertificateNonce(address token, address sender) external view returns (uint256) {
+    return _usedCertificateNonce[token][sender];
+  }
+
+  /**
+   * @dev Checks if a nonce-based certificate is correct
+   * @param certificate Certificate to control
+   */
+  function _checkNonceBasedCertificate(
+    address token,
+    address msgSender,
+    bytes memory payloadWithCertificate,
+    bytes memory certificate
+  )
+    internal
+    view
+    returns(bool)
+  {
+    // Certificate should be 97 bytes long
+    if (certificate.length != 97) {
+      return false;
+    }
+
+    uint256 e;
+    uint8 v;
+
+    // Extract certificate information and expiration time from payload
+    assembly {
+      // Retrieve expirationTime & ECDSA element (v) from certificate which is a 97 long bytes
+      // Certificate encoding format is: <expirationTime (32 bytes)>@<r (32 bytes)>@<s (32 bytes)>@<v (1 byte)>
+      e := mload(add(certificate, 0x20))
+      v := byte(0, mload(add(certificate, 0x80)))
+    }
+
+    // Certificate should not be expired
+    if (e < now) {
+      return false;
+    }
+
+    if (v < 27) {
+      v += 27;
+    }
+
+    // Perform ecrecover to ensure message information corresponds to certificate
+    if (v == 27 || v == 28) {
+      // Extract certificate from payload
+      bytes memory payloadWithoutCertificate = new bytes(payloadWithCertificate.length.sub(128));
+      for (uint i = 0; i < payloadWithCertificate.length.sub(160); i++) { // replace 4 bytes corresponding to function selector
+        payloadWithoutCertificate[i] = payloadWithCertificate[i];
+      }
+
+      // Pack and hash
+      bytes memory pack = abi.encodePacked(
+        msgSender,
+        token,
+        payloadWithoutCertificate,
+        e,
+        _usedCertificateNonce[token][msgSender]
+      );
+      bytes32 hash = keccak256(pack);
+
+      bytes32 r;
+      bytes32 s;
+      // Extract certificate information and expiration time from payload
+      assembly {
+        // Retrieve ECDSA elements (r, s) from certificate which is a 97 long bytes
+        // Certificate encoding format is: <expirationTime (32 bytes)>@<r (32 bytes)>@<s (32 bytes)>@<v (1 byte)>
+        r := mload(add(certificate, 0x40))
+        s := mload(add(certificate, 0x60))
+      }
+
+      // Check if certificate match expected transactions parameters
+      if (isCertificateSigner(token, ecrecover(hash, v, r, s))) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
+   * @dev Get state of certificate (used or not).
+   * @param token Token address.
+   * @param salt First 32 bytes of certificate whose validity is being checked.
+   * @return bool 'true' if certificate is already used, 'false' if not.
+   */
+  function usedCertificateSalt(address token, bytes32 salt) external view returns (bool) {
+    return _usedCertificateSalt[token][salt];
+  }
+
+  /**
+   * @dev Checks if a salt-based certificate is correct
+   * @param certificate Certificate to control
+   */
+  function _checkSaltBasedCertificate(
+    address token,
+    address msgSender,
+    bytes memory payloadWithCertificate,
+    bytes memory certificate
+  )
+    internal
+    view
+    returns(bool, bytes32)
+  {
+    // Certificate should be 129 bytes long
+    if (certificate.length != 129) {
+      return (false, "");
+    }
+
+    bytes32 salt;
+    uint256 e;
+    uint8 v;
+
+    // Extract certificate information and expiration time from payload
+    assembly {
+      // Retrieve expirationTime & ECDSA elements from certificate which is a 97 long bytes
+      // Certificate encoding format is: <salt (32 bytes)>@<expirationTime (32 bytes)>@<r (32 bytes)>@<s (32 bytes)>@<v (1 byte)>
+      salt := mload(add(certificate, 0x20))
+      e := mload(add(certificate, 0x40))
+      v := byte(0, mload(add(certificate, 0xa0)))
+    }
+
+    // Certificate should not be expired
+    if (e < now) {
+      return (false, "");
+    }
+
+    if (v < 27) {
+      v += 27;
+    }
+
+    // Perform ecrecover to ensure message information corresponds to certificate
+    if (v == 27 || v == 28) {
+      // Extract certificate from payload
+      bytes memory payloadWithoutCertificate = new bytes(payloadWithCertificate.length.sub(160));
+      for (uint i = 0; i < payloadWithCertificate.length.sub(192); i++) { // replace 4 bytes corresponding to function selector
+        payloadWithoutCertificate[i] = payloadWithCertificate[i];
+      }
+
+      // Pack and hash
+      bytes memory pack = abi.encodePacked(
+        msgSender,
+        token,
+        payloadWithoutCertificate,
+        e,
+        salt
+      );
+      bytes32 hash = keccak256(pack);
+
+      bytes32 r;
+      bytes32 s;
+      // Extract certificate information and expiration time from payload
+      assembly {
+        // Retrieve ECDSA elements (r, s) from certificate which is a 97 long bytes
+        // Certificate encoding format is: <expirationTime (32 bytes)>@<r (32 bytes)>@<s (32 bytes)>@<v (1 byte)>
+        r := mload(add(certificate, 0x60))
+        s := mload(add(certificate, 0x80))
+      }
+
+      // Check if certificate match expected transactions parameters
+      if (isCertificateSigner(token, ecrecover(hash, v, r, s))) {
+        return (true, salt);
+      }
+    }
+    return (false, "");
   }
 
 }

@@ -1,3 +1,7 @@
+/*
+ * This code has not been reviewed.
+ * Do not use or deploy this code before reviewing it personally first.
+ */
 pragma solidity ^0.5.0;
 
 import "../ERC1400.sol";
@@ -27,14 +31,24 @@ contract Extension is IExtensionTypes {
     bool selfHoldsActivated,
     address[] calldata operators
   ) external;
+
+  function addCertificateSigner(
+    address token,
+    address account
+  ) external;
 }
 
-contract ERC1400HoldableToken is ERC1400, IExtensionTypes {
+
+/**
+ * @title ERC1400HoldableCertificateNonceToken
+ * @dev Holdable ERC1400 with nonce-based certificate controller logic
+ */
+contract ERC1400HoldableCertificateToken is ERC1400, IExtensionTypes {
 
   string constant internal ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
 
   /**
-   * @dev Initialize ERC1400 + setup the token extension.
+   * @dev Initialize ERC1400 + initialize certificate controller.
    * @param name Name of the token.
    * @param symbol Symbol of the token.
    * @param granularity Granularity of the token.
@@ -43,6 +57,11 @@ contract ERC1400HoldableToken is ERC1400, IExtensionTypes {
    * not specified, like the case ERC20 tranfers.
    * @param extension Address of token extension.
    * @param newOwner Address whom contract ownership shall be transferred to.
+   * @param certificateSigner Address of the off-chain service which signs the
+   * conditional ownership certificates required for token transfers, issuance,
+   * redemption (Cf. CertificateController.sol).
+   * @param certificateActivated If set to 'true', the certificate controller
+   * is activated at contract creation.
    */
   constructor(
     string memory name,
@@ -51,7 +70,9 @@ contract ERC1400HoldableToken is ERC1400, IExtensionTypes {
     address[] memory controllers,
     bytes32[] memory defaultPartitions,
     address extension,
-    address newOwner
+    address newOwner,
+    address certificateSigner,
+    CertificateValidation certificateActivated
   )
     public
     ERC1400(name, symbol, granularity, controllers, defaultPartitions)
@@ -59,7 +80,7 @@ contract ERC1400HoldableToken is ERC1400, IExtensionTypes {
     if(extension != address(0)) {
       Extension(extension).registerTokenSetup(
         address(this), // token
-        CertificateValidation.None, // certificateActivated
+        certificateActivated, // certificateActivated
         true, // allowlistActivated
         true, // blocklistActivated
         true, // granularityByPartitionActivated
@@ -67,6 +88,10 @@ contract ERC1400HoldableToken is ERC1400, IExtensionTypes {
         false, // selfHoldsActivated
         controllers // token controllers
       );
+
+      if(certificateSigner != address(0)) {
+        Extension(extension).addCertificateSigner(address(this), certificateSigner);
+      }
 
       _setTokenExtension(extension, ERC1400_TOKENS_VALIDATOR, true, true);
     }

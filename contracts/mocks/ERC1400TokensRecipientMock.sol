@@ -13,7 +13,7 @@ contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implement
   }
 
   function canReceive(
-    bytes4 /*functionSig*/,
+    bytes calldata /*payload*/,
     bytes32 /*partition*/,
     address /*operator*/,
     address from,
@@ -30,7 +30,7 @@ contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implement
   }
 
   function tokensReceived(
-    bytes4 /*functionSig*/,
+    bytes calldata /*payload*/,
     bytes32 /*partition*/,
     address /*operator*/,
     address from,

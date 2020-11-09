@@ -14,7 +14,7 @@ module.exports = async function (deployer, network, accounts) {
   
   await registry.setInterfaceImplementer(accounts[0], soliditySha3(DELIVERY_VS_PAYMENT), DVPContract.address, { from: accounts[0] });
 
-  const registeredDVPAddress = await registry.getInterfaceImplementer(accounts[0], soliditySha3(DELIVERY_VS_PAYMENT), { from: accounts[1] });
+  const registeredDVPAddress = await registry.getInterfaceImplementer(accounts[0], soliditySha3(DELIVERY_VS_PAYMENT));
 
   if(registeredDVPAddress === DVPContract.address) {
     console.log('\n   > DVP registry in ERC1820: Success -->', registeredDVPAddress);

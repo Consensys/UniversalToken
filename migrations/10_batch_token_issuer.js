@@ -14,7 +14,7 @@ module.exports = async function (deployer, network, accounts) {
   
   await registry.setInterfaceImplementer(accounts[0], soliditySha3(BATCH_ISSUER), BatchTokenIssuer.address, { from: accounts[0] });
 
-  const registeredBatchTokenIssuerAddress = await registry.getInterfaceImplementer(accounts[0], soliditySha3(BATCH_ISSUER), { from: accounts[1] });
+  const registeredBatchTokenIssuerAddress = await registry.getInterfaceImplementer(accounts[0], soliditySha3(BATCH_ISSUER));
 
   if(registeredBatchTokenIssuerAddress === BatchTokenIssuer.address) {
     console.log('\n   > Batch issuer registry in ERC1820: Success -->', registeredBatchTokenIssuerAddress);

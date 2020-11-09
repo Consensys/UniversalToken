@@ -14,7 +14,7 @@ module.exports = async function (deployer, network, accounts) {
   
   await registry.setInterfaceImplementer(accounts[0], soliditySha3(FUND_ISSUER), FundIssuer.address, { from: accounts[0] });
 
-  const registeredFundIssuerAddress = await registry.getInterfaceImplementer(accounts[0], soliditySha3(FUND_ISSUER), { from: accounts[1] });
+  const registeredFundIssuerAddress = await registry.getInterfaceImplementer(accounts[0], soliditySha3(FUND_ISSUER));
 
   if(registeredFundIssuerAddress === FundIssuer.address) {
     console.log('\n   > FundIssuer registry in ERC1820: Success -->', registeredFundIssuerAddress);

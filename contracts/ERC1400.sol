@@ -819,13 +819,14 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
       toPartition = _getDestinationPartition(fromPartition, data);
     }
 
-    _callPreTransferHooks(fromPartition, operator, from, to, value, data, operatorData);
+    _callSenderExtension(fromPartition, operator, from, to, value, data, operatorData);
+    _callTokenExtension(fromPartition, operator, from, to, value, data, operatorData);
 
     _removeTokenFromPartition(from, fromPartition, value);
     _transferWithData(from, to, value);
     _addTokenToPartition(to, toPartition, value);
 
-    _callPostTransferHooks(toPartition, operator, from, to, value, data, operatorData);
+    _callRecipientExtension(toPartition, operator, from, to, value, data, operatorData);
 
     emit TransferByPartition(fromPartition, operator, from, to, value, data, operatorData);
 
@@ -968,8 +969,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
 
   /****************************************** Hooks ***********************************************/
   /**
-   * @dev Check for 'ERC1400TokensSender' hook on the sender + check for 'ERC1400TokensValidator' on the token
-   * contract address and call them.
+   * @dev Check for 'ERC1400TokensSender' user extension in ERC1820 registry and call it.
    * @param partition Name of the partition (bytes32 to be left empty for transfers where partition is not specified).
    * @param operator Address which triggered the balance decrease (through transfer or redemption).
    * @param from Token holder.
@@ -978,7 +978,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param data Extra information.
    * @param operatorData Extra information, attached by the operator (if any).
    */
-  function _callPreTransferHooks(
+  function _callSenderExtension(
     bytes32 partition,
     address operator,
     address from,
@@ -992,17 +992,38 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     address senderImplementation;
     senderImplementation = interfaceAddr(from, ERC1400_TOKENS_SENDER);
     if (senderImplementation != address(0)) {
-      IERC1400TokensSender(senderImplementation).tokensToTransfer(msg.sig, partition, operator, from, to, value, data, operatorData);
-    }
-
-    address validatorImplementation;
-    validatorImplementation = interfaceAddr(address(this), ERC1400_TOKENS_VALIDATOR);
-    if (validatorImplementation != address(0)) {
-      IERC1400TokensValidator(validatorImplementation).tokensToValidate(msg.sig, partition, operator, from, to, value, data, operatorData);
+      IERC1400TokensSender(senderImplementation).tokensToTransfer(msg.data, partition, operator, from, to, value, data, operatorData);
     }
   }
   /**
-   * @dev Check for 'ERC1400TokensRecipient' hook on the recipient and call it.
+   * @dev Check for 'ERC1400TokensValidator' token extension in ERC1820 registry and call it.
+   * @param partition Name of the partition (bytes32 to be left empty for transfers where partition is not specified).
+   * @param operator Address which triggered the balance decrease (through transfer or redemption).
+   * @param from Token holder.
+   * @param to Token recipient for a transfer and 0x for a redemption.
+   * @param value Number of tokens the token holder balance is decreased by.
+   * @param data Extra information.
+   * @param operatorData Extra information, attached by the operator (if any).
+   */
+  function _callTokenExtension(
+    bytes32 partition,
+    address operator,
+    address from,
+    address to,
+    uint256 value,
+    bytes memory data,
+    bytes memory operatorData
+  )
+    internal
+  {
+    address validatorImplementation;
+    validatorImplementation = interfaceAddr(address(this), ERC1400_TOKENS_VALIDATOR);
+    if (validatorImplementation != address(0)) {
+      IERC1400TokensValidator(validatorImplementation).tokensToValidate(msg.data, partition, operator, from, to, value, data, operatorData);
+    }
+  }
+  /**
+   * @dev Check for 'ERC1400TokensRecipient' user extension in ERC1820 registry and call it.
    * @param partition Name of the partition (bytes32 to be left empty for transfers where partition is not specified).
    * @param operator Address which triggered the balance increase (through transfer or issuance).
    * @param from Token holder for a transfer and 0x for an issuance.
@@ -1011,7 +1032,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param data Extra information, intended for the token holder ('from').
    * @param operatorData Extra information attached by the operator (if any).
    */
-  function _callPostTransferHooks(
+  function _callRecipientExtension(
     bytes32 partition,
     address operator,
     address from,
@@ -1026,7 +1047,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     recipientImplementation = interfaceAddr(to, ERC1400_TOKENS_RECIPIENT);
 
     if (recipientImplementation != address(0)) {
-      IERC1400TokensRecipient(recipientImplementation).tokensReceived(msg.sig, partition, operator, from, to, value, data, operatorData);
+      IERC1400TokensRecipient(recipientImplementation).tokensReceived(msg.data, partition, operator, from, to, value, data, operatorData);
     }
   }
   /************************************************************************************************/
@@ -1100,10 +1121,12 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   )
     internal
   {
+    _callTokenExtension(toPartition, operator, address(0), to, value, data, "");
+
     _issue(operator, to, value, data);
     _addTokenToPartition(to, toPartition, value);
 
-    _callPostTransferHooks(toPartition, operator, address(0), to, value, data, "");
+    _callRecipientExtension(toPartition, operator, address(0), to, value, data, "");
 
     emit IssuedByPartition(toPartition, operator, to, value, data, "");
   }
@@ -1153,7 +1176,8 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   {
     require(_balanceOfByPartition[from][fromPartition] >= value, "52"); // 0x52	insufficient balance
 
-    _callPreTransferHooks(fromPartition, operator, from, address(0), value, data, operatorData);
+    _callSenderExtension(fromPartition, operator, from, address(0), value, data, operatorData);
+    _callTokenExtension(fromPartition, operator, from, address(0), value, data, operatorData);
 
     _removeTokenFromPartition(from, fromPartition, value);
     _redeem(operator, from, value, data);
@@ -1200,7 +1224,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   /************************************** Transfer Validity ***************************************/
   /**
    * @dev Know the reason on success or failure based on the EIP-1066 application-specific status codes.
-   * @param functionSig ID of the function that needs to be called.
+   * @param payload Payload of the initial transaction.
    * @param partition Name of the partition.
    * @param operator The address performing the transfer.
    * @param from Token holder.
@@ -1214,7 +1238,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * transfer restriction rule responsible for making the transfer operation invalid).
    * @return Destination partition.
    */
-  function _canTransfer(bytes4 functionSig, bytes32 partition, address operator, address from, address to, uint256 value, bytes memory data, bytes memory operatorData)
+  function _canTransfer(bytes memory payload, bytes32 partition, address operator, address from, address to, uint256 value, bytes memory data, bytes memory operatorData)
     internal
     view
     returns (byte, bytes32, bytes32)
@@ -1222,7 +1246,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     address checksImplementation = interfaceAddr(address(this), ERC1400_TOKENS_CHECKER);
 
     if((checksImplementation != address(0))) {
-      return IERC1400TokensChecker(checksImplementation).canTransferByPartition(functionSig, partition, operator, from, to, value, data, operatorData);
+      return IERC1400TokensChecker(checksImplementation).canTransferByPartition(payload, partition, operator, from, to, value, data, operatorData);
     }
     else {
       return(hex"00", "", partition);

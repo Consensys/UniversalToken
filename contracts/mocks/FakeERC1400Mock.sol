@@ -34,7 +34,7 @@ contract FakeERC1400Mock is ERC1400 {
     recipientImplementation = interfaceAddr(to, ERC1400_TOKENS_RECIPIENT);
 
     if (recipientImplementation != address(0)) {
-      IERC1400TokensRecipient(recipientImplementation).tokensReceived(msg.sig, partition, operator, from, from, value, data, operatorData);
+      IERC1400TokensRecipient(recipientImplementation).tokensReceived(msg.data, partition, operator, from, from, value, data, operatorData);
     }
   }
 
