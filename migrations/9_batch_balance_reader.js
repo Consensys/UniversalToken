@@ -7,6 +7,8 @@ const ERC1820Registry = artifacts.require('ERC1820Registry');
 const BALANCE_READER = 'BatchBalanceReader';
 
 module.exports = async function (deployer, network, accounts) {
+  if (network == "test") return; // test maintains own contracts
+  
   await deployer.deploy(BatchBalanceReader);
   console.log('\n   > Balance Reader deployment: Success -->', BatchBalanceReader.address);
 

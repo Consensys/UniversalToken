@@ -8,6 +8,8 @@ const partition3 = '0x6c6f636b65640000000000000000000000000000000000000000000000
 const partitions = [partition1, partition2, partition3];
 
 module.exports = async function (deployer, network, accounts) {
+  if (network == "test") return; // test maintains own contracts
+  
   await deployer.deploy(ERC1400Token, 'ERC1400Token', 'DAU', 1, [controller], partitions);
   console.log('\n   > ERC1400 token deployment: Success -->', ERC1400Token.address);
 };

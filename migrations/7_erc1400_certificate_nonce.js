@@ -18,6 +18,8 @@ const CERTIFICATE_VALIDATION_NONCE = 1;
 const CERTIFICATE_VALIDATION_SALT = 2;
 
 module.exports = async function (deployer, network, accounts) {
+  if (network == "test") return; // test maintains own contracts
+  
   const extension = await Extension.deployed();
 
   await deployer.deploy(ERC1400HoldableCertificateToken, 'ERC1400HoldableCertificateNonceToken', 'DAU', 1, [controller], partitions, extension.address, controller, CERTIFICATE_SIGNER, CERTIFICATE_VALIDATION_NONCE);

@@ -7,6 +7,8 @@ const ERC1820Registry = artifacts.require('ERC1820Registry');
 const FUND_ISSUER = 'FundIssuer';
 
 module.exports = async function (deployer, network, accounts) {
+  if (network == "test") return; // test maintains own contracts
+  
   await deployer.deploy(FundIssuer);
   console.log('\n   > FundIssuer deployment: Success -->', FundIssuer.address);
 

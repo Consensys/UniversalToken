@@ -7,6 +7,8 @@ const ERC1820Registry = artifacts.require('ERC1820Registry');
 const DELIVERY_VS_PAYMENT = 'DeliveryVsPayment';
 
 module.exports = async function (deployer, network, accounts) {
+  if (network == "test") return; // test maintains own contracts
+  
   await deployer.deploy(DVPContract, false, false);
   console.log('\n   > DVP deployment: Success -->', DVPContract.address);
 

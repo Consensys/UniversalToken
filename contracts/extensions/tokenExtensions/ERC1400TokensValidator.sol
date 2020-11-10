@@ -384,7 +384,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
           payload,
           certificate
         );
-        if(!valid) {
+        if(valid) {
           return (true, CertificateValidation.SaltBased, salt);
         } else {
           return (false, CertificateValidation.SaltBased, "");
@@ -1384,7 +1384,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     // Perform ecrecover to ensure message information corresponds to certificate
     if (v == 27 || v == 28) {
       // Extract certificate from payload
-      bytes memory payloadWithoutCertificate = new bytes(payloadWithCertificate.length.sub(128));
+      bytes memory payloadWithoutCertificate = new bytes(payloadWithCertificate.length.sub(160));
       for (uint i = 0; i < payloadWithCertificate.length.sub(160); i++) { // replace 4 bytes corresponding to function selector
         payloadWithoutCertificate[i] = payloadWithCertificate[i];
       }
@@ -1471,7 +1471,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     // Perform ecrecover to ensure message information corresponds to certificate
     if (v == 27 || v == 28) {
       // Extract certificate from payload
-      bytes memory payloadWithoutCertificate = new bytes(payloadWithCertificate.length.sub(160));
+      bytes memory payloadWithoutCertificate = new bytes(payloadWithCertificate.length.sub(192));
       for (uint i = 0; i < payloadWithCertificate.length.sub(192); i++) { // replace 4 bytes corresponding to function selector
         payloadWithoutCertificate[i] = payloadWithCertificate[i];
       }
@@ -1502,6 +1502,23 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       }
     }
     return (false, "");
+  }
+
+  function packAndHash(address msgSender, address token, bytes calldata payloadWithoutCertificate, uint256 e, bytes32 salt) external pure returns (bytes32) {
+     return _packAndHash(msgSender, token, payloadWithoutCertificate, e, salt);
+  }
+
+  function _packAndHash(address msgSender, address token, bytes memory payloadWithoutCertificate, uint256 e, bytes32 salt) internal pure returns (bytes32) {
+     bytes memory pack = abi.encodePacked(
+        msgSender,
+        token,
+        payloadWithoutCertificate,
+        e,
+        salt
+      );
+      bytes32 hash = keccak256(pack);
+
+      return hash;
   }
 
 }

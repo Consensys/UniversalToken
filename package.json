@@ -66,6 +66,7 @@
     "eslint-plugin-promise": "^4.2.1",
     "eslint-plugin-standard": "^4.0.1",
     "eslint-plugin-truffle": "^0.3.1",
+    "eth-lib": "^0.1.29",
     "ethereumjs-testrpc-sc": "6.1.6",
     "ethereumjs-util": "^5.1.2",
     "fs-extra": "^7.0.1",
@@ -76,7 +77,8 @@
     "sol-merger": "0.1.4",
     "solidity-coverage": "0.7.10",
     "solium": "^1.2.5",
-    "solium-plugin-zeppelin": "^0.0.2"
+    "solium-plugin-zeppelin": "^0.0.2",
+    "web3-utils": "^1.2.8"
   },
   "dependencies": {
     "crypto": "^1.0.1",

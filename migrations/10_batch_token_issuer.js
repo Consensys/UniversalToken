@@ -7,6 +7,8 @@ const ERC1820Registry = artifacts.require('ERC1820Registry');
 const BATCH_ISSUER = 'BatchTokenIssuer';
 
 module.exports = async function (deployer, network, accounts) {
+  if (network == "test") return; // test maintains own contracts
+  
   await deployer.deploy(BatchTokenIssuer);
   console.log('\n   > Batch issuer deployment: Success -->', BatchTokenIssuer.address);
 
