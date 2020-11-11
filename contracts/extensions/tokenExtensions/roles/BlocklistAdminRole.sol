@@ -35,6 +35,10 @@ contract BlocklistAdminRole {
         _addBlocklistAdmin(token, account);
     }
 
+    function removeBlocklistAdmin(address token, address account) public onlyBlocklistAdmin(token) {
+        _removeBlocklistAdmin(token, account);
+    }
+
     function renounceBlocklistAdmin(address token) public {
         _removeBlocklistAdmin(token, msg.sender);
     }

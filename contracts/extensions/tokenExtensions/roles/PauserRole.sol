@@ -35,6 +35,10 @@ contract PauserRole {
         _addPauser(token, account);
     }
 
+    function removePauser(address token, address account) public onlyPauser(token) {
+        _removePauser(token, account);
+    }
+
     function renouncePauser(address token) public {
         _removePauser(token, msg.sender);
     }

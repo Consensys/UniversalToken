@@ -35,6 +35,10 @@ contract CertificateSignerRole {
         _addCertificateSigner(token, account);
     }
 
+    function removeCertificateSigner(address token, address account) public onlyCertificateSigner(token) {
+        _removeCertificateSigner(token, account);
+    }
+
     function renounceCertificateSigner(address token) public {
         _removeCertificateSigner(token, msg.sender);
     }

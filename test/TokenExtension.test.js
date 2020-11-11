@@ -447,7 +447,7 @@ const craftNonceBasedCertificate = async (
   const nonce = await _extension.usedCertificateNonce(_token.address, _txSender);
 
   const time = await _clock.getTime();
-  const expirationTime = new Date(1000*(parseInt(time) + CERTIFICATE_VALIDITY_PERIOD * 3600));
+  const expirationTime = new Date(1000*(parseInt(time) + CERTIFICATE_VALIDITY_PERIOD * SECONDS_IN_AN_HOUR));
   const expirationTimeAsNumber = Math.floor(
     expirationTime.getTime() / 1000,
   );
@@ -819,7 +819,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
 
   // CERTIFICATE SIGNER
   describe("certificate signer role", function () {
-    describe("addCertificateSigner/renounceCertificateSigner", function () {
+    describe("addCertificateSigner/removeCertificateSigner", function () {
       beforeEach(async function () {
         await assertTokenHasExtension(
           this.registry,
@@ -827,7 +827,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           this.token,
         );
       });
-      describe("add/remove a certificate signer", function () {
+      describe("add/renounce a certificate signer", function () {
         describe("when caller is a certificate signer", function () {
           it("adds a certificate signer as owner", async function () {
             assert.equal(
@@ -917,6 +917,52 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           });
         });
       });
+      describe("remove a certificate signer", function () {
+        describe("when caller is a certificate signer", function () {
+          it("removes a certificate signer as owner", async function () {
+            assert.equal(
+              await this.extension.isCertificateSigner(this.token.address, unknown),
+              false
+            );
+            await this.extension.addCertificateSigner(this.token.address, unknown, {
+              from: owner,
+            });
+            assert.equal(
+              await this.extension.isCertificateSigner(this.token.address, unknown),
+              true
+            );
+            await this.extension.removeCertificateSigner(this.token.address, unknown, {
+              from: owner,
+            });
+            assert.equal(
+              await this.extension.isCertificateSigner(this.token.address, unknown),
+              false
+            );
+          });
+        });
+        describe("when caller is not a certificate signer", function () {
+          it("reverts", async function () {
+            assert.equal(
+              await this.extension.isCertificateSigner(this.token.address, unknown),
+              false
+            );
+            await this.extension.addCertificateSigner(this.token.address, unknown, {
+              from: owner,
+            });
+            assert.equal(
+              await this.extension.isCertificateSigner(this.token.address, unknown),
+              true
+            );
+            await expectRevert.unspecified(this.extension.removeCertificateSigner(this.token.address, unknown, {
+              from: tokenHolder,
+            }));
+            assert.equal(
+              await this.extension.isCertificateSigner(this.token.address, unknown),
+              true
+            );
+          });
+        });
+      });
     });
     describe("onlyCertificateSigner [mock for coverage]", function () {
       beforeEach(async function () {
@@ -938,7 +984,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
   
   // ALLOWLIST ADMIN
   describe("allowlist admin role", function () {
-    describe("addAllowlisted/renounceAllowlistAdmin", function () {
+    describe("addAllowlisted/removeAllowlistAdmin", function () {
       beforeEach(async function () {
         await assertTokenHasExtension(
           this.registry,
@@ -951,7 +997,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         assert.equal(await this.extension.isAllowlisted(this.token.address, tokenHolder), true);
         assert.equal(await this.extension.isAllowlisted(this.token.address, recipient), true);
       });
-      describe("add/remove a allowlist admin", function () {
+      describe("add/renounce a allowlist admin", function () {
         describe("when caller is a allowlist admin", function () {
           it("adds a allowlist admin as owner", async function () {
             assert.equal(
@@ -1041,6 +1087,52 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           });
         });
       });
+      describe("remove a allowlist admin", function () {
+        describe("when caller is a allowlist admin", function () {
+          it("removes a allowlist admin as owner", async function () {
+            assert.equal(
+              await this.extension.isAllowlistAdmin(this.token.address, unknown),
+              false
+            );
+            await this.extension.addAllowlistAdmin(this.token.address, unknown, {
+              from: owner,
+            });
+            assert.equal(
+              await this.extension.isAllowlistAdmin(this.token.address, unknown),
+              true
+            );
+            await this.extension.removeAllowlistAdmin(this.token.address, unknown, {
+              from: owner,
+            });
+            assert.equal(
+              await this.extension.isAllowlistAdmin(this.token.address, unknown),
+              false
+            );
+          });
+        });
+        describe("when caller is not a allowlist admin", function () {
+          it("reverts", async function () {
+            assert.equal(
+              await this.extension.isAllowlistAdmin(this.token.address, unknown),
+              false
+            );
+            await this.extension.addAllowlistAdmin(this.token.address, unknown, {
+              from: owner,
+            });
+            assert.equal(
+              await this.extension.isAllowlistAdmin(this.token.address, unknown),
+              true
+            );
+            await expectRevert.unspecified(this.extension.removeAllowlistAdmin(this.token.address, unknown, {
+              from: tokenHolder,
+            }));
+            assert.equal(
+              await this.extension.isAllowlistAdmin(this.token.address, unknown),
+              true
+            );
+          });
+        });
+      });
     });
     describe("onlyNotAllowlisted [mock for coverage]", function () {
       beforeEach(async function () {
@@ -1080,7 +1172,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
 
   // BLOCKLIST ADMIN
   describe("blocklist admin role", function () {
-    describe("addBlocklisted/renounceBlocklistAdmin", function () {
+    describe("addBlocklisted/removeBlocklistAdmin", function () {
       beforeEach(async function () {
         await assertTokenHasExtension(
           this.registry,
@@ -1093,7 +1185,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         assert.equal(await this.extension.isBlocklisted(this.token.address, tokenHolder), true);
         assert.equal(await this.extension.isBlocklisted(this.token.address, recipient), true);
       });
-      describe("add/remove a blocklist admin", function () {
+      describe("add/renounce a blocklist admin", function () {
         describe("when caller is a blocklist admin", function () {
           it("adds a blocklist admin as owner", async function () {
             assert.equal(
@@ -1183,6 +1275,52 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           });
         });
       });
+      describe("remove a blocklist admin", function () {
+        describe("when caller is a blocklist admin", function () {
+          it("removes a blocklist admin as owner", async function () {
+            assert.equal(
+              await this.extension.isBlocklistAdmin(this.token.address, unknown),
+              false
+            );
+            await this.extension.addBlocklistAdmin(this.token.address, unknown, {
+              from: owner,
+            });
+            assert.equal(
+              await this.extension.isBlocklistAdmin(this.token.address, unknown),
+              true
+            );
+            await this.extension.removeBlocklistAdmin(this.token.address, unknown, {
+              from: owner,
+            });
+            assert.equal(
+              await this.extension.isBlocklistAdmin(this.token.address, unknown),
+              false
+            );
+          });
+        });
+        describe("when caller is not a blocklist admin", function () {
+          it("reverts", async function () {
+            assert.equal(
+              await this.extension.isBlocklistAdmin(this.token.address, unknown),
+              false
+            );
+            await this.extension.addBlocklistAdmin(this.token.address, unknown, {
+              from: owner,
+            });
+            assert.equal(
+              await this.extension.isBlocklistAdmin(this.token.address, unknown),
+              true
+            );
+            await expectRevert.unspecified(this.extension.removeBlocklistAdmin(this.token.address, unknown, {
+              from: tokenHolder,
+            }));
+            assert.equal(
+              await this.extension.isBlocklistAdmin(this.token.address, unknown),
+              true
+            );
+          });
+        });
+      });
     });
     describe("onlyNotBlocklisted [mock for coverage]", function () {
       beforeEach(async function () {
@@ -1222,7 +1360,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
 
   // PAUSER
   describe("pauser role", function () {
-    describe("addPauser/renouncePauser", function () {
+    describe("addPauser/removePauser", function () {
       beforeEach(async function () {
         await assertTokenHasExtension(
           this.registry,
@@ -1231,7 +1369,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         );
   
       });
-      describe("add/remove a pauser", function () {
+      describe("add/renounce a pauser", function () {
         describe("when caller is a pauser", function () {
           it("adds a pauser as token owner", async function () {
             assert.equal(
@@ -1317,6 +1455,52 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
             assert.equal(
               await this.extension.isPauser(this.token.address, unknown),
               false
+            );
+          });
+        });
+      });
+      describe("remove a pauser", function () {
+        describe("when caller is a pauser", function () {
+          it("adds a pauser as token owner", async function () {
+            assert.equal(
+              await this.extension.isPauser(this.token.address, unknown),
+              false
+            );
+            await this.extension.addPauser(this.token.address, unknown, {
+              from: owner,
+            });
+            assert.equal(
+              await this.extension.isPauser(this.token.address, unknown),
+              true
+            );
+            await this.extension.removePauser(this.token.address, unknown, {
+              from: owner,
+            });
+            assert.equal(
+              await this.extension.isPauser(this.token.address, unknown),
+              false
+            );
+          });
+        });
+        describe("when caller is not a pauser", function () {
+          it("reverts", async function () {
+            assert.equal(
+              await this.extension.isPauser(this.token.address, unknown),
+              false
+            );
+            await this.extension.addPauser(this.token.address, unknown, {
+              from: owner,
+            });
+            assert.equal(
+              await this.extension.isPauser(this.token.address, unknown),
+              true
+            );
+            await expectRevert.unspecified(this.extension.removePauser(this.token.address, unknown, {
+              from: tokenHolder,
+            }));
+            assert.equal(
+              await this.extension.isPauser(this.token.address, unknown),
+              true
             );
           });
         });
@@ -1538,7 +1722,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
   // CANTRANSFER
   describe("canTransferByPartition/canOperatorTransferByPartition", function () {
     var localGranularity = 10;
-    const amount = 10 * localGranularity;
+    const transferAmount = 10 * localGranularity;
 
     before(async function () {
       this.senderContract = await ERC1400TokensSender.new({
@@ -1585,36 +1769,48 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         partitions,
         this.extension.address,
         owner,
-        ZERO_ADDRESS,
-        CERTIFICATE_VALIDATION_NONE,
+        CERTIFICATE_SIGNER,
+        CERTIFICATE_VALIDATION_SALT,
         { from: controller }
       );
 
+      const certificate = await craftCertificate(
+        this.token2.contract.methods.issueByPartition(
+          partition1,
+          tokenHolder,
+          issuanceAmount,
+          EMPTY_CERTIFICATE,
+        ).encodeABI(),
+        this.token2,
+        this.extension,
+        this.clock, // this.clock
+        controller
+      )
       await this.token2.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
-        EMPTY_CERTIFICATE,
+        certificate,
         { from: controller }
       );
     });
 
-    describe("when certificate is valid", function () {
-      describe("when checker has been setup", function () {
-        before(async function () {
-          this.checkerContract = await ERC1400TokensChecker.new({
-            from: owner,
-          });
+    describe("when checker has been setup", function () {
+      before(async function () {
+        this.checkerContract = await ERC1400TokensChecker.new({
+          from: owner,
         });
-        beforeEach(async function () {
-          await this.token2.setTokenExtension(
-            this.checkerContract.address,
-            ERC1400_TOKENS_CHECKER,
-            true,
-            true,
-            { from: owner }
-          );
-        });
+      });
+      beforeEach(async function () {
+        await this.token2.setTokenExtension(
+          this.checkerContract.address,
+          ERC1400_TOKENS_CHECKER,
+          true,
+          true,
+          { from: owner }
+        );
+      });
+      describe("when certificate is valid", function () {
         describe("when the operator is authorized", function () {
           describe("when balance is sufficient", function () {
             describe("when receiver is not the zero address", function () {
@@ -1623,11 +1819,23 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                   describe("when receiver is eligible", function () {
                     describe("when the amount is a multiple of the granularity", function () {
                       it("returns Ethereum status code 51 (canTransferByPartition)", async function () {
+                        const certificate = await craftCertificate(
+                          this.token2.contract.methods.transferByPartition(
+                            partition1,
+                            recipient,
+                            transferAmount,
+                            EMPTY_CERTIFICATE,
+                          ).encodeABI(),
+                          this.token2,
+                          this.extension,
+                          this.clock, // this.clock
+                          tokenHolder
+                        )
                         const response = await this.token2.canTransferByPartition(
                           partition1,
                           recipient,
-                          amount,
-                          EMPTY_CERTIFICATE,
+                          transferAmount,
+                          certificate,
                           { from: tokenHolder }
                         );
                         await assertEscResponse(
@@ -1638,13 +1846,27 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                         );
                       });
                       it("returns Ethereum status code 51 (canOperatorTransferByPartition)", async function () {
+                        const certificate = await craftCertificate(
+                          this.token2.contract.methods.operatorTransferByPartition(
+                            partition1,
+                            tokenHolder,
+                            recipient,
+                            transferAmount,
+                            ZERO_BYTE,
+                            EMPTY_CERTIFICATE,
+                          ).encodeABI(),
+                          this.token2,
+                          this.extension,
+                          this.clock, // this.clock
+                          tokenHolder
+                        )
                         const response = await this.token2.canOperatorTransferByPartition(
                           partition1,
                           tokenHolder,
                           recipient,
-                          amount,
+                          transferAmount,
                           ZERO_BYTE,
-                          EMPTY_CERTIFICATE,
+                          certificate,
                           { from: tokenHolder }
                         );
                         await assertEscResponse(
@@ -1657,11 +1879,23 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                     });
                     describe("when the amount is not a multiple of the granularity", function () {
                       it("returns Ethereum status code 50", async function () {
+                        const certificate = await craftCertificate(
+                          this.token2.contract.methods.transferByPartition(
+                            partition1,
+                            recipient,
+                            1, // transferAmount
+                            EMPTY_CERTIFICATE,
+                          ).encodeABI(),
+                          this.token2,
+                          this.extension,
+                          this.clock, // this.clock
+                          tokenHolder
+                        )
                         const response = await this.token2.canTransferByPartition(
                           partition1,
                           recipient,
-                          1, // amount
-                          EMPTY_CERTIFICATE,
+                          1, // transferAmount
+                          certificate,
                           { from: tokenHolder }
                         );
                         await assertEscResponse(
@@ -1675,10 +1909,30 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                   });
                   describe("when receiver is not eligible", function () {
                     it("returns Ethereum status code 57", async function () {
+                      await setCertificateActivated(
+                        this.extension,
+                        this.token2,
+                        controller,
+                        CERTIFICATE_VALIDATION_NONE
+                      );
+              
+                      await assertCertificateActivated(
+                        this.extension,
+                        this.token2,
+                        CERTIFICATE_VALIDATION_NONE
+                      )
+  
+                      await this.extension.addAllowlisted(this.token2.address, tokenHolder, {
+                        from: controller,
+                      });
+                      await this.extension.addAllowlisted(this.token2.address, recipient, {
+                        from: controller,
+                      });
+  
                       const response = await this.token2.canTransferByPartition(
                         partition1,
                         recipient,
-                        amount,
+                        transferAmount,
                         INVALID_CERTIFICATE_RECIPIENT,
                         { from: tokenHolder }
                       );
@@ -1695,11 +1949,24 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                   it("returns Ethereum status code 54 (canTransferByPartition)", async function () {
                     const secretHashPair = newSecretHashPair();  
                     await this.extension.holdFrom(this.token2.address, newHoldId(), tokenHolder, recipient, notary, partition1, issuanceAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller })
+                    
+                    const certificate = await craftCertificate(
+                      this.token2.contract.methods.transferByPartition(
+                        partition1,
+                        recipient,
+                        transferAmount,
+                        EMPTY_CERTIFICATE,
+                      ).encodeABI(),
+                      this.token2,
+                      this.extension,
+                      this.clock, // this.clock
+                      tokenHolder
+                    )
                     const response = await this.token2.canTransferByPartition(
                       partition1,
                       recipient,
-                      amount,
-                      EMPTY_CERTIFICATE,
+                      transferAmount,
+                      certificate,
                       { from: tokenHolder }
                     );
                     await assertEscResponse(
@@ -1716,7 +1983,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                   const response = await this.token2.canTransferByPartition(
                     partition1,
                     recipient,
-                    amount,
+                    transferAmount,
                     INVALID_CERTIFICATE_SENDER,
                     { from: tokenHolder }
                   );
@@ -1731,11 +1998,23 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
             });
             describe("when receiver is the zero address", function () {
               it("returns Ethereum status code 57", async function () {
+                const certificate = await craftCertificate(
+                  this.token2.contract.methods.transferByPartition(
+                    partition1,
+                    ZERO_ADDRESS,
+                    transferAmount,
+                    EMPTY_CERTIFICATE,
+                  ).encodeABI(),
+                  this.token2,
+                  this.extension,
+                  this.clock, // this.clock
+                  tokenHolder
+                )
                 const response = await this.token2.canTransferByPartition(
                   partition1,
                   ZERO_ADDRESS,
-                  amount,
-                  EMPTY_CERTIFICATE,
+                  transferAmount,
+                  certificate,
                   { from: tokenHolder }
                 );
                 await assertEscResponse(
@@ -1749,11 +2028,23 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           });
           describe("when balance is not sufficient", function () {
             it("returns Ethereum status code 52 (insuficient global balance)", async function () {
+              const certificate = await craftCertificate(
+                this.token2.contract.methods.transferByPartition(
+                  partition1,
+                  recipient,
+                  issuanceAmount + localGranularity,
+                  EMPTY_CERTIFICATE,
+                ).encodeABI(),
+                this.token2,
+                this.extension,
+                this.clock, // this.clock
+                tokenHolder
+              )
               const response = await this.token2.canTransferByPartition(
                 partition1,
                 recipient,
                 issuanceAmount + localGranularity,
-                EMPTY_CERTIFICATE,
+                certificate,
                 { from: tokenHolder }
               );
               await assertEscResponse(
@@ -1764,18 +2055,42 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
               );
             });
             it("returns Ethereum status code 52 (insuficient partition balance)", async function () {
+              const issuanceCertificate = await craftCertificate(
+                this.token2.contract.methods.issueByPartition(
+                  partition2,
+                  tokenHolder,
+                  localGranularity,
+                  EMPTY_CERTIFICATE,
+                ).encodeABI(),
+                this.token2,
+                this.extension,
+                this.clock, // this.clock
+                controller
+              )
               await this.token2.issueByPartition(
                 partition2,
                 tokenHolder,
                 localGranularity,
-                EMPTY_CERTIFICATE,
+                issuanceCertificate,
                 { from: controller }
               );
+              const certificate = await craftCertificate(
+                this.token2.contract.methods.transferByPartition(
+                  partition2,
+                  recipient,
+                  transferAmount,
+                  EMPTY_CERTIFICATE,
+                ).encodeABI(),
+                this.token2,
+                this.extension,
+                this.clock, // this.clock
+                tokenHolder
+              )
               const response = await this.token2.canTransferByPartition(
                 partition2,
                 recipient,
-                amount,
-                EMPTY_CERTIFICATE,
+                transferAmount,
+                certificate,
                 { from: tokenHolder }
               );
               await assertEscResponse(
@@ -1789,54 +2104,80 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         });
         describe("when the operator is not authorized", function () {
           it("returns Ethereum status code 58 (canOperatorTransferByPartition)", async function () {
+            const certificate = await craftCertificate(
+              this.token2.contract.methods.operatorTransferByPartition(
+                partition1,
+                operator,
+                recipient,
+                transferAmount,
+                ZERO_BYTE,
+                EMPTY_CERTIFICATE,
+              ).encodeABI(),
+              this.token2,
+              this.extension,
+              this.clock, // this.clock
+              tokenHolder
+            )
             const response = await this.token2.canOperatorTransferByPartition(
               partition1,
               operator,
               recipient,
-              amount,
+              transferAmount,
               ZERO_BYTE,
-              EMPTY_CERTIFICATE,
+              certificate,
               { from: tokenHolder }
             );
             await assertEscResponse(response, ESC_58, EMPTY_BYTE32, partition1);
           });
         });
       });
-      describe("when checker has not been setup", function () {
-        it("returns empty Ethereum status code 00 (canTransferByPartition)", async function () {
+      describe("when certificate is not valid", function () {
+        it("returns Ethereum status code 54 (canTransferByPartition)", async function () {
           const response = await this.token2.canTransferByPartition(
             partition1,
             recipient,
-            amount,
+            transferAmount,
             EMPTY_CERTIFICATE,
             { from: tokenHolder }
           );
-          await assertEscResponse(response, ESC_00, EMPTY_BYTE32, partition1);
+          await assertEscResponse(response, ESC_54, EMPTY_BYTE32, partition1);
+        });
+        it("returns Ethereum status code 54 (canOperatorTransferByPartition)", async function () {
+          const response = await this.token2.canOperatorTransferByPartition(
+            partition1,
+            tokenHolder,
+            recipient,
+            transferAmount,
+            ZERO_BYTE,
+            EMPTY_CERTIFICATE,
+            { from: tokenHolder }
+          );
+          await assertEscResponse(response, ESC_54, EMPTY_BYTE32, partition1);
         });
       });
     });
-    describe("when certificate is not valid", function () {
-      it("returns Ethereum status code 54 (canTransferByPartition)", async function () {
+    describe("when checker has not been setup", function () {
+      it("returns empty Ethereum status code 00 (canTransferByPartition)", async function () {
+        const certificate = await craftCertificate(
+          this.token2.contract.methods.transferByPartition(
+            partition1,
+            recipient,
+            transferAmount,
+            EMPTY_CERTIFICATE,
+          ).encodeABI(),
+          this.token2,
+          this.extension,
+          this.clock, // this.clock
+          tokenHolder
+        )
         const response = await this.token2.canTransferByPartition(
           partition1,
           recipient,
-          amount,
-          INVALID_CERTIFICATE,
+          transferAmount,
+          certificate,
           { from: tokenHolder }
         );
-        await assertEscResponse(response, ESC_54, EMPTY_BYTE32, partition1);
-      });
-      it("returns Ethereum status code 54 (canOperatorTransferByPartition)", async function () {
-        const response = await this.token2.canOperatorTransferByPartition(
-          partition1,
-          tokenHolder,
-          recipient,
-          amount,
-          ZERO_BYTE,
-          INVALID_CERTIFICATE,
-          { from: tokenHolder }
-        );
-        await assertEscResponse(response, ESC_54, EMPTY_BYTE32, partition1);
+        await assertEscResponse(response, ESC_00, EMPTY_BYTE32, partition1);
       });
     });
   });
@@ -1885,45 +2226,759 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         { from: controller }
       );
     });
-    describe("ERC1400 functions", function () {
-      describe("issue", function () {
-        it("issues new tokens when certificate is provided", async function () {
-          const certificate = await craftCertificate(
-            this.token.contract.methods.issue(
+    describe("when certificate is valid", function () {
+      describe("ERC1400 functions", function () {
+        describe("issue", function () {
+          it("issues new tokens when certificate is provided", async function () {
+            const certificate = await craftCertificate(
+              this.token.contract.methods.issue(
+                tokenHolder,
+                issuanceAmount,
+                EMPTY_CERTIFICATE,
+              ).encodeABI(),
+              this.token,
+              this.extension,
+              this.clock, // this.clock
+              controller
+            )
+            await this.token.issue(
+              tokenHolder,
+              issuanceAmount,
+              certificate,
+              { from: controller }
+            );
+            await assertTotalSupply(this.token, 2 * issuanceAmount);
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              2 * issuanceAmount
+            );
+          });
+          it("fails issuing when when certificate is not provided", async function () {
+            await expectRevert.unspecified(this.token.issue(
               tokenHolder,
               issuanceAmount,
               EMPTY_CERTIFICATE,
-            ).encodeABI(),
-            this.token,
-            this.extension,
-            this.clock, // this.clock
-            controller
-          )
-          await this.token.issue(
-            tokenHolder,
-            issuanceAmount,
-            certificate,
-            { from: controller }
-          );
-          await assertTotalSupply(this.token, 2 * issuanceAmount);
-          await assertBalanceOf(
-            this.token,
-            tokenHolder,
-            partition1,
-            2 * issuanceAmount
-          );
+              { from: controller }
+            ));
+          });
         });
-        it("fails issuing when when certificate is not provided", async function () {
-          await expectRevert.unspecified(this.token.issue(
-            tokenHolder,
-            issuanceAmount,
-            EMPTY_CERTIFICATE,
-            { from: controller }
-          ));
+        describe("issueByPartition", function () {
+          it("issues new tokens when certificate is provided", async function () {
+            const certificate = await craftCertificate(
+              this.token.contract.methods.issueByPartition(
+                partition1,
+                tokenHolder,
+                issuanceAmount,
+                EMPTY_CERTIFICATE,
+              ).encodeABI(),
+              this.token,
+              this.extension,
+              this.clock, // this.clock
+              controller
+            )
+            await this.token.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount,
+              certificate,
+              { from: controller }
+            );
+            await assertTotalSupply(this.token, 2 * issuanceAmount);
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              2 * issuanceAmount
+            );
+          });
+          it("fails issuing when certificate is not provided", async function () {
+            await expectRevert.unspecified(this.token.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount,
+              EMPTY_CERTIFICATE,
+              { from: controller }
+            ));
+          });
+          it("fails issuing when certificate is not provided (even if allowlisted)", async function () {
+            await this.extension.addAllowlisted(this.token.address, tokenHolder, {
+              from: controller,
+            });
+            await expectRevert.unspecified(this.token.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount,
+              EMPTY_CERTIFICATE,
+              { from: controller }
+            ));
+          });
+        });
+        describe("redeem", function () {
+          it("redeeems the requested amount when certificate is provided", async function () {
+            await assertTotalSupply(this.token, issuanceAmount);
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+  
+            const certificate = await craftCertificate(
+              this.token.contract.methods.redeem(
+                issuanceAmount,
+                EMPTY_CERTIFICATE,
+              ).encodeABI(),
+              this.token,
+              this.extension,
+              this.clock, // this.clock
+              tokenHolder
+            )
+            await this.token.redeem(issuanceAmount, certificate, {
+              from: tokenHolder,
+            });
+  
+            await assertTotalSupply(this.token, 0);
+            await assertBalance(this.token, tokenHolder, 0);
+          });
+          it("fails redeeming when certificate is not provided", async function () {
+            await assertTotalSupply(this.token, issuanceAmount);
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+  
+            await expectRevert.unspecified(this.token.redeem(issuanceAmount, EMPTY_CERTIFICATE, {
+              from: tokenHolder,
+            }));
+  
+            await assertTotalSupply(this.token, issuanceAmount);
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+          });
+        });
+        describe("redeemFrom", function () {
+          it("redeems the requested amount when certificate is provided", async function () {
+            await assertTotalSupply(this.token, issuanceAmount);
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+  
+            await this.token.authorizeOperator(operator, { from: tokenHolder });
+  
+            const certificate = await craftCertificate(
+              this.token.contract.methods.redeemFrom(
+                tokenHolder,
+                issuanceAmount,
+                EMPTY_CERTIFICATE,
+              ).encodeABI(),
+              this.token,
+              this.extension,
+              this.clock, // this.clock
+              operator
+            )
+            await this.token.redeemFrom(
+              tokenHolder,
+              issuanceAmount,
+              certificate,
+              { from: operator }
+            );
+  
+            await assertTotalSupply(this.token, 0);
+            await assertBalance(this.token, tokenHolder, 0);
+          });
+          it("fails redeeming the requested amount when certificate is not provided", async function () {
+            await assertTotalSupply(this.token, issuanceAmount);
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+  
+            await this.token.authorizeOperator(operator, { from: tokenHolder });
+            await expectRevert.unspecified(this.token.redeemFrom(
+              tokenHolder,
+              issuanceAmount,
+              EMPTY_CERTIFICATE,
+              { from: operator }
+            ));
+  
+            await assertTotalSupply(this.token, issuanceAmount);
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+          });
+        });
+        describe("redeemByPartition", function () {
+          it("redeems the requested amount when certificate is provided", async function () {
+            const certificate = await craftCertificate(
+              this.token.contract.methods.redeemByPartition(
+                partition1,
+                redeemAmount,
+                EMPTY_CERTIFICATE,
+              ).encodeABI(),
+              this.token,
+              this.extension,
+              this.clock, // this.clock
+              tokenHolder
+            )
+            await this.token.redeemByPartition(
+              partition1,
+              redeemAmount,
+              certificate,
+              { from: tokenHolder }
+            );
+            await assertTotalSupply(this.token, issuanceAmount - redeemAmount);
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount - redeemAmount
+            );
+          });
+          it("fails redeems when sender when certificate is not provided", async function () {
+            await expectRevert.unspecified(this.token.redeemByPartition(
+              partition1,
+              redeemAmount,
+              EMPTY_CERTIFICATE,
+              { from: tokenHolder }
+            ));
+            await assertTotalSupply(this.token, issuanceAmount);
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount
+            );
+          });
+          it("fails redeems when sender when certificate is not provided (even if allowlisted)", async function () {
+            await this.extension.addAllowlisted(this.token.address, tokenHolder, {
+              from: controller,
+            });
+            await expectRevert.unspecified(this.token.redeemByPartition(
+              partition1,
+              redeemAmount,
+              EMPTY_CERTIFICATE,
+              { from: tokenHolder }
+            ));
+            await assertTotalSupply(this.token, issuanceAmount);
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount
+            );
+          });
+        });
+        describe("operatorRedeemByPartition", function () {
+          it("redeems the requested amount when certificate is provided", async function () {
+            await this.token.authorizeOperatorByPartition(partition1, operator, {
+              from: tokenHolder,
+            });
+  
+            const certificate = await craftCertificate(
+              this.token.contract.methods.operatorRedeemByPartition(
+                partition1,
+                tokenHolder,
+                redeemAmount,
+                EMPTY_CERTIFICATE,
+              ).encodeABI(),
+              this.token,
+              this.extension,
+              this.clock, // this.clock
+              operator
+            )
+            await this.token.operatorRedeemByPartition(
+              partition1,
+              tokenHolder,
+              redeemAmount,
+              certificate,
+              { from: operator }
+            );
+  
+            await assertTotalSupply(this.token, issuanceAmount - redeemAmount);
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount - redeemAmount
+            );
+          });
+          it("fails redeeming when certificate is not provided", async function () {
+            await this.token.authorizeOperatorByPartition(partition1, operator, {
+              from: tokenHolder,
+            });
+            await expectRevert.unspecified(this.token.operatorRedeemByPartition(
+              partition1,
+              tokenHolder,
+              redeemAmount,
+              EMPTY_CERTIFICATE,
+              { from: operator }
+            ));
+  
+            await assertTotalSupply(this.token, issuanceAmount);
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount
+            );
+          });
+        });
+        describe("transferWithData", function () {
+          it("transfers the requested amount when certificate is provided", async function () {
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+            await assertBalance(this.token, recipient, 0);
+  
+            const certificate = await craftCertificate(
+              this.token.contract.methods.transferWithData(
+                recipient,
+                transferAmount,
+                EMPTY_CERTIFICATE,
+              ).encodeABI(),
+              this.token,
+              this.extension,
+              this.clock, // this.clock
+              tokenHolder
+            )
+            await this.token.transferWithData(
+              recipient,
+              transferAmount,
+              certificate,
+              { from: tokenHolder }
+            );
+  
+            await assertBalance(
+              this.token,
+              tokenHolder,
+              issuanceAmount - transferAmount
+            );
+            await assertBalance(this.token, recipient, transferAmount);
+          });
+          it("fails transferring when certificate is not provided", async function () {
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+            await assertBalance(this.token, recipient, 0);
+  
+            await expectRevert.unspecified(this.token.transferWithData(
+              recipient,
+              transferAmount,
+              EMPTY_CERTIFICATE,
+              { from: tokenHolder }
+            ));
+  
+            await assertBalance(
+              this.token,
+              tokenHolder,
+              issuanceAmount
+            );
+            await assertBalance(this.token, recipient, 0);
+          });
+        });
+        describe("transferFromWithData", function () {
+          it("transfers the requested amount when certificate is provided", async function () {
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+            await assertBalance(this.token, recipient, 0);
+  
+            await this.token.authorizeOperator(operator, { from: tokenHolder });
+  
+            const certificate = await craftCertificate(
+              this.token.contract.methods.transferFromWithData(
+                tokenHolder,
+                recipient,
+                transferAmount,
+                EMPTY_CERTIFICATE,
+              ).encodeABI(),
+              this.token,
+              this.extension,
+              this.clock, // this.clock
+              operator
+            )
+            await this.token.transferFromWithData(
+              tokenHolder,
+              recipient,
+              transferAmount,
+              certificate,
+              { from: operator }
+            );
+  
+            await assertBalance(
+              this.token,
+              tokenHolder,
+              issuanceAmount - transferAmount
+            );
+            await assertBalance(this.token, recipient, transferAmount);
+          });
+          it("fails transferring when certificate is not provided", async function () {
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+            await assertBalance(this.token, recipient, 0);
+  
+            await this.token.authorizeOperator(operator, { from: tokenHolder });
+  
+            await expectRevert.unspecified(this.token.transferFromWithData(
+              tokenHolder,
+              recipient,
+              transferAmount,
+              EMPTY_CERTIFICATE,
+              { from: operator }
+            ));
+  
+            await assertBalance(
+              this.token,
+              tokenHolder,
+              issuanceAmount
+            );
+            await assertBalance(this.token, recipient, 0);
+          });
+        });
+        describe("transferByPartition", function () {
+          it("transfers the requested amount when certificate is provided", async function () {
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount
+            );
+            await assertBalanceOf(this.token, recipient, partition1, 0);
+  
+            const certificate = await craftCertificate(
+              this.token.contract.methods.transferByPartition(
+                partition1,
+                recipient,
+                transferAmount,
+                EMPTY_CERTIFICATE,
+              ).encodeABI(),
+              this.token,
+              this.extension,
+              this.clock, // this.clock
+              tokenHolder
+            )
+            await this.token.transferByPartition(
+              partition1,
+              recipient,
+              transferAmount,
+              certificate,
+              { from: tokenHolder }
+            );
+  
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount - transferAmount
+            );
+            await assertBalanceOf(
+              this.token,
+              recipient,
+              partition1,
+              transferAmount
+            );
+          });
+          it("fails transferring when certificate is not provided", async function () {
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount
+            );
+            await assertBalanceOf(this.token, recipient, partition1, 0);
+  
+            await expectRevert.unspecified(this.token.transferByPartition(
+              partition1,
+              recipient,
+              transferAmount,
+              EMPTY_CERTIFICATE,
+              { from: tokenHolder }
+            ));
+  
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount
+            );
+            await assertBalanceOf(
+              this.token,
+              recipient,
+              partition1,
+              0
+            );
+          });
+          it("fails transferring when certificate is not provided (even when allowlisted)", async function () {
+            await this.extension.addAllowlisted(this.token.address, tokenHolder, {
+              from: controller,
+            });
+            await this.extension.addAllowlisted(this.token.address, recipient, {
+              from: controller,
+            });
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount
+            );
+            await assertBalanceOf(this.token, recipient, partition1, 0);
+  
+            await expectRevert.unspecified(this.token.transferByPartition(
+              partition1,
+              recipient,
+              transferAmount,
+              EMPTY_CERTIFICATE,
+              { from: tokenHolder }
+            ));
+  
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount
+            );
+            await assertBalanceOf(
+              this.token,
+              recipient,
+              partition1,
+              0
+            );
+          });
+        });
+        describe("operatorTransferByPartition", function () {
+          it("transfers the requested amount when certificate is provided", async function () {
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount
+            );
+            await assertBalanceOf(this.token, recipient, partition1, 0);
+            assert.equal(
+              await this.token.allowanceByPartition(
+                partition1,
+                tokenHolder,
+                operator
+              ),
+              0
+            );
+  
+            const approvedAmount = 400;
+            await this.token.approveByPartition(
+              partition1,
+              operator,
+              approvedAmount,
+              { from: tokenHolder }
+            );
+            assert.equal(
+              await this.token.allowanceByPartition(
+                partition1,
+                tokenHolder,
+                operator
+              ),
+              approvedAmount
+            );
+            const certificate = await craftCertificate(
+              this.token.contract.methods.operatorTransferByPartition(
+                partition1,
+                tokenHolder,
+                recipient,
+                transferAmount,
+                ZERO_BYTE,
+                EMPTY_CERTIFICATE,
+              ).encodeABI(),
+              this.token,
+              this.extension,
+              this.clock, // this.clock
+              operator
+            )
+            await this.token.operatorTransferByPartition(
+              partition1,
+              tokenHolder,
+              recipient,
+              transferAmount,
+              ZERO_BYTE,
+              certificate,
+              { from: operator }
+            );
+  
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount - transferAmount
+            );
+            await assertBalanceOf(
+              this.token,
+              recipient,
+              partition1,
+              transferAmount
+            );
+            assert.equal(
+              await this.token.allowanceByPartition(
+                partition1,
+                tokenHolder,
+                operator
+              ),
+              approvedAmount - transferAmount
+            );
+          });
+          it("fails transferring when certificate is not provided", async function () {
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount
+            );
+            await assertBalanceOf(this.token, recipient, partition1, 0);
+            assert.equal(
+              await this.token.allowanceByPartition(
+                partition1,
+                tokenHolder,
+                operator
+              ),
+              0
+            );
+  
+            const approvedAmount = 400;
+            await this.token.approveByPartition(
+              partition1,
+              operator,
+              approvedAmount,
+              { from: tokenHolder }
+            );
+            assert.equal(
+              await this.token.allowanceByPartition(
+                partition1,
+                tokenHolder,
+                operator
+              ),
+              approvedAmount
+            );
+            await expectRevert.unspecified(this.token.operatorTransferByPartition(
+              partition1,
+              tokenHolder,
+              recipient,
+              transferAmount,
+              ZERO_BYTE,
+              EMPTY_CERTIFICATE,
+              { from: operator }
+            ));
+  
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount
+            );
+            await assertBalanceOf(
+              this.token,
+              recipient,
+              partition1,
+              0
+            );
+            assert.equal(
+              await this.token.allowanceByPartition(
+                partition1,
+                tokenHolder,
+                operator
+              ),
+              approvedAmount
+            );
+          });
         });
       });
-      describe("issueByPartition", function () {
-        it("issues new tokens when certificate is provided", async function () {
+      describe("ERC20 functions", function () {
+        describe("transfer", function () {
+          it("transfers the requested amount when sender and recipient are allowlisted", async function () {
+            await this.extension.addAllowlisted(this.token.address, tokenHolder, {
+              from: controller,
+            });
+            await this.extension.addAllowlisted(this.token.address, recipient, {
+              from: controller,
+            });
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+            await assertBalance(this.token, recipient, 0);
+  
+            await this.token.transfer(recipient, transferAmount, {
+              from: tokenHolder,
+            });
+  
+            await assertBalance(this.token, tokenHolder, issuanceAmount - transferAmount);
+            await assertBalance(this.token, recipient, transferAmount);
+          });
+          it("fails transferring when sender and is not allowlisted", async function () {
+            await this.extension.addAllowlisted(this.token.address, recipient, {
+              from: controller,
+            });
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+            await assertBalance(this.token, recipient, 0);
+  
+            await expectRevert.unspecified(
+              this.token.transfer(recipient, transferAmount, {
+                from: tokenHolder,
+              })
+            );
+  
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+            await assertBalance(this.token, recipient, 0);
+          });
+          it("fails transferring when recipient and is not allowlisted", async function () {
+            await this.extension.addAllowlisted(this.token.address, tokenHolder, {
+              from: controller,
+            });
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+            await assertBalance(this.token, recipient, 0);
+  
+            await expectRevert.unspecified(
+              this.token.transfer(recipient, transferAmount, {
+                from: tokenHolder,
+              })
+            );
+  
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+            await assertBalance(this.token, recipient, 0);
+          });
+        });
+        describe("transferFrom", function () {
+          it("transfers the requested amount when sender and recipient are allowlisted", async function () {
+            await this.extension.addAllowlisted(this.token.address, tokenHolder, {
+              from: controller,
+            });
+            await this.extension.addAllowlisted(this.token.address, recipient, {
+              from: controller,
+            });
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+            await assertBalance(this.token, recipient, 0);
+  
+            await this.token.authorizeOperator(operator, { from: tokenHolder });
+            await  this.token.transferFrom(tokenHolder, recipient, transferAmount, {
+              from: operator,
+            });
+  
+            await assertBalance(this.token, tokenHolder, issuanceAmount - transferAmount);
+            await assertBalance(this.token, recipient, transferAmount);
+          });
+          it("fails transferring when sender is not allowlisted", async function () {
+            await this.extension.addAllowlisted(this.token.address, recipient, {
+              from: controller,
+            });
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+            await assertBalance(this.token, recipient, 0);
+  
+            await this.token.authorizeOperator(operator, { from: tokenHolder });
+            await expectRevert.unspecified(
+              this.token.transferFrom(tokenHolder, recipient, transferAmount, {
+                from: operator,
+              })
+            );
+  
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+            await assertBalance(this.token, recipient, 0);
+          });
+          it("fails transferring when recipient is not allowlisted", async function () {
+            await this.extension.addAllowlisted(this.token.address, tokenHolder, {
+              from: controller,
+            });
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+            await assertBalance(this.token, recipient, 0);
+  
+            await this.token.authorizeOperator(operator, { from: tokenHolder });
+            await expectRevert.unspecified(
+              this.token.transferFrom(tokenHolder, recipient, transferAmount, {
+                from: operator,
+              })
+            );
+  
+            await assertBalance(this.token, tokenHolder, issuanceAmount);
+            await assertBalance(this.token, recipient, 0);
+          });
+          
+        });
+      });
+    });
+    describe("when certificate is not valid", function () {
+      describe("salt-based certificate control", function () {
+        it("issues new tokens when certificate is valid", async function () {
           const certificate = await craftCertificate(
             this.token.contract.methods.issueByPartition(
               partition1,
@@ -1951,231 +3006,138 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
             2 * issuanceAmount
           );
         });
-        it("fails issuing when certificate is not provided", async function () {
-          await expectRevert.unspecified(this.token.issueByPartition(
-            partition1,
-            tokenHolder,
-            issuanceAmount,
-            EMPTY_CERTIFICATE,
-            { from: controller }
-          ));
-        });
-        it("fails issuing when certificate is not provided (even if allowlisted)", async function () {
-          await this.extension.addAllowlisted(this.token.address, tokenHolder, {
-            from: controller,
-          });
-          await expectRevert.unspecified(this.token.issueByPartition(
-            partition1,
-            tokenHolder,
-            issuanceAmount,
-            EMPTY_CERTIFICATE,
-            { from: controller }
-          ));
-        });
-      });
-      describe("redeem", function () {
-        it("redeeems the requested amount when certificate is provided", async function () {
-          await assertTotalSupply(this.token, issuanceAmount);
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-
-          const certificate = await craftCertificate(
-            this.token.contract.methods.redeem(
-              issuanceAmount,
-              EMPTY_CERTIFICATE,
-            ).encodeABI(),
-            this.token,
-            this.extension,
-            this.clock, // this.clock
-            tokenHolder
-          )
-          await this.token.redeem(issuanceAmount, certificate, {
-            from: tokenHolder,
-          });
-
-          await assertTotalSupply(this.token, 0);
-          await assertBalance(this.token, tokenHolder, 0);
-        });
-        it("fails redeeming when certificate is not provided", async function () {
-          await assertTotalSupply(this.token, issuanceAmount);
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-
-          await expectRevert.unspecified(this.token.redeem(issuanceAmount, EMPTY_CERTIFICATE, {
-            from: tokenHolder,
-          }));
-
-          await assertTotalSupply(this.token, issuanceAmount);
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-        });
-      });
-      describe("redeemFrom", function () {
-        it("redeems the requested amount when certificate is provided", async function () {
-          await assertTotalSupply(this.token, issuanceAmount);
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-
-          await this.token.authorizeOperator(operator, { from: tokenHolder });
-
-          const certificate = await craftCertificate(
-            this.token.contract.methods.redeemFrom(
-              tokenHolder,
-              issuanceAmount,
-              EMPTY_CERTIFICATE,
-            ).encodeABI(),
-            this.token,
-            this.extension,
-            this.clock, // this.clock
-            operator
-          )
-          await this.token.redeemFrom(
-            tokenHolder,
-            issuanceAmount,
-            certificate,
-            { from: operator }
-          );
-
-          await assertTotalSupply(this.token, 0);
-          await assertBalance(this.token, tokenHolder, 0);
-        });
-        it("fails redeeming the requested amount when certificate is not provided", async function () {
-          await assertTotalSupply(this.token, issuanceAmount);
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-
-          await this.token.authorizeOperator(operator, { from: tokenHolder });
-          await expectRevert.unspecified(this.token.redeemFrom(
-            tokenHolder,
-            issuanceAmount,
-            EMPTY_CERTIFICATE,
-            { from: operator }
-          ));
-
-          await assertTotalSupply(this.token, issuanceAmount);
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-        });
-      });
-      describe("redeemByPartition", function () {
-        it("redeems the requested amount when certificate is provided", async function () {
-          const certificate = await craftCertificate(
-            this.token.contract.methods.redeemByPartition(
-              partition1,
-              redeemAmount,
-              EMPTY_CERTIFICATE,
-            ).encodeABI(),
-            this.token,
-            this.extension,
-            this.clock, // this.clock
-            tokenHolder
-          )
-          await this.token.redeemByPartition(
-            partition1,
-            redeemAmount,
-            certificate,
-            { from: tokenHolder }
-          );
-          await assertTotalSupply(this.token, issuanceAmount - redeemAmount);
-          await assertBalanceOf(
-            this.token,
-            tokenHolder,
-            partition1,
-            issuanceAmount - redeemAmount
-          );
-        });
-        it("fails redeems when sender when certificate is not provided", async function () {
-          await expectRevert.unspecified(this.token.redeemByPartition(
-            partition1,
-            redeemAmount,
-            EMPTY_CERTIFICATE,
-            { from: tokenHolder }
-          ));
-          await assertTotalSupply(this.token, issuanceAmount);
-          await assertBalanceOf(
-            this.token,
-            tokenHolder,
-            partition1,
-            issuanceAmount
-          );
-        });
-        it("fails redeems when sender when certificate is not provided (even if allowlisted)", async function () {
-          await this.extension.addAllowlisted(this.token.address, tokenHolder, {
-            from: controller,
-          });
-          await expectRevert.unspecified(this.token.redeemByPartition(
-            partition1,
-            redeemAmount,
-            EMPTY_CERTIFICATE,
-            { from: tokenHolder }
-          ));
-          await assertTotalSupply(this.token, issuanceAmount);
-          await assertBalanceOf(
-            this.token,
-            tokenHolder,
-            partition1,
-            issuanceAmount
-          );
-        });
-      });
-      describe("operatorRedeemByPartition", function () {
-        it("redeems the requested amount when certificate is provided", async function () {
-          await this.token.authorizeOperatorByPartition(partition1, operator, {
-            from: tokenHolder,
-          });
-
+        it("fails issuing when certificate is not valid (wrong function selector)", async function () {
           const certificate = await craftCertificate(
             this.token.contract.methods.operatorRedeemByPartition(
               partition1,
               tokenHolder,
-              redeemAmount,
+              issuanceAmount,
               EMPTY_CERTIFICATE,
             ).encodeABI(),
             this.token,
             this.extension,
             this.clock, // this.clock
-            operator
+            controller
           )
-          await this.token.operatorRedeemByPartition(
+          await expectRevert.unspecified(this.token.issueByPartition(
             partition1,
             tokenHolder,
-            redeemAmount,
+            issuanceAmount,
             certificate,
-            { from: operator }
-          );
-
-          await assertTotalSupply(this.token, issuanceAmount - redeemAmount);
-          await assertBalanceOf(
-            this.token,
-            tokenHolder,
-            partition1,
-            issuanceAmount - redeemAmount
-          );
-        });
-        it("fails redeeming when certificate is not provided", async function () {
-          await this.token.authorizeOperatorByPartition(partition1, operator, {
-            from: tokenHolder,
-          });
-          await expectRevert.unspecified(this.token.operatorRedeemByPartition(
-            partition1,
-            tokenHolder,
-            redeemAmount,
-            EMPTY_CERTIFICATE,
-            { from: operator }
+            { from: controller }
           ));
+        });
+        it("fails issuing when certificate is not valid (wrong parameter)", async function () {
+          const certificate = await craftCertificate(
+            this.token.contract.methods.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount-1,
+              EMPTY_CERTIFICATE,
+            ).encodeABI(),
+            this.token,
+            this.extension,
+            this.clock, // this.clock
+            controller
+          )
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            certificate,
+            { from: controller }
+          ));
+        });
+        it("fails issuing when certificate is not valid (expiration time is past)", async function () {
+          const certificate = await craftCertificate(
+            this.token.contract.methods.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount,
+              EMPTY_CERTIFICATE,
+            ).encodeABI(),
+            this.token,
+            this.extension,
+            this.clock, // this.clock
+            controller
+          )
 
-          await assertTotalSupply(this.token, issuanceAmount);
+          // Wait until certificate expiration
+          await advanceTimeAndBlock(CERTIFICATE_VALIDITY_PERIOD * SECONDS_IN_AN_HOUR + 100);
+
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            certificate,
+            { from: controller }
+          ));
+        });
+        it("fails issuing when certificate is not valid (certificate already used)", async function () {
+          const certificate = await craftCertificate(
+            this.token.contract.methods.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount,
+              EMPTY_CERTIFICATE,
+            ).encodeABI(),
+            this.token,
+            this.extension,
+            this.clock, // this.clock
+            controller
+          )
+          await this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            certificate,
+            { from: controller }
+          );
+          await assertTotalSupply(this.token, 2 * issuanceAmount);
           await assertBalanceOf(
             this.token,
             tokenHolder,
             partition1,
-            issuanceAmount
+            2 * issuanceAmount
           );
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            certificate,
+            { from: controller }
+          ));
+          
         });
-      });
-      describe("transferWithData", function () {
-        it("transfers the requested amount when certificate is provided", async function () {
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-          await assertBalance(this.token, recipient, 0);
+        it("fails issuing when certificate is not valid (certificate signer has been revoked)", async function () {
+          await this.extension.removeCertificateSigner(this.token.address, CERTIFICATE_SIGNER, { from: controller });
 
           const certificate = await craftCertificate(
-            this.token.contract.methods.transferWithData(
-              recipient,
-              transferAmount,
+            this.token.contract.methods.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount,
+              EMPTY_CERTIFICATE,
+            ).encodeABI(),
+            this.token,
+            this.extension,
+            this.clock, // this.clock
+            controller
+          )
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            certificate,
+            { from: controller }
+          ));
+        });
+        it("fails issuing when certificate is not valid (wrong transaction sender)", async function () {
+          const certificate = await craftCertificate(
+            this.token.contract.methods.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount,
               EMPTY_CERTIFICATE,
             ).encodeABI(),
             this.token,
@@ -2183,110 +3145,190 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
             this.clock, // this.clock
             tokenHolder
           )
-          await this.token.transferWithData(
-            recipient,
-            transferAmount,
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
             certificate,
-            { from: tokenHolder }
-          );
-
-          await assertBalance(
-            this.token,
-            tokenHolder,
-            issuanceAmount - transferAmount
-          );
-          await assertBalance(this.token, recipient, transferAmount);
-        });
-        it("fails transferring when certificate is not provided", async function () {
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-          await assertBalance(this.token, recipient, 0);
-
-          await expectRevert.unspecified(this.token.transferWithData(
-            recipient,
-            transferAmount,
-            EMPTY_CERTIFICATE,
-            { from: tokenHolder }
+            { from: controller }
           ));
-
-          await assertBalance(
-            this.token,
-            tokenHolder,
-            issuanceAmount
-          );
-          await assertBalance(this.token, recipient, 0);
         });
       });
-      describe("transferFromWithData", function () {
-        it("transfers the requested amount when certificate is provided", async function () {
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-          await assertBalance(this.token, recipient, 0);
-
-          await this.token.authorizeOperator(operator, { from: tokenHolder });
-
+      describe("nonce-based certificate control", function () {
+        beforeEach(async function () {
+          await setCertificateActivated(
+            this.extension,
+            this.token,
+            controller,
+            CERTIFICATE_VALIDATION_NONCE
+          );
+  
+          await assertCertificateActivated(
+            this.extension,
+            this.token,
+            CERTIFICATE_VALIDATION_NONCE
+          )
+        });
+        it("issues new tokens when certificate is valid", async function () {
           const certificate = await craftCertificate(
-            this.token.contract.methods.transferFromWithData(
+            this.token.contract.methods.issueByPartition(
+              partition1,
               tokenHolder,
-              recipient,
-              transferAmount,
+              issuanceAmount,
               EMPTY_CERTIFICATE,
             ).encodeABI(),
             this.token,
             this.extension,
             this.clock, // this.clock
-            operator
+            controller
           )
-          await this.token.transferFromWithData(
+          await this.token.issueByPartition(
+            partition1,
             tokenHolder,
-            recipient,
-            transferAmount,
+            issuanceAmount,
             certificate,
-            { from: operator }
+            { from: controller }
           );
-
-          await assertBalance(
-            this.token,
-            tokenHolder,
-            issuanceAmount - transferAmount
-          );
-          await assertBalance(this.token, recipient, transferAmount);
-        });
-        it("fails transferring when certificate is not provided", async function () {
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-          await assertBalance(this.token, recipient, 0);
-
-          await this.token.authorizeOperator(operator, { from: tokenHolder });
-
-          await expectRevert.unspecified(this.token.transferFromWithData(
-            tokenHolder,
-            recipient,
-            transferAmount,
-            EMPTY_CERTIFICATE,
-            { from: operator }
-          ));
-
-          await assertBalance(
-            this.token,
-            tokenHolder,
-            issuanceAmount
-          );
-          await assertBalance(this.token, recipient, 0);
-        });
-      });
-      describe("transferByPartition", function () {
-        it("transfers the requested amount when certificate is provided", async function () {
+          await assertTotalSupply(this.token, 2 * issuanceAmount);
           await assertBalanceOf(
             this.token,
             tokenHolder,
             partition1,
-            issuanceAmount
+            2 * issuanceAmount
           );
-          await assertBalanceOf(this.token, recipient, partition1, 0);
+        });
+        it("fails issuing when certificate is not valid (wrong function selector)", async function () {
+          const certificate = await craftCertificate(
+            this.token.contract.methods.operatorRedeemByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount,
+              EMPTY_CERTIFICATE,
+            ).encodeABI(),
+            this.token,
+            this.extension,
+            this.clock, // this.clock
+            controller
+          )
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            certificate,
+            { from: controller }
+          ));
+        });
+        it("fails issuing when certificate is not valid (wrong parameter)", async function () {
+          const certificate = await craftCertificate(
+            this.token.contract.methods.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount-1,
+              EMPTY_CERTIFICATE,
+            ).encodeABI(),
+            this.token,
+            this.extension,
+            this.clock, // this.clock
+            controller
+          )
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            certificate,
+            { from: controller }
+          ));
+        });
+        it("fails issuing when certificate is not valid (expiration time is past)", async function () {
+          const certificate = await craftCertificate(
+            this.token.contract.methods.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount,
+              EMPTY_CERTIFICATE,
+            ).encodeABI(),
+            this.token,
+            this.extension,
+            this.clock, // this.clock
+            controller
+          )
+
+          // Wait until certificate expiration
+          await advanceTimeAndBlock(CERTIFICATE_VALIDITY_PERIOD * SECONDS_IN_AN_HOUR + 100);
+
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            certificate,
+            { from: controller }
+          ));
+        });
+        it("fails issuing when certificate is not valid (certificate already used)", async function () {
+          const certificate = await craftCertificate(
+            this.token.contract.methods.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount,
+              EMPTY_CERTIFICATE,
+            ).encodeABI(),
+            this.token,
+            this.extension,
+            this.clock, // this.clock
+            controller
+          )
+          await this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            certificate,
+            { from: controller }
+          );
+          await assertTotalSupply(this.token, 2 * issuanceAmount);
+          await assertBalanceOf(
+            this.token,
+            tokenHolder,
+            partition1,
+            2 * issuanceAmount
+          );
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            certificate,
+            { from: controller }
+          ));
+          
+        });
+        it("fails issuing when certificate is not valid (certificate signer has been revoked)", async function () {
+          await this.extension.removeCertificateSigner(this.token.address, CERTIFICATE_SIGNER, { from: controller });
 
           const certificate = await craftCertificate(
-            this.token.contract.methods.transferByPartition(
+            this.token.contract.methods.issueByPartition(
               partition1,
-              recipient,
-              transferAmount,
+              tokenHolder,
+              issuanceAmount,
+              EMPTY_CERTIFICATE,
+            ).encodeABI(),
+            this.token,
+            this.extension,
+            this.clock, // this.clock
+            controller
+          )
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            certificate,
+            { from: controller }
+          ));
+        });
+        it("fails issuing when certificate is not valid (wrong transaction sender)", async function () {
+          const certificate = await craftCertificate(
+            this.token.contract.methods.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount,
               EMPTY_CERTIFICATE,
             ).encodeABI(),
             this.token,
@@ -2294,343 +3336,14 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
             this.clock, // this.clock
             tokenHolder
           )
-          await this.token.transferByPartition(
+          await expectRevert.unspecified(this.token.issueByPartition(
             partition1,
-            recipient,
-            transferAmount,
+            tokenHolder,
+            issuanceAmount,
             certificate,
-            { from: tokenHolder }
-          );
-
-          await assertBalanceOf(
-            this.token,
-            tokenHolder,
-            partition1,
-            issuanceAmount - transferAmount
-          );
-          await assertBalanceOf(
-            this.token,
-            recipient,
-            partition1,
-            transferAmount
-          );
-        });
-        it("fails transferring when certificate is not provided", async function () {
-          await assertBalanceOf(
-            this.token,
-            tokenHolder,
-            partition1,
-            issuanceAmount
-          );
-          await assertBalanceOf(this.token, recipient, partition1, 0);
-
-          await expectRevert.unspecified(this.token.transferByPartition(
-            partition1,
-            recipient,
-            transferAmount,
-            EMPTY_CERTIFICATE,
-            { from: tokenHolder }
+            { from: controller }
           ));
-
-          await assertBalanceOf(
-            this.token,
-            tokenHolder,
-            partition1,
-            issuanceAmount
-          );
-          await assertBalanceOf(
-            this.token,
-            recipient,
-            partition1,
-            0
-          );
         });
-        it("fails transferring when certificate is not provided (even when allowlisted)", async function () {
-          await this.extension.addAllowlisted(this.token.address, tokenHolder, {
-            from: controller,
-          });
-          await this.extension.addAllowlisted(this.token.address, recipient, {
-            from: controller,
-          });
-          await assertBalanceOf(
-            this.token,
-            tokenHolder,
-            partition1,
-            issuanceAmount
-          );
-          await assertBalanceOf(this.token, recipient, partition1, 0);
-
-          await expectRevert.unspecified(this.token.transferByPartition(
-            partition1,
-            recipient,
-            transferAmount,
-            EMPTY_CERTIFICATE,
-            { from: tokenHolder }
-          ));
-
-          await assertBalanceOf(
-            this.token,
-            tokenHolder,
-            partition1,
-            issuanceAmount
-          );
-          await assertBalanceOf(
-            this.token,
-            recipient,
-            partition1,
-            0
-          );
-        });
-      });
-      describe("operatorTransferByPartition", function () {
-        it("transfers the requested amount when certificate is provided", async function () {
-          await assertBalanceOf(
-            this.token,
-            tokenHolder,
-            partition1,
-            issuanceAmount
-          );
-          await assertBalanceOf(this.token, recipient, partition1, 0);
-          assert.equal(
-            await this.token.allowanceByPartition(
-              partition1,
-              tokenHolder,
-              operator
-            ),
-            0
-          );
-
-          const approvedAmount = 400;
-          await this.token.approveByPartition(
-            partition1,
-            operator,
-            approvedAmount,
-            { from: tokenHolder }
-          );
-          assert.equal(
-            await this.token.allowanceByPartition(
-              partition1,
-              tokenHolder,
-              operator
-            ),
-            approvedAmount
-          );
-          const certificate = await craftCertificate(
-            this.token.contract.methods.operatorTransferByPartition(
-              partition1,
-              tokenHolder,
-              recipient,
-              transferAmount,
-              ZERO_BYTE,
-              EMPTY_CERTIFICATE,
-            ).encodeABI(),
-            this.token,
-            this.extension,
-            this.clock, // this.clock
-            operator
-          )
-          await this.token.operatorTransferByPartition(
-            partition1,
-            tokenHolder,
-            recipient,
-            transferAmount,
-            ZERO_BYTE,
-            certificate,
-            { from: operator }
-          );
-
-          await assertBalanceOf(
-            this.token,
-            tokenHolder,
-            partition1,
-            issuanceAmount - transferAmount
-          );
-          await assertBalanceOf(
-            this.token,
-            recipient,
-            partition1,
-            transferAmount
-          );
-          assert.equal(
-            await this.token.allowanceByPartition(
-              partition1,
-              tokenHolder,
-              operator
-            ),
-            approvedAmount - transferAmount
-          );
-        });
-        it("fails transferring when certificate is not provided", async function () {
-          await assertBalanceOf(
-            this.token,
-            tokenHolder,
-            partition1,
-            issuanceAmount
-          );
-          await assertBalanceOf(this.token, recipient, partition1, 0);
-          assert.equal(
-            await this.token.allowanceByPartition(
-              partition1,
-              tokenHolder,
-              operator
-            ),
-            0
-          );
-
-          const approvedAmount = 400;
-          await this.token.approveByPartition(
-            partition1,
-            operator,
-            approvedAmount,
-            { from: tokenHolder }
-          );
-          assert.equal(
-            await this.token.allowanceByPartition(
-              partition1,
-              tokenHolder,
-              operator
-            ),
-            approvedAmount
-          );
-          await expectRevert.unspecified(this.token.operatorTransferByPartition(
-            partition1,
-            tokenHolder,
-            recipient,
-            transferAmount,
-            ZERO_BYTE,
-            EMPTY_CERTIFICATE,
-            { from: operator }
-          ));
-
-          await assertBalanceOf(
-            this.token,
-            tokenHolder,
-            partition1,
-            issuanceAmount
-          );
-          await assertBalanceOf(
-            this.token,
-            recipient,
-            partition1,
-            0
-          );
-          assert.equal(
-            await this.token.allowanceByPartition(
-              partition1,
-              tokenHolder,
-              operator
-            ),
-            approvedAmount
-          );
-        });
-      });
-    });
-    describe("ERC20 functions", function () {
-      describe("transfer", function () {
-        it("transfers the requested amount when sender and recipient are allowlisted", async function () {
-          await this.extension.addAllowlisted(this.token.address, tokenHolder, {
-            from: controller,
-          });
-          await this.extension.addAllowlisted(this.token.address, recipient, {
-            from: controller,
-          });
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-          await assertBalance(this.token, recipient, 0);
-
-          await this.token.transfer(recipient, transferAmount, {
-            from: tokenHolder,
-          });
-
-          await assertBalance(this.token, tokenHolder, issuanceAmount - transferAmount);
-          await assertBalance(this.token, recipient, transferAmount);
-        });
-        it("fails transferring when sender and is not allowlisted", async function () {
-          await this.extension.addAllowlisted(this.token.address, recipient, {
-            from: controller,
-          });
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-          await assertBalance(this.token, recipient, 0);
-
-          await expectRevert.unspecified(
-            this.token.transfer(recipient, transferAmount, {
-              from: tokenHolder,
-            })
-          );
-
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-          await assertBalance(this.token, recipient, 0);
-        });
-        it("fails transferring when recipient and is not allowlisted", async function () {
-          await this.extension.addAllowlisted(this.token.address, tokenHolder, {
-            from: controller,
-          });
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-          await assertBalance(this.token, recipient, 0);
-
-          await expectRevert.unspecified(
-            this.token.transfer(recipient, transferAmount, {
-              from: tokenHolder,
-            })
-          );
-
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-          await assertBalance(this.token, recipient, 0);
-        });
-      });
-      describe("transferFrom", function () {
-        it("transfers the requested amount when sender and recipient are allowlisted", async function () {
-          await this.extension.addAllowlisted(this.token.address, tokenHolder, {
-            from: controller,
-          });
-          await this.extension.addAllowlisted(this.token.address, recipient, {
-            from: controller,
-          });
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-          await assertBalance(this.token, recipient, 0);
-
-          await this.token.authorizeOperator(operator, { from: tokenHolder });
-          await  this.token.transferFrom(tokenHolder, recipient, transferAmount, {
-            from: operator,
-          });
-
-          await assertBalance(this.token, tokenHolder, issuanceAmount - transferAmount);
-          await assertBalance(this.token, recipient, transferAmount);
-        });
-        it("fails transferring when sender is not allowlisted", async function () {
-          await this.extension.addAllowlisted(this.token.address, recipient, {
-            from: controller,
-          });
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-          await assertBalance(this.token, recipient, 0);
-
-          await this.token.authorizeOperator(operator, { from: tokenHolder });
-          await expectRevert.unspecified(
-            this.token.transferFrom(tokenHolder, recipient, transferAmount, {
-              from: operator,
-            })
-          );
-
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-          await assertBalance(this.token, recipient, 0);
-        });
-        it("fails transferring when recipient is not allowlisted", async function () {
-          await this.extension.addAllowlisted(this.token.address, tokenHolder, {
-            from: controller,
-          });
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-          await assertBalance(this.token, recipient, 0);
-
-          await this.token.authorizeOperator(operator, { from: tokenHolder });
-          await expectRevert.unspecified(
-            this.token.transferFrom(tokenHolder, recipient, transferAmount, {
-              from: operator,
-            })
-          );
-
-          await assertBalance(this.token, tokenHolder, issuanceAmount);
-          await assertBalance(this.token, recipient, 0);
-        });
-        
       });
     });
   });

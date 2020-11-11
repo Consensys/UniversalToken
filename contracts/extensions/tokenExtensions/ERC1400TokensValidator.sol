@@ -326,7 +326,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     external
   {
     (bool canValidateCertificateToken, CertificateValidation certificateControl, bytes32 salt) = _canValidateCertificateToken(msg.sender, payload, operator, operatorData.length != 0 ? operatorData : data);
-    require(canValidateCertificateToken, "51"); // 0x55	funds locked (lockup period)
+    require(canValidateCertificateToken, "54"); // 0x54	transfers halted (contract paused)
 
     // Declare certificate as used
     if (certificateControl == CertificateValidation.NonceBased) {
@@ -335,13 +335,13 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       _usedCertificateSalt[msg.sender][salt] = true;
     }
 
-    require(_canValidateAllowlistAndBlocklistToken(msg.sender, payload, from, to), "52"); // 0x55	funds locked (lockup period)
+    require(_canValidateAllowlistAndBlocklistToken(msg.sender, payload, from, to), "54"); // 0x54	transfers halted (contract paused)
 
-    require(!paused(msg.sender), "53"); // 0x55	funds locked (lockup period)
+    require(!paused(msg.sender), "54"); // 0x54	transfers halted (contract paused)
 
-    require(_canValidateGranularToken(msg.sender, partition, value), "54"); // 0x50	transfer failure
+    require(_canValidateGranularToken(msg.sender, partition, value), "50"); // 0x50	transfer failure
 
-    require(_canValidateHoldableToken(msg.sender, partition, operator, from, to, value), "56"); // 0x55	funds locked (lockup period)
+    require(_canValidateHoldableToken(msg.sender, partition, operator, from, to, value), "55"); // 0x55	funds locked (lockup period)
 
     (,, bytes32 holdId) = _retrieveHoldHashNonceId(msg.sender, partition, operator, from, to, value);
     if (_holdsActivated[msg.sender] && holdId != "") {
@@ -1497,7 +1497,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       }
 
       // Check if certificate match expected transactions parameters
-      if (isCertificateSigner(token, ecrecover(hash, v, r, s))) {
+      if (isCertificateSigner(token, ecrecover(hash, v, r, s)) && !_usedCertificateSalt[token][salt]) {
         return (true, salt);
       }
     }
