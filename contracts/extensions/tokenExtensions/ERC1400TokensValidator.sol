@@ -328,12 +328,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     (bool canValidateCertificateToken, CertificateValidation certificateControl, bytes32 salt) = _canValidateCertificateToken(msg.sender, payload, operator, operatorData.length != 0 ? operatorData : data);
     require(canValidateCertificateToken, "54"); // 0x54	transfers halted (contract paused)
 
-    // Declare certificate as used
-    if (certificateControl == CertificateValidation.NonceBased) {
-      _usedCertificateNonce[msg.sender][operator] += 1;
-    } else if (certificateControl == CertificateValidation.SaltBased) {
-      _usedCertificateSalt[msg.sender][salt] = true;
-    }
+    _useCertificateIfActivated(msg.sender, certificateControl, operator, salt);
 
     require(_canValidateAllowlistAndBlocklistToken(msg.sender, payload, from, to), "54"); // 0x54	transfers halted (contract paused)
 
@@ -545,7 +540,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     bytes32 partition,
     uint256 value,
     uint256 timeToExpiration,
-    bytes32 secretHash
+    bytes32 secretHash,
+    bytes calldata certificate
   )
     external
     returns (bool)
@@ -559,7 +555,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       partition,
       value,
       _computeExpiration(timeToExpiration),
-      secretHash
+      secretHash,
+      certificate
     );
   }
 
@@ -574,7 +571,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     bytes32 partition,
     uint256 value,
     uint256 expiration,
-    bytes32 secretHash
+    bytes32 secretHash,
+    bytes calldata certificate
   )
     external
     returns (bool)
@@ -590,7 +588,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       partition,
       value,
       expiration,
-      secretHash
+      secretHash,
+      certificate
     );
   }
 
@@ -605,7 +604,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     bytes32 partition,
     uint256 value,
     uint256 timeToExpiration,
-    bytes32 secretHash
+    bytes32 secretHash,
+    bytes calldata certificate
   ) 
     external
     returns (bool)
@@ -619,7 +619,41 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       partition,
       value,
       _computeExpiration(timeToExpiration),
-      secretHash
+      secretHash,
+      certificate
+    );
+  }
+
+  /**
+   * @dev Create a new token hold with expiration date.
+   */
+  function holdWithExpirationDate(
+    address token,
+    bytes32 holdId,
+    address recipient,
+    address notary,
+    bytes32 partition,
+    uint256 value,
+    uint256 expiration,
+    bytes32 secretHash,
+    bytes calldata certificate
+  )
+    external
+    returns (bool)
+  {
+    _checkExpiration(expiration);
+
+    return _createHold(
+      token,
+      holdId,
+      msg.sender,
+      recipient,
+      notary,
+      partition,
+      value,
+      expiration,
+      secretHash,
+      certificate
     );
   }
 
@@ -635,7 +669,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     bytes32 partition,
     uint256 value,
     uint256 timeToExpiration,
-    bytes32 secretHash
+    bytes32 secretHash,
+    bytes calldata certificate
   )
     external
     returns (bool)
@@ -650,38 +685,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       partition,
       value,
       _computeExpiration(timeToExpiration),
-      secretHash
-    );
-  }
-
-  /**
-   * @dev Create a new token hold with expiration date.
-   */
-  function holdWithExpirationDate(
-    address token,
-    bytes32 holdId,
-    address recipient,
-    address notary,
-    bytes32 partition,
-    uint256 value,
-    uint256 expiration,
-    bytes32 secretHash
-  )
-    external
-    returns (bool)
-  {
-    _checkExpiration(expiration);
-
-    return _createHold(
-      token,
-      holdId,
-      msg.sender,
-      recipient,
-      notary,
-      partition,
-      value,
-      expiration,
-      secretHash
+      secretHash,
+      certificate
     );
   }
 
@@ -697,7 +702,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     bytes32 partition,
     uint256 value,
     uint256 expiration,
-    bytes32 secretHash
+    bytes32 secretHash,
+    bytes calldata certificate
   )
     external
     returns (bool)
@@ -714,7 +720,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       partition,
       value,
       expiration,
-      secretHash
+      secretHash,
+      certificate
     );
   }
 
@@ -730,7 +737,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     bytes32 partition,
     uint256 value,
     uint256 expiration,
-    bytes32 secretHash
+    bytes32 secretHash,
+    bytes memory certificate
   ) internal returns (bool)
   {
     Hold storage newHold = _holds[token][holdId];
@@ -739,18 +747,12 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     require(value != 0, "Value must be greater than zero");
     require(newHold.value == 0, "This holdId already exists");
     require(notary != address(0), "Notary address must not be zero address");
-    
-    if (sender == address(0)) { // pre-hold (tokens do not already exist)
-      require(
-        _canPreHold(token, msg.sender),
-        "The pre-hold can only be created by the minter"
-      );
-    } else { // post-hold (tokens already exist)
+    require(
+      _canHoldOrCanPreHold(token, msg.sender, sender, certificate),
+      "A hold can only be created with adapted authorizations"
+    );
+    if (sender != address(0)) { // hold (tokens already exist)
       require(value <= _spendableBalanceOfByPartition(token, partition, sender), "Amount of the hold can't be greater than the spendable balance of the sender");
-      require(
-        _canPostHold(token, partition, msg.sender, sender),
-        "The hold can only be renewed by the issuer or the payer"
-      );
     }
     
     newHold.partition = partition;
@@ -828,23 +830,23 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Renew hold.
    */
-  function renewHold(address token, bytes32 holdId, uint256 timeToExpiration) external returns (bool) {
-    return _renewHold(token, holdId, _computeExpiration(timeToExpiration));
+  function renewHold(address token, bytes32 holdId, uint256 timeToExpiration, bytes calldata certificate) external returns (bool) {
+    return _renewHold(token, holdId, _computeExpiration(timeToExpiration), certificate);
   }
 
   /**
    * @dev Renew hold with expiration time.
    */
-  function renewHoldWithExpirationDate(address token, bytes32 holdId, uint256 expiration) external returns (bool) {
+  function renewHoldWithExpirationDate(address token, bytes32 holdId, uint256 expiration, bytes calldata certificate) external returns (bool) {
     _checkExpiration(expiration);
 
-    return _renewHold(token, holdId, expiration);
+    return _renewHold(token, holdId, expiration, certificate);
   }
 
   /**
    * @dev Renew hold.
    */
-  function _renewHold(address token, bytes32 holdId, uint256 expiration) internal returns (bool) {
+  function _renewHold(address token, bytes32 holdId, uint256 expiration, bytes memory certificate) internal returns (bool) {
     Hold storage renewableHold = _holds[token][holdId];
 
     require(
@@ -854,17 +856,10 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     );
     require(!_isExpired(renewableHold.expiration), "An expired hold can not be renewed");
 
-    if (renewableHold.sender == address(0)) { // pre-hold (tokens do not already exist)
-      require(
-        _canPreHold(token, msg.sender),
-        "The pre-hold can only be renewed by the minter"
-      );
-    } else { // post-hold (tokens already exist)
-      require(
-        _canPostHold(token, renewableHold.partition, msg.sender, renewableHold.sender),
-        "The hold can only be renewed by the issuer or the payer"
-      );
-    }
+    require(
+      _canHoldOrCanPreHold(token, msg.sender, renewableHold.sender, certificate),
+      "A hold can only be renewed with adapted authorizations"
+    );
     
     uint256 oldExpiration = renewableHold.expiration;
     renewableHold.expiration = expiration;
@@ -1263,28 +1258,20 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     return IERC1400(token).balanceOfByPartition(partition, account) - _heldBalanceByPartition[token][account][partition];
   }
 
-  /************************** TOKEN CONTROLLERS *******************************/
-
   /**
-   * @dev Check if operator can create pre-holds.
+   * @dev Check if hold (or pre-hold) can be created.
    * @return 'true' if the operator can create pre-holds, 'false' if not.
    */
-  function _canPreHold(address token, address operator) internal view returns(bool) { 
-    return IMinterRole(token).isMinter(operator);
-  }
+  function _canHoldOrCanPreHold(address token, address operator, address sender, bytes memory certificate) internal returns(bool) { 
+    (bool canValidateCertificate, CertificateValidation certificateControl, bytes32 salt) = _canValidateCertificateToken(token, msg.data, operator, certificate);
+    _useCertificateIfActivated(token, certificateControl, operator, salt);
 
-  /**
-   * @dev Check if operator can create/update holds.
-   * @return 'true' if the operator can create/update holds, 'false' if not.
-   */
-  function _canPostHold(address token, bytes32 partition, address operator, address sender) internal view returns(bool) {    
-    if (_selfHoldsActivated[token]) {
-      return IERC1400(token).isOperatorForPartition(partition, operator, sender);
-    } else {
-      return _isTokenController[token][operator];
+    if (sender != address(0)) { // hold
+      return canValidateCertificate && (_isTokenController[token][operator] || operator == sender);
+    } else { // pre-hold
+      return canValidateCertificate && IMinterRole(token).isMinter(operator); 
     }
   }
-
 
   /**
    * @dev Check if validator is activated for the function called in the smart contract.
@@ -1297,6 +1284,22 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       return false;
     } else {
       return true;
+    }
+  }
+
+  /**
+   * @dev Use certificate, if validated.
+   * @param token Token address.
+   * @param certificateControl Type of certificate.
+   * @param msgSender Transaction sender (only for nonce-based certificates).
+   * @param salt Salt extracted from the certificate (only for salt-based certificates).
+   */
+  function _useCertificateIfActivated(address token, CertificateValidation certificateControl, address msgSender, bytes32 salt) internal {
+    // Declare certificate as used
+    if (certificateControl == CertificateValidation.NonceBased) {
+      _usedCertificateNonce[token][msgSender] += 1;
+    } else if (certificateControl == CertificateValidation.SaltBased) {
+      _usedCertificateSalt[token][salt] = true;
     }
   }
 
