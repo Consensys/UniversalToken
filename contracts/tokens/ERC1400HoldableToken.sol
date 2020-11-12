@@ -66,7 +66,7 @@ contract ERC1400HoldableToken is ERC1400, IExtensionTypes {
         controllers // token controllers
       );
 
-      _setTokenExtension(extension, ERC1400_TOKENS_VALIDATOR, true, true);
+      _setTokenExtension(extension, ERC1400_TOKENS_VALIDATOR, true, true, true);
     }
 
     if(newOwner != address(0)) {

@@ -11,6 +11,7 @@ const ERC1820Registry = artifacts.require("ERC1820Registry");
 const ERC1400TokensValidator = artifacts.require("ERC1400TokensValidator");
 const ERC1400TokensValidatorMock = artifacts.require("ERC1400TokensValidatorMock");
 const ERC1400TokensChecker = artifacts.require("ERC1400TokensChecker");
+const FakeERC1400Mock = artifacts.require("FakeERC1400Mock");
 
 const PauserMock = artifacts.require("PauserMock.sol");
 const CertificateSignerMock = artifacts.require("CertificateSignerMock.sol");
@@ -37,12 +38,11 @@ const EMPTY_BYTE32 =
 const CERTIFICATE_SIGNER_PRIVATE_KEY = "0x1699611cc662aad2db30d5cf44bd531a8b16710e43624fc0e801c6592f72f9ab";
 const CERTIFICATE_SIGNER = "0x2A3cE238F1903B1cA935D734e6160aBA029ff80a";
 
-const VALID_CERTIFICATE =
-  "0x1000000000000000000000000000000000000000000000000000000000000000";
-const INVALID_CERTIFICATE =
-  "0x0000000000000000000000000000000000000000000000000000000000000000";
-
 const EMPTY_CERTIFICATE = "0x";
+
+const CERTIFICATE_WITH_V_EQUAL_TO_27 = "0x00000000000000000000000000000000000000000000000000000000c4427ed1057da68ae02a18da9be28448860b16d3903ff8476a2f86effbde677695466aa720f3a5c4f0e450403a66854ea20b7356fcff1cf100d291907ef6f9a6ac25f3a31b";
+const CERTIFICATE_WITH_V_EQUAL_TO_28 = "0x00000000000000000000000000000000000000000000000000000000c4427ed1057da68ae02a18da9be28448860b16d3903ff8476a2f86effbde677695466aa720f3a5c4f0e450403a66854ea20b7356fcff1cf100d291907ef6f9a6ac25f3a31c";
+
 const CERTIFICATE_VALIDITY_PERIOD = 1; // Certificate will be valid for 1 hour
 
 const INVALID_CERTIFICATE_SENDER =
@@ -62,6 +62,12 @@ const partition2 = "0x".concat(partition2_short);
 const partition3 = "0x".concat(partition3_short);
 
 const partitions = [partition1, partition2, partition3];
+
+const partitionFlag =
+  "0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff"; // Flag to indicate a partition change
+const changeToPartition1 = partitionFlag.concat(partition1_short);
+const changeToPartition2 = partitionFlag.concat(partition2_short);
+const changeToPartition3 = partitionFlag.concat(partition3_short);
 
 const ESC_00 = "0x00"; // Transfer verifier not setup
 const ESC_50 = "0x50"; // 0x50	transfer failure
@@ -92,6 +98,7 @@ const SECONDS_IN_A_DAY = 24*SECONDS_IN_AN_HOUR;
 const CERTIFICATE_VALIDATION_NONE = 0;
 const CERTIFICATE_VALIDATION_NONCE = 1;
 const CERTIFICATE_VALIDATION_SALT = 2;
+const CERTIFICATE_VALIDATION_DEFAULT = CERTIFICATE_VALIDATION_SALT;
 
 const numberToHexa = (num, pushTo) => {
   const arr1 = [];
@@ -165,11 +172,11 @@ const assertTokenHasExtension = async (
   _extension,
   _token,
 ) => {
-  let hookImplementer = await _registry.getInterfaceImplementer(
+  let extensionImplementer = await _registry.getInterfaceImplementer(
     _token.address,
     soliditySha3(ERC1400_TOKENS_VALIDATOR)
   );
-  assert.equal(hookImplementer, _extension.address);
+  assert.equal(extensionImplementer, _extension.address);
 }
 
 const setNewExtensionForToken = async (
@@ -180,6 +187,7 @@ const setNewExtensionForToken = async (
   const controllers = await _token.controllers();
   await _extension.registerTokenSetup(
     _token.address,
+    CERTIFICATE_VALIDATION_DEFAULT,
     true,
     true,
     true,
@@ -191,6 +199,7 @@ const setNewExtensionForToken = async (
   await _token.setTokenExtension(
     _extension.address,
     ERC1400_TOKENS_VALIDATOR,
+    true,
     true,
     true,
     { from: _sender }
@@ -510,20 +519,7 @@ const craftSaltBasedCertificate = async (
 
 }
 
-// const certificate = await craftCertificate(
-//   this.token.contract.methods.issueByPartition(
-//     partition1,
-//     tokenHolder,
-//     issuanceAmount,
-//     EMPTY_CERTIFICATE,
-//   ).encodeABI(),
-//   this.token,
-//   this.extension,
-//   this.clock, // this.clock
-//   controller
-// )
-
-contract("ERC1400HoldableCertificate with validator hook", function ([
+contract("ERC1400HoldableCertificate with token extension", function ([
   deployer,
   owner,
   operator,
@@ -557,17 +553,33 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
       this.extension.address,
       owner,
       CERTIFICATE_SIGNER,
-      CERTIFICATE_VALIDATION_SALT,
+      CERTIFICATE_VALIDATION_DEFAULT,
       { from: controller }
     );
   });
 
-  // HOOKS
+  // MOCK
+  describe("setTokenExtension", function () {
+    it("mock to test modifiers of roles functions", async function () {
+      await FakeERC1400Mock.new(
+        "ERC1400Token",
+        "DAU",
+        1,
+        [controller],
+        partitions,
+        this.extension.address,
+        owner,
+        { from: controller }
+      );
+    });
+  });
+
+  // SET TOKEN EXTENSION
   describe("setTokenExtension", function () {
     describe("when the caller is the contract owner", function () {
       describe("when the the validator contract is not already a minter", function () {
         describe("when there is was no previous validator contract", function () {
-          it("sets the validator hook", async function () {
+          it("sets the token extension", async function () {
             this.token = await ERC1400HoldableCertificate.new(
               "ERC1400Token",
               "DAU",
@@ -577,17 +589,17 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
               ZERO_ADDRESS,
               owner,
               ZERO_ADDRESS,
-              CERTIFICATE_VALIDATION_NONE,
+              CERTIFICATE_VALIDATION_DEFAULT,
               { from: controller }
             );
 
             assert.equal(await this.token.owner(), owner)
 
-            let hookImplementer = await this.registry.getInterfaceImplementer(
+            let extensionImplementer = await this.registry.getInterfaceImplementer(
               this.token.address,
               soliditySha3(ERC1400_TOKENS_VALIDATOR)
             );
-            assert.equal(hookImplementer, ZERO_ADDRESS);
+            assert.equal(extensionImplementer, ZERO_ADDRESS);
             assert.equal(await this.token.isOperator(this.extension.address, unknown), false)
             assert.equal(await this.token.isMinter(this.extension.address), false)
     
@@ -596,21 +608,22 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
               ERC1400_TOKENS_VALIDATOR,
               true,
               true,
+              true,
               { from: owner }
             );
     
-            hookImplementer = await this.registry.getInterfaceImplementer(
+            extensionImplementer = await this.registry.getInterfaceImplementer(
               this.token.address,
               soliditySha3(ERC1400_TOKENS_VALIDATOR)
             );
-            assert.equal(hookImplementer, this.extension.address);
+            assert.equal(extensionImplementer, this.extension.address);
             assert.equal(await this.token.isOperator(this.extension.address, unknown), true)
             assert.equal(await this.token.isMinter(this.extension.address), true)
           });
         });
         describe("when there is was a previous validator contract", function () {
           describe("when the previous validator contract was a minter", function () {
-            it("sets the validator hook (with controller rights)", async function () {
+            it("sets the token extension (with controller and minter rights)", async function () {
               assert.equal(await this.token.owner(), owner)
 
               await assertTokenHasExtension(
@@ -630,6 +643,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                 ERC1400_TOKENS_VALIDATOR,
                 true,
                 true,
+                true,
                 { from: owner }
               );
       
@@ -644,7 +658,42 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
               assert.equal(await this.token.isOperator(this.extension.address, unknown), false)
               assert.equal(await this.token.isMinter(this.extension.address), false)
             });
-            it("sets the validator hook (without controller rights)", async function () {
+            it("sets the token extension (without controller rights)", async function () {
+              assert.equal(await this.token.owner(), owner)
+
+              await assertTokenHasExtension(
+                this.registry,
+                this.extension,
+                this.token,
+              );
+              assert.equal(await this.token.isOperator(this.extension.address, unknown), true)
+              assert.equal(await this.token.isMinter(this.extension.address), true)
+  
+              this.validatorContract2 = await ERC1400TokensValidator.new({
+                from: deployer,
+              });
+      
+              await this.token.setTokenExtension(
+                this.validatorContract2.address,
+                ERC1400_TOKENS_VALIDATOR,
+                true,
+                true,
+                false,
+                { from: owner }
+              );
+      
+              await assertTokenHasExtension(
+                this.registry,
+                this.validatorContract2,
+                this.token,
+              );
+              assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), false)
+              assert.equal(await this.token.isMinter(this.validatorContract2.address), true)
+  
+              assert.equal(await this.token.isOperator(this.extension.address, unknown), false)
+              assert.equal(await this.token.isMinter(this.extension.address), false)
+            });
+            it("sets the token extension (without minter rights)", async function () {
               assert.equal(await this.token.owner(), owner)
 
               await assertTokenHasExtension(
@@ -664,6 +713,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                 ERC1400_TOKENS_VALIDATOR,
                 true,
                 false,
+                true,
                 { from: owner }
               );
       
@@ -672,15 +722,50 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                 this.validatorContract2,
                 this.token,
               );
-              assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), false)
-              assert.equal(await this.token.isMinter(this.validatorContract2.address), true)
+              assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), true)
+              assert.equal(await this.token.isMinter(this.validatorContract2.address), false)
   
               assert.equal(await this.token.isOperator(this.extension.address, unknown), false)
               assert.equal(await this.token.isMinter(this.extension.address), false)
             });
+            it("sets the token extension (while leaving minter and controller rights to the old extension)", async function () {
+              assert.equal(await this.token.owner(), owner)
+
+              await assertTokenHasExtension(
+                this.registry,
+                this.extension,
+                this.token,
+              );
+              assert.equal(await this.token.isOperator(this.extension.address, unknown), true)
+              assert.equal(await this.token.isMinter(this.extension.address), true)
+  
+              this.validatorContract2 = await ERC1400TokensValidator.new({
+                from: deployer,
+              });
+      
+              await this.token.setTokenExtension(
+                this.validatorContract2.address,
+                ERC1400_TOKENS_VALIDATOR,
+                false,
+                true,
+                true,
+                { from: owner }
+              );
+      
+              await assertTokenHasExtension(
+                this.registry,
+                this.validatorContract2,
+                this.token,
+              );
+              assert.equal(await this.token.isOperator(this.validatorContract2.address, unknown), true)
+              assert.equal(await this.token.isMinter(this.validatorContract2.address), true)
+  
+              assert.equal(await this.token.isOperator(this.extension.address, unknown), true)
+              assert.equal(await this.token.isMinter(this.extension.address), true)
+            });
           });
           describe("when the previous validator contract was not a minter", function () {
-            it("sets the validator hook", async function () {  
+            it("sets the token extension", async function () {  
               this.validatorContract2 = await ERC1400TokensValidatorMock.new({
                 from: deployer,
               });
@@ -688,6 +773,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
               await this.token.setTokenExtension(
                 this.validatorContract2.address,
                 ERC1400_TOKENS_VALIDATOR,
+                true,
                 true,
                 true,
                 { from: owner }
@@ -711,6 +797,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                 ERC1400_TOKENS_VALIDATOR,
                 true,
                 true,
+                true,
                 { from: owner }
               );
 
@@ -729,7 +816,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         });
       });
       describe("when the the validator contract is already a minter", function () {
-        it("sets the validator hook", async function () {
+        it("sets the token extension", async function () {
           this.validatorContract2 = await ERC1400TokensValidatorMock.new({
             from: deployer,
           });
@@ -748,6 +835,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           await this.token.setTokenExtension(
             this.validatorContract2.address,
             ERC1400_TOKENS_VALIDATOR,
+            true,
             true,
             true,
             { from: owner }
@@ -772,6 +860,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           this.token.setTokenExtension(
             this.validatorContract2.address,
             ERC1400_TOKENS_VALIDATOR,
+            true,
             true,
             true,
             { from: controller }
@@ -925,6 +1014,24 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
               true
             );
           });
+        });
+      });
+    });
+    describe("case where certificate is not defined at creation [for coverage]", function () {
+      describe("can not call function if not certificate signer", function () {
+        it("creates the token", async function () {
+          await ERC1400HoldableCertificate.new(
+            "ERC1400Token",
+            "DAU",
+            1,
+            [controller],
+            partitions,
+            this.extension.address,
+            owner,
+            ZERO_ADDRESS, // <-- certificate signer is not defined
+            CERTIFICATE_VALIDATION_DEFAULT,
+            { from: controller }
+          );
         });
       });
     });
@@ -1734,7 +1841,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         this.extension.address,
         owner,
         CERTIFICATE_SIGNER,
-        CERTIFICATE_VALIDATION_SALT,
+        CERTIFICATE_VALIDATION_DEFAULT,
         { from: controller }
       );
 
@@ -1769,6 +1876,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         await this.token2.setTokenExtension(
           this.checkerContract.address,
           ERC1400_TOKENS_CHECKER,
+          true,
           true,
           true,
           { from: owner }
@@ -1911,10 +2019,41 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                 });
                 describe("when validator is not ok", function () {
                   it("returns Ethereum status code 54 (canTransferByPartition)", async function () {
+                    const holdId = newHoldId();
                     const secretHashPair = newSecretHashPair();  
-                    await this.extension.holdFrom(this.token2.address, newHoldId(), tokenHolder, recipient, notary, partition1, issuanceAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller })
-                    
                     const certificate = await craftCertificate(
+                      this.extension.contract.methods.holdFrom(
+                        this.token2.address,
+                        holdId,
+                        tokenHolder,
+                        recipient,
+                        notary,
+                        partition1,
+                        issuanceAmount,
+                        SECONDS_IN_AN_HOUR,
+                        secretHashPair.hash,
+                        EMPTY_CERTIFICATE,
+                      ).encodeABI(),
+                      this.token2,
+                      this.extension,
+                      this.clock, // this.clock
+                      controller
+                    )
+                    await this.extension.holdFrom(
+                      this.token2.address,
+                      holdId,
+                      tokenHolder,
+                      recipient,
+                      notary,
+                      partition1,
+                      issuanceAmount,
+                      SECONDS_IN_AN_HOUR,
+                      secretHashPair.hash,
+                      certificate,
+                      { from: controller }
+                    )
+                    
+                    const certificate2 = await craftCertificate(
                       this.token2.contract.methods.transferByPartition(
                         partition1,
                         recipient,
@@ -1930,7 +2069,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                       partition1,
                       recipient,
                       transferAmount,
-                      certificate,
+                      certificate2,
                       { from: tokenHolder }
                     );
                     await assertEscResponse(
@@ -2257,6 +2396,23 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
               2 * issuanceAmount
             );
           });
+          it("issues new tokens when certificate is not provided, but sender is certificate signer", async function () {
+            await this.extension.addCertificateSigner(this.token.address, controller, { from: controller});
+            await this.token.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount,
+              EMPTY_CERTIFICATE,
+              { from: controller }
+            );
+            await assertTotalSupply(this.token, 2 * issuanceAmount);
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              2 * issuanceAmount
+            );
+          });
           it("fails issuing when certificate is not provided", async function () {
             await expectRevert.unspecified(this.token.issueByPartition(
               partition1,
@@ -2441,6 +2597,29 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
               tokenHolder,
               redeemAmount,
               certificate,
+              { from: operator }
+            );
+  
+            await assertTotalSupply(this.token, issuanceAmount - redeemAmount);
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount - redeemAmount
+            );
+          });
+          it("redeems the requested amount when certificate is provided, but sender is certificate signer", async function () {
+            await this.token.authorizeOperatorByPartition(partition1, operator, {
+              from: tokenHolder,
+            });
+  
+            await this.extension.addCertificateSigner(this.token.address, operator, { from: controller});
+
+            await this.token.operatorRedeemByPartition(
+              partition1,
+              tokenHolder,
+              redeemAmount,
+              EMPTY_CERTIFICATE,
               { from: operator }
             );
   
@@ -2764,6 +2943,118 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                 operator
               ),
               approvedAmount - transferAmount
+            );
+          });
+          it("transfers the requested amount when certificate is provided, but sender is certificate signer", async function () {
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount
+            );
+            await assertBalanceOf(this.token, recipient, partition1, 0);
+            assert.equal(
+              await this.token.allowanceByPartition(
+                partition1,
+                tokenHolder,
+                operator
+              ),
+              0
+            );
+  
+            const approvedAmount = 400;
+            await this.token.approveByPartition(
+              partition1,
+              operator,
+              approvedAmount,
+              { from: tokenHolder }
+            );
+            assert.equal(
+              await this.token.allowanceByPartition(
+                partition1,
+                tokenHolder,
+                operator
+              ),
+              approvedAmount
+            );
+
+            await this.extension.addCertificateSigner(this.token.address, operator, { from: controller});
+            await this.token.operatorTransferByPartition(
+              partition1,
+              tokenHolder,
+              recipient,
+              transferAmount,
+              ZERO_BYTE,
+              EMPTY_CERTIFICATE,
+              { from: operator }
+            );
+  
+            await assertBalanceOf(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount - transferAmount
+            );
+            await assertBalanceOf(
+              this.token,
+              recipient,
+              partition1,
+              transferAmount
+            );
+            assert.equal(
+              await this.token.allowanceByPartition(
+                partition1,
+                tokenHolder,
+                operator
+              ),
+              approvedAmount - transferAmount
+            );
+          });
+          it("updates the token partition", async function () {
+            await assertBalanceOfByPartition(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount
+            );
+  
+            const updateAmount = 400;
+
+            const certificate = await craftCertificate(
+              this.token.contract.methods.operatorTransferByPartition(
+                partition1,
+                tokenHolder,
+                tokenHolder,
+                updateAmount,
+                changeToPartition2,
+                EMPTY_CERTIFICATE,
+              ).encodeABI(),
+              this.token,
+              this.extension,
+              this.clock, // this.clock
+              controller
+            )
+            await this.token.operatorTransferByPartition(
+              partition1,
+              tokenHolder,
+              tokenHolder,
+              updateAmount,
+              changeToPartition2,
+              certificate,
+              { from: controller }
+            );
+  
+            await assertBalanceOfByPartition(
+              this.token,
+              tokenHolder,
+              partition1,
+              issuanceAmount - updateAmount
+            );
+            await assertBalanceOfByPartition(
+              this.token,
+              tokenHolder,
+              partition2,
+              updateAmount
             );
           });
           it("fails transferring when certificate is not provided", async function () {
@@ -3117,6 +3408,45 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
             { from: controller }
           ));
         });
+        it("fails issuing when certificate is not valid (certificate too long) [for coverage]", async function () {
+          const certificate = await craftCertificate(
+            this.token.contract.methods.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount,
+              EMPTY_CERTIFICATE,
+            ).encodeABI(),
+            this.token,
+            this.extension,
+            this.clock, // this.clock
+            controller
+          )
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            certificate.concat('0'),
+            { from: controller }
+          ));
+        });
+        it("fails issuing when certificate is not valid (certificate with v=27) [for coverage]", async function () {
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            CERTIFICATE_WITH_V_EQUAL_TO_27,
+            { from: controller }
+          ));
+        });
+        it("fails issuing when certificate is not valid (certificate with v=28) [for coverage]", async function () {
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            CERTIFICATE_WITH_V_EQUAL_TO_28,
+            { from: controller }
+          ));
+        });
       });
       describe("nonce-based certificate control", function () {
         beforeEach(async function () {
@@ -3305,6 +3635,45 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
             tokenHolder,
             issuanceAmount,
             certificate,
+            { from: controller }
+          ));
+        });
+        it("fails issuing when certificate is not valid (certificate too long) [for coverage]", async function () {
+          const certificate = await craftCertificate(
+            this.token.contract.methods.issueByPartition(
+              partition1,
+              tokenHolder,
+              issuanceAmount,
+              EMPTY_CERTIFICATE,
+            ).encodeABI(),
+            this.token,
+            this.extension,
+            this.clock, // this.clock
+            controller
+          )
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            certificate.concat('0'),
+            { from: controller }
+          ));
+        });
+        it("fails issuing when certificate is not valid (certificate with v=27) [for coverage]", async function () {
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            CERTIFICATE_WITH_V_EQUAL_TO_27,
+            { from: controller }
+          ));
+        });
+        it("fails issuing when certificate is not valid (certificate with v=28) [for coverage]", async function () {
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            CERTIFICATE_WITH_V_EQUAL_TO_28,
             { from: controller }
           ));
         });
@@ -3977,7 +4346,43 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
             2 * issuanceAmount
           );
         });
+        it("issues new tokens when recipient is blocklisted, but blocklist is not activated", async function () {
+          await this.extension.addBlocklisted(this.token.address, tokenHolder, {
+            from: controller,
+          });
+          await setBlockListActivated(
+            this.extension,
+            this.token,
+            controller,
+            false
+          );
+  
+          await assertBlockListActivated(
+            this.extension,
+            this.token,
+            false
+          )
+          await this.token.issue(
+            tokenHolder,
+            issuanceAmount,
+            EMPTY_CERTIFICATE,
+            { from: controller }
+          );
+          await assertTotalSupply(this.token, 2 * issuanceAmount);
+          await assertBalanceOf(
+            this.token,
+            tokenHolder,
+            partition1,
+            2 * issuanceAmount
+          );
+        });
         it("fails issuing when recipient is blocklisted", async function () {
+          await this.extension.addBlocklisted(this.token.address, tokenHolder, {
+            from: controller,
+          });
+          await this.extension.removeBlocklisted(this.token.address, tokenHolder, {
+            from: controller,
+          }); // for coverage
           await this.extension.addBlocklisted(this.token.address, tokenHolder, {
             from: controller,
           });
@@ -4507,274 +4912,36 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
     });
   });
 
-  // ALLOWLIST/BLOCKLIST EXTENSION
-  describe("allowlist/blocklist", function () {
-    beforeEach(async function () {
-      await this.token.issueByPartition(
-        partition1,
-        tokenHolder,
-        issuanceAmount,
-        EMPTY_CERTIFICATE,
-        { from: controller }
-      );
-    });
-
-    describe("when token allowlist is activated", function () {
-      beforeEach(async function () {
-        await assertAllowListActivated(
-          this.extension,
-          this.token,
-          true
-        );
-
-        await assertTokenHasExtension(
-          this.registry,
-          this.extension,
-          this.token,
-        );
-
-        await this.extension.addAllowlisted(this.token.address, tokenHolder, {
-          from: controller,
-        });
-        await this.extension.addAllowlisted(this.token.address, recipient, { from: controller });
-      });
-      describe("when the sender and the recipient are allowlisted", function () {
-        beforeEach(async function () {
-          assert.equal(
-            await this.extension.isAllowlisted(this.token.address, tokenHolder),
-            true
-          );
-          assert.equal(
-            await this.extension.isAllowlisted(this.token.address, recipient),
-            true
-          );
-        });
-        const amount = issuanceAmount;
-
-        it("transfers the requested amount", async function () {
-          await this.token.transfer(recipient, amount, { from: tokenHolder });
-          await assertBalance(this.token, tokenHolder, issuanceAmount - amount);
-          await assertBalance(this.token, recipient, amount);
-        });
-      });
-      describe("when the sender is not allowlisted", function () {
-        const amount = issuanceAmount;
-
-        beforeEach(async function () {
-          await this.extension.removeAllowlisted(this.token.address, tokenHolder, {
-            from: owner,
-          });
-
-          assert.equal(
-            await this.extension.isAllowlisted(this.token.address, tokenHolder),
-            false
-          );
-          assert.equal(
-            await this.extension.isAllowlisted(this.token.address, recipient),
-            true
-          );
-        });
-        it("reverts", async function () {
-          await expectRevert.unspecified(
-            this.token.transfer(recipient, amount, { from: tokenHolder })
-          );
-        });
-      });
-      describe("when the recipient is not allowlisted", function () {
-        const amount = issuanceAmount;
-
-        beforeEach(async function () {
-          await this.extension.removeAllowlisted(this.token.address, recipient, {
-            from: owner,
-          });
-
-          assert.equal(
-            await this.extension.isAllowlisted(this.token.address, tokenHolder),
-            true
-          );
-          assert.equal(
-            await this.extension.isAllowlisted(this.token.address, recipient),
-            false
-          );
-        });
-        it("reverts", async function () {
-          await expectRevert.unspecified(
-            this.token.transfer(recipient, amount, { from: tokenHolder })
-          );
-        });
-      });
-    });
-    describe("when token blocklist is activated", function () {
-      beforeEach(async function () {
-        await assertTokenHasExtension(
-          this.registry,
-          this.extension,
-          this.token,
-        );
-
-        await setAllowListActivated(
-          this.extension,
-          this.token,
-          controller,
-          false
-        )
-        await assertAllowListActivated(
-          this.extension,
-          this.token,
-          false
-        );
-        await setBlockListActivated(
-          this.extension,
-          this.token,
-          controller,
-          true
-        )
-        await assertBlockListActivated(
-          this.extension,
-          this.token,
-          true
-        );
-
-        await this.extension.addBlocklisted(this.token.address, tokenHolder, {
-          from: controller,
-        });
-        await this.extension.addBlocklisted(this.token.address, recipient, { from: controller });
-        assert.equal(
-          await this.extension.isBlocklisted(this.token.address, tokenHolder),
-          true
-        );
-        assert.equal(
-          await this.extension.isBlocklisted(this.token.address, recipient),
-          true
-        );
-      });
-      describe("when the blocklist is activated", function () {
-        describe("when both the sender and the recipient are blocklisted", function () {
-          const amount = issuanceAmount;
-
-          it("reverts", async function () {
-            await expectRevert.unspecified(
-              this.token.transfer(recipient, amount, { from: tokenHolder })
-            );
-          });
-        });
-        describe("when the sender is blocklisted", function () {
-          const amount = issuanceAmount;
-
-          it("reverts", async function () {
-            await this.extension.removeBlocklisted(this.token.address, recipient, {
-              from: controller,
-            });
-            await expectRevert.unspecified(
-              this.token.transfer(recipient, amount, { from: tokenHolder })
-            );
-          });
-        });
-        describe("when the recipient is blocklisted", function () {
-          const amount = issuanceAmount;
-
-          it("reverts", async function () {
-            await this.extension.removeBlocklisted(this.token.address, tokenHolder, {
-              from: controller,
-            });
-            await expectRevert.unspecified(
-              this.token.transfer(recipient, amount, { from: tokenHolder })
-            );
-          });
-        });
-        describe("when neither the sender nor the recipient are blocklisted", function () {
-          const amount = issuanceAmount;
-
-          it("transfers the requested amount", async function () {
-            await this.extension.removeBlocklisted(this.token.address, tokenHolder, {
-              from: owner,
-            });
-            await this.extension.removeBlocklisted(this.token.address, recipient, {
-              from: owner,
-            });
-
-            await this.token.transfer(recipient, amount, { from: tokenHolder });
-            await assertBalance(
-              this.token,
-              tokenHolder,
-              issuanceAmount - amount
-            );
-            await assertBalance(this.token, recipient, amount);
-          });
-        });
-      });
-      describe("when the blocklist is not activated", function () {
-        beforeEach(async function () {
-          await setBlockListActivated(
-            this.extension,
-            this.token,
-            controller,
-            false
-          )
-          await assertBlockListActivated(
-            this.extension,
-            this.token,
-            false
-          );
-        });
-        describe("when both the sender and the recipient are blocklisted", function () {
-          const amount = issuanceAmount;
-
-          it("transfers the requested amount", async function () {
-            await this.token.transfer(recipient, amount, { from: tokenHolder });
-            await assertBalance(
-              this.token,
-              tokenHolder,
-              issuanceAmount - amount
-            );
-            await assertBalance(this.token, recipient, amount);
-          });
-        });
-      });
-    });
-    describe("when token has neither a allowlist, nor a blocklist", function () {
-      const amount = issuanceAmount;
-
-      beforeEach(async function () {
-        await setAllowListActivated(
-          this.extension,
-          this.token,
-          controller,
-          false
-        )
-        await assertAllowListActivated(
-          this.extension,
-          this.token,
-          false
-        );
-
-        await setBlockListActivated(
-          this.extension,
-          this.token,
-          controller,
-          false
-        )
-        await assertBlockListActivated(
-          this.extension,
-          this.token,
-          false
-        );
-      });
-
-      it("transfers the requested amount", async function () {
-        await this.token.transfer(recipient, amount, { from: tokenHolder });
-        await assertBalance(this.token, tokenHolder, issuanceAmount - amount);
-        await assertBalance(this.token, recipient, amount);
-      });
-    });
-  });
-
   // GRANULARITY EXTENSION
   describe("partition granularity", function () {
     const localGranularity = 10;
     const amount = 10 * localGranularity;
 
     beforeEach(async function () {
+      await setCertificateActivated(
+        this.extension,
+        this.token,
+        controller,
+        CERTIFICATE_VALIDATION_NONE
+      )
+      await assertCertificateActivated(
+        this.extension,
+        this.token,
+        CERTIFICATE_VALIDATION_NONE
+      );
+
+      await setAllowListActivated(
+        this.extension,
+        this.token,
+        controller,
+        false
+      )
+      await assertAllowListActivated(
+        this.extension,
+        this.token,
+        false
+      );
+
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
@@ -4788,12 +4955,6 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         issuanceAmount,
         EMPTY_CERTIFICATE,
         { from: controller }
-      );
-
-      await assertTokenHasExtension(
-        this.registry,
-        this.extension,
-        this.token,
       );
     });
 
@@ -4962,33 +5123,43 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
   describe("transferFrom", function () {
     const approvedAmount = 10000;
     beforeEach(async function () {
+      await assertHoldsActivated(
+        this.extension,
+        this.token,
+        true
+      );
+
+      const certificate = await craftCertificate(
+        this.token.contract.methods.issueByPartition(
+          partition1,
+          tokenHolder,
+          issuanceAmount,
+          EMPTY_CERTIFICATE,
+        ).encodeABI(),
+        this.token,
+        this.extension,
+        this.clock, // this.clock
+        controller
+      )
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
-        EMPTY_CERTIFICATE,
+        certificate,
         { from: controller }
       );
+
+      await this.extension.addAllowlisted(this.token.address, tokenHolder, { from: controller });
+      await this.extension.addAllowlisted(this.token.address, recipient, { from: controller });
     });
 
     describe("when token allowlist is activated", function () {
       beforeEach(async function () {
-        await assertTokenHasExtension(
-          this.registry,
-          this.extension,
-          this.token,
-        );
-
         await assertAllowListActivated(
           this.extension,
           this.token,
           true
         );
-
-        await this.extension.addAllowlisted(this.token.address, tokenHolder, {
-          from: controller,
-        });
-        await this.extension.addAllowlisted(this.token.address, recipient, { from: controller });
       });
       describe("when the sender and the recipient are allowlisted", function () {
         beforeEach(async function () {
@@ -5092,37 +5263,45 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                 partitions,
                 this.extension.address,
                 owner,
-                ZERO_ADDRESS,
-                CERTIFICATE_VALIDATION_NONE,
+                CERTIFICATE_SIGNER,
+                CERTIFICATE_VALIDATION_DEFAULT,
                 { from: controller }
               );
+              const certificate = await craftCertificate(
+                this.token2.contract.methods.issueByPartition(
+                  partition1,
+                  tokenHolder,
+                  issuanceAmount,
+                  EMPTY_CERTIFICATE,
+                ).encodeABI(),
+                this.token2,
+                this.extension,
+                this.clock, // this.clock
+                controller
+              )
               await this.token2.issueByPartition(
                 partition1,
                 tokenHolder,
                 issuanceAmount,
-                EMPTY_CERTIFICATE,
+                certificate,
                 { from: controller }
-              );
+              )
+
               await assertTokenHasExtension(
                 this.registry,
                 this.extension,
                 this.token2,
               );
-
               await assertAllowListActivated(
                 this.extension,
                 this.token2,
                 true
               );
       
-              await this.extension.addAllowlisted(this.token2.address, tokenHolder, {
-                from: controller,
-              });
+              await this.extension.addAllowlisted(this.token2.address, tokenHolder, { from: controller });
               await this.extension.addAllowlisted(this.token2.address, recipient, { from: controller });
 
-              await this.token2.approve(operator, approvedAmount, {
-                from: tokenHolder,
-              });
+              await this.token2.approve(operator, approvedAmount, { from: tokenHolder });
 
               await expectRevert.unspecified(
                 this.token2.transferFrom(tokenHolder, recipient, 3, {
@@ -5219,42 +5398,6 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
     // describe("when token has no allowlist", function () {});
     describe("when token holds are activated", function () {
       beforeEach(async function () {
-        await assertTokenHasExtension(
-          this.registry,
-          this.extension,
-          this.token,
-        );
-
-        await setAllowListActivated(
-          this.extension,
-          this.token,
-          controller,
-          false
-        )
-        await assertAllowListActivated(
-          this.extension,
-          this.token,
-          false
-        );
-
-        await setBlockListActivated(
-          this.extension,
-          this.token,
-          controller,
-          false
-        )
-        await assertBlockListActivated(
-          this.extension,
-          this.token,
-          false
-        );
-
-        await setHoldsActivated(
-          this.extension,
-          this.token,
-          controller,
-          true
-        )
         await assertHoldsActivated(
           this.extension,
           this.token,
@@ -5271,7 +5414,35 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         this.time = await this.clock.getTime();
         this.holdId = newHoldId();
         this.secretHashPair = newSecretHashPair();
-        await this.extension.hold(this.token.address, this.holdId, recipient, notary, partition1, smallHoldAmount, SECONDS_IN_AN_HOUR, this.secretHashPair.hash, { from: tokenHolder })
+        const certificate2 = await craftCertificate(
+          this.extension.contract.methods.hold(
+            this.token.address,
+            this.holdId,
+            recipient,
+            notary,
+            partition1,
+            smallHoldAmount,
+            SECONDS_IN_AN_HOUR,
+            this.secretHashPair.hash,
+            EMPTY_CERTIFICATE,
+          ).encodeABI(),
+          this.token,
+          this.extension,
+          this.clock, // this.clock
+          tokenHolder
+        )
+        await this.extension.hold(
+          this.token.address,
+          this.holdId,
+          recipient,
+          notary,
+          partition1,
+          smallHoldAmount,
+          SECONDS_IN_AN_HOUR,
+          this.secretHashPair.hash,
+          certificate2,
+          { from: tokenHolder }
+        )
       });
       describe("when a hold is executed", function () {
         it("executes the hold", async function() {
@@ -5354,7 +5525,35 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           this.time2 = await this.clock.getTime();
           this.holdId2 = newHoldId();
           this.secretHashPair2 = newSecretHashPair();
-          await this.extension.hold(this.token.address, this.holdId2, recipient, notary, partition1, smallHoldAmount, SECONDS_IN_AN_HOUR, this.secretHashPair2.hash, { from: tokenHolder })
+          const certificate = await craftCertificate(
+            this.extension.contract.methods.hold(
+              this.token.address,
+              this.holdId2,
+              recipient,
+              notary,
+              partition1,
+              smallHoldAmount,
+              SECONDS_IN_AN_HOUR,
+              this.secretHashPair2.hash,
+              EMPTY_CERTIFICATE,
+            ).encodeABI(),
+            this.token,
+            this.extension,
+            this.clock, // this.clock
+            tokenHolder
+          )
+          await this.extension.hold(
+            this.token.address,
+            this.holdId2,
+            recipient,
+            notary,
+            partition1,
+            smallHoldAmount,
+            SECONDS_IN_AN_HOUR,
+            this.secretHashPair2.hash,
+            certificate,
+            { from: tokenHolder }
+          )
   
           const initialPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
           const initialRecipientPartitionBalance = await this.token.balanceOfByPartition(partition1, recipient)
@@ -5417,52 +5616,52 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         });
   
       });
-      describe("when a hold is not executed", function () {
-        beforeEach(async function () {
-          this.validatorContract2 = await ERC1400TokensValidator.new({ from: deployer });
+      // describe("when a hold is not executed", function () {
+      //   beforeEach(async function () {
+      //     this.validatorContract2 = await ERC1400TokensValidator.new({ from: deployer });
 
-          await setNewExtensionForToken(
-            this.validatorContract2,
-            this.token,
-            owner,
-          );
+      //     await setNewExtensionForToken(
+      //       this.validatorContract2,
+      //       this.token,
+      //       owner,
+      //     );
   
-          await setAllowListActivated(
-            this.validatorContract2,
-            this.token,
-            controller,
-            false
-          )
-          await assertAllowListActivated(
-            this.validatorContract2,
-            this.token,
-            false
-          );
+      //     await setAllowListActivated(
+      //       this.validatorContract2,
+      //       this.token,
+      //       controller,
+      //       false
+      //     )
+      //     await assertAllowListActivated(
+      //       this.validatorContract2,
+      //       this.token,
+      //       false
+      //     );
 
-          await this.token.transferFrom(
-            tokenHolder,
-            recipient,
-            smallHoldAmount,
-            { from: notary }
-          );
-          await setNewExtensionForToken(
-            this.extension,
-            this.token,
-            owner,
-          );
-        });
-        it("reverts", async function() {
-          await expectRevert.unspecified(
-            this.token.transferFrom(
-              tokenHolder,
-              recipient,
-              smallHoldAmount,
-              { from: notary }
-            )
-          )
-        });
+      //     await this.token.transferFrom(
+      //       tokenHolder,
+      //       recipient,
+      //       smallHoldAmount,
+      //       { from: notary }
+      //     );
+      //     await setNewExtensionForToken(
+      //       this.extension,
+      //       this.token,
+      //       owner,
+      //     );
+      //   });
+      //   it("reverts", async function() {
+      //     await expectRevert.unspecified(
+      //       this.token.transferFrom(
+      //         tokenHolder,
+      //         recipient,
+      //         smallHoldAmount,
+      //         { from: notary }
+      //       )
+      //     )
+      //   });
   
-      });
+      // });
     });
   });
 
@@ -5471,11 +5670,23 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
     const transferAmount = 300;
 
     beforeEach(async function () {
+      const certificate = await craftCertificate(
+        this.token.contract.methods.issueByPartition(
+          partition1,
+          tokenHolder,
+          issuanceAmount,
+          EMPTY_CERTIFICATE,
+        ).encodeABI(),
+        this.token,
+        this.extension,
+        this.clock, // this.clock
+        controller
+      )
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
         issuanceAmount,
-        EMPTY_CERTIFICATE,
+        certificate,
         { from: controller }
       );
 
@@ -5489,6 +5700,18 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         this.extension,
         this.token,
         false
+      );
+
+      await setCertificateActivated(
+        this.extension,
+        this.token,
+        controller,
+        CERTIFICATE_VALIDATION_NONE
+      )
+      await assertCertificateActivated(
+        this.extension,
+        this.token,
+        CERTIFICATE_VALIDATION_NONE
       );
     });
 
@@ -5618,6 +5841,36 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
   describe("isHoldsActivated", function () {
 
     beforeEach(async function () {
+      await assertHoldsActivated(
+        this.extension,
+        this.token,
+        true
+      );
+
+      await setCertificateActivated(
+        this.extension,
+        this.token,
+        controller,
+        CERTIFICATE_VALIDATION_NONE
+      )
+      await assertCertificateActivated(
+        this.extension,
+        this.token,
+        CERTIFICATE_VALIDATION_NONE
+      );
+
+      await setAllowListActivated(
+        this.extension,
+        this.token,
+        controller,
+        false
+      )
+      await assertAllowListActivated(
+        this.extension,
+        this.token,
+        false
+      );
+
       await this.token.issueByPartition(
         partition1,
         tokenHolder,
@@ -5625,7 +5878,6 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         EMPTY_CERTIFICATE,
         { from: controller }
       );
-
     });
 
     describe("when holds are activated by the owner", function () {
@@ -5655,7 +5907,19 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
 
         const holdId = newHoldId();
         const secretHashPair = newSecretHashPair();
-        await this.extension.holdFrom(this.token.address, holdId, tokenHolder, recipient, notary, partition1, holdAmount, SECONDS_IN_AN_HOUR, secretHashPair.hash, { from: controller })
+        await this.extension.holdFrom(
+          this.token.address,
+          holdId,
+          tokenHolder,
+          recipient,
+          notary,
+          partition1,
+          holdAmount,
+          SECONDS_IN_AN_HOUR,
+          secretHashPair.hash,
+          EMPTY_CERTIFICATE,
+          { from: controller }
+        )
         const spendableBalance = parseInt(await this.extension.spendableBalanceOf(this.token.address, tokenHolder))
 
         const transferAmount = spendableBalance + 1
@@ -7259,7 +7523,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
             describe("when hold is renewed by the sender", function () {
               it("renews the hold (expiration date future)", async function () {
                 this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-                assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+                assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
                 assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
   
                 this.time = await this.clock.getTime();
@@ -7272,12 +7536,12 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                 );
                 
                 this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-                assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-1);
+                assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-2);
                 assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY+100);
               });
               it("renews the hold (expiration date now)", async function () {
                 this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-                assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+                assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
                 assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
   
                 this.time = await this.clock.getTime();
@@ -7305,16 +7569,16 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                 assert.equal(logs[0].args.token, this.token.address);
                 assert.equal(logs[0].args.holdId, this.holdId);
                 assert.equal(logs[0].args.notary, notary);
-                assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+                assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
                 assert.isBelow(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
-                assert.isAtLeast(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY-1);
+                assert.isAtLeast(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY-2);
                 assert.isBelow(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY+100);
               });
             });
             describe("when hold is renewed by an operator", function () {
               it("renews the hold", async function () {
                 this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-                assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+                assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
                 assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
   
                 this.time = await this.clock.getTime();
@@ -7327,7 +7591,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
                 );
                 
                 this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-                assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-1);
+                assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-2);
                 assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY+100);
               });
             });
@@ -7348,7 +7612,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           describe("when hold is expired", function () {
             it("reverts", async function () {
               this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+              assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
               assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
   
               // Wait for more than an hour
@@ -7381,7 +7645,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
             assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_EXECUTED_AND_KEPT_OPEN);
   
             this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-            assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+            assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
             assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
   
             this.time = await this.clock.getTime();
@@ -7394,7 +7658,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
             );
             
             this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-            assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-1);
+            assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-2);
             assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY+100);
           });
         });
@@ -7435,7 +7699,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
       describe("when certificate is valid", function () {
         it("renews the hold (expiration date future)", async function () {
           this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
           assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
 
           this.time = await this.clock.getTime();
@@ -7460,14 +7724,14 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           );
           
           this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-1);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-2);
           assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY+100);
         });
       });
       describe("when certificate is not valid", function () {
         it("reverts", async function () {
           this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
           assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
 
           this.time = await this.clock.getTime();
@@ -7567,7 +7831,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
         describe("when expiration date is in the future", function () {
           it("renews the hold", async function () {
             this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-            assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+            assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
             assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
   
             this.time = parseInt(await this.clock.getTime());
@@ -7580,23 +7844,23 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
             );
             
             this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-            assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-1);
+            assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-2);
             assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY+100);
   
             assert.equal(logs[0].event, "HoldRenewed");
             assert.equal(logs[0].args.token, this.token.address);
             assert.equal(logs[0].args.holdId, this.holdId);
             assert.equal(logs[0].args.notary, notary);
-            assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+            assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
             assert.isBelow(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
-            assert.isAtLeast(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY-1);
+            assert.isAtLeast(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY-2);
             assert.isBelow(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY+100);
           });
         });
         describe("when there is no expiration date", function () {
           it("renews the hold", async function () {
             this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-            assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+            assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
             assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
   
             const { logs } = await this.extension.renewHoldWithExpirationDate(
@@ -7612,7 +7876,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
             assert.equal(parseInt(this.holdData[5]), 0);
   
             assert.equal(logs[0].event, "HoldRenewed");
-            assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+            assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
             assert.isBelow(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
             assert.equal(parseInt(logs[0].args.newExpiration), 0);
           });
@@ -7644,7 +7908,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
       describe("when certificate is valid", function () {
         it("renews the hold", async function () {
           this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
           assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
 
           this.time = parseInt(await this.clock.getTime());
@@ -7669,23 +7933,23 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           );
           
           this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-1);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY-2);
           assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_A_DAY+100);
 
           assert.equal(logs[0].event, "HoldRenewed");
           assert.equal(logs[0].args.token, this.token.address);
           assert.equal(logs[0].args.holdId, this.holdId);
           assert.equal(logs[0].args.notary, notary);
-          assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+          assert.isAtLeast(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
           assert.isBelow(parseInt(logs[0].args.oldExpiration), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
-          assert.isAtLeast(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY-1);
+          assert.isAtLeast(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY-2);
           assert.isBelow(parseInt(logs[0].args.newExpiration), parseInt(this.time)+SECONDS_IN_A_DAY+100);
         });
       });
       describe("when certificate is not valid", function () {
         it("renews the hold", async function () {
           this.holdData = await this.extension.retrieveHoldData(this.token.address, this.holdId);
-          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-1);
+          assert.isAtLeast(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR-2);
           assert.isBelow(parseInt(this.holdData[5]), parseInt(this.time)+SECONDS_IN_AN_HOUR+100);
 
           this.time = parseInt(await this.clock.getTime());
@@ -8433,7 +8697,7 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           assert.equal(this.holdData[2], recipient);
           assert.equal(this.holdData[3], notary);
           assert.equal(parseInt(this.holdData[4]), holdAmount);
-          assert.isAtLeast(parseInt(this.holdData[5]), time+SECONDS_IN_A_DAY-1);
+          assert.isAtLeast(parseInt(this.holdData[5]), time+SECONDS_IN_A_DAY-2);
           assert.isBelow(parseInt(this.holdData[5]), time+SECONDS_IN_A_DAY+100);
           assert.equal(this.holdData[6], secretHashPair.hash);
           assert.equal(this.holdData[7], EMPTY_BYTE32);

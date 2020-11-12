@@ -35,7 +35,7 @@ module.exports = async function (deployer, network, accounts) {
   await extension.registerTokenSetup(tokenInstance2.address, CERTIFICATE_VALIDATION_NONE, true, true, true, true, [controller]);
   console.log('\n   > Manual token extension setup: Success');
 
-  await tokenInstance2.setTokenExtension(extension.address, ERC1400_TOKENS_VALIDATOR, true, true);
+  await tokenInstance2.setTokenExtension(extension.address, ERC1400_TOKENS_VALIDATOR, true, true, true);
   console.log('\n   > Manual token connection to token extension: Success');
 
   await tokenInstance2.transferOwnership(controller);

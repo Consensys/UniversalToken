@@ -91,7 +91,7 @@ contract ERC1400HoldableCertificateToken is ERC1400, IExtensionTypes {
         Extension(extension).addCertificateSigner(address(this), certificateSigner);
       }
 
-      _setTokenExtension(extension, ERC1400_TOKENS_VALIDATOR, true, true);
+      _setTokenExtension(extension, ERC1400_TOKENS_VALIDATOR, true, true, true);
     }
 
     if(newOwner != address(0)) {

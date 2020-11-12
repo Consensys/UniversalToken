@@ -2,7 +2,7 @@ const { ZERO_ADDRESS } = require("@openzeppelin/test-helpers/src/constants");
 
 const BatchBalanceReader = artifacts.require("BatchBalanceReader.sol");
 
-const ERC1400HoldableCertificate = artifacts.require("ERC1400HoldableCertificateTokenMock");
+const ERC1400 = artifacts.require("ERC1400");
 
 const CERTIFICATE_SIGNER = "0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630";
 
@@ -44,28 +44,20 @@ contract(
   "BatchBalanceReader",
   ([owner, controller, tokenHolder1, tokenHolder2, tokenHolder3, unknown]) => {
     beforeEach(async function () {
-      this.token1 = await ERC1400HoldableCertificate.new(
+      this.token1 = await ERC1400.new(
         "ERC1400Token",
         "DAU",
         1,
         [controller],
         partitions,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        CERTIFICATE_SIGNER,
-        true,
         { from: controller }
       );
-      this.token2 = await ERC1400HoldableCertificate.new(
+      this.token2 = await ERC1400.new(
         "ERC1400Token",
         "DAU",
         1,
         [controller],
         partitions,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        CERTIFICATE_SIGNER,
-        true,
         { from: controller }
       );
       this.balanceReader = await BatchBalanceReader.new();

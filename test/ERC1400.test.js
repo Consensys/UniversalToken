@@ -1045,7 +1045,9 @@ contract("ERC1400", function ([
                   "DAU",
                   1,
                   [controller],
-                  partitions
+                  partitions,
+                  ZERO_ADDRESS,
+                  ZERO_ADDRESS,
                 );
                 await this.token.issueByPartition(
                   partition1,
@@ -2526,7 +2528,9 @@ contract("ERC1400", function ([
                   "DAU",
                   1,
                   [controller],
-                  partitions
+                  partitions,
+                  ZERO_ADDRESS,
+                  ZERO_ADDRESS,
                 );
                 await issueOnMultiplePartitions(
                   this.token,
@@ -2603,7 +2607,9 @@ contract("ERC1400", function ([
               "DAU",
               1,
               [controller],
-              partitions
+              partitions,
+              ZERO_ADDRESS,
+              ZERO_ADDRESS,
             );
 
             await issueOnMultiplePartitions(

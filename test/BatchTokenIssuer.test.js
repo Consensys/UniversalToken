@@ -4,7 +4,8 @@ const { expectRevert } = require("@openzeppelin/test-helpers");
 
 const BatchTokenIssuer = artifacts.require("BatchTokenIssuer.sol");
 
-const ERC1400HoldableCertificate = artifacts.require("ERC1400HoldableCertificateTokenMock");
+const ERC1400HoldableCertificate = artifacts.require("ERC1400HoldableCertificateToken");
+const ERC1400TokensValidator = artifacts.require("ERC1400TokensValidator");
 
 const CERTIFICATE_SIGNER = "0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630";
 
@@ -25,7 +26,12 @@ const partition4 = "0x".concat(partition4_short);
 
 const partitions = [partition1, partition2, partition3, partition4];
 
-const MAX_NUMBER_OF_ISSUANCES_IN_A_BATCH = 46;
+const CERTIFICATE_VALIDATION_NONE = 0;
+const CERTIFICATE_VALIDATION_NONCE = 1;
+const CERTIFICATE_VALIDATION_SALT = 2;
+const CERTIFICATE_VALIDATION_DEFAULT = CERTIFICATE_VALIDATION_SALT;
+
+const MAX_NUMBER_OF_ISSUANCES_IN_A_BATCH = 40;
 
 const assertBalanceOfByPartition = async (
   _contract,
@@ -41,7 +47,14 @@ const assertBalanceOfByPartition = async (
 
 contract(
   "BatchTokenIssuer",
-  ([owner, controller, tokenMinter1, tokenMinter2, unknown]) => {
+  ([owner, controller, unknown]) => {
+
+    before(async function () {  
+      this.extension = await ERC1400TokensValidator.new({
+        from: unknown,
+      });
+    });
+
     beforeEach(async function () {
       this.token = await ERC1400HoldableCertificate.new(
         "ERC1400Token",
@@ -49,18 +62,19 @@ contract(
         1,
         [controller],
         [partition1],
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
+        this.extension.address,
+        owner,
         CERTIFICATE_SIGNER,
-        true,
-        { from: owner }
+        CERTIFICATE_VALIDATION_DEFAULT,
+        { from: controller }
       );
       this.batchIssuer = await BatchTokenIssuer.new();
 
-      await this.token.setCertificateSigner(this.batchIssuer.address, true, {
-        from: owner,
+      await this.extension.addCertificateSigner(this.token.address, this.batchIssuer.address, {
+        from: controller,
       });
-      await this.token.addMinter(this.batchIssuer.address, { from: owner });
+      
+      await this.token.addMinter(this.batchIssuer.address, { from: controller });
 
       this.issuancePartitions = [];
       this.tokenHolders = [];
@@ -80,14 +94,14 @@ contract(
 
     describe("batchIssueByPartition", function () {
       describe("when input is correct", function () {
-        describe("when the operator is the owner of the token contract", function () {
+        describe("when the operator is a minter", function () {
           it("issues tokens for multiple different holders", async function () {
             await this.batchIssuer.batchIssueByPartition(
               this.token.address,
               this.issuancePartitions,
               this.tokenHolders,
               this.values,
-              { from: owner }
+              { from: controller }
             );
 
             for (let i = 0; i < this.issuancePartitions.length; i++) {
@@ -100,40 +114,15 @@ contract(
             }
           });
         });
-        describe("when the operator has been declared as minter in the BatchTokenIssuer contract", function () {
-          it("issues tokens for multiple different holders", async function () {
-            await this.batchIssuer.setTokenMinters(
-              this.token.address,
-              [tokenMinter1],
-              { from: owner }
-            );
-            await this.batchIssuer.batchIssueByPartition(
-              this.token.address,
-              this.issuancePartitions,
-              this.tokenHolders,
-              this.values,
-              { from: tokenMinter1 }
-            );
-
-            for (let i = 0; i < this.issuancePartitions.length; i++) {
-              await assertBalanceOfByPartition(
-                this.token,
-                this.tokenHolders[i],
-                this.issuancePartitions[i],
-                this.values[i]
-              );
-            }
-          });
-        });
-        describe("when the operator neither the owner of the token contract, nor a minter in the BatchTokenIssuer contract", function () {
-          it("issues tokens for multiple different holders", async function () {
+        describe("when the operator is not a minter", function () {
+          it("reverts", async function () {
             await expectRevert.unspecified(
               this.batchIssuer.batchIssueByPartition(
                 this.token.address,
                 this.issuancePartitions,
                 this.tokenHolders,
                 this.values,
-                { from: tokenMinter1 }
+                { from: unknown }
               )
             );
           });
@@ -148,7 +137,7 @@ contract(
               this.issuancePartitions,
               this.tokenHolders,
               this.values,
-              { from: owner }
+              { from: controller }
             )
           );
         });
@@ -162,81 +151,12 @@ contract(
               this.issuancePartitions,
               this.tokenHolders,
               this.values,
-              { from: owner }
+              { from: controller }
             )
           );
         });
       });
     });
 
-    // SET TOKEN MINTERS
-
-    describe("setTokenMinters", function () {
-      describe("when the caller is the token contract owner", function () {
-        it("sets the operators as token minters", async function () {
-          let tokenMinters = await this.batchIssuer.tokenMinters(
-            this.token.address
-          );
-          assert.equal(tokenMinters.length, 0);
-
-          await this.batchIssuer.setTokenMinters(
-            this.token.address,
-            [tokenMinter1, tokenMinter2],
-            { from: owner }
-          );
-
-          tokenMinters = await this.batchIssuer.tokenMinters(
-            this.token.address
-          );
-          assert.equal(tokenMinters.length, 2);
-          assert.equal(tokenMinters[0], tokenMinter1);
-          assert.equal(tokenMinters[1], tokenMinter2);
-        });
-      });
-      describe("when the caller is an other token minter", function () {
-        it("sets the operators as token minters", async function () {
-          let tokenMinters = await this.batchIssuer.tokenMinters(
-            this.token.address
-          );
-          assert.equal(tokenMinters.length, 0);
-
-          await this.batchIssuer.setTokenMinters(
-            this.token.address,
-            [tokenMinter2],
-            { from: owner }
-          );
-
-          tokenMinters = await this.batchIssuer.tokenMinters(
-            this.token.address
-          );
-          assert.equal(tokenMinters.length, 1);
-          assert.equal(tokenMinters[0], tokenMinter2);
-
-          await this.batchIssuer.setTokenMinters(
-            this.token.address,
-            [tokenMinter1, unknown],
-            { from: tokenMinter2 }
-          );
-
-          tokenMinters = await this.batchIssuer.tokenMinters(
-            this.token.address
-          );
-          assert.equal(tokenMinters.length, 2);
-          assert.equal(tokenMinters[0], tokenMinter1);
-          assert.equal(tokenMinters[1], unknown);
-        });
-      });
-      describe("when the caller is neither the token contract owner nor a token minter", function () {
-        it("reverts", async function () {
-          await expectRevert.unspecified(
-            this.batchIssuer.setTokenMinters(
-              this.token.address,
-              [tokenMinter1, tokenMinter2],
-              { from: unknown }
-            )
-          );
-        });
-      });
-    });
   }
 );

@@ -13,8 +13,4 @@ contract CertificateSignerMock is CertificateSignerRole {
     _addCertificateSigner(token, msg.sender);
   }
 
-  function mockFunction(address token, bool mockActivated) external onlyCertificateSigner(token) {
-    _mockActivated = mockActivated;
-  }
-
 }

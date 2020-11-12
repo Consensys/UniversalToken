@@ -15,7 +15,7 @@ const { soliditySha3 } = require("web3-utils");
 const { advanceTimeAndBlock } = require("./utils/time")
 
 const FundIssuerContract = artifacts.require("FundIssuer");
-const ERC1400HoldableCertificate = artifacts.require("ERC1400HoldableCertificateTokenMock");
+const ERC1400 = artifacts.require("ERC1400");
 const ERC1820Registry = artifacts.require("ERC1820Registry");
 
 const ERC1400_TOKENS_RECIPIENT_INTERFACE = "ERC1400TokensRecipient";
@@ -643,16 +643,12 @@ contract("Fund issuance", function ([
 
   describe("executePaymentAsInvestor", function () {
     beforeEach(async function () {
-      this.asset = await ERC1400HoldableCertificate.new(
+      this.asset = await ERC1400.new(
         "ERC1400Token",
         "DAU",
         1,
         [owner],
         partitions,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        CERTIFICATE_SIGNER,
-        true,
         { from: tokenController1 }
       );
       this.fic = await FundIssuerContract.new();
@@ -890,16 +886,12 @@ contract("Fund issuance", function ([
 
   describe("rejectOrder", function () {
     beforeEach(async function () {
-      this.asset = await ERC1400HoldableCertificate.new(
+      this.asset = await ERC1400.new(
         "ERC1400Token",
         "DAU",
         1,
         [owner],
         partitions,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        CERTIFICATE_SIGNER,
-        true,
         { from: tokenController1 }
       );
       this.fic = await FundIssuerContract.new();
@@ -1156,16 +1148,12 @@ contract("Fund issuance", function ([
   describe("canReceive", function () {
     beforeEach(async function () {
       this.fic = await FundIssuerContract.new();
-      this.asset = await ERC1400HoldableCertificate.new(
+      this.asset = await ERC1400.new(
         "ERC1400Token",
         "DAU",
         1,
         [owner],
         partitions,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        CERTIFICATE_SIGNER,
-        true,
         { from: tokenController1 }
       );
       this.orderCreationFlag = getOrderCreationData(
@@ -1282,16 +1270,12 @@ contract("Fund issuance", function ([
 
   describe("setAssetRules", function () {
     beforeEach(async function () {
-      this.asset = await ERC1400HoldableCertificate.new(
+      this.asset = await ERC1400.new(
         "ERC1400Token",
         "DAU",
         1,
         [owner],
         partitions,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        CERTIFICATE_SIGNER,
-        true,
         { from: tokenController1 }
       );
       this.fic = await FundIssuerContract.new();
@@ -1335,16 +1319,12 @@ contract("Fund issuance", function ([
                 fund,
                 true
               );
-              this.paymentToken = await ERC1400HoldableCertificate.new(
+              this.paymentToken = await ERC1400.new(
                 "ERC1400Token",
                 "DAU",
                 1,
                 [owner],
                 partitions,
-                ZERO_ADDRESS,
-                ZERO_ADDRESS,
-                CERTIFICATE_SIGNER,
-                true,
                 { from: tokenController1 }
               );
               const chainTime = (await web3.eth.getBlock("latest")).timestamp;
@@ -1484,16 +1464,12 @@ contract("Fund issuance", function ([
 
   describe("subscribe", function () {
     beforeEach(async function () {
-      this.asset = await ERC1400HoldableCertificate.new(
+      this.asset = await ERC1400.new(
         "ERC1400Token",
         "DAU",
         1,
         [owner],
         partitions,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        CERTIFICATE_SIGNER,
-        true,
         { from: tokenController1 }
       );
       this.fic = await FundIssuerContract.new();
@@ -1684,16 +1660,12 @@ contract("Fund issuance", function ([
                 fund,
                 NEW_CYCLE_CREATED_FALSE
               );
-              this.asset2 = await ERC1400HoldableCertificate.new(
+              this.asset2 = await ERC1400.new(
                 "ERC1400Token",
                 "DAU",
                 1,
                 [owner],
                 partitions,
-                ZERO_ADDRESS,
-                ZERO_ADDRESS,
-                CERTIFICATE_SIGNER,
-                true,
                 { from: tokenController2 }
               );
               await subscribe(
@@ -1822,16 +1794,12 @@ contract("Fund issuance", function ([
 
   describe("cancelOrder", function () {
     beforeEach(async function () {
-      this.asset = await ERC1400HoldableCertificate.new(
+      this.asset = await ERC1400.new(
         "ERC1400Token",
         "DAU",
         1,
         [owner],
         partitions,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        CERTIFICATE_SIGNER,
-        true,
         { from: tokenController1 }
       );
       this.fic = await FundIssuerContract.new();
@@ -1969,16 +1937,12 @@ contract("Fund issuance", function ([
 
   describe("valuate", function () {
     beforeEach(async function () {
-      this.asset = await ERC1400HoldableCertificate.new(
+      this.asset = await ERC1400.new(
         "ERC1400Token",
         "DAU",
         1,
         [owner],
         partitions,
-        ZERO_ADDRESS,
-        ZERO_ADDRESS,
-        CERTIFICATE_SIGNER,
-        true,
         { from: tokenController1 }
       );
       this.fic = await FundIssuerContract.new();
@@ -2150,16 +2114,12 @@ contract("Fund issuance", function ([
       });
       describe("when cycle is of type known", function () {
         it("set the valuation", async function () {
-          this.asset2 = await ERC1400HoldableCertificate.new(
+          this.asset2 = await ERC1400.new(
             "ERC1400Token",
             "DAU",
             1,
             [owner],
             partitions,
-            ZERO_ADDRESS,
-            ZERO_ADDRESS,
-            CERTIFICATE_SIGNER,
-            true,
             { from: tokenController1 }
           );
           this.fic = await FundIssuerContract.new();

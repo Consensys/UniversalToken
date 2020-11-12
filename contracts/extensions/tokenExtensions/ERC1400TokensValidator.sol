@@ -364,7 +364,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     if(
       _certificateActivated[token] > CertificateValidation.None &&
       _functionSupportsCertificateValidation(payload) &&
-      operator != address(this)
+      !isCertificateSigner(token, operator) &&
+      address(this) != operator
     ) {
       if(_certificateActivated[token] == CertificateValidation.SaltBased) {
         (bool valid, bytes32 salt) = _checkSaltBasedCertificate(
@@ -379,7 +380,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
           return (false, CertificateValidation.SaltBased, "");
         }
         
-      } else if (_certificateActivated[token] == CertificateValidation.NonceBased) {
+      } else { // case when _certificateActivated[token] == CertificateValidation.NonceBased
         if(
           _checkNonceBasedCertificate(
             token,
@@ -1499,23 +1500,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       }
     }
     return (false, "");
-  }
-
-  function packAndHash(address msgSender, address token, bytes calldata payloadWithoutCertificate, uint256 e, bytes32 salt) external pure returns (bytes32) {
-     return _packAndHash(msgSender, token, payloadWithoutCertificate, e, salt);
-  }
-
-  function _packAndHash(address msgSender, address token, bytes memory payloadWithoutCertificate, uint256 e, bytes32 salt) internal pure returns (bytes32) {
-     bytes memory pack = abi.encodePacked(
-        msgSender,
-        token,
-        payloadWithoutCertificate,
-        e,
-        salt
-      );
-      bytes32 hash = keccak256(pack);
-
-      return hash;
   }
 
 }

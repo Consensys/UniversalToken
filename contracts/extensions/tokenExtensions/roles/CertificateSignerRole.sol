@@ -17,8 +17,8 @@ contract CertificateSignerRole {
     event CertificateSignerAdded(address indexed token, address indexed account);
     event CertificateSignerRemoved(address indexed token, address indexed account);
 
-    // Mapping from token to token pausers.
-    mapping(address => Roles.Role) private _pausers;
+    // Mapping from token to token certificate signers.
+    mapping(address => Roles.Role) private _certificateSigners;
 
     constructor () internal {}
 
@@ -28,7 +28,7 @@ contract CertificateSignerRole {
     }
 
     function isCertificateSigner(address token, address account) public view returns (bool) {
-        return _pausers[token].has(account);
+        return _certificateSigners[token].has(account);
     }
 
     function addCertificateSigner(address token, address account) public onlyCertificateSigner(token) {
@@ -44,12 +44,12 @@ contract CertificateSignerRole {
     }
 
     function _addCertificateSigner(address token, address account) internal {
-        _pausers[token].add(account);
+        _certificateSigners[token].add(account);
         emit CertificateSignerAdded(token, account);
     }
 
     function _removeCertificateSigner(address token, address account) internal {
-        _pausers[token].remove(account);
+        _certificateSigners[token].remove(account);
         emit CertificateSignerRemoved(token, account);
     }
 }

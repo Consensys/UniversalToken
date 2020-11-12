@@ -731,11 +731,12 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * If the extension is an "ERC1400TokensValidator", it will be called everytime a transfer is executed.
    * @param extension Address of the extension contract.
    * @param interfaceLabel Interface label of extension contract.
-   * @param minterExtension If set to 'true', the extension contract will be added as minter.
-   * @param controllerExtension If set to 'true', the extension contract will be added as controller.
+   * @param removeOldExtensionRoles If set to 'true', the roles of the old extension(minter, controller) will be removed extension.
+   * @param addMinterRoleForExtension If set to 'true', the extension contract will be added as minter.
+   * @param addControllerRoleForExtension If set to 'true', the extension contract will be added as controller.
    */
-  function setTokenExtension(address extension, string calldata interfaceLabel, bool minterExtension, bool controllerExtension) external onlyOwner {
-    _setTokenExtension(extension, interfaceLabel, minterExtension, controllerExtension);
+  function setTokenExtension(address extension, string calldata interfaceLabel, bool removeOldExtensionRoles, bool addMinterRoleForExtension, bool addControllerRoleForExtension) external onlyOwner {
+    _setTokenExtension(extension, interfaceLabel, removeOldExtensionRoles, addMinterRoleForExtension, addControllerRoleForExtension);
   }
   /************************************************************************************************/
 
@@ -1298,24 +1299,25 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * If the extension is an "ERC1400TokensValidator", it will be called everytime a transfer is executed.
    * @param extension Address of the extension contract.
    * @param interfaceLabel Interface label of extension contract.
-   * @param minterExtension If set to 'true', the extension contract will be added as minter.
-   * @param controllerExtension If set to 'true', the extension contract will be added as controller.
+   * @param removeOldExtensionRoles If set to 'true', the roles of the old extension(minter, controller) will be removed extension.
+   * @param addMinterRoleForExtension If set to 'true', the extension contract will be added as minter.
+   * @param addControllerRoleForExtension If set to 'true', the extension contract will be added as controller.
    */
-  function _setTokenExtension(address extension, string memory interfaceLabel, bool minterExtension, bool controllerExtension) internal {
+  function _setTokenExtension(address extension, string memory interfaceLabel, bool removeOldExtensionRoles, bool addMinterRoleForExtension, bool addControllerRoleForExtension) internal {
     address oldExtension = interfaceAddr(address(this), interfaceLabel);
 
-    if (oldExtension != address(0)) {
-      if(minterExtension && isMinter(oldExtension)) {
+    if (oldExtension != address(0) && removeOldExtensionRoles) {
+      if(isMinter(oldExtension)) {
         _removeMinter(oldExtension);
       }
       _isController[oldExtension] = false;
     }
 
     ERC1820Client.setInterfaceImplementation(interfaceLabel, extension);
-    if(minterExtension && !isMinter(extension)) {
+    if(addMinterRoleForExtension && !isMinter(extension)) {
       _addMinter(extension);
     }
-    if (controllerExtension) {
+    if (addControllerRoleForExtension) {
       _isController[extension] = true;
     }
   }
