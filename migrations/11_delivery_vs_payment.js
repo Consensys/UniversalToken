@@ -7,6 +7,8 @@ const ERC1820Registry = artifacts.require('ERC1820Registry');
 const DELIVERY_VS_PAYMENT = 'DeliveryVsPayment';
 
 module.exports = async function (deployer, network, accounts) {
+  if (network == "test") return; // test maintains own contracts
+  
   await deployer.deploy(DVPContract, false, false);
   console.log('\n   > DVP deployment: Success -->', DVPContract.address);
 
@@ -14,7 +16,7 @@ module.exports = async function (deployer, network, accounts) {
   
   await registry.setInterfaceImplementer(accounts[0], soliditySha3(DELIVERY_VS_PAYMENT), DVPContract.address, { from: accounts[0] });
 
-  const registeredDVPAddress = await registry.getInterfaceImplementer(accounts[0], soliditySha3(DELIVERY_VS_PAYMENT), { from: accounts[1] });
+  const registeredDVPAddress = await registry.getInterfaceImplementer(accounts[0], soliditySha3(DELIVERY_VS_PAYMENT));
 
   if(registeredDVPAddress === DVPContract.address) {
     console.log('\n   > DVP registry in ERC1820: Success -->', registeredDVPAddress);

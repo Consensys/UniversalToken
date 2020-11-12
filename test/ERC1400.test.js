@@ -3,6 +3,7 @@ const { expectRevert } = require("@openzeppelin/test-helpers");
 const { soliditySha3 } = require("web3-utils");
 
 const ERC1400 = artifacts.require("ERC1400");
+
 const ERC1820Registry = artifacts.require("ERC1820Registry");
 
 const FakeERC1400 = artifacts.require("FakeERC1400Mock");
@@ -1044,7 +1045,9 @@ contract("ERC1400", function ([
                   "DAU",
                   1,
                   [controller],
-                  partitions
+                  partitions,
+                  ZERO_ADDRESS,
+                  ZERO_ADDRESS,
                 );
                 await this.token.issueByPartition(
                   partition1,
@@ -2525,7 +2528,9 @@ contract("ERC1400", function ([
                   "DAU",
                   1,
                   [controller],
-                  partitions
+                  partitions,
+                  ZERO_ADDRESS,
+                  ZERO_ADDRESS,
                 );
                 await issueOnMultiplePartitions(
                   this.token,
@@ -2602,7 +2607,9 @@ contract("ERC1400", function ([
               "DAU",
               1,
               [controller],
-              partitions
+              partitions,
+              ZERO_ADDRESS,
+              ZERO_ADDRESS,
             );
 
             await issueOnMultiplePartitions(

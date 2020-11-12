@@ -13,7 +13,7 @@ contract ERC1400TokensSenderMock is IERC1400TokensSender, ERC1820Implementer {
   }
 
   function canTransfer(
-    bytes4 /*functionSig*/,
+    bytes calldata /*payload*/,
     bytes32 /*partition*/,
     address /*operator*/,
     address from,
@@ -30,7 +30,7 @@ contract ERC1400TokensSenderMock is IERC1400TokensSender, ERC1820Implementer {
   }
 
   function tokensToTransfer(
-    bytes4 /*functionSig*/,
+    bytes calldata /*payload*/,
     bytes32 /*partition*/,
     address /*operator*/,
     address from,

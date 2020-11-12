@@ -35,6 +35,10 @@ contract AllowlistAdminRole {
         _addAllowlistAdmin(token, account);
     }
 
+    function removeAllowlistAdmin(address token, address account) public onlyAllowlistAdmin(token) {
+        _removeAllowlistAdmin(token, account);
+    }
+
     function renounceAllowlistAdmin(address token) public {
         _removeAllowlistAdmin(token, msg.sender);
     }

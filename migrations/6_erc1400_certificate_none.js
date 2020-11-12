@@ -1,4 +1,4 @@
-const ERC1400HoldableCertificateSaltToken = artifacts.require('./ERC1400HoldableCertificateSaltToken.sol');
+const ERC1400HoldableCertificateToken = artifacts.require('./ERC1400HoldableCertificateToken.sol');
 
 const CERTIFICATE_SIGNER = '0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630';
 const controller = '0xb5747835141b46f7C472393B31F8F5A57F74A44f';
@@ -10,7 +10,13 @@ const partitions = [partition1, partition2, partition3];
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 
+const CERTIFICATE_VALIDATION_NONE = 0;
+const CERTIFICATE_VALIDATION_NONCE = 1;
+const CERTIFICATE_VALIDATION_SALT = 2;
+
 module.exports = async function (deployer, network, accounts) {
-  await deployer.deploy(ERC1400HoldableCertificateSaltToken, 'ERC1400HoldableCertificateSaltToken', 'DAU', 1, [controller], partitions, ZERO_ADDRESS, ZERO_ADDRESS, CERTIFICATE_SIGNER, true);
-  console.log('\n   > ERC1400HoldableCertificateSaltToken token deployment: Success -->', ERC1400HoldableCertificateSaltToken.address);
+  if (network == "test") return; // test maintains own contracts
+  
+  await deployer.deploy(ERC1400HoldableCertificateToken, 'ERC1400HoldableCertificateToken', 'DAU', 1, [controller], partitions, ZERO_ADDRESS, ZERO_ADDRESS, CERTIFICATE_SIGNER, CERTIFICATE_VALIDATION_NONE);
+  console.log('\n   > ERC1400HoldableCertificateToken token deployment without extension: Success -->', ERC1400HoldableCertificateToken.address);
 };

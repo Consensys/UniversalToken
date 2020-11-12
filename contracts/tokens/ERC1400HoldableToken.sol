@@ -3,21 +3,32 @@ pragma solidity ^0.5.0;
 import "../ERC1400.sol";
 
 /**
- * @notice Interface to the Minterrole contract
+ * @notice Interface to the extension types
  */
-interface IExtension {
+interface IExtensionTypes {
+  enum CertificateValidation {
+    None,
+    NonceBased,
+    SaltBased
+  }
+}
+
+/**
+ * @notice Interface to the extension contract
+ */
+contract Extension is IExtensionTypes {
   function registerTokenSetup(
     address token,
+    CertificateValidation certificateActivated,
     bool allowlistActivated,
     bool blocklistActivated,
     bool granularityByPartitionActivated,
     bool holdsActivated,
-    bool selfHoldsActivated,
     address[] calldata operators
   ) external;
 }
 
-contract ERC1400HoldableToken is ERC1400 {
+contract ERC1400HoldableToken is ERC1400, IExtensionTypes {
 
   string constant internal ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
 
@@ -29,7 +40,7 @@ contract ERC1400HoldableToken is ERC1400 {
    * @param controllers Array of initial controllers.
    * @param defaultPartitions Partitions chosen by default, when partition is
    * not specified, like the case ERC20 tranfers.
-   * @param extension Address of holdable token extension.
+   * @param extension Address of token extension.
    * @param newOwner Address whom contract ownership shall be transferred to.
    */
   constructor(
@@ -45,9 +56,17 @@ contract ERC1400HoldableToken is ERC1400 {
     ERC1400(name, symbol, granularity, controllers, defaultPartitions)
   {
     if(extension != address(0)) {
-      IExtension(extension).registerTokenSetup(address(this), true, true, true, true, false, controllers);
+      Extension(extension).registerTokenSetup(
+        address(this), // token
+        CertificateValidation.None, // certificateActivated
+        true, // allowlistActivated
+        true, // blocklistActivated
+        true, // granularityByPartitionActivated
+        true, // holdsActivated
+        controllers // token controllers
+      );
 
-      _setTokenExtension(extension, ERC1400_TOKENS_VALIDATOR, true, true);
+      _setTokenExtension(extension, ERC1400_TOKENS_VALIDATOR, true, true, true);
     }
 
     if(newOwner != address(0)) {
