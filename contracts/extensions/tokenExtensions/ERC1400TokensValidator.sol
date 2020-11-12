@@ -69,9 +69,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   // Mapping from token to holds activation status.
   mapping(address => bool) internal _holdsActivated;
 
-  // Mapping from token to self-holds activation status.
-  mapping(address => bool) internal _selfHoldsActivated;
-
   enum HoldStatusCode {
     Nonexistent,
     Ordered,
@@ -211,14 +208,13 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
    * @dev Get the list of token controllers for a given token.
    * @return Setup of a given token.
    */
-  function retrieveTokenSetup(address token) external view returns (CertificateValidation, bool, bool, bool, bool, bool, address[] memory) {
+  function retrieveTokenSetup(address token) external view returns (CertificateValidation, bool, bool, bool, bool, address[] memory) {
     return (
       _certificateActivated[token],
       _allowlistActivated[token],
       _blocklistActivated[token],
       _granularityByPartitionActivated[token],
       _holdsActivated[token],
-      _selfHoldsActivated[token],
       _tokenControllers[token]
     );
   }
@@ -233,7 +229,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     bool blocklistActivated,
     bool granularityByPartitionActivated,
     bool holdsActivated,
-    bool selfHoldsActivated,
     address[] calldata operators
   ) external onlyTokenController(token) {
     _certificateActivated[token] = certificateActivated;
@@ -241,7 +236,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     _blocklistActivated[token] = blocklistActivated;
     _granularityByPartitionActivated[token] = granularityByPartitionActivated;
     _holdsActivated[token] = holdsActivated;
-    _selfHoldsActivated[token] = selfHoldsActivated;
     _setTokenControllers(token, operators);
   }
 

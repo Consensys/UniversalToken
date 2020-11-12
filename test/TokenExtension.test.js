@@ -160,6 +160,43 @@ const assertEscResponse = async (
   assert.equal(_response[2], _destinationPartition);
 };
 
+const assertTokenHasExtension = async (
+  _registry,
+  _extension,
+  _token,
+) => {
+  let hookImplementer = await _registry.getInterfaceImplementer(
+    _token.address,
+    soliditySha3(ERC1400_TOKENS_VALIDATOR)
+  );
+  assert.equal(hookImplementer, _extension.address);
+}
+
+const setNewExtensionForToken = async (
+  _extension,
+  _token,
+  _sender,
+) => {
+  const controllers = await _token.controllers();
+  await _extension.registerTokenSetup(
+    _token.address,
+    true,
+    true,
+    true,
+    true,
+    controllers,
+    { from: _sender }
+  );
+
+  await _token.setTokenExtension(
+    _extension.address,
+    ERC1400_TOKENS_VALIDATOR,
+    true,
+    true,
+    { from: _sender }
+  );
+}
+
 const assertCertificateActivated = async (
   _extension,
   _token,
@@ -184,7 +221,6 @@ const setCertificateActivated = async (
     tokenSetup[3],
     tokenSetup[4],
     tokenSetup[5],
-    tokenSetup[6],
     { from: _sender }
   );
 }
@@ -213,7 +249,6 @@ const setAllowListActivated = async (
     tokenSetup[3],
     tokenSetup[4],
     tokenSetup[5],
-    tokenSetup[6],
     { from: _sender }
   );
 }
@@ -242,7 +277,6 @@ const setBlockListActivated = async (
     tokenSetup[3],
     tokenSetup[4],
     tokenSetup[5],
-    tokenSetup[6],
     { from: _sender }
   );
 }
@@ -271,7 +305,6 @@ const setGranularityByPartitionActivated = async (
     _value,
     tokenSetup[4],
     tokenSetup[5],
-    tokenSetup[6],
     { from: _sender }
   );
 }
@@ -300,72 +333,6 @@ const setHoldsActivated = async (
     tokenSetup[3],
     _value,
     tokenSetup[5],
-    tokenSetup[6],
-    { from: _sender }
-  );
-}
-
-const assertSelfHoldsActivated = async (
-  _extension,
-  _token,
-  _expectedValue
-) => {
-  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
-  assert.equal(_expectedValue, tokenSetup[5]);
-}
-
-const setSelfHoldsActivated = async (
-  _extension,
-  _token,
-  _sender,
-  _value
-) => {
-  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
-  await _extension.registerTokenSetup(
-    _token.address,
-    tokenSetup[0],
-    tokenSetup[1],
-    tokenSetup[2],
-    tokenSetup[3],
-    tokenSetup[4],
-    _value,
-    tokenSetup[6],
-    { from: _sender }
-  );
-}
-
-const assertTokenHasExtension = async (
-  _registry,
-  _extension,
-  _token,
-) => {
-  let hookImplementer = await _registry.getInterfaceImplementer(
-    _token.address,
-    soliditySha3(ERC1400_TOKENS_VALIDATOR)
-  );
-  assert.equal(hookImplementer, _extension.address);
-}
-
-const addTokenController = async (
-  _extension,
-  _token,
-  _sender,
-  _newController
-) => {
-  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
-  const controllerList = tokenSetup[6];
-  if (!controllerList.includes(_newController)) {
-    controllerList.push(_newController);
-  }
-  await _extension.registerTokenSetup(
-    _token.address,
-    tokenSetup[0],
-    tokenSetup[1],
-    tokenSetup[2],
-    tokenSetup[3],
-    tokenSetup[4],
-    tokenSetup[5],
-    controllerList,
     { from: _sender }
   );
 }
@@ -377,32 +344,29 @@ const assertIsTokenController = async (
   _value,
 ) => {
   const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
-  const controllerList = tokenSetup[6];
+  const controllerList = tokenSetup[5];
   assert.equal(_value, controllerList.includes(_controller))
 }
 
-const setNewExtensionForToken = async (
+const addTokenController = async (
   _extension,
   _token,
   _sender,
+  _newController
 ) => {
-  const controllers = await _token.controllers();
+  const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
+  const controllerList = tokenSetup[5];
+  if (!controllerList.includes(_newController)) {
+    controllerList.push(_newController);
+  }
   await _extension.registerTokenSetup(
     _token.address,
-    true,
-    true,
-    true,
-    true,
-    false,
-    controllers,
-    { from: _sender }
-  );
-
-  await _token.setTokenExtension(
-    _extension.address,
-    ERC1400_TOKENS_VALIDATOR,
-    true,
-    true,
+    tokenSetup[0],
+    tokenSetup[1],
+    tokenSetup[2],
+    tokenSetup[3],
+    tokenSetup[4],
+    controllerList,
     { from: _sender }
   );
 }
@@ -5292,18 +5256,6 @@ contract("ERC1400HoldableCertificate with validator hook", function ([
           true
         )
         await assertHoldsActivated(
-          this.extension,
-          this.token,
-          true
-        );
-
-        await setSelfHoldsActivated(
-          this.extension,
-          this.token,
-          controller,
-          true
-        )
-        await assertSelfHoldsActivated(
           this.extension,
           this.token,
           true

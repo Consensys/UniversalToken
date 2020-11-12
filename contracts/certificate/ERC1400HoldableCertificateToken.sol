@@ -28,7 +28,6 @@ contract Extension is IExtensionTypes {
     bool blocklistActivated,
     bool granularityByPartitionActivated,
     bool holdsActivated,
-    bool selfHoldsActivated,
     address[] calldata operators
   ) external;
 
@@ -85,7 +84,6 @@ contract ERC1400HoldableCertificateToken is ERC1400, IExtensionTypes {
         true, // blocklistActivated
         true, // granularityByPartitionActivated
         true, // holdsActivated
-        false, // selfHoldsActivated
         controllers // token controllers
       );
 
