@@ -42,6 +42,7 @@ const EMPTY_CERTIFICATE = "0x";
 
 const CERTIFICATE_WITH_V_EQUAL_TO_27 = "0x00000000000000000000000000000000000000000000000000000000c4427ed1057da68ae02a18da9be28448860b16d3903ff8476a2f86effbde677695466aa720f3a5c4f0e450403a66854ea20b7356fcff1cf100d291907ef6f9a6ac25f3a31b";
 const CERTIFICATE_WITH_V_EQUAL_TO_28 = "0x00000000000000000000000000000000000000000000000000000000c4427ed1057da68ae02a18da9be28448860b16d3903ff8476a2f86effbde677695466aa720f3a5c4f0e450403a66854ea20b7356fcff1cf100d291907ef6f9a6ac25f3a31c";
+const CERTIFICATE_WITH_V_EQUAL_TO_29 = "0x00000000000000000000000000000000000000000000000000000000c4427ed1057da68ae02a18da9be28448860b16d3903ff8476a2f86effbde677695466aa720f3a5c4f0e450403a66854ea20b7356fcff1cf100d291907ef6f9a6ac25f3a31d";
 
 const CERTIFICATE_VALIDITY_PERIOD = 1; // Certificate will be valid for 1 hour
 
@@ -3447,6 +3448,15 @@ contract("ERC1400HoldableCertificate with token extension", function ([
             { from: controller }
           ));
         });
+        it("fails issuing when certificate is not valid (certificate with v=29) [for coverage]", async function () {
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            CERTIFICATE_WITH_V_EQUAL_TO_29,
+            { from: controller }
+          ));
+        });
       });
       describe("nonce-based certificate control", function () {
         beforeEach(async function () {
@@ -3674,6 +3684,15 @@ contract("ERC1400HoldableCertificate with token extension", function ([
             tokenHolder,
             issuanceAmount,
             CERTIFICATE_WITH_V_EQUAL_TO_28,
+            { from: controller }
+          ));
+        });
+        it("fails issuing when certificate is not valid (certificate with v=29) [for coverage]", async function () {
+          await expectRevert.unspecified(this.token.issueByPartition(
+            partition1,
+            tokenHolder,
+            issuanceAmount,
+            CERTIFICATE_WITH_V_EQUAL_TO_29,
             { from: controller }
           ));
         });
