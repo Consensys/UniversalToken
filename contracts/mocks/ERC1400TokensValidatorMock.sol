@@ -5,14 +5,14 @@ import "../extensions/tokenExtensions/ERC1400TokensValidator.sol";
 /**
  @notice Interface to the Minterrole contract
 */
-interface IMinterRoleMock {
+interface IMinterMock {
   function renounceMinter() external;
 }
 
 contract ERC1400TokensValidatorMock is ERC1400TokensValidator {
 
   function renounceMinter(address token) external onlyTokenController(token) {
-    IMinterRoleMock(token).renounceMinter();
+    IMinterMock(token).renounceMinter();
   }
 
 }

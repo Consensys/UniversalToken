@@ -8,10 +8,10 @@ import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
 
-import "./roles/Pausable.sol";
-import "./roles/CertificateSignerRole.sol";
-import "./roles/AllowlistedRole.sol";
-import "./roles/BlocklistedRole.sol";
+import "../../roles/Pausable.sol";
+import "../../roles/CertificateSignerRole.sol";
+import "../../roles/AllowlistedRole.sol";
+import "../../roles/BlocklistedRole.sol";
 
 import "erc1820/contracts/ERC1820Client.sol";
 import "../../interface/ERC1820Implementer.sol";

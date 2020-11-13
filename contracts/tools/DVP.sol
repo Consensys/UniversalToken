@@ -481,7 +481,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    *
    * Indeed, when a token smart contract is controlled by an owner, the owner can decide to open the
    * secondary market by:
-   *  - Whitelisting the DVP smart contract
+   *  - Allowlisting the DVP smart contract
    *  - Setting "token controllers" in the DVP smart contract, in order to approve all the trades made with his token
    *
    * @param index Index of the trade to be executed.
