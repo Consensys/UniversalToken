@@ -40,9 +40,13 @@ const CERTIFICATE_SIGNER = "0x2A3cE238F1903B1cA935D734e6160aBA029ff80a";
 
 const EMPTY_CERTIFICATE = "0x";
 
-const CERTIFICATE_WITH_V_EQUAL_TO_27 = "0x00000000000000000000000000000000000000000000000000000000c4427ed1057da68ae02a18da9be28448860b16d3903ff8476a2f86effbde677695466aa720f3a5c4f0e450403a66854ea20b7356fcff1cf100d291907ef6f9a6ac25f3a31b";
-const CERTIFICATE_WITH_V_EQUAL_TO_28 = "0x00000000000000000000000000000000000000000000000000000000c4427ed1057da68ae02a18da9be28448860b16d3903ff8476a2f86effbde677695466aa720f3a5c4f0e450403a66854ea20b7356fcff1cf100d291907ef6f9a6ac25f3a31c";
-const CERTIFICATE_WITH_V_EQUAL_TO_29 = "0x00000000000000000000000000000000000000000000000000000000c4427ed1057da68ae02a18da9be28448860b16d3903ff8476a2f86effbde677695466aa720f3a5c4f0e450403a66854ea20b7356fcff1cf100d291907ef6f9a6ac25f3a31d";
+const SALT_CERTIFICATE_WITH_V_EQUAL_TO_27 = "0xc146ced8f3786c604be1e79736551da9b9fbf013baa1db094ce9940a4ef5af4d000000000000000000000000000000000000000000000000000000005faf0d7a8a94cd85101a9285611e7bea0a6349497ffb9d25be95dee9e43af78437514a6c11d3525bb439dab160e3b7b1bf6fd3b35423d61533658759ceef0b5b019c29691b";
+const SALT_CERTIFICATE_WITH_V_EQUAL_TO_28 = "0xc146ced8f3786c604be1e79736551da9b9fbf013baa1db094ce9940a4ef5af4d000000000000000000000000000000000000000000000000000000005faf0d7a8a94cd85101a9285611e7bea0a6349497ffb9d25be95dee9e43af78437514a6c11d3525bb439dab160e3b7b1bf6fd3b35423d61533658759ceef0b5b019c29691c";
+const SALT_CERTIFICATE_WITH_V_EQUAL_TO_29 = "0xc146ced8f3786c604be1e79736551da9b9fbf013baa1db094ce9940a4ef5af4d000000000000000000000000000000000000000000000000000000005faf0d7a8a94cd85101a9285611e7bea0a6349497ffb9d25be95dee9e43af78437514a6c11d3525bb439dab160e3b7b1bf6fd3b35423d61533658759ceef0b5b019c29691d";
+
+const NONCE_CERTIFICATE_WITH_V_EQUAL_TO_27 = "0x00000000000000000000000000000000000000000000000000000000c4427ed1057da68ae02a18da9be28448860b16d3903ff8476a2f86effbde677695466aa720f3a5c4f0e450403a66854ea20b7356fcff1cf100d291907ef6f9a6ac25f3a31b";
+const NONCE_CERTIFICATE_WITH_V_EQUAL_TO_28 = "0x00000000000000000000000000000000000000000000000000000000c4427ed1057da68ae02a18da9be28448860b16d3903ff8476a2f86effbde677695466aa720f3a5c4f0e450403a66854ea20b7356fcff1cf100d291907ef6f9a6ac25f3a31c";
+const NONCE_CERTIFICATE_WITH_V_EQUAL_TO_29 = "0x00000000000000000000000000000000000000000000000000000000c4427ed1057da68ae02a18da9be28448860b16d3903ff8476a2f86effbde677695466aa720f3a5c4f0e450403a66854ea20b7356fcff1cf100d291907ef6f9a6ac25f3a31d";
 
 const CERTIFICATE_VALIDITY_PERIOD = 1; // Certificate will be valid for 1 hour
 
@@ -3435,7 +3439,7 @@ contract("ERC1400HoldableCertificate with token extension", function ([
             partition1,
             tokenHolder,
             issuanceAmount,
-            CERTIFICATE_WITH_V_EQUAL_TO_27,
+            SALT_CERTIFICATE_WITH_V_EQUAL_TO_27,
             { from: controller }
           ));
         });
@@ -3444,7 +3448,7 @@ contract("ERC1400HoldableCertificate with token extension", function ([
             partition1,
             tokenHolder,
             issuanceAmount,
-            CERTIFICATE_WITH_V_EQUAL_TO_28,
+            SALT_CERTIFICATE_WITH_V_EQUAL_TO_28,
             { from: controller }
           ));
         });
@@ -3453,7 +3457,7 @@ contract("ERC1400HoldableCertificate with token extension", function ([
             partition1,
             tokenHolder,
             issuanceAmount,
-            CERTIFICATE_WITH_V_EQUAL_TO_29,
+            SALT_CERTIFICATE_WITH_V_EQUAL_TO_29,
             { from: controller }
           ));
         });
@@ -3674,7 +3678,7 @@ contract("ERC1400HoldableCertificate with token extension", function ([
             partition1,
             tokenHolder,
             issuanceAmount,
-            CERTIFICATE_WITH_V_EQUAL_TO_27,
+            NONCE_CERTIFICATE_WITH_V_EQUAL_TO_27,
             { from: controller }
           ));
         });
@@ -3683,7 +3687,7 @@ contract("ERC1400HoldableCertificate with token extension", function ([
             partition1,
             tokenHolder,
             issuanceAmount,
-            CERTIFICATE_WITH_V_EQUAL_TO_28,
+            NONCE_CERTIFICATE_WITH_V_EQUAL_TO_28,
             { from: controller }
           ));
         });
@@ -3692,7 +3696,7 @@ contract("ERC1400HoldableCertificate with token extension", function ([
             partition1,
             tokenHolder,
             issuanceAmount,
-            CERTIFICATE_WITH_V_EQUAL_TO_29,
+            NONCE_CERTIFICATE_WITH_V_EQUAL_TO_29,
             { from: controller }
           ));
         });
