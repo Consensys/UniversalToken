@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
 
 // MOCK CONTRACT TO REACH FULL COVERAGE BY CALLING "onlyNotAllowlisted" MODIFIER
 
-import "../extensions/tokenExtensions/roles/AllowlistedRole.sol";
+import "../roles/AllowlistedRole.sol";
 
 
 contract AllowlistMock is AllowlistedRole {

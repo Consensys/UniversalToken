@@ -2,7 +2,7 @@ pragma solidity ^0.5.0;
 
 // MOCK CONTRACT TO REACH FULL COVERAGE BY CALLING "onlyNotPausered" MODIFIER
 
-import "../extensions/tokenExtensions/roles/PauserRole.sol";
+import "../roles/PauserRole.sol";
 
 
 contract PauserMock is PauserRole {

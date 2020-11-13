@@ -7,10 +7,11 @@ pragma solidity ^0.5.0;
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
-import "openzeppelin-solidity/contracts/access/roles/MinterRole.sol";
 
 import "erc1820/contracts/ERC1820Client.sol";
 import "./interface/ERC1820Implementer.sol";
+
+import "./roles/MinterRole.sol";
 
 import "./IERC1400.sol";
 
@@ -141,6 +142,13 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    */
   modifier isNotMigratedToken() {
       require(!_migrated, "54"); // 0x54	transfers halted (contract paused)
+      _;
+  }
+  /**
+   * @dev Modifier to verifiy if sender is a minter.
+   */
+  modifier onlyMinter() {
+      require(isMinter(msg.sender) || isOwner());
       _;
   }
   /************************************************************************************************/
