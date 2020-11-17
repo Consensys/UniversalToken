@@ -8,11 +8,10 @@ const {
 const { newSecretHashPair, newHoldId } = require("./utils/crypto");
 
 const HoldableToken = artifacts.require("ERC20HoldableToken");
-const DVPHoldableLockable = artifacts.require("DVPHoldableLockableACE");
+const DVPHoldableLockable = artifacts.require("DVPHoldableLockable");
 const ERC1820Registry = artifacts.require("ERC1820Registry");
 const ERC1400HoldableCertificate = artifacts.require("ERC1400HoldableCertificateToken");
 const ERC1400TokensValidator = artifacts.require("ERC1400TokensValidator");
-const AztecCryptographyEngineMock = artifacts.require("AztecCryptographyEngineMock");
 
 const ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
 
@@ -82,27 +81,12 @@ contract(
     const secretHashPair = newSecretHashPair();
 
     before(async () => {
-      this.ace = await AztecCryptographyEngineMock.new({ from: dvpDeployer });
-      this.dvp = await DVPHoldableLockable.new(this.ace.address, { from: dvpDeployer });
+      this.dvp = await DVPHoldableLockable.new({ from: dvpDeployer });
       this.registry = await ERC1820Registry.at(
         "0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24"
       );
       this.extension = await ERC1400TokensValidator.new({
         from: dvpDeployer,
-      });
-    });
-    describe("DVP setup", () => {
-      it("fail to execute swap with incorrect preimage", async () => {
-        try {
-          await DVPHoldableLockable.new(ZERO_ADDRESS, { from: dvpDeployer });
-          assert(false, "transaction should have failed");
-        } catch (err) {
-          assert.instanceOf(err, Error);
-          assert.match(err.message, /ACE address must not be a zero address/);
-        }
-      });
-      it("validates proofs", async () => {
-        await this.dvp.validateProof(1, ZERO_BYTES32);
       });
     });
     describe("Holdable ERC20 Tokens", () => {
