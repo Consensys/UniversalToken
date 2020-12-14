@@ -39,7 +39,7 @@ interface IERC1400Extended {
     function totalSupplyByPartition(bytes32 partition) external view returns (uint256);
 }
 
-contract ERC1400TokensValidator is IExtensionTypes {
+contract IERC1400TokensValidatorExtended is IExtensionTypes {
     // Not a real interface but added here for functions which don't belong to IERC1400TokensValidator
 
     function retrieveTokenSetup(address token) external view returns (CertificateValidation, bool, bool, bool, bool, address[] memory);
@@ -145,7 +145,7 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
             batchTokenExtension[i] = interfaceAddr(tokens[i], ERC1400_TOKENS_VALIDATOR);
 
             if (batchTokenExtension[i] != address(0)) {
-                (,,,,,address[] memory extensionControllers) = ERC1400TokensValidator(batchTokenExtension[i]).retrieveTokenSetup(tokens[i]);
+                (,,,,,address[] memory extensionControllers) = IERC1400TokensValidatorExtended(batchTokenExtension[i]).retrieveTokenSetup(tokens[i]);
                 batchExtensionControllersLength[i] = extensionControllers.length;
                 extensionControllersLength = extensionControllersLength.add(extensionControllers.length);
             } else {
@@ -158,7 +158,7 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
         uint256 counter = 0;
         for (uint256 j = 0; j < tokens.length; j++) {
             if (batchTokenExtension[j] != address(0)) {
-                (,,,,,address[] memory extensionControllers) = ERC1400TokensValidator(batchTokenExtension[j]).retrieveTokenSetup(tokens[j]);
+                (,,,,,address[] memory extensionControllers) = IERC1400TokensValidatorExtended(batchTokenExtension[j]).retrieveTokenSetup(tokens[j]);
 
                 for (uint256 k = 0; k < extensionControllers.length; k++) {
                     batchExtensionControllersResponse[counter] = extensionControllers[k];
@@ -195,7 +195,7 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
             batchTokenExtension[i] = interfaceAddr(tokens[i], ERC1400_TOKENS_VALIDATOR);
 
             if (batchTokenExtension[i] != address(0)) {
-                (CertificateValidation certificateActivated, bool allowlistActivated, bool blocklistActivated,,,) = ERC1400TokensValidator(batchTokenExtension[i]).retrieveTokenSetup(tokens[i]);
+                (CertificateValidation certificateActivated, bool allowlistActivated, bool blocklistActivated,,,) = IERC1400TokensValidatorExtended(batchTokenExtension[i]).retrieveTokenSetup(tokens[i]);
                 batchCertificateActivated[i] = certificateActivated;
                 batchAllowlistActivated[i] = allowlistActivated;
                 batchBlocklistActivated[i] = blocklistActivated;
@@ -222,7 +222,7 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
             batchTokenExtension[i] = interfaceAddr(tokens[i], ERC1400_TOKENS_VALIDATOR);
 
             if (batchTokenExtension[i] != address(0)) {
-                (,,, bool granularityByPartitionActivated, bool holdsActivated,) = ERC1400TokensValidator(batchTokenExtension[i]).retrieveTokenSetup(tokens[i]);
+                (,,, bool granularityByPartitionActivated, bool holdsActivated,) = IERC1400TokensValidatorExtended(batchTokenExtension[i]).retrieveTokenSetup(tokens[i]);
                 batchGranularityByPartitionActivated[i] = granularityByPartitionActivated;
                 batchHoldsActivated[i] = holdsActivated;
             } else {
@@ -330,7 +330,7 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
 
                 for (uint256 k = 0; k < totalPartitionsLengths[j]; k++) {
                     if (tokenExtension != address(0)) {
-                        batchSpendableBalanceOfByPartitionResponse[i*batchTotalPartitions.length + counter] = ERC1400TokensValidator(tokenExtension).spendableBalanceOfByPartition(tokens[j], batchTotalPartitions[counter], tokenHolders[i]);
+                        batchSpendableBalanceOfByPartitionResponse[i*batchTotalPartitions.length + counter] = IERC1400TokensValidatorExtended(tokenExtension).spendableBalanceOfByPartition(tokens[j], batchTotalPartitions[counter], tokenHolders[i]);
                     } else {
                         batchSpendableBalanceOfByPartitionResponse[i*batchTotalPartitions.length + counter] = IERC1400(tokens[j]).balanceOfByPartition(batchTotalPartitions[counter], tokenHolders[i]);
                     }
@@ -424,7 +424,7 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
             for (uint256 j = 0; j < tokens.length; j++) {
                 address tokenExtension = interfaceAddr(tokens[j], ERC1400_TOKENS_VALIDATOR);
                 if (tokenExtension != address(0)) {
-                    batchAllowlistedResponse[i*tokens.length + j] = ERC1400TokensValidator(tokenExtension).isAllowlisted(tokens[j], tokenHolders[i]);
+                    batchAllowlistedResponse[i*tokens.length + j] = IERC1400TokensValidatorExtended(tokenExtension).isAllowlisted(tokens[j], tokenHolders[i]);
                 } else {
                     batchAllowlistedResponse[i*tokens.length + j] = false;
                 }
@@ -444,7 +444,7 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
             for (uint256 j = 0; j < tokens.length; j++) {
                 address tokenExtension = interfaceAddr(tokens[j], ERC1400_TOKENS_VALIDATOR);
                 if (tokenExtension != address(0)) {
-                    batchBlocklistedResponse[i*tokens.length + j] = ERC1400TokensValidator(tokenExtension).isBlocklisted(tokens[j], tokenHolders[i]);
+                    batchBlocklistedResponse[i*tokens.length + j] = IERC1400TokensValidatorExtended(tokenExtension).isBlocklisted(tokens[j], tokenHolders[i]);
                 } else {
                     batchBlocklistedResponse[i*tokens.length + j] = false;
                 }
