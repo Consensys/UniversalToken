@@ -406,7 +406,7 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
      * @dev Get batch of validation status.
      * @return Batch of validation status.
      */
-    function batchValidation(address[] memory tokens, address[] memory tokenHolders) public view returns (bool[] memory, bool[] memory) {
+    function batchValidations(address[] memory tokens, address[] memory tokenHolders) public view returns (bool[] memory, bool[] memory) {
         bool[] memory batchAllowlisted = batchAllowlisted(tokens, tokenHolders);
         bool[] memory batchBlocklisted = batchBlocklisted(tokens, tokenHolders);
 
