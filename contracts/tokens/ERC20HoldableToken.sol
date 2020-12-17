@@ -125,7 +125,7 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
     /**
      @notice Called by the notary to transfer the held tokens to the recipient that was set at the hold.
      @param holdId a unique identifier for the hold.
-     @param lockPreimage the image used to generate the lock hash with a keccak256 hash
+     @param lockPreimage the image used to generate the lock hash with a sha256 hash
      */
     function executeHold(bytes32 holdId, bytes32 lockPreimage) public {
         require(
