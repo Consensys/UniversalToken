@@ -437,8 +437,8 @@ $ brew install nvm
 
 Test the smart contract, by running the following commands:
 ```
-$ git clone git@github.com:ConsenSys/ERC1400.git
-$ cd ERC1400
+$ git clone https://github.com/ConsenSys/UniversalToken.git
+$ cd UniversalToken
 $ nvm use
 $ yarn
 $ yarn coverage
