@@ -6144,6 +6144,19 @@ contract("ERC1400HoldableCertificate with token extension", function ([
               });
               describe("when notary is the zero address", function () {
                 it("reverts", async function () {
+                  const initialBalance = await this.token.balanceOf(tokenHolder)
+                  const initialPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+  
+                  const initialBalanceOnHold = await this.extension.balanceOnHold(this.token.address, tokenHolder)
+                  const initialBalanceOnHoldByPartition = await this.extension.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)
+  
+                  const initialSpendableBalance = await this.extension.spendableBalanceOf(this.token.address, tokenHolder)
+                  const initialSpendableBalanceByPartition = await this.extension.spendableBalanceOfByPartition(this.token.address, partition1, tokenHolder)
+  
+                  const initialTotalSupplyOnHold = await this.extension.totalSupplyOnHold(this.token.address)
+                  const initialTotalSupplyOnHoldByPartition = await this.extension.totalSupplyOnHoldByPartition(this.token.address, partition1)
+
+                  const time = await this.clock.getTime();
                   const holdId = newHoldId();
                   const secretHashPair = newSecretHashPair();
                   const certificate = await craftCertificate(
@@ -6163,20 +6176,63 @@ contract("ERC1400HoldableCertificate with token extension", function ([
                     this.clock, // this.clock
                     tokenHolder
                   )
-                  await expectRevert.unspecified(
-                    this.extension.hold(
-                      this.token.address,
-                      holdId,
-                      recipient,
-                      ZERO_ADDRESS,
-                      partition1,
-                      holdAmount,
-                      SECONDS_IN_AN_HOUR,
-                      secretHashPair.hash,
-                      certificate,
-                      { from: tokenHolder }
-                    )
+                  await this.extension.hold(
+                    this.token.address,
+                    holdId,
+                    recipient,
+                    ZERO_ADDRESS,
+                    partition1,
+                    holdAmount,
+                    SECONDS_IN_AN_HOUR,
+                    secretHashPair.hash,
+                    certificate,
+                    { from: tokenHolder }
                   )
+
+                  const finalBalance = await this.token.balanceOf(tokenHolder)
+                  const finalPartitionBalance = await this.token.balanceOfByPartition(partition1, tokenHolder)
+  
+                  const finalBalanceOnHold = await this.extension.balanceOnHold(this.token.address, tokenHolder)
+                  const finalBalanceOnHoldByPartition = await this.extension.balanceOnHoldByPartition(this.token.address, partition1, tokenHolder)
+  
+                  const finalSpendableBalance = await this.extension.spendableBalanceOf(this.token.address, tokenHolder)
+                  const finalSpendableBalanceByPartition = await this.extension.spendableBalanceOfByPartition(this.token.address, partition1, tokenHolder)
+  
+                  const finalTotalSupplyOnHold = await this.extension.totalSupplyOnHold(this.token.address)
+                  const finalTotalSupplyOnHoldByPartition = await this.extension.totalSupplyOnHoldByPartition(this.token.address, partition1)
+  
+                  assert.equal(initialBalance, issuanceAmount)
+                  assert.equal(finalBalance, issuanceAmount)
+                  assert.equal(initialPartitionBalance, issuanceAmount)
+                  assert.equal(finalPartitionBalance, issuanceAmount)
+  
+                  assert.equal(initialBalanceOnHold, 0)
+                  assert.equal(initialBalanceOnHoldByPartition, 0)
+                  assert.equal(finalBalanceOnHold, holdAmount)
+                  assert.equal(finalBalanceOnHoldByPartition, holdAmount)
+  
+                  assert.equal(initialSpendableBalance, issuanceAmount)
+                  assert.equal(initialSpendableBalanceByPartition, issuanceAmount)
+                  assert.equal(finalSpendableBalance, issuanceAmount - holdAmount)
+                  assert.equal(finalSpendableBalanceByPartition, issuanceAmount - holdAmount)
+  
+                  assert.equal(initialTotalSupplyOnHold, 0)
+                  assert.equal(initialTotalSupplyOnHoldByPartition, 0)
+                  assert.equal(finalTotalSupplyOnHold, holdAmount)
+                  assert.equal(finalTotalSupplyOnHoldByPartition, holdAmount)
+  
+                  this.holdData = await this.extension.retrieveHoldData(this.token.address, holdId);
+                  assert.equal(this.holdData[0], partition1);
+                  assert.equal(this.holdData[1], tokenHolder);
+                  assert.equal(this.holdData[2], recipient);
+                  assert.equal(this.holdData[3], ZERO_ADDRESS);
+                  assert.equal(parseInt(this.holdData[4]), holdAmount);
+                  assert.isAtLeast(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR);
+                  assert.isBelow(parseInt(this.holdData[5]), parseInt(time)+SECONDS_IN_AN_HOUR+100);
+                  assert.equal(this.holdData[6], secretHashPair.hash);
+                  assert.equal(this.holdData[7], EMPTY_BYTE32);
+                  assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_ORDERED);
+
                 });
               });
             });
