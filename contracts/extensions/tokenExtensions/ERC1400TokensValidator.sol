@@ -391,7 +391,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
         ) {
           return (true, CertificateValidation.NonceBased, "");
         } else {
-          return (false, CertificateValidation.SaltBased, "");
+          return (false, CertificateValidation.NonceBased, "");
         }
       }
     }
