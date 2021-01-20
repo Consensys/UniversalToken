@@ -391,7 +391,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
         ) {
           return (true, CertificateValidation.NonceBased, "");
         } else {
-          return (false, CertificateValidation.SaltBased, "");
+          return (false, CertificateValidation.NonceBased, "");
         }
       }
     }
@@ -741,7 +741,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     require(recipient != address(0), "Payee address must not be zero address");
     require(value != 0, "Value must be greater than zero");
     require(newHold.value == 0, "This holdId already exists");
-    require(notary != address(0), "Notary address must not be zero address");
     require(
       _canHoldOrCanPreHold(token, msg.sender, sender, certificate),
       "A hold can only be created with adapted authorizations"
