@@ -13,7 +13,7 @@ import "../../roles/CertificateSignerRole.sol";
 import "../../roles/AllowlistedRole.sol";
 import "../../roles/BlocklistedRole.sol";
 
-import "erc1820/contracts/ERC1820Client.sol";
+import "../../ERC1820Client.sol";
 import "../../interface/ERC1820Implementer.sol";
 
 import "../../IERC1400.sol";

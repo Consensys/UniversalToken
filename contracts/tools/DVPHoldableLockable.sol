@@ -4,7 +4,7 @@
  */
 pragma solidity ^0.5.0;
 
-import "erc1820/contracts/ERC1820Client.sol";
+import "../ERC1820Client.sol";
 import "../interface/ERC1820Implementer.sol";
 
 import "../tokens/IERC20HoldableToken.sol";
