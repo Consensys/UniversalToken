@@ -18,5 +18,5 @@ jobs:
         with:
           path-to-signatures: "signatures/cla.json"
           path-to-cla-document: "https://github.com/ConsenSys/UniversalToken/CLA.md"
-          branch: "master"
+          branch: "cla-signature"
           allowlist: dependabot,gauthierpetetin
