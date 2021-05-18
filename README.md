@@ -8,7 +8,7 @@
 
 # Introduction
 
-Never heard of tokenization
+Never heard of tokenization 
   
   --> See introduction [here](https://medium.com/@consensyscodefi/how-to-explain-tokenization-to-six-year-olds-well-sort-of-consensys-codefi-a40780c5d4ca).
 
