@@ -2,16 +2,16 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/access/Roles.sol";
+import "./Roles.sol";
 
 
 /**
  * @title PauserRole
  * @dev Pausers are responsible for pausing/unpausing transfers.
  */
-contract PauserRole {
+abstract contract PauserRole {
     using Roles for Roles.Role;
 
     event PauserAdded(address indexed token, address indexed account);
@@ -20,9 +20,7 @@ contract PauserRole {
     // Mapping from token to token pausers.
     mapping(address => Roles.Role) private _pausers;
 
-    constructor () internal {}
-
-    modifier onlyPauser(address token) {
+    modifier onlyPauser(address token) virtual {
         require(isPauser(token, msg.sender));
         _;
     }

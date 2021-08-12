@@ -2,18 +2,18 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "../../roles/Pausable.sol";
 import "../../roles/CertificateSignerRole.sol";
 import "../../roles/AllowlistedRole.sol";
 import "../../roles/BlocklistedRole.sol";
 
-import "erc1820/contracts/ERC1820Client.sol";
+import "../../tools/ERC1820Client.sol";
 import "../../interface/ERC1820Implementer.sol";
 
 import "../../IERC1400.sol";
@@ -147,7 +147,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Modifier to verify if sender is a pauser.
    */
-  modifier onlyPauser(address token) {
+  modifier onlyPauser(address token) override {
     require(
       msg.sender == token ||
       msg.sender == Ownable(token).owner() ||
@@ -161,7 +161,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Modifier to verify if sender is a pauser.
    */
-  modifier onlyCertificateSigner(address token) {
+  modifier onlyCertificateSigner(address token) override {
     require(
       msg.sender == token ||
       msg.sender == Ownable(token).owner() ||
@@ -175,7 +175,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Modifier to verify if sender is an allowlist admin.
    */
-  modifier onlyAllowlistAdmin(address token) {
+  modifier onlyAllowlistAdmin(address token) override {
     require(
       msg.sender == token ||
       msg.sender == Ownable(token).owner() ||
@@ -189,7 +189,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Modifier to verify if sender is a blocklist admin.
    */
-  modifier onlyBlocklistAdmin(address token) {
+  modifier onlyBlocklistAdmin(address token) override {
     require(
       msg.sender == token ||
       msg.sender == Ownable(token).owner() ||
@@ -200,7 +200,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     _;
   }
 
-  constructor() public {
+  constructor() {
     ERC1820Implementer._setInterface(ERC1400_TOKENS_VALIDATOR);
   }
 
@@ -279,6 +279,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     bytes calldata operatorData
   ) // Comments to avoid compilation warnings for unused variables.
     external
+    override
     view 
     returns(bool)
   {
@@ -305,7 +306,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
    * @param value Number of tokens the token holder balance is decreased by.
    * @param data Extra information.
    * @param operatorData Extra information, attached by the operator (if any).
-   * @return 'true' if the token transfer can be validated, 'false' if not.
    */
   function tokensToValidate(
     bytes calldata payload,
@@ -318,6 +318,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     bytes calldata operatorData
   ) // Comments to avoid compilation warnings for unused variables.
     external
+    override
   {
     (bool canValidateCertificateToken, CertificateValidation certificateControl, bytes32 salt) = _canValidateCertificateToken(msg.sender, payload, operator, operatorData.length != 0 ? operatorData : data);
     require(canValidateCertificateToken, "54"); // 0x54	transfers halted (contract paused)
@@ -402,7 +403,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Verify if a token transfer can be executed or not, on the validator's perspective.
    * @return 'true' if the token transfer can be validated, 'false' if not.
-   * @return hold ID in case a hold can be executed for the given parameters.
    */
   function _canValidateAllowlistAndBlocklistToken(
     address token,
@@ -442,7 +442,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Verify if a token transfer can be executed or not, on the validator's perspective.
    * @return 'true' if the token transfer can be validated, 'false' if not.
-   * @return hold ID in case a hold can be executed for the given parameters.
    */
   function _canValidateGranularToken(
     address token,
@@ -468,7 +467,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Verify if a token transfer can be executed or not, on the validator's perspective.
    * @return 'true' if the token transfer can be validated, 'false' if not.
-   * @return hold ID in case a hold can be executed for the given parameters.
    */
   function _canValidateHoldableToken(
     address token,
@@ -1086,7 +1084,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     uint256 expiration = 0;
 
     if (timeToExpiration != 0) {
-        expiration = now.add(timeToExpiration);
+        expiration = block.timestamp.add(timeToExpiration);
     }
 
     return expiration;
@@ -1096,14 +1094,14 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
    * @dev Check expiration time.
    */
   function _checkExpiration(uint256 expiration) private view {
-    require(expiration > now || expiration == 0, "Expiration date must be greater than block timestamp or zero");
+    require(expiration > block.timestamp || expiration == 0, "Expiration date must be greater than block timestamp or zero");
   }
 
   /**
    * @dev Check is expiration date is past.
    */
   function _isExpired(uint256 expiration) internal view returns (bool) {
-    return expiration != 0 && (now >= expiration);
+    return expiration != 0 && (block.timestamp >= expiration);
   }
 
   /**
@@ -1370,7 +1368,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     }
 
     // Certificate should not be expired
-    if (e < now) {
+    if (e < block.timestamp) {
       return false;
     }
 
@@ -1457,7 +1455,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     }
 
     // Certificate should not be expired
-    if (e < now) {
+    if (e < block.timestamp) {
       return (false, "");
     }
 

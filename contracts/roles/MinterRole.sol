@@ -2,15 +2,15 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/access/Roles.sol";
+import "./Roles.sol";
 
 /**
  * @title MinterRole
  * @dev Minters are responsible for minting new tokens.
  */
-contract MinterRole {
+abstract contract MinterRole {
     using Roles for Roles.Role;
 
     event MinterAdded(address indexed account);
@@ -18,11 +18,11 @@ contract MinterRole {
 
     Roles.Role private _minters;
 
-    constructor () internal {
+    constructor() {
         _addMinter(msg.sender);
     }
 
-    modifier onlyMinter() {
+    modifier onlyMinter() virtual {
         require(isMinter(msg.sender));
         _;
     }

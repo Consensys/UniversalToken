@@ -2,13 +2,13 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "erc1820/contracts/ERC1820Client.sol";
+import "./ERC1820Client.sol";
 
 import "../interface/ERC1820Implementer.sol";
 
@@ -39,16 +39,16 @@ interface IERC1400Extended {
     function totalSupplyByPartition(bytes32 partition) external view returns (uint256);
 }
 
-contract IERC1400TokensValidatorExtended is IExtensionTypes {
+abstract contract IERC1400TokensValidatorExtended is IExtensionTypes {
     // Not a real interface but added here for functions which don't belong to IERC1400TokensValidator
 
-    function retrieveTokenSetup(address token) external view returns (CertificateValidation, bool, bool, bool, bool, address[] memory);
+    function retrieveTokenSetup(address token) external virtual view returns (CertificateValidation, bool, bool, bool, bool, address[] memory);
 
-    function spendableBalanceOfByPartition(address token, bytes32 partition, address account) external view returns (uint256);
+    function spendableBalanceOfByPartition(address token, bytes32 partition, address account) external virtual view returns (uint256);
 
-    function isAllowlisted(address token, address account) public view returns (bool);
+    function isAllowlisted(address token, address account) public virtual view returns (bool);
 
-    function isBlocklisted(address token, address account) public view returns (bool);
+    function isBlocklisted(address token, address account) public virtual view returns (bool);
 }
 
 /**

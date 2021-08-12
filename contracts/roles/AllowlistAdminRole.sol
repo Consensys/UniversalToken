@@ -2,16 +2,16 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/access/Roles.sol";
+import "./Roles.sol";
 
 
 /**
  * @title AllowlistAdminRole
  * @dev AllowlistAdmins are responsible for assigning and removing Allowlisted accounts.
  */
-contract AllowlistAdminRole {
+abstract contract AllowlistAdminRole {
     using Roles for Roles.Role;
 
     event AllowlistAdminAdded(address indexed token, address indexed account);
@@ -20,9 +20,7 @@ contract AllowlistAdminRole {
     // Mapping from token to token allowlist admins.
     mapping(address => Roles.Role) private _allowlistAdmins;
 
-    constructor () internal {}
-
-    modifier onlyAllowlistAdmin(address token) {
+    modifier onlyAllowlistAdmin(address token) virtual {
         require(isAllowlistAdmin(token, msg.sender));
         _;
     }

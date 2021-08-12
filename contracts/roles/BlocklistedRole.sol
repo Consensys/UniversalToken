@@ -2,9 +2,9 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/access/Roles.sol";
+import "./Roles.sol";
 import "./BlocklistAdminRole.sol";
 
 
@@ -14,7 +14,7 @@ import "./BlocklistAdminRole.sol";
  * crowdsale). This role is special in that the only accounts that can add it are BlocklistAdmins (who can also remove
  * it), and not Blocklisteds themselves.
  */
-contract BlocklistedRole is BlocklistAdminRole {
+abstract contract BlocklistedRole is BlocklistAdminRole {
     using Roles for Roles.Role;
 
     event BlocklistedAdded(address indexed token, address indexed account);

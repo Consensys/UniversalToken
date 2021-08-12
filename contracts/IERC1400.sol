@@ -2,13 +2,15 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title IERC1400 security token standard
  * @dev See https://github.com/SecurityTokenStandard/EIP-Spec/blob/master/eip/eip-1400.md
  */
-interface IERC1400 /*is IERC20*/ { // Interfaces can currently not inherit interfaces, but IERC1400 shall include IERC20
+interface IERC1400 is IERC20 { // Interfaces can currently not inherit interfaces, but IERC1400 shall include IERC20
 
   // ****************** Document Management *******************
   function getDocument(bytes32 name) external view returns (string memory, bytes32);

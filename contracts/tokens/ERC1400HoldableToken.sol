@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
 import "../ERC1400.sol";
 
@@ -16,7 +16,7 @@ interface IExtensionTypes {
 /**
  * @notice Interface to the extension contract
  */
-contract Extension is IExtensionTypes {
+abstract contract Extension is IExtensionTypes {
   function registerTokenSetup(
     address token,
     CertificateValidation certificateActivated,
@@ -25,12 +25,10 @@ contract Extension is IExtensionTypes {
     bool granularityByPartitionActivated,
     bool holdsActivated,
     address[] calldata operators
-  ) external;
+  ) external virtual;
 }
 
 contract ERC1400HoldableToken is ERC1400, IExtensionTypes {
-
-  string constant internal ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
 
   /**
    * @dev Initialize ERC1400 + setup the token extension.
@@ -70,7 +68,7 @@ contract ERC1400HoldableToken is ERC1400, IExtensionTypes {
     }
 
     if(newOwner != address(0)) {
-      _transferOwnership(newOwner);
+      transferOwnership(newOwner);
     }
   }
 

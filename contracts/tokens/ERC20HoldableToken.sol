@@ -2,8 +2,9 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./ERC20Token.sol";
 import "./IERC20HoldableToken.sol";
 
@@ -16,7 +17,9 @@ import "./IERC20HoldableToken.sol";
     Held tokens can be released by the notary at any time or by the token holder after the expiration period.
     A recipient does not have to get set at the time of the hold, which means it will have to be specified when the hold is executed.
  */
-contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
+contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
+    using SafeMath for uint256;
+
     struct HoldData {
         address sender;
         address recipient;
@@ -31,7 +34,7 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
     mapping(bytes32 => HoldData) internal holds;
     // mapping of accounts and their total amount on hold
     mapping(address => uint256) internal accountHoldBalances;
-    uint256 public totalSupplyOnHold;
+    uint256 override public totalSupplyOnHold;
 
     modifier isHeld(bytes32 holdId) {
         require(
@@ -50,7 +53,7 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
      @param amount of tokens to be transferred to the recipient on execution. Must be a non zero amount.
      @param expirationDateTime UNIX epoch seconds the held amount can be released back to the sender by the sender. Past dates are allowed.
      @param lockHash optional keccak256 hash of a lock preimage. An empty hash will not enforce the hash lock when the hold is executed.
-     @return a unique identifier for the hold.
+     @return holdId a unique identifier for the hold.
      */
     function hold(
         address recipient,
@@ -58,7 +61,7 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
         uint256 amount,
         uint256 expirationDateTime,
         bytes32 lockHash
-    ) public returns (bytes32 holdId) {
+    ) public override returns (bytes32 holdId) {
         require(
             notary != address(0),
             "hold: notary must not be a zero address"
@@ -109,7 +112,7 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
      @notice Called by the notary to transfer the held tokens to the set at the hold recipient if there is no hash lock.
      @param holdId a unique identifier for the hold.
      */
-    function executeHold(bytes32 holdId) public {
+    function executeHold(bytes32 holdId) public override {
         require(
             holds[holdId].recipient != address(0),
             "executeHold: must pass the recipient on execution as the recipient was not set on hold"
@@ -127,7 +130,7 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
      @param holdId a unique identifier for the hold.
      @param lockPreimage the image used to generate the lock hash with a sha256 hash
      */
-    function executeHold(bytes32 holdId, bytes32 lockPreimage) public {
+    function executeHold(bytes32 holdId, bytes32 lockPreimage) public override {
         require(
             holds[holdId].recipient != address(0),
             "executeHold: must pass the recipient on execution as the recipient was not set on hold"
@@ -153,7 +156,7 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
         bytes32 holdId,
         bytes32 lockPreimage,
         address recipient
-    ) public {
+    ) public override {
         require(
             holds[holdId].recipient == address(0),
             "executeHold: can not set a recipient on execution as it was set on hold"
@@ -201,10 +204,10 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
      @notice Called by the notary at any time or the sender after the expiration date to release the held tokens back to the sender.
      @param holdId a unique identifier for the hold.
      */
-    function releaseHold(bytes32 holdId) public isHeld(holdId) {
+    function releaseHold(bytes32 holdId) public override isHeld(holdId) {
         if (holds[holdId].sender == msg.sender) {
             require(
-                now > holds[holdId].expirationDateTime,
+                block.timestamp > holds[holdId].expirationDateTime,
                 "releaseHold: can only release after the expiration date."
             );
         } else if (holds[holdId].notary != msg.sender) {
@@ -225,7 +228,7 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
      @notice Amount of tokens owned by an account that are available for transfer. That is, the gross balance less any held tokens.
      @param account owner of the tokensß
      */
-    function balanceOf(address account) public view returns (uint256) {
+    function balanceOf(address account) public override(ERC20, IERC20) view returns (uint256) {
         return super.balanceOf(account).sub(accountHoldBalances[account]);
     }
 
@@ -233,7 +236,7 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
      @notice Amount of tokens owned by an account that are held pending execution or release.
      @param account owner of the tokens
      */
-    function holdBalanceOf(address account) public view returns (uint256) {
+    function holdBalanceOf(address account) public override view returns (uint256) {
         return accountHoldBalances[account];
     }
 
@@ -241,7 +244,7 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
      @notice Total amount of tokens owned by an account including all the held tokens pending execution or release.
      @param account owner of the tokens
      */
-    function grossBalanceOf(address account) public view returns (uint256) {
+    function grossBalanceOf(address account) public override view returns (uint256) {
         return super.balanceOf(account);
     }
 
@@ -249,14 +252,14 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
      @param holdId a unique identifier for the hold.
      @return hold status code.
      */
-    function holdStatus(bytes32 holdId) public view returns (HoldStatusCode) {
+    function holdStatus(bytes32 holdId) public override view returns (HoldStatusCode) {
         return holds[holdId].status;
     }
 
     /**
      @notice ERC20 transfer that checks on hold tokens can not be transferred.
      */
-    function transfer(address recipient, uint256 amount) public returns (bool) {
+    function transfer(address recipient, uint256 amount) public override(ERC20, IERC20) returns (bool) {
         require(
             this.balanceOf(msg.sender) >= amount,
             "HoldableToken: amount exceeds available balance"
@@ -271,7 +274,7 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
         address sender,
         address recipient,
         uint256 amount
-    ) public returns (bool) {
+    ) public override(ERC20, IERC20) returns (bool) {
         require(
             this.balanceOf(sender) >= amount,
             "HoldableToken: amount exceeds available balance"
@@ -282,7 +285,7 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
     /**
      @notice ERC20 approve that checks on hold tokens can not be approved for spending by another account.
      */
-    function approve(address spender, uint256 amount) public returns (bool) {
+    function approve(address spender, uint256 amount) public override(ERC20, IERC20) returns (bool) {
         require(
             this.balanceOf(msg.sender) >= amount,
             "HoldableToken: amount exceeds available balance"
@@ -293,7 +296,7 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
     /**
      @notice ERC20 burn that checks on hold tokens can not be burnt.
      */
-    function burn(uint256 amount) public {
+    function burn(uint256 amount) public override {
         require(
             this.balanceOf(msg.sender) >= amount,
             "HoldableToken: amount exceeds available balance"
@@ -304,7 +307,7 @@ contract ERC20HoldableToken is IERC20HoldableToken, ERC20Token {
     /**
      @notice ERC20 burnFrom that checks on hold tokens can not be burnt.
      */
-    function burnFrom(address account, uint256 amount) public {
+    function burnFrom(address account, uint256 amount) public override {
         require(
             this.balanceOf(msg.sender) >= amount,
             "HoldableToken: amount exceeds available balance"

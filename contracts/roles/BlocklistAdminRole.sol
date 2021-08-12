@@ -2,16 +2,16 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/access/Roles.sol";
+import "./Roles.sol";
 
 
 /**
  * @title BlocklistAdminRole
  * @dev BlocklistAdmins are responsible for assigning and removing Blocklisted accounts.
  */
-contract BlocklistAdminRole {
+abstract contract BlocklistAdminRole {
     using Roles for Roles.Role;
 
     event BlocklistAdminAdded(address indexed token, address indexed account);
@@ -20,9 +20,7 @@ contract BlocklistAdminRole {
     // Mapping from token to token blocklist admins.
     mapping(address => Roles.Role) private _blocklistAdmins;
 
-    constructor () internal {}
-
-    modifier onlyBlocklistAdmin(address token) {
+    modifier onlyBlocklistAdmin(address token) virtual {
         require(isBlocklistAdmin(token, msg.sender));
         _;
     }

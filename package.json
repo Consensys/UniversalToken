@@ -50,6 +50,7 @@
   ],
   "license": "Apache",
   "devDependencies": {
+    "@openzeppelin/test-helpers": "^0.5.6",
     "babel-polyfill": "^6.23.0",
     "babel-preset-es2015": "^6.18.0",
     "babel-preset-stage-2": "^6.18.0",
@@ -72,7 +73,6 @@
     "fs-extra": "^7.0.1",
     "husky": "^4.3.0",
     "lint-staged": "^10.4.0",
-    "@openzeppelin/test-helpers": "^0.5.6",
     "remix-ide": "^0.10.3",
     "sol-merger": "0.1.4",
     "solidity-coverage": "0.7.10",
@@ -81,11 +81,11 @@
     "web3-utils": "^1.2.8"
   },
   "dependencies": {
+    "@openzeppelin/contracts": "^4.2.0",
     "crypto": "^1.0.1",
     "erc1820": "git+https://github.com/0xjac/ERC1820#885549fe3e9f0fd22444f78532be3dce4ee8a5e2",
     "ethereumjs-wallet": "^0.6.3",
-    "openzeppelin-solidity": "2.1.3",
-    "truffle": "5.0.1",
+    "truffle": "5.4.5",
     "truffle-hdwallet-provider": "1.0.1"
   },
   "resolutions": {
