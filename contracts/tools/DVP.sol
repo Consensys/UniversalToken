@@ -97,6 +97,38 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
   enum TradeType {Escrow, Swap}
 
   enum Holder {Holder1, Holder2}
+  
+  /**
+   * @dev Input data for the requestTrade function
+   * @param holder1 Address of the first token holder.
+   * @param holder2 Address of the second token holder.
+   * @param executer Executer of the trade.
+   * @param expirationDate Expiration date of the trade.
+   * @param tokenAddress1 Address of the first token smart contract.
+   * @param tokenValue1 Amount of tokens to send for the first token.
+   * @param tokenId1 ID/partition of the first token.
+   * @param tokenStandard1 Standard of the first token (ETH | ERC20 | ERC721 | ERC1400).
+   * @param tokenAddress2 Address of the second token smart contract.
+   * @param tokenValue2 Amount of tokens to send for the second token.
+   * @param tokenId2 ID/partition of the second token.
+   * @param tokenStandard2 Standard of the second token (ETH | ERC20 | ERC721 | ERC1400).
+   * @param tradeType Indicates whether or not tokens shall be escrowed in the DVP contract before the trade.
+   */
+  struct TradeRequestInput {
+    address holder1;
+    address holder2;
+    address executer; // Set to address(0) if no executer is required for the trade
+    uint256 expirationDate;
+    address tokenAddress1;
+    uint256 tokenValue1;
+    bytes32 tokenId1;
+    Standard tokenStandard1;
+    address tokenAddress2; // Set to address(0) if no token is expected in return (for example in case of an off-chain payment)
+    uint256 tokenValue2;
+    bytes32 tokenId2;
+    Standard tokenStandard2;
+    TradeType tradeType;
+  }
 
   struct Trade {
     address holder1;
@@ -255,53 +287,27 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
 
   /**
    * @dev Create a new trade request in the DVP smart contract.
-   * @param holder1 Address of the first token holder.
-   * @param holder2 Address of the second token holder.
-   * @param executer Executer of the trade.
-   * @param expirationDate Expiration date of the trade.
-   * @param tokenAddress1 Address of the first token smart contract.
-   * @param tokenValue1 Amount of tokens to send for the first token.
-   * @param tokenId1 ID/partition of the first token.
-   * @param tokenStandard1 Standard of the first token (ETH | ERC20 | ERC721 | ERC1400).
-   * @param tokenAddress2 Address of the second token smart contract.
-   * @param tokenValue2 Amount of tokens to send for the second token.
-   * @param tokenId2 ID/partition of the second token.
-   * @param tokenStandard2 Standard of the second token (ETH | ERC20 | ERC721 | ERC1400).
-   * @param tradeType Indicates whether or not tokens shall be escrowed in the DVP contract before the trade.
+   * @param inputData The input for this function
    */
-  function requestTrade(
-    address holder1,
-    address holder2,
-    address executer, // Set to address(0) if no executer is required for the trade
-    uint256 expirationDate,
-    address tokenAddress1,
-    uint256 tokenValue1,
-    bytes32 tokenId1,
-    Standard tokenStandard1,
-    address tokenAddress2, // Set to address(0) if no token is expected in return (for example in case of an off-chain payment)
-    uint256 tokenValue2,
-    bytes32 tokenId2,
-    Standard tokenStandard2,
-    TradeType tradeType
-  )
+  function requestTrade(TradeRequestInput calldata inputData)
     external
     payable
   {
     // Token data: < 1: address > < 2: amount > < 3: id/partition > < 4: standard > < 5: accepted > < 6: approved >
-    bytes memory _tokenData1 = abi.encode(tokenAddress1, tokenValue1, tokenId1, tokenStandard1, false, false);
-    bytes memory _tokenData2 = abi.encode(tokenAddress2, tokenValue2, tokenId2, tokenStandard2, false, false);
+    bytes memory _tokenData1 = abi.encode(inputData.tokenAddress1, inputData.tokenValue1, inputData.tokenId1, inputData.tokenStandard1, false, false);
+    bytes memory _tokenData2 = abi.encode(inputData.tokenAddress2, inputData.tokenValue2, inputData.tokenId2, inputData.tokenStandard2, false, false);
 
     _requestTrade(
-      holder1,
-      holder2,
-      executer,
-      expirationDate,
+      inputData.holder1,
+      inputData.holder2,
+      inputData.executer,
+      inputData.expirationDate,
       _tokenData1,
       _tokenData2,
-      tradeType
+      inputData.tradeType
     );
 
-    if(msg.sender == holder1 || msg.sender == holder2) {
+    if(msg.sender == inputData.holder1 || msg.sender == inputData.holder2) {
       _acceptTrade(_index, msg.sender, msg.value, 0);
     }
     

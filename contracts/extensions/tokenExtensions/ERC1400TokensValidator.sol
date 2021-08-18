@@ -320,30 +320,41 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     external
     override
   {
-    (bool canValidateCertificateToken, CertificateValidation certificateControl, bytes32 salt) = _canValidateCertificateToken(msg.sender, payload, operator, operatorData.length != 0 ? operatorData : data);
-    require(canValidateCertificateToken, "54"); // 0x54	transfers halted (contract paused)
+    //Local scope variables to avoid stack too deep
+    {
+        (bool canValidateCertificateToken, CertificateValidation certificateControl, bytes32 salt) = _canValidateCertificateToken(msg.sender, payload, operator, operatorData.length != 0 ? operatorData : data);
+        require(canValidateCertificateToken, "54"); // 0x54	transfers halted (contract paused)
 
-    _useCertificateIfActivated(msg.sender, certificateControl, operator, salt);
+        _useCertificateIfActivated(msg.sender, certificateControl, operator, salt);
+    }
 
-    require(_canValidateAllowlistAndBlocklistToken(msg.sender, payload, from, to), "54"); // 0x54	transfers halted (contract paused)
+    {
+        require(_canValidateAllowlistAndBlocklistToken(msg.sender, payload, from, to), "54"); // 0x54	transfers halted (contract paused)
+    }
+    
+    {
+        require(!paused(msg.sender), "54"); // 0x54	transfers halted (contract paused)
+    }
+    
+    {
+        require(_canValidateGranularToken(msg.sender, partition, value), "50"); // 0x50	transfer failure
 
-    require(!paused(msg.sender), "54"); // 0x54	transfers halted (contract paused)
-
-    require(_canValidateGranularToken(msg.sender, partition, value), "50"); // 0x50	transfer failure
-
-    require(_canValidateHoldableToken(msg.sender, partition, operator, from, to, value), "55"); // 0x55	funds locked (lockup period)
-
-    (,, bytes32 holdId) = _retrieveHoldHashNonceId(msg.sender, partition, operator, from, to, value);
-    if (_holdsActivated[msg.sender] && holdId != "") {
-      Hold storage executableHold = _holds[msg.sender][holdId];
-      _setHoldToExecuted(
-        msg.sender,
-        executableHold,
-        holdId,
-        value,
-        executableHold.value,
-        ""
-      );
+        require(_canValidateHoldableToken(msg.sender, partition, operator, from, to, value), "55"); // 0x55	funds locked (lockup period)
+    }
+    
+    {
+        (,, bytes32 holdId) = _retrieveHoldHashNonceId(msg.sender, partition, operator, from, to, value);
+        if (_holdsActivated[msg.sender] && holdId != "") {
+          Hold storage executableHold = _holds[msg.sender][holdId];
+          _setHoldToExecuted(
+            msg.sender,
+            executableHold,
+            holdId,
+            value,
+            executableHold.value,
+            ""
+          );
+        }
     }
   }
 

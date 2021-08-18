@@ -752,28 +752,49 @@ const createTradeRequest = async (
     0
   );
 
+  /*
+  struct TradeRequestInput {
+    address holder1;
+    address holder2;
+    address executer; // Set to address(0) if no executer is required for the trade
+    uint256 expirationDate;
+    address tokenAddress1;
+    uint256 tokenValue1;
+    bytes32 tokenId1;
+    Standard tokenStandard1;
+    address tokenAddress2; // Set to address(0) if no token is expected in return (for example in case of an off-chain payment)
+    uint256 tokenValue2;
+    bytes32 tokenId2;
+    Standard tokenStandard2;
+    TradeType tradeType;
+  }
+  */
+  const tradeInputData = {
+    holder1: holder1,
+    holder2: holder2,
+    executer: executer,
+    expirationDate: realExpirationDate ? expirationDate : 0,
+    tokenAddress1: token1 ? token1.address : ZERO_ADDRESS,
+    tokenValue1: tokenStandard1 === ERC721STANDARD ? 0 : tokenAmount1,
+    tokenId1: tokenStandard1 === ERC721STANDARD
+              ? NumToNumBytes32(issuanceTokenId)
+              : tokenStandard1 === ERC1400STANDARD
+              ? partition1
+              : ZERO_BYTES32,
+    tokenStandard1: tokenStandard1,
+    tokenAddress2: token2 ? token2.address : ZERO_ADDRESS,
+    tokenValue2: tokenStandard2 === ERC721STANDARD ? 0 : tokenAmount2,
+    tokenId2: tokenStandard2 === ERC721STANDARD
+              ? NumToNumBytes32(issuanceTokenId)
+              : tokenStandard2 === ERC1400STANDARD
+              ? partition1
+              : ZERO_BYTES32,
+    tokenStandard2: tokenStandard2,
+    tradeType: tradeType === TYPE_ESCROW ? HEX_TYPE_ESCROW : HEX_TYPE_SWAP
+  }
+
   await dvp.requestTrade(
-    holder1,
-    holder2,
-    executer,
-    realExpirationDate ? expirationDate : 0,
-    token1 ? token1.address : ZERO_ADDRESS,
-    tokenStandard1 === ERC721STANDARD ? 0 : tokenAmount1,
-    tokenStandard1 === ERC721STANDARD
-      ? NumToNumBytes32(issuanceTokenId)
-      : tokenStandard1 === ERC1400STANDARD
-      ? partition1
-      : ZERO_BYTES32,
-    tokenStandard1,
-    token2 ? token2.address : ZERO_ADDRESS,
-    tokenStandard2 === ERC721STANDARD ? 0 : tokenAmount2,
-    tokenStandard2 === ERC721STANDARD
-      ? NumToNumBytes32(issuanceTokenId)
-      : tokenStandard2 === ERC1400STANDARD
-      ? partition1
-      : ZERO_BYTES32,
-    tokenStandard2,
-    tradeType === TYPE_ESCROW ? HEX_TYPE_ESCROW : HEX_TYPE_SWAP,
+    tradeInputData,
     { from: requester, value: tokenStandard === ETHSTANDARD ? tokenAmount : 0 }
   );
 
@@ -2118,21 +2139,41 @@ contract("DVP", function ([
                   const chainTime = (await web3.eth.getBlock("latest"))
                     .timestamp;
                   const expirationDate = chainTime + 2 * SECONDS_IN_A_WEEK;
+                  /*
+                  struct TradeRequestInput {
+                    address holder1;
+                    address holder2;
+                    address executer; // Set to address(0) if no executer is required for the trade
+                    uint256 expirationDate;
+                    address tokenAddress1;
+                    uint256 tokenValue1;
+                    bytes32 tokenId1;
+                    Standard tokenStandard1;
+                    address tokenAddress2; // Set to address(0) if no token is expected in return (for example in case of an off-chain payment)
+                    uint256 tokenValue2;
+                    bytes32 tokenId2;
+                    Standard tokenStandard2;
+                    TradeType tradeType;
+                  }
+                  */
+                  const tradeInputData = {
+                    holder1: ZERO_ADDRESS,
+                    holder2: recipient1,
+                    executer: ZERO_ADDRESS,
+                    expirationDate: expirationDate,
+                    tokenAddress1: this.security20.address,
+                    tokenValue1: token1Amount,
+                    tokenId1: ZERO_BYTES32,
+                    tokenStandard1: ERC20STANDARD,
+                    tokenAddress2: this.emoney20.address,
+                    tokenValue2: token2Amount,
+                    tokenId2: ZERO_BYTES32,
+                    tokenStandard2: ERC20STANDARD,
+                    tradeType: HEX_TYPE_SWAP
+                  }
                   await expectRevert.unspecified(
                     this.dvp.requestTrade(
-                      ZERO_ADDRESS,
-                      recipient1,
-                      ZERO_ADDRESS,
-                      expirationDate,
-                      this.security20.address,
-                      token1Amount,
-                      ZERO_BYTES32,
-                      ERC20STANDARD,
-                      this.emoney20.address,
-                      token2Amount,
-                      ZERO_BYTES32,
-                      ERC20STANDARD,
-                      HEX_TYPE_SWAP,
+                      tradeInputData,
                       { from: unknown }
                     )
                   );
@@ -3929,20 +3970,40 @@ contract("DVP", function ([
                   from: tokenHolder1,
                 });
                 const expirationDate = chainTime + 2 * SECONDS_IN_A_WEEK;
+                /*
+                struct TradeRequestInput {
+                  address holder1;
+                  address holder2;
+                  address executer; // Set to address(0) if no executer is required for the trade
+                  uint256 expirationDate;
+                  address tokenAddress1;
+                  uint256 tokenValue1;
+                  bytes32 tokenId1;
+                  Standard tokenStandard1;
+                  address tokenAddress2; // Set to address(0) if no token is expected in return (for example in case of an off-chain payment)
+                  uint256 tokenValue2;
+                  bytes32 tokenId2;
+                  Standard tokenStandard2;
+                  TradeType tradeType;
+                }
+                */
+                const tradeInputData = {
+                  holder1: tokenHolder1,
+                  holder2: recipient1,
+                  executer: ZERO_ADDRESS,
+                  expirationDate: expirationDate,
+                  tokenAddress1: this.token1.address,
+                  tokenValue1: token1Amount,
+                  tokenId1: ZERO_BYTES32,
+                  tokenStandard1: ERC20STANDARD,
+                  tokenAddress2: this.token2.address,
+                  tokenValue2: token2Amount,
+                  tokenId2: ZERO_BYTES32,
+                  tokenStandard2: ERC20STANDARD,
+                  tradeType: HEX_TYPE_SWAP
+                }
                 await this.dvp.requestTrade(
-                  tokenHolder1,
-                  recipient1,
-                  ZERO_ADDRESS,
-                  expirationDate,
-                  this.token1.address,
-                  token1Amount,
-                  ZERO_BYTES32,
-                  ERC20STANDARD,
-                  this.token2.address,
-                  token2Amount,
-                  ZERO_BYTES32,
-                  ERC20STANDARD,
-                  HEX_TYPE_SWAP,
+                  tradeInputData,
                   { from: tokenHolder1 }
                 );
 
