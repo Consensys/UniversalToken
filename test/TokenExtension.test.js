@@ -5230,7 +5230,8 @@ contract("ERC1400HoldableCertificate with token extension", function ([
         );
 
         // Add notary as controller
-        const controllers = await this.token.controllers();
+        const readonlyControllers = await this.token.controllers();
+        const controllers = Object.assign([], readonlyControllers);
         assert.equal(controllers.length, 1);
         controllers.push(notary);
         await this.token.setControllers(controllers, { from: owner });

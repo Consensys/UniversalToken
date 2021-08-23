@@ -6,8 +6,9 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 
 import "../interface/ERC1820Implementer.sol";
+import "../roles/MinterRole.sol";
 
-contract ERC20Token is Ownable, ERC20Burnable, ERC20Pausable, ERC1820Implementer {
+contract ERC20Token is Ownable, ERC20Burnable, ERC20Pausable, ERC1820Implementer, MinterRole {
   string constant internal ERC20_TOKEN = "ERC20Token";
   uint8 immutable internal _decimals;
 
@@ -31,6 +32,17 @@ contract ERC20Token is Ownable, ERC20Burnable, ERC20Pausable, ERC1820Implementer
     */
   function decimals() public view virtual override returns (uint8) {
       return _decimals;
+  }
+
+    /**
+    * @dev Function to mint tokens
+    * @param to The address that will receive the minted tokens.
+    * @param value The amount of tokens to mint.
+    * @return A boolean that indicates if the operation was successful.
+    */
+  function mint(address to, uint256 value) public onlyMinter returns (bool) {
+      _mint(to, value);
+      return true;
   }
   
   function _beforeTokenTransfer(

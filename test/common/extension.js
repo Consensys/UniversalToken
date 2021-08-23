@@ -205,7 +205,8 @@ const addTokenController = async (
   _newController
 ) => {
   const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
-  const controllerList = tokenSetup[5];
+  //Need to clone the object since tokenSetup[5] is immutable
+  const controllerList = Object.assign([], tokenSetup[5]);
   if (!controllerList.includes(_newController)) {
     controllerList.push(_newController);
   }
