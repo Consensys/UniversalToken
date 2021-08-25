@@ -16,9 +16,7 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PERSONAL_ACCESS_TOKEN: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
         with:
-          path-to-signatures: "signatures/ERC1400/cla.json"
-          path-to-cla-document: "https://github.com/ConsenSys/ERC1400/CLA.md"
+          path-to-signatures: ".github/signatures/cla.json"
+          path-to-cla-document: "https://github.com/ConsenSys/UniversalToken/blob/master/CLA.md"
           branch: "master"
           allowlist: dependabot,gauthierpetetin
-          remote-organization-name: ConsenSys
-          remote-repository-name: cla-signatures
