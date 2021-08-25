@@ -105,8 +105,9 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
        return(hex"57", "", partition); // 0x57	invalid receiver
 
      hookImplementation = ERC1820Client.interfaceAddr(msg.sender, ERC1400_TOKENS_VALIDATOR);
-     if((hookImplementation != address(0))
-       && !IERC1400TokensValidator(hookImplementation).canValidate(msg.sender, payload, partition, operator, from, to, value, data, operatorData))
+     IERC1400TokensValidator.ValidateData memory vdata = IERC1400TokensValidator.ValidateData(msg.sender, payload, partition, operator, from, to, value, data, operatorData);
+     if((hookImplementation != address(0)) 
+       && !IERC1400TokensValidator(hookImplementation).canValidate(vdata))
        return(hex"54", "", partition); // 0x54	transfers halted (contract paused)
 
      uint256 granularity = IERC1400Extended(msg.sender).granularity();

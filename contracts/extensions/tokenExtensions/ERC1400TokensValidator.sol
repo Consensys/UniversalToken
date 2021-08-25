@@ -256,42 +256,24 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
 
   /**
    * @dev Verify if a token transfer can be executed or not, on the validator's perspective.
-   * @param token Token address.
-   * @param payload Payload of the initial transaction.
-   * @param partition Name of the partition (left empty for ERC20 transfer).
-   * @param operator Address which triggered the balance decrease (through transfer or redemption).
-   * @param from Token holder.
-   * @param to Token recipient for a transfer and 0x for a redemption.
-   * @param value Number of tokens the token holder balance is decreased by.
-   * @param data Extra information.
-   * @param operatorData Extra information, attached by the operator (if any).
+   * @param data The struct containing the validation information.
    * @return 'true' if the token transfer can be validated, 'false' if not.
    */
-  function canValidate(
-    address token,
-    bytes calldata payload,
-    bytes32 partition,
-    address operator,
-    address from,
-    address to,
-    uint value,
-    bytes calldata data,
-    bytes calldata operatorData
-  ) // Comments to avoid compilation warnings for unused variables.
+  function canValidate(IERC1400TokensValidator.ValidateData calldata data) // Comments to avoid compilation warnings for unused variables.
     external
     override
     view 
     returns(bool)
   {
-    (bool canValidateToken,,) = _canValidateCertificateToken(token, payload, operator, operatorData.length != 0 ? operatorData : data);
+    (bool canValidateToken,,) = _canValidateCertificateToken(data.token, data.payload, data.operator, data.operatorData.length != 0 ? data.operatorData : data.data);
 
-    canValidateToken = canValidateToken && _canValidateAllowlistAndBlocklistToken(token, payload, from, to);
+    canValidateToken = canValidateToken && _canValidateAllowlistAndBlocklistToken(data.token, data.payload, data.from, data.to);
     
-    canValidateToken = canValidateToken && !paused(token);
+    canValidateToken = canValidateToken && !paused(data.token);
 
-    canValidateToken = canValidateToken && _canValidateGranularToken(token, partition, value);
+    canValidateToken = canValidateToken && _canValidateGranularToken(data.token, data.partition, data.value);
 
-    canValidateToken = canValidateToken && _canValidateHoldableToken(token, partition, operator, from, to, value);
+    canValidateToken = canValidateToken && _canValidateHoldableToken(data.token, data.partition, data.operator, data.from, data.to, data.value);
 
     return canValidateToken;
   }
