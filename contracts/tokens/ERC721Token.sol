@@ -12,6 +12,7 @@ import "../roles/MinterRole.sol";
 
 contract ERC721Token is Ownable, ERC721, ERC721Enumerable, ERC721Burnable, ERC721Pausable,  MinterRole, ERC1820Implementer, AccessControlEnumerable {
   string constant internal ERC721_TOKEN = "ERC721Token";
+  mapping(uint256 => string) _tokenUris;
 
   constructor(string memory name, string memory symbol) ERC721(name, symbol) {
     ERC1820Implementer._setInterface(ERC721_TOKEN);
@@ -26,6 +27,39 @@ contract ERC721Token is Ownable, ERC721, ERC721Enumerable, ERC721Burnable, ERC72
   function mint(address to, uint256 tokenId) public onlyMinter returns (bool) {
       _mint(to, tokenId);
       return true;
+  }
+
+  /**
+  * @dev Function to mint tokens
+  * @param to The address that will receive the minted tokens.
+  * @param tokenId The token id to mint.
+  * @param uri The URI to give the tokenId.
+  * @return A boolean that indicates if the operation was successful.
+  */
+  function mint(address to, uint256 tokenId, string memory uri) public onlyMinter returns (bool) {
+      _mint(to, tokenId);
+      setTokenUri(tokenId, uri);
+      return true;
+  }
+
+  function setTokenUri(uint256 tokenId, string memory uri) public virtual onlyMinter returns (bool) {
+      require(_exists(tokenId), "ERC721Metadata: Setting URI for nonexistent token");
+      _tokenUris[tokenId] = uri;
+      return true;
+  }
+
+  /**
+    * @dev See {IERC721Metadata-tokenURI}.
+    */
+  function tokenURI(uint256 tokenId) public view virtual override returns (string memory) {
+      require(_exists(tokenId), "ERC721Metadata: URI query for nonexistent token");
+
+      string memory uri = _tokenUris[tokenId];
+      if (bytes(uri).length > 0) {
+        return uri;
+      } else {
+        return super.tokenURI(tokenId);
+      }
   }
 
   function _beforeTokenTransfer(
