@@ -187,6 +187,7 @@ const assertEscResponse = async (
   assert.equal(_response[2], _destinationPartition);
 };
 
+//TODO Look at
 const craftCertificate = async (
   _txPayload,
   _token,
@@ -216,6 +217,7 @@ const craftCertificate = async (
   }
 }
 
+//TODO Look at this
 const craftNonceBasedCertificate = async (
   _txPayload,
   _token,
@@ -266,6 +268,7 @@ const craftNonceBasedCertificate = async (
 
 }
 
+//TODO Look at this
 const craftSaltBasedCertificate = async (
   _txPayload,
   _token,
