@@ -28,21 +28,13 @@ contract ERC721Token is Ownable, ERC721, ERC721Enumerable, ERC721Burnable, ERC72
       _mint(to, tokenId);
       return true;
   }
-
+  
   /**
-  * @dev Function to mint tokens
-  * @param to The address that will receive the minted tokens.
-  * @param tokenId The token id to mint.
-  * @param uri The URI to give the tokenId.
-  * @return A boolean that indicates if the operation was successful.
+  * @dev Function to set a URI for a given tokenId
+  * @param tokenId The tokenId to assign the given URI
+  * @param uri The URI to give the given tokenId
   */
-  function mint(address to, uint256 tokenId, string memory uri) public onlyMinter returns (bool) {
-      _mint(to, tokenId);
-      setTokenUri(tokenId, uri);
-      return true;
-  }
-
-  function setTokenUri(uint256 tokenId, string memory uri) public virtual onlyMinter returns (bool) {
+  function setTokenUri(uint256 tokenId, string memory uri) external virtual onlyMinter returns (bool) {
       require(_exists(tokenId), "ERC721Metadata: Setting URI for nonexistent token");
       _tokenUris[tokenId] = uri;
       return true;

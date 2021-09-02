@@ -3771,6 +3771,12 @@ contract("DVP", function ([
                       from: owner,
                     });
                   });
+                  it("setTokenURI sets the URI for the tokenId", async function() {
+                    await this.security721.setTokenUri(issuanceTokenId, "https://consensys.org/" + issuanceTokenId);
+                    const uri = await this.security721.tokenURI(issuanceTokenId);
+
+                    assert.equal(uri, "https://consensys.org/" + issuanceTokenId)
+                  });
                   describe("when trade type is Escrow", function () {
                     it("executes the trade", async function () {
                       await this.security721.approve(
