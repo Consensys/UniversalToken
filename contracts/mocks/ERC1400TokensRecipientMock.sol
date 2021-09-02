@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
 import "../extensions/userExtensions/IERC1400TokensRecipient.sol";
 import "../interface/ERC1820Implementer.sol";
@@ -8,7 +8,7 @@ contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implement
 
   string constant internal ERC1400_TOKENS_RECIPIENT = "ERC1400TokensRecipient";
 
-  constructor() public {
+  constructor() {
     ERC1820Implementer._setInterface(ERC1400_TOKENS_RECIPIENT);
   }
 
@@ -23,6 +23,7 @@ contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implement
     bytes calldata /*operatorData*/
   ) // Comments to avoid compilation warnings for unused variables.
     external
+    override
     view
     returns(bool)
   {
@@ -40,6 +41,7 @@ contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implement
     bytes calldata /*operatorData*/
   ) // Comments to avoid compilation warnings for unused variables.
     external
+    override
   {
     require(_canReceive(from, to, value, data), "57"); // 0x57	invalid receiver
   }

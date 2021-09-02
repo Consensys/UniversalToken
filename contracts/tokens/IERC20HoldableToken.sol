@@ -2,13 +2,15 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
+
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
  * @title Holdable ERC20 Token Interface.
  * @dev like approve except the tokens can't be spent by the sender while they are on hold.
  */
-interface IERC20HoldableToken {
+interface IERC20HoldableToken is IERC20 {
     enum HoldStatusCode {Nonexistent, Held, Executed, Released}
 
     event NewHold(
@@ -33,7 +35,7 @@ interface IERC20HoldableToken {
      @param amount of tokens to be transferred to the recipient on execution. Must be a non zero amount.
      @param expirationDateTime UNIX epoch seconds the held amount can be released back to the sender by the sender. Past dates are allowed.
      @param lockHash optional keccak256 hash of a lock preimage. An empty hash will not enforce the hash lock when the hold is executed.
-     @return a unique identifier for the hold.
+     @return holdId a unique identifier for the hold.
      */
     function hold(
         address recipient,
@@ -73,12 +75,6 @@ interface IERC20HoldableToken {
      @param holdId a unique identifier for the hold.
      */
     function releaseHold(bytes32 holdId) external;
-
-    /**
-     @notice Amount of tokens owned by an account that are available for transfer. That is, the gross balance less any held tokens.
-     @param account owner of the tokensß
-     */
-    function balanceOf(address account) external view returns (uint256);
 
     /**
      @notice Amount of tokens owned by an account that are held pending execution or release.

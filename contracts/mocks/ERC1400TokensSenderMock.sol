@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
 import "../extensions/userExtensions/IERC1400TokensSender.sol";
 import "../interface/ERC1820Implementer.sol";
@@ -8,7 +8,7 @@ contract ERC1400TokensSenderMock is IERC1400TokensSender, ERC1820Implementer {
 
   string constant internal ERC1400_TOKENS_SENDER = "ERC1400TokensSender";
 
-  constructor() public {
+  constructor() {
     ERC1820Implementer._setInterface(ERC1400_TOKENS_SENDER);
   }
 
@@ -24,6 +24,7 @@ contract ERC1400TokensSenderMock is IERC1400TokensSender, ERC1820Implementer {
   ) // Comments to avoid compilation warnings for unused variables.
     external
     view
+    override
     returns(bool)
   {
     return(_canTransfer(from, to, value, data));
@@ -40,6 +41,7 @@ contract ERC1400TokensSenderMock is IERC1400TokensSender, ERC1820Implementer {
     bytes calldata /*operatorData*/
   ) // Comments to avoid compilation warnings for unused variables.
     external
+    override
   {
     require(_canTransfer(from, to, value, data), "56"); // 0x56	invalid sender
   }

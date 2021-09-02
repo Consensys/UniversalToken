@@ -1,27 +1,27 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
 import "../ERC1400.sol";
 
 /**
  * @notice Interface to the extension contract
  */
-contract ExtensionMock {
+abstract contract ExtensionMock {
   function addCertificateSigner(
     address token,
     address account
-  ) external;
+  ) external virtual;
   function addAllowlistAdmin(
     address token,
     address account
-  ) external;
+  ) external virtual;
   function addBlocklistAdmin(
     address token,
     address account
-  ) external;
+  ) external virtual;
   function addPauser(
     address token,
     address account
-  ) external;
+  ) external virtual;
 }
 
 contract FakeERC1400Mock is ERC1400 {
@@ -59,6 +59,7 @@ contract FakeERC1400Mock is ERC1400 {
     bytes memory operatorData
   )
     internal
+    override
   {
     address recipientImplementation;
     recipientImplementation = interfaceAddr(to, ERC1400_TOKENS_RECIPIENT);
@@ -71,7 +72,7 @@ contract FakeERC1400Mock is ERC1400 {
   /**
    * Override function to allow redeeming tokens from address(0)
    */
-  function transferFromWithData(address from, address to, uint256 value, bytes calldata /*data*/) external {
+  function transferFromWithData(address from, address to, uint256 value, bytes calldata /*data*/) external override {
     _transferWithData(from, to, value);
   }
 
@@ -79,7 +80,7 @@ contract FakeERC1400Mock is ERC1400 {
    * Override function to allow redeeming tokens from address(0)
    */
   function redeemFrom(address from, uint256 value, bytes calldata data)
-    external
+    external override
   {
     _redeem(msg.sender, from, value, data);
   }

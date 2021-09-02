@@ -2,9 +2,9 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/access/Roles.sol";
+import "./Roles.sol";
 import "./AllowlistAdminRole.sol";
 
 
@@ -14,7 +14,7 @@ import "./AllowlistAdminRole.sol";
  * crowdsale). This role is special in that the only accounts that can add it are AllowlistAdmins (who can also remove
  * it), and not Allowlisteds themselves.
  */
-contract AllowlistedRole is AllowlistAdminRole {
+abstract contract AllowlistedRole is AllowlistAdminRole {
     using Roles for Roles.Role;
 
     event AllowlistedAdded(address indexed token, address indexed account);

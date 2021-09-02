@@ -3,7 +3,7 @@ const { expectRevert } = require("@openzeppelin/test-helpers");
 const { soliditySha3 } = require("web3-utils");
 
 const ERC1400 = artifacts.require("ERC1400");
-const ERC1820Registry = artifacts.require("ERC1820Registry");
+const ERC1820Registry = artifacts.require("IERC1820Registry");
 
 const ERC1400TokensSender = artifacts.require("ERC1400TokensSenderMock");
 const ERC1400TokensRecipient = artifacts.require("ERC1400TokensRecipientMock");

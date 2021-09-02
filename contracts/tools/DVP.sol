@@ -2,14 +2,14 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
-import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
-import "erc1820/contracts/ERC1820Client.sol";
+import "./ERC1820Client.sol";
 import "../interface/ERC1820Implementer.sol";
 
 import "../extensions/userExtensions/IERC1400TokensRecipient.sol";
@@ -83,8 +83,6 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
   uint256 constant internal SECONDS_IN_MONTH = 86400 * 30;
   uint256 constant internal SECONDS_IN_WEEK = 86400 * 7;
 
-  bytes32 constant internal ERC1820_ACCEPT_MAGIC = keccak256(abi.encodePacked("ERC1820_ACCEPT_MAGIC"));
-
   bytes32 constant internal TRADE_PROPOSAL_FLAG = 0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc;
   bytes32 constant internal TRADE_ACCEPTANCE_FLAG = 0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd;
 
@@ -99,6 +97,38 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
   enum TradeType {Escrow, Swap}
 
   enum Holder {Holder1, Holder2}
+  
+  /**
+   * @dev Input data for the requestTrade function
+   * @param holder1 Address of the first token holder.
+   * @param holder2 Address of the second token holder.
+   * @param executer Executer of the trade.
+   * @param expirationDate Expiration date of the trade.
+   * @param tokenAddress1 Address of the first token smart contract.
+   * @param tokenValue1 Amount of tokens to send for the first token.
+   * @param tokenId1 ID/partition of the first token.
+   * @param tokenStandard1 Standard of the first token (ETH | ERC20 | ERC721 | ERC1400).
+   * @param tokenAddress2 Address of the second token smart contract.
+   * @param tokenValue2 Amount of tokens to send for the second token.
+   * @param tokenId2 ID/partition of the second token.
+   * @param tokenStandard2 Standard of the second token (ETH | ERC20 | ERC721 | ERC1400).
+   * @param tradeType Indicates whether or not tokens shall be escrowed in the DVP contract before the trade.
+   */
+  struct TradeRequestInput {
+    address holder1;
+    address holder2;
+    address executer; // Set to address(0) if no executer is required for the trade
+    uint256 expirationDate;
+    address tokenAddress1;
+    uint256 tokenValue1;
+    bytes32 tokenId1;
+    Standard tokenStandard1;
+    address tokenAddress2; // Set to address(0) if no token is expected in return (for example in case of an off-chain payment)
+    uint256 tokenValue2;
+    bytes32 tokenId2;
+    Standard tokenStandard2;
+    TradeType tradeType;
+  }
 
   struct Trade {
     address holder1;
@@ -197,7 +227,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @param operatorData Information attached to the DVP transfer, by the operator.
    * @return 'true' if the DVP contract can receive the tokens, 'false' if not.
    */
-  function canReceive(bytes calldata, bytes32, address, address, address, uint, bytes calldata  data, bytes calldata operatorData) external view returns(bool) {
+  function canReceive(bytes calldata, bytes32, address, address, address, uint, bytes calldata  data, bytes calldata operatorData) external override view returns(bool) {
     return(_canReceive(data, operatorData));
   }
 
@@ -211,7 +241,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @param data Information attached to the token transfer.
    * @param operatorData Information attached to the DVP transfer, by the operator.
    */
-  function tokensReceived(bytes calldata, bytes32 partition, address, address from, address to, uint value, bytes calldata data, bytes calldata operatorData) external {
+  function tokensReceived(bytes calldata, bytes32 partition, address, address from, address to, uint value, bytes calldata data, bytes calldata operatorData) external override {
     require(interfaceAddr(msg.sender, "ERC1400Token") == msg.sender, "55"); // funds locked (lockup period)
 
     require(to == address(this), "50"); // 0x50	transfer failure
@@ -257,53 +287,27 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
 
   /**
    * @dev Create a new trade request in the DVP smart contract.
-   * @param holder1 Address of the first token holder.
-   * @param holder2 Address of the second token holder.
-   * @param executer Executer of the trade.
-   * @param expirationDate Expiration date of the trade.
-   * @param tokenAddress1 Address of the first token smart contract.
-   * @param tokenValue1 Amount of tokens to send for the first token.
-   * @param tokenId1 ID/partition of the first token.
-   * @param tokenStandard1 Standard of the first token (ETH | ERC20 | ERC721 | ERC1400).
-   * @param tokenAddress2 Address of the second token smart contract.
-   * @param tokenValue2 Amount of tokens to send for the second token.
-   * @param tokenId2 ID/partition of the second token.
-   * @param tokenStandard2 Standard of the second token (ETH | ERC20 | ERC721 | ERC1400).
-   * @param tradeType Indicates whether or not tokens shall be escrowed in the DVP contract before the trade.
+   * @param inputData The input for this function
    */
-  function requestTrade(
-    address holder1,
-    address holder2,
-    address executer, // Set to address(0) if no executer is required for the trade
-    uint256 expirationDate,
-    address tokenAddress1,
-    uint256 tokenValue1,
-    bytes32 tokenId1,
-    Standard tokenStandard1,
-    address tokenAddress2, // Set to address(0) if no token is expected in return (for example in case of an off-chain payment)
-    uint256 tokenValue2,
-    bytes32 tokenId2,
-    Standard tokenStandard2,
-    TradeType tradeType
-  )
+  function requestTrade(TradeRequestInput calldata inputData)
     external
     payable
   {
     // Token data: < 1: address > < 2: amount > < 3: id/partition > < 4: standard > < 5: accepted > < 6: approved >
-    bytes memory _tokenData1 = abi.encode(tokenAddress1, tokenValue1, tokenId1, tokenStandard1, false, false);
-    bytes memory _tokenData2 = abi.encode(tokenAddress2, tokenValue2, tokenId2, tokenStandard2, false, false);
+    bytes memory _tokenData1 = abi.encode(inputData.tokenAddress1, inputData.tokenValue1, inputData.tokenId1, inputData.tokenStandard1, false, false);
+    bytes memory _tokenData2 = abi.encode(inputData.tokenAddress2, inputData.tokenValue2, inputData.tokenId2, inputData.tokenStandard2, false, false);
 
     _requestTrade(
-      holder1,
-      holder2,
-      executer,
-      expirationDate,
+      inputData.holder1,
+      inputData.holder2,
+      inputData.executer,
+      inputData.expirationDate,
       _tokenData1,
       _tokenData2,
-      tradeType
+      inputData.tradeType
     );
 
-    if(msg.sender == holder1 || msg.sender == holder2) {
+    if(msg.sender == inputData.holder1 || msg.sender == inputData.holder2) {
       _acceptTrade(_index, msg.sender, msg.value, 0);
     }
     
@@ -682,7 +686,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     }
 
     if(tokenStandard == Standard.ETH) {
-      address payable payableRecipient = address(uint160(recipient));
+      address payable payableRecipient = payable(recipient);
       payableRecipient.transfer(value);
     } else if(tokenStandard == Standard.ERC20) {
       if(currentHolder == address(this)) {
@@ -748,7 +752,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    *  following flag: 0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
    *
    * @param data Concatenated information about the trade proposal.
-   * @return Trade flag.
+   * @return flag Trade flag.
    */
   function _getTradeFlag(bytes memory data) internal pure returns(bytes32 flag) {
     assembly {
@@ -789,7 +793,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @dev Retrieve the recipient from the 'data' field.
    *
    * @param data Concatenated information about the trade proposal.
-   * @return Trade recipient address.
+   * @return recipient Trade recipient address.
    */
   function _getTradeRecipient(bytes memory data) internal pure returns(address recipient) {
     assembly {
@@ -801,7 +805,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @dev Retrieve the trade executer address from the 'data' field.
    *
    * @param data Concatenated information about the trade proposal.
-   * @return Trade executer address.
+   * @return executer Trade executer address.
    */
   function _getTradeExecuter(bytes memory data) internal pure returns(address executer) {
     assembly {
@@ -813,7 +817,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @dev Retrieve the expiration date from the 'data' field.
    *
    * @param data Concatenated information about the trade proposal.
-   * @return Trade expiration date.
+   * @return expirationDate Trade expiration date.
    */
   function _getTradeExpirationDate(bytes memory data) internal pure returns(uint256 expirationDate) {
     assembly {
@@ -825,7 +829,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @dev Retrieve the tokenData from the 'data' field.
    *
    * @param data Concatenated information about the trade proposal.
-   * @return Trade token data < 1: address > < 2: amount > < 3: id/partition > < 4: standard > < 5: accepted > < 6: approved >.
+   * @return tokenData Trade token data < 1: address > < 2: amount > < 3: id/partition > < 4: standard > < 5: accepted > < 6: approved >.
    */
   function _getTradeTokenData(bytes memory data) internal pure returns(bytes memory tokenData) {
     address tokenAddress;
@@ -855,7 +859,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * 0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd0000000000000000000000000000000000000000000000000000000000002985
    *
    * @param data Concatenated information about the trade validation.
-   * @return Trade index.
+   * @return index Trade index.
    */
   function _getTradeIndex(bytes memory data) internal pure returns(uint256 index) {
     assembly {
@@ -868,7 +872,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
   /**
    * @dev Renounce ownership of the contract.
    */
-  function renounceOwnership() public onlyOwner {
+  function renounceOwnership() public override onlyOwner {
     Ownable.renounceOwnership();
     _ownedContract = false;
   }

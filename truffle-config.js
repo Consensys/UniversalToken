@@ -58,7 +58,7 @@ module.exports = {
   plugins: ["solidity-coverage"],
   compilers: {
     solc: {
-      version: '0.5.10',
+      version: '0.8.7',
       settings: {
         optimizer: {
           enabled: true, // Default: false

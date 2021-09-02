@@ -1,4 +1,4 @@
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
 // MOCK CONTRACT TO REACH FULL COVERAGE BY CALLING "onlyNotPausered" MODIFIER
 
@@ -9,7 +9,7 @@ contract PauserMock is PauserRole {
 
   bool _mockActivated;
 
-  constructor(address token) public {
+  constructor(address token) {
     _addPauser(token, msg.sender);
   }
 

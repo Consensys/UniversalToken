@@ -2,12 +2,12 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "erc1820/contracts/ERC1820Client.sol";
+import "../../tools/ERC1820Client.sol";
 import "../../interface/ERC1820Implementer.sol";
 
 import "../../IERC1400.sol";
@@ -55,8 +55,9 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
    */
    function canTransferByPartition(bytes calldata payload, bytes32 partition, address operator, address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData)
      external
+     override
      view
-     returns (byte, bytes32, bytes32)
+     returns (bytes1, bytes32, bytes32)
    {
      return _canTransferByPartition(payload, partition, operator, from, to, value, data, operatorData);
    }
@@ -80,7 +81,7 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
    function _canTransferByPartition(bytes memory payload, bytes32 partition, address operator, address from, address to, uint256 value, bytes memory data, bytes memory operatorData)
      internal
      view
-     returns (byte, bytes32, bytes32)
+     returns (bytes1, bytes32, bytes32)
    {
      if(!IERC1400(msg.sender).isOperatorForPartition(partition, operator, from))
        return(hex"58", "", partition); // 0x58	invalid operator (transfer agent)
@@ -104,8 +105,9 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
        return(hex"57", "", partition); // 0x57	invalid receiver
 
      hookImplementation = ERC1820Client.interfaceAddr(msg.sender, ERC1400_TOKENS_VALIDATOR);
-     if((hookImplementation != address(0))
-       && !IERC1400TokensValidator(hookImplementation).canValidate(msg.sender, payload, partition, operator, from, to, value, data, operatorData))
+     IERC1400TokensValidator.ValidateData memory vdata = IERC1400TokensValidator.ValidateData(msg.sender, payload, partition, operator, from, to, value, data, operatorData);
+     if((hookImplementation != address(0)) 
+       && !IERC1400TokensValidator(hookImplementation).canValidate(vdata))
        return(hex"54", "", partition); // 0x54	transfers halted (contract paused)
 
      uint256 granularity = IERC1400Extended(msg.sender).granularity();

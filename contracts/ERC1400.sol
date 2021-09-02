@@ -2,13 +2,13 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/math/SafeMath.sol";
-import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import "openzeppelin-solidity/contracts/token/ERC20/IERC20.sol";
+import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "erc1820/contracts/ERC1820Client.sol";
+import "./tools/ERC1820Client.sol";
 import "./interface/ERC1820Implementer.sol";
 
 import "./roles/MinterRole.sol";
@@ -147,8 +147,8 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   /**
    * @dev Modifier to verifiy if sender is a minter.
    */
-  modifier onlyMinter() {
-      require(isMinter(msg.sender) || isOwner());
+  modifier onlyMinter() override {
+      require(isMinter(msg.sender) || owner() == _msgSender());
       _;
   }
   /************************************************************************************************/
@@ -209,7 +209,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @dev Get the total number of issued tokens.
    * @return Total supply of tokens currently in circulation.
    */
-  function totalSupply() external view returns (uint256) {
+  function totalSupply() external override view returns (uint256) {
     return _totalSupply;
   }
   /**
@@ -217,7 +217,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param tokenHolder Address for which the balance is returned.
    * @return Amount of token held by 'tokenHolder' in the token contract.
    */
-  function balanceOf(address tokenHolder) external view returns (uint256) {
+  function balanceOf(address tokenHolder) external override view returns (uint256) {
     return _balances[tokenHolder];
   }
   /**
@@ -226,7 +226,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param value The value to be transferred.
    * @return A boolean that indicates if the operation was successful.
    */
-  function transfer(address to, uint256 value) external returns (bool) {
+  function transfer(address to, uint256 value) external override returns (bool) {
     _transferByDefaultPartitions(msg.sender, msg.sender, to, value, "");
     return true;
   }
@@ -236,7 +236,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param spender address The address which will spend the funds.
    * @return A uint256 specifying the value of tokens still available for the spender.
    */
-  function allowance(address owner, address spender) external view returns (uint256) {
+  function allowance(address owner, address spender) external override view returns (uint256) {
     return _allowed[owner][spender];
   }
   /**
@@ -245,7 +245,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param value The amount of tokens to be spent.
    * @return A boolean that indicates if the operation was successful.
    */
-  function approve(address spender, uint256 value) external returns (bool) {
+  function approve(address spender, uint256 value) external override returns (bool) {
     require(spender != address(0), "56"); // 0x56	invalid sender
     _allowed[msg.sender][spender] = value;
     emit Approval(msg.sender, spender, value);
@@ -258,7 +258,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param value The amount of tokens to be transferred.
    * @return A boolean that indicates if the operation was successful.
    */
-  function transferFrom(address from, address to, uint256 value) external returns (bool) {
+  function transferFrom(address from, address to, uint256 value) external override returns (bool) {
     require( _isOperator(msg.sender, from)
       || (value <= _allowed[from][msg.sender]), "53"); // 0x53	insufficient allowance
 
@@ -284,7 +284,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param name Short name (represented as a bytes32) associated to the document.
    * @return Requested document + document hash.
    */
-  function getDocument(bytes32 name) external view returns (string memory, bytes32) {
+  function getDocument(bytes32 name) external override view returns (string memory, bytes32) {
     require(bytes(_documents[name].docURI).length != 0); // Action Blocked - Empty document
     return (
       _documents[name].docURI,
@@ -297,7 +297,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param uri Document content.
    * @param documentHash Hash of the document [optional parameter].
    */
-  function setDocument(bytes32 name, string calldata uri, bytes32 documentHash) external {
+  function setDocument(bytes32 name, string calldata uri, bytes32 documentHash) external override {
     require(_isController[msg.sender]);
     _documents[name] = Doc({
       docURI: uri,
@@ -315,7 +315,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param tokenHolder Address for which the balance is returned.
    * @return Amount of token of partition 'partition' held by 'tokenHolder' in the token contract.
    */
-  function balanceOfByPartition(bytes32 partition, address tokenHolder) external view returns (uint256) {
+  function balanceOfByPartition(bytes32 partition, address tokenHolder) external override view returns (uint256) {
     return _balanceOfByPartition[tokenHolder][partition];
   }
   /**
@@ -323,7 +323,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param tokenHolder Address for which the partitions index are returned.
    * @return Array of partitions index of 'tokenHolder'.
    */
-  function partitionsOf(address tokenHolder) external view returns (bytes32[] memory) {
+  function partitionsOf(address tokenHolder) external override view returns (bytes32[] memory) {
     return _partitionsOf[tokenHolder];
   }
   /************************************************************************************************/
@@ -336,7 +336,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer, by the token holder.
    */
-  function transferWithData(address to, uint256 value, bytes calldata data) external {
+  function transferWithData(address to, uint256 value, bytes calldata data) external override {
     _transferByDefaultPartitions(msg.sender, msg.sender, to, value, data);
   }
   /**
@@ -346,7 +346,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param value Number of tokens to transfer.
    * @param data Information attached to the transfer, and intended for the token holder ('from').
    */
-  function transferFromWithData(address from, address to, uint256 value, bytes calldata data) external {
+  function transferFromWithData(address from, address to, uint256 value, bytes calldata data) external override virtual {
     require(_isOperator(msg.sender, from), "58"); // 0x58	invalid operator (transfer agent)
 
     _transferByDefaultPartitions(msg.sender, from, to, value, data);
@@ -370,6 +370,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     bytes calldata data
   )
     external
+    override
     returns (bytes32)
   {
     return _transferByPartition(partition, msg.sender, msg.sender, to, value, data, "");
@@ -393,6 +394,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     bytes calldata operatorData
   )
     external
+    override
     returns (bytes32)
   {
     require(_isOperatorForPartition(partition, msg.sender, from)
@@ -415,7 +417,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * If a token returns 'false' for 'isControllable()'' then it MUST always return 'false' in the future.
    * @return bool 'true' if the token can still be controlled by operators, 'false' if it can't anymore.
    */
-  function isControllable() external view returns (bool) {
+  function isControllable() external override view returns (bool) {
     return _isControllable;
   }
   /************************************************************************************************/
@@ -427,7 +429,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * and redeem tokens on its behalf.
    * @param operator Address to set as an operator for 'msg.sender'.
    */
-  function authorizeOperator(address operator) external {
+  function authorizeOperator(address operator) external override {
     require(operator != msg.sender);
     _authorizedOperator[operator][msg.sender] = true;
     emit AuthorizedOperator(operator, msg.sender);
@@ -437,7 +439,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * and to transfer and redeem tokens on its behalf.
    * @param operator Address to rescind as an operator for 'msg.sender'.
    */
-  function revokeOperator(address operator) external {
+  function revokeOperator(address operator) external override {
     require(operator != msg.sender);
     _authorizedOperator[operator][msg.sender] = false;
     emit RevokedOperator(operator, msg.sender);
@@ -447,7 +449,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param partition Name of the partition.
    * @param operator Address to set as an operator for 'msg.sender'.
    */
-  function authorizeOperatorByPartition(bytes32 partition, address operator) external {
+  function authorizeOperatorByPartition(bytes32 partition, address operator) external override {
     _authorizedOperatorByPartition[msg.sender][partition][operator] = true;
     emit AuthorizedOperatorByPartition(partition, operator, msg.sender);
   }
@@ -457,7 +459,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param partition Name of the partition.
    * @param operator Address to rescind as an operator on given partition for 'msg.sender'.
    */
-  function revokeOperatorByPartition(bytes32 partition, address operator) external {
+  function revokeOperatorByPartition(bytes32 partition, address operator) external override {
     _authorizedOperatorByPartition[msg.sender][partition][operator] = false;
     emit RevokedOperatorByPartition(partition, operator, msg.sender);
   }
@@ -471,7 +473,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param tokenHolder Address of a token holder which may have the operator address as an operator.
    * @return 'true' if operator is an operator of 'tokenHolder' and 'false' otherwise.
    */
-  function isOperator(address operator, address tokenHolder) external view returns (bool) {
+  function isOperator(address operator, address tokenHolder) external override view returns (bool) {
     return _isOperator(operator, tokenHolder);
   }
   /**
@@ -482,7 +484,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param tokenHolder Address of a token holder which may have the operator address as an operator for the given partition.
    * @return 'true' if 'operator' is an operator of 'tokenHolder' for partition 'partition' and 'false' otherwise.
    */
-  function isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) external view returns (bool) {
+  function isOperatorForPartition(bytes32 partition, address operator, address tokenHolder) external override view returns (bool) {
     return _isOperatorForPartition(partition, operator, tokenHolder);
   }
   /************************************************************************************************/
@@ -493,7 +495,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @dev Know if new tokens can be issued in the future.
    * @return bool 'true' if tokens can still be issued by the issuer, 'false' if they can't anymore.
    */
-  function isIssuable() external view returns (bool) {
+  function isIssuable() external override view returns (bool) {
     return _isIssuable;
   }
   /**
@@ -504,6 +506,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    */
   function issue(address tokenHolder, uint256 value, bytes calldata data)
     external
+    override
     onlyMinter
     isIssuableToken
   {
@@ -520,6 +523,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    */
   function issueByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes calldata data)
     external
+    override
     onlyMinter
     isIssuableToken
   {
@@ -536,6 +540,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    */
   function redeem(uint256 value, bytes calldata data)
     external
+    override
   {
     _redeemByDefaultPartitions(msg.sender, msg.sender, value, data);
   }
@@ -547,6 +552,8 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    */
   function redeemFrom(address from, uint256 value, bytes calldata data)
     external
+    override
+    virtual
   {
     require(_isOperator(msg.sender, from), "58"); // 0x58	invalid operator (transfer agent)
 
@@ -560,6 +567,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    */
   function redeemByPartition(bytes32 partition, uint256 value, bytes calldata data)
     external
+    override
   {
     _redeemByPartition(partition, msg.sender, msg.sender, value, data, "");
   }
@@ -572,6 +580,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    */
   function operatorRedeemByPartition(bytes32 partition, address tokenHolder, uint256 value, bytes calldata operatorData)
     external
+    override
   {
     require(_isOperatorForPartition(partition, msg.sender, tokenHolder), "58"); // 0x58	invalid operator (transfer agent)
 
@@ -890,7 +899,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * 32 bytes following the flag.
    * @param fromPartition Partition of the tokens to transfer.
    * @param data Information attached to the transfer. [CAN CONTAIN THE DESTINATION PARTITION]
-   * @return Destination partition.
+   * @return toPartition Destination partition.
    */
   function _getDestinationPartition(bytes32 fromPartition, bytes memory data) internal pure returns(bytes32 toPartition) {
     bytes32 changePartitionFlag = 0xffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff;
@@ -926,7 +935,8 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
       _totalPartitions[index1 - 1] = lastValue; // adjust for 1-based indexing
       _indexOfTotalPartitions[lastValue] = index1;
 
-      _totalPartitions.length -= 1;
+      //_totalPartitions.length -= 1;
+      _totalPartitions.pop();
       _indexOfTotalPartitions[partition] = 0;
     }
 
@@ -940,7 +950,8 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
       _partitionsOf[from][index2 - 1] = lastValue;  // adjust for 1-based indexing
       _indexOfPartitionsOf[from][lastValue] = index2;
 
-      _partitionsOf[from].length -= 1;
+      //_partitionsOf[from].length -= 1;
+      _partitionsOf[from].pop();
       _indexOfPartitionsOf[from][partition] = 0;
     }
   }
@@ -1051,6 +1062,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     bytes memory operatorData
   )
     internal
+    virtual
   {
     address recipientImplementation;
     recipientImplementation = interfaceAddr(to, ERC1400_TOKENS_RECIPIENT);
@@ -1250,7 +1262,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   function _canTransfer(bytes memory payload, bytes32 partition, address operator, address from, address to, uint256 value, bytes memory data, bytes memory operatorData)
     internal
     view
-    returns (byte, bytes32, bytes32)
+    returns (bytes1, bytes32, bytes32)
   {
     address checksImplementation = interfaceAddr(address(this), ERC1400_TOKENS_CHECKER);
 

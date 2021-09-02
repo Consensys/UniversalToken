@@ -2,7 +2,7 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
 import "../ERC1400.sol";
 
@@ -20,7 +20,7 @@ interface IExtensionTypes {
 /**
  * @notice Interface to the extension contract
  */
-contract Extension is IExtensionTypes {
+abstract contract Extension is IExtensionTypes {
   function registerTokenSetup(
     address token,
     CertificateValidation certificateActivated,
@@ -29,12 +29,12 @@ contract Extension is IExtensionTypes {
     bool granularityByPartitionActivated,
     bool holdsActivated,
     address[] calldata operators
-  ) external;
+  ) external virtual;
 
   function addCertificateSigner(
     address token,
     address account
-  ) external;
+  ) external virtual;
 }
 
 
@@ -43,8 +43,6 @@ contract Extension is IExtensionTypes {
  * @dev Holdable ERC1400 with nonce-based certificate controller logic
  */
 contract ERC1400HoldableCertificateToken is ERC1400, IExtensionTypes {
-
-  string constant internal ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
 
   /**
    * @dev Initialize ERC1400 + initialize certificate controller.
@@ -95,7 +93,7 @@ contract ERC1400HoldableCertificateToken is ERC1400, IExtensionTypes {
     }
 
     if(newOwner != address(0)) {
-      _transferOwnership(newOwner);
+      transferOwnership(newOwner);
     }
   }
 
@@ -115,7 +113,7 @@ contract ERC1400HoldableCertificateToken is ERC1400, IExtensionTypes {
   function canTransferByPartition(bytes32 partition, address to, uint256 value, bytes calldata data)
     external
     view
-    returns (byte, bytes32, bytes32)
+    returns (bytes1, bytes32, bytes32)
   {
     return ERC1400._canTransfer(
       _replaceFunctionSelector(this.transferByPartition.selector, msg.data), // 0xf3d490db: 4 first bytes of keccak256(transferByPartition(bytes32,address,uint256,bytes))
@@ -145,7 +143,7 @@ contract ERC1400HoldableCertificateToken is ERC1400, IExtensionTypes {
   function canOperatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData)
     external
     view
-    returns (byte, bytes32, bytes32)
+    returns (bytes1, bytes32, bytes32)
   {
     return ERC1400._canTransfer(
       _replaceFunctionSelector(this.operatorTransferByPartition.selector, msg.data), // 0x8c0dee9c: 4 first bytes of keccak256(operatorTransferByPartition(bytes32,address,address,uint256,bytes,bytes))

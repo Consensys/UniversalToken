@@ -2,7 +2,7 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
 /**
  * @title IERC1400TokensChecker
@@ -29,6 +29,6 @@ interface IERC1400TokensChecker {
     uint256 value,
     bytes calldata data,
     bytes calldata operatorData
-    ) external view returns (byte, bytes32, bytes32);
+    ) external view returns (bytes1, bytes32, bytes32);
 
 }

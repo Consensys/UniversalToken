@@ -16,7 +16,7 @@ const { advanceTimeAndBlock } = require("./utils/time")
 
 const FundIssuerContract = artifacts.require("FundIssuer");
 const ERC1400 = artifacts.require("ERC1400");
-const ERC1820Registry = artifacts.require("ERC1820Registry");
+const ERC1820Registry = artifacts.require("IERC1820Registry");
 
 const ERC1400_TOKENS_RECIPIENT_INTERFACE = "ERC1400TokensRecipient";
 
@@ -432,7 +432,7 @@ const setAssetRules = async (
   _subscriptionsOpened
 ) => {
   const chainTime = (await web3.eth.getBlock("latest")).timestamp;
-  const firstStartTime = _firstStartTime || chainTime + 1;
+  const firstStartTime = _firstStartTime || chainTime + 20;
   const subscriptionPeriodLength =
     _subscriptionPeriodLength || DEFAULT_SUBSCRIPTION_PERIOD_LENGTH;
   const valuationPeriodLength =
@@ -474,7 +474,7 @@ const setAssetRules = async (
   );
 
   // Wait for 10 seconds, in order to be after the first start time (set to "chainTime + 1" by default)
-  await advanceTimeAndBlock(10);
+  await advanceTimeAndBlock(30);
 };
 
 const subscribe = async (
@@ -689,6 +689,7 @@ contract("Fund issuance", function ([
             fund,
             true
           );
+
           await subscribe(
             this.fic,
             this.asset.address,

@@ -2,16 +2,16 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "openzeppelin-solidity/contracts/access/Roles.sol";
+import "./Roles.sol";
 
 
 /**
  * @title CertificateSignerRole
  * @dev Certificate signers are responsible for signing certificates.
  */
-contract CertificateSignerRole {
+abstract contract CertificateSignerRole {
     using Roles for Roles.Role;
 
     event CertificateSignerAdded(address indexed token, address indexed account);
@@ -20,9 +20,7 @@ contract CertificateSignerRole {
     // Mapping from token to token certificate signers.
     mapping(address => Roles.Role) private _certificateSigners;
 
-    constructor () internal {}
-
-    modifier onlyCertificateSigner(address token) {
+    modifier onlyCertificateSigner(address token) virtual {
         require(isCertificateSigner(token, msg.sender));
         _;
     }

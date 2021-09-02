@@ -26,7 +26,7 @@ const { assert } = require("chai");
 const Account = require('eth-lib/lib/account');
 
 const ERC1400HoldableCertificate = artifacts.require("ERC1400HoldableCertificateToken");
-const ERC1820Registry = artifacts.require("ERC1820Registry");
+const ERC1820Registry = artifacts.require("IERC1820Registry");
 
 const ERC1400TokensValidator = artifacts.require("ERC1400TokensValidator");
 const ERC1400TokensValidatorMock = artifacts.require("ERC1400TokensValidatorMock");
@@ -5230,7 +5230,8 @@ contract("ERC1400HoldableCertificate with token extension", function ([
         );
 
         // Add notary as controller
-        const controllers = await this.token.controllers();
+        const readonlyControllers = await this.token.controllers();
+        const controllers = Object.assign([], readonlyControllers);
         assert.equal(controllers.length, 1);
         controllers.push(notary);
         await this.token.setControllers(controllers, { from: owner });

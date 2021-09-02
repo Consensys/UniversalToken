@@ -2,9 +2,9 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.5.0;
+pragma solidity ^0.8.0;
 
-import "erc1820/contracts/ERC1820Client.sol";
+import "./ERC1820Client.sol";
 import "../interface/ERC1820Implementer.sol";
 
 import "../tokens/IERC20HoldableToken.sol";

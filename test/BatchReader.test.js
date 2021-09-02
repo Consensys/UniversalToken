@@ -5,7 +5,7 @@ const { newSecretHashPair, newHoldId } = require("./utils/crypto");
 
 const BatchReader = artifacts.require("BatchReader.sol");
 
-const ERC1820Registry = artifacts.require("ERC1820Registry");
+const ERC1820Registry = artifacts.require("IERC1820Registry");
 
 const ERC1400HoldableCertificate = artifacts.require("ERC1400HoldableCertificateToken");
 const ERC1400TokensValidator = artifacts.require("ERC1400TokensValidator");
