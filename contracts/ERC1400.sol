@@ -404,8 +404,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     override
     returns (bytes32)
   {
-    require(_isOperatorForPartition(partition, msg.sender, from)
-      || (value <= _allowedByPartition[partition][from][msg.sender]), "53"); // 0x53	insufficient allowance
+    require(_isOperatorForPartition(partition, msg.sender, from), "58"); // 0x53	insufficient allowance
 
     if(_allowedByPartition[partition][from][msg.sender] >= value) {
       _allowedByPartition[partition][from][msg.sender] = _allowedByPartition[partition][from][msg.sender].sub(value);
