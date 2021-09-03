@@ -65,6 +65,6 @@ contract ERC721Token is Ownable, ERC721, ERC721URIStorage, ERC721Enumerable, ERC
   }
 
   function _burn(uint256 tokenId) internal virtual override(ERC721, ERC721URIStorage) {
-    ERC721URIStorage._burn(tokenId);
+      ERC721URIStorage._burn(tokenId);
   }
 }
