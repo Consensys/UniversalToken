@@ -35,6 +35,10 @@ contract ERC721Token is Ownable, ERC721, ERC721URIStorage, ERC721Enumerable, ERC
       return ERC721URIStorage.tokenURI(tokenId);
   }
 
+  function setTokenURI(uint256 tokenId, string memory uri) public virtual onlyMinter {
+      _setTokenURI(tokenId, uri);
+  }
+
   function _baseURI() internal view override virtual returns (string memory) {
       return _baseUri;
   }
