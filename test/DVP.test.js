@@ -3772,7 +3772,7 @@ contract("DVP", function ([
                     });
                   });
                   it("setTokenURI sets the URI for the tokenId", async function() {
-                    await this.security721.setTokenUri(issuanceTokenId, "https://consensys.org/" + issuanceTokenId);
+                    await this.security721.setTokenURI(issuanceTokenId, "https://consensys.org/" + issuanceTokenId);
                     const uri = await this.security721.tokenURI(issuanceTokenId);
 
                     assert.equal(uri, "https://consensys.org/" + issuanceTokenId)
