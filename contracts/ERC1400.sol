@@ -347,7 +347,14 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param data Information attached to the transfer, and intended for the token holder ('from').
    */
   function transferFromWithData(address from, address to, uint256 value, bytes calldata data) external override virtual {
-    require(_isOperator(msg.sender, from), "58"); // 0x58	invalid operator (transfer agent)
+    require( _isOperator(msg.sender, from)
+      || (value <= _allowed[from][msg.sender]), "53"); // 0x53	insufficient allowance
+
+    if(_allowed[from][msg.sender] >= value) {
+      _allowed[from][msg.sender] = _allowed[from][msg.sender].sub(value);
+    } else {
+      _allowed[from][msg.sender] = 0;
+    }
 
     _transferByDefaultPartitions(msg.sender, from, to, value, data);
   }
