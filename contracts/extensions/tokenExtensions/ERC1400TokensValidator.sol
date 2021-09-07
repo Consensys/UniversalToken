@@ -109,11 +109,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   // Total balance on hold.
   mapping(address => uint256) internal _totalHeldBalance;
 
-  // Mapping from hold parameter's hash to hold's nonce.
-  mapping(bytes32 => uint256) internal _hashNonce;
-
-  // Mapping from (hash, nonce) to hold ID.
-  mapping(bytes32 => mapping(uint256 => bytes32)) internal _holdIds;
+  // Mapping from hash to hold ID.
+  mapping(bytes32 => bytes32) internal _holdIds;
 
   event HoldCreated(
     address indexed token,
@@ -325,7 +322,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     }
     
     {
-        (,, bytes32 holdId) = _retrieveHoldHashNonceId(msg.sender, partition, operator, from, to, value);
+        (, bytes32 holdId) = _retrieveHoldHashId(msg.sender, partition, operator, from, to, value);
         if (_holdsActivated[msg.sender] && holdId != "") {
           Hold storage executableHold = _holds[msg.sender][holdId];
           _setHoldToExecuted(
@@ -475,7 +472,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   {
     if (_holdsActivated[token] && from != address(0)) {
       if(operator != from) {
-        (,, bytes32 holdId) = _retrieveHoldHashNonceId(token, partition, operator, from, to, value);
+        (, bytes32 holdId) = _retrieveHoldHashId(token, partition, operator, from, to, value);
         Hold storage hold = _holds[token][holdId];
         
         if (_holdCanBeExecutedAsNotary(hold, operator, value) && value <= IERC1400(token).balanceOfByPartition(partition, from)) {
@@ -1009,8 +1006,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
 
     _heldBalanceByPartition[token][executableHold.sender][executableHold.partition] = _heldBalanceByPartition[token][executableHold.sender][executableHold.partition].add(executableHold.value);
     _totalHeldBalanceByPartition[token][executableHold.partition] = _totalHeldBalanceByPartition[token][executableHold.partition].add(executableHold.value);
-
-    _increaseNonce(token, executableHold, holdId);
   }
 
   /**
@@ -1022,41 +1017,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
 
     _heldBalanceByPartition[token][executableHold.sender][executableHold.partition] = _heldBalanceByPartition[token][executableHold.sender][executableHold.partition].sub(value);
     _totalHeldBalanceByPartition[token][executableHold.partition] = _totalHeldBalanceByPartition[token][executableHold.partition].sub(value);
-
-    if(executableHold.status == HoldStatusCode.Ordered) {
-      _decreaseNonce(token, executableHold);
-    }
-  }
-
-  /**
-   * @dev Increase nonce.
-   */
-  function _increaseNonce(address token, Hold storage executableHold, bytes32 holdId) private {
-    (bytes32 holdHash, uint256 nonce,) = _retrieveHoldHashNonceId(
-      token, executableHold.partition,
-      executableHold.notary,
-      executableHold.sender,
-      executableHold.recipient,
-      executableHold.value
-    );
-    _hashNonce[holdHash] = nonce.add(1);
-    _holdIds[holdHash][nonce.add(1)] = holdId;
-  }
-
-  /**
-   * @dev Decrease nonce.
-   */
-  function _decreaseNonce(address token, Hold storage executableHold) private {
-    (bytes32 holdHash, uint256 nonce,) = _retrieveHoldHashNonceId(
-      token,
-      executableHold.partition,
-      executableHold.notary,
-      executableHold.sender,
-      executableHold.recipient,
-      executableHold.value
-    );
-    _holdIds[holdHash][nonce] = "";
-    _hashNonce[holdHash] = _hashNonce[holdHash].sub(1);
   }
 
   /**
@@ -1100,7 +1060,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Retrieve hold hash, nonce, and ID for given parameters
    */
-  function _retrieveHoldHashNonceId(address token, bytes32 partition, address notary, address sender, address recipient, uint value) internal view returns (bytes32, uint256, bytes32) {
+  function _retrieveHoldHashId(address token, bytes32 partition, address notary, address sender, address recipient, uint value) internal view returns (bytes32, bytes32) {
     // Pack and hash hold parameters
     bytes32 holdHash = keccak256(abi.encodePacked(
       token,
@@ -1110,10 +1070,9 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       notary,
       value
     ));
-    uint256 nonce = _hashNonce[holdHash];
-    bytes32 holdId = _holdIds[holdHash][nonce];
+    bytes32 holdId = _holdIds[holdHash];
 
-    return (holdHash, nonce, holdId);
+    return (holdHash, holdId);
   }  
 
   /**

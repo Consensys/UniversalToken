@@ -72,9 +72,12 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   struct Doc {
     string docURI;
     bytes32 docHash;
+    uint256 timestamp;
   }
-  // Mapping for token URIs.
+  // Mapping for documents.
   mapping(bytes32 => Doc) internal _documents;
+  mapping(bytes32 => uint256) internal _indexOfDocHashes;
+  bytes32[] internal _docHashes;
   /************************************************************************************************/
 
 
@@ -282,13 +285,14 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   /**
    * @dev Access a document associated with the token.
    * @param name Short name (represented as a bytes32) associated to the document.
-   * @return Requested document + document hash.
+   * @return Requested document + document hash + document timestamp.
    */
-  function getDocument(bytes32 name) external override view returns (string memory, bytes32) {
+  function getDocument(bytes32 name) external override view returns (string memory, bytes32, uint256) {
     require(bytes(_documents[name].docURI).length != 0); // Action Blocked - Empty document
     return (
       _documents[name].docURI,
-      _documents[name].docHash
+      _documents[name].docHash,
+      _documents[name].timestamp
     );
   }
   /**
@@ -301,9 +305,43 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     require(_isController[msg.sender]);
     _documents[name] = Doc({
       docURI: uri,
-      docHash: documentHash
+      docHash: documentHash,
+      timestamp: block.timestamp
     });
-    emit Document(name, uri, documentHash);
+
+    if (_indexOfDocHashes[documentHash] == 0) {
+      _docHashes.push(documentHash);
+      _indexOfDocHashes[documentHash] = _docHashes.length;
+    }
+
+    emit DocumentUpdated(name, uri, documentHash);
+  }
+
+  function removeDocument(bytes32 _name) external override {
+    require(_isController[msg.sender], "Unauthorized");
+    require(bytes(_documents[_name].docURI).length != 0, "Document doesnt exist"); // Action Blocked - Empty document
+
+    Doc memory data = _documents[_name];
+
+    uint256 index1 = _indexOfDocHashes[data.docHash];
+    require(index1 > 0, "Invalid index"); //Indexing starts at 1, 0 is not allowed
+
+    // move the last item into the index being vacated
+    bytes32 lastValue = _docHashes[_docHashes.length - 1];
+    _docHashes[index1 - 1] = lastValue; // adjust for 1-based indexing
+    _indexOfDocHashes[lastValue] = index1;
+
+    //_totalPartitions.length -= 1;
+    _docHashes.pop();
+    _indexOfDocHashes[data.docHash] = 0;
+
+    delete _documents[_name];
+
+    emit DocumentRemoved(_name, data.docURI, data.docHash);
+  }
+
+  function getAllDocuments() external override view returns (bytes32[] memory) {
+    return _docHashes;
   }
   /************************************************************************************************/
 
@@ -404,7 +442,8 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     override
     returns (bytes32)
   {
-    require(_isOperatorForPartition(partition, msg.sender, from), "58"); // 0x53	insufficient allowance
+    require(_isOperatorForPartition(partition, msg.sender, from), "58"); // 0x58	invalid operator (transfer agent)
+    require(value <= _allowedByPartition[partition][from][msg.sender], "53"); // 0x53	insufficient allowance
 
     if(_allowedByPartition[partition][from][msg.sender] >= value) {
       _allowedByPartition[partition][from][msg.sender] = _allowedByPartition[partition][from][msg.sender].sub(value);
@@ -561,7 +600,14 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     override
     virtual
   {
-    require(_isOperator(msg.sender, from), "58"); // 0x58	invalid operator (transfer agent)
+    require(_isOperator(msg.sender, from)
+      || (value <= _allowed[from][msg.sender]), "53"); // 0x53	insufficient allowance
+
+    if(_allowed[from][msg.sender] >= value) {
+      _allowed[from][msg.sender] = _allowed[from][msg.sender].sub(value);
+    } else {
+      _allowed[from][msg.sender] = 0;
+    }
 
     _redeemByDefaultPartitions(msg.sender, from, value, data);
   }
@@ -589,6 +635,13 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     override
   {
     require(_isOperatorForPartition(partition, msg.sender, tokenHolder), "58"); // 0x58	invalid operator (transfer agent)
+    require(value <= _allowedByPartition[partition][tokenHolder][msg.sender], "53"); // 0x53	insufficient allowance
+
+    if(_allowedByPartition[partition][tokenHolder][msg.sender] >= value) {
+      _allowedByPartition[partition][tokenHolder][msg.sender] = _allowedByPartition[partition][tokenHolder][msg.sender].sub(value);
+    } else {
+      _allowedByPartition[partition][tokenHolder][msg.sender] = 0;
+    }
 
     _redeemByPartition(partition, msg.sender, tokenHolder, value, "", operatorData);
   }
