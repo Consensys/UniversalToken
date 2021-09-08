@@ -339,30 +339,40 @@ contract("ERC1400HoldableCertificate with token extension", function ([
   tokenController2
 ]) {
   before(async function () {
-    this.registry = await ERC1820Registry.at(
-      "0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24"
-    );
+    try {
+      this.registry = await ERC1820Registry.at(
+        "0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24"
+      );
 
-    this.clock = await ClockMock.new();
+      this.clock = await ClockMock.new();
 
-    this.extension = await ERC1400TokensValidator.new({
-      from: deployer,
-    });
+      this.extension = await ERC1400TokensValidator.new({
+        from: deployer,
+      });
+    } catch (e) {
+      console.log(e);
+      assert.ok(false);
+    }
   });
 
   beforeEach(async function () {
-    this.token = await ERC1400HoldableCertificate.new(
-      "ERC1400Token",
-      "DAU",
-      1,
-      [controller],
-      partitions,
-      this.extension.address,
-      owner,
-      CERTIFICATE_SIGNER,
-      CERTIFICATE_VALIDATION_DEFAULT,
-      { from: controller }
-    );
+    try {
+      this.token = await ERC1400HoldableCertificate.new(
+        "ERC1400Token",
+        "DAU",
+        1,
+        [controller],
+        partitions,
+        this.extension.address,
+        owner,
+        CERTIFICATE_SIGNER,
+        CERTIFICATE_VALIDATION_DEFAULT,
+        { from: controller }
+      );
+    } catch (e) {
+      console.log(e);
+      assert.ok(false);
+    }
   });
 
   // MOCK
@@ -387,6 +397,7 @@ contract("ERC1400HoldableCertificate with token extension", function ([
       describe("when the the validator contract is not already a minter", function () {
         describe("when there is was no previous validator contract", function () {
           it("sets the token extension", async function () {
+            console.log('1')
             this.token = await ERC1400HoldableCertificate.new(
               "ERC1400Token",
               "DAU",
@@ -399,16 +410,22 @@ contract("ERC1400HoldableCertificate with token extension", function ([
               CERTIFICATE_VALIDATION_DEFAULT,
               { from: controller }
             );
+            console.log('2')
 
             assert.equal(await this.token.owner(), owner)
+            console.log('3')
 
             let extensionImplementer = await this.registry.getInterfaceImplementer(
               this.token.address,
               soliditySha3(ERC1400_TOKENS_VALIDATOR)
             );
+            console.log('4')
             assert.equal(extensionImplementer, ZERO_ADDRESS);
+            console.log('5')
             assert.equal(await this.token.isOperator(this.extension.address, unknown), false)
+            console.log('6')
             assert.equal(await this.token.isMinter(this.extension.address), false)
+            console.log('7')
     
             await this.token.setTokenExtension(
               this.extension.address,
@@ -418,14 +435,19 @@ contract("ERC1400HoldableCertificate with token extension", function ([
               true,
               { from: owner }
             );
+            console.log('8')
     
             extensionImplementer = await this.registry.getInterfaceImplementer(
               this.token.address,
               soliditySha3(ERC1400_TOKENS_VALIDATOR)
             );
+            console.log('9')
             assert.equal(extensionImplementer, this.extension.address);
+            console.log('10')
             assert.equal(await this.token.isOperator(this.extension.address, unknown), true)
+            console.log('11')
             assert.equal(await this.token.isMinter(this.extension.address), true)
+            console.log('12')
           });
         });
         describe("when there is was a previous validator contract", function () {
@@ -1624,18 +1646,21 @@ contract("ERC1400HoldableCertificate with token extension", function ([
       );
     });
     after(async function () {
+      console.log('aaaa')
       await this.registry.setInterfaceImplementer(
         tokenHolder,
         soliditySha3(ERC1400_TOKENS_SENDER),
         ZERO_ADDRESS,
         { from: tokenHolder }
       );
+      console.log('bbbb')
       await this.registry.setInterfaceImplementer(
         recipient,
         soliditySha3(ERC1400_TOKENS_RECIPIENT),
         ZERO_ADDRESS,
         { from: recipient }
       );
+      console.log('cccc')
     });
 
     beforeEach(async function () {
