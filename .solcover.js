@@ -6,6 +6,7 @@ module.exports = {
   skipFiles: ["tokens/ERC20Token", "tokens/ERC721Token", "tools/FundIssuer"],
   copyPackages: ["@openzeppelin/contracts"],
   mocha: {
-    enableTimeouts: false
+    enableTimeouts: false,
+    before_timeout: 0
   }
 };
