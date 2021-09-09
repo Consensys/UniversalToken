@@ -41,6 +41,7 @@ module.exports = {
       port: 8555,
       gas: 0xfffffffffff,
       gasPrice: 0x01,
+      disableConfirmationListener: true
     },
     ganache: {
       host: 'localhost',
