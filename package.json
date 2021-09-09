@@ -75,7 +75,7 @@
     "lint-staged": "^10.4.0",
     "remix-ide": "^0.10.3",
     "sol-merger": "0.1.4",
-    "solidity-coverage": "0.7.16",
+    "solidity-coverage": "0.8.0-beta.0",
     "solium": "^1.2.5",
     "solium-plugin-zeppelin": "^0.0.2",
     "web3-utils": "^1.2.8"
