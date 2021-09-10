@@ -400,15 +400,24 @@ contract("ERC1400HoldableCertificate with token extension", function ([
               { from: controller }
             );
 
-            assert.equal(await this.token.owner(), owner)
+            let [_currentOwner, extensionImplementer] = await Promise.all([
+              this.token.owner(),
+              this.registry.getInterfaceImplementer(
+                this.token.address,
+                soliditySha3(ERC1400_TOKENS_VALIDATOR)
+              )
+            ]);
 
-            let extensionImplementer = await this.registry.getInterfaceImplementer(
-              this.token.address,
-              soliditySha3(ERC1400_TOKENS_VALIDATOR)
-            );
+            assert.equal(_currentOwner, owner)
             assert.equal(extensionImplementer, ZERO_ADDRESS);
-            assert.equal(await this.token.isOperator(this.extension.address, unknown), false)
-            assert.equal(await this.token.isMinter(this.extension.address), false)
+
+            let [isOperator, isMinter] = await Promise.all([
+              this.token.isOperator(this.extension.address, unknown),
+              this.token.isMinter(this.extension.address)
+            ]);
+
+            assert.equal(isOperator, false)
+            assert.equal(isMinter, false)
     
             await this.token.setTokenExtension(
               this.extension.address,
@@ -418,14 +427,19 @@ contract("ERC1400HoldableCertificate with token extension", function ([
               true,
               { from: owner }
             );
+
+            [extensionImplementer, isOperator, isMinter] = await Promise.all([
+              this.registry.getInterfaceImplementer(
+                this.token.address,
+                soliditySha3(ERC1400_TOKENS_VALIDATOR)
+              ),
+              this.token.isOperator(this.extension.address, unknown),
+              this.token.isMinter(this.extension.address)
+            ]);
     
-            extensionImplementer = await this.registry.getInterfaceImplementer(
-              this.token.address,
-              soliditySha3(ERC1400_TOKENS_VALIDATOR)
-            );
             assert.equal(extensionImplementer, this.extension.address);
-            assert.equal(await this.token.isOperator(this.extension.address, unknown), true)
-            assert.equal(await this.token.isMinter(this.extension.address), true)
+            assert.equal(isOperator, true)
+            assert.equal(isMinter, true)
           });
         });
         describe("when there is was a previous validator contract", function () {
