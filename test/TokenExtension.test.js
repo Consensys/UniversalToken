@@ -339,40 +339,30 @@ contract("ERC1400HoldableCertificate with token extension", function ([
   tokenController2
 ]) {
   before(async function () {
-    try {
-      this.registry = await ERC1820Registry.at(
-        "0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24"
-      );
+    this.registry = await ERC1820Registry.at(
+      "0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24"
+    );
 
-      this.clock = await ClockMock.new();
+    this.clock = await ClockMock.new();
 
-      this.extension = await ERC1400TokensValidator.new({
-        from: deployer,
-      });
-    } catch (e) {
-      console.log(e);
-      assert.ok(false);
-    }
+    this.extension = await ERC1400TokensValidator.new({
+      from: deployer,
+    });
   });
 
   beforeEach(async function () {
-    try {
-      this.token = await ERC1400HoldableCertificate.new(
-        "ERC1400Token",
-        "DAU",
-        1,
-        [controller],
-        partitions,
-        this.extension.address,
-        owner,
-        CERTIFICATE_SIGNER,
-        CERTIFICATE_VALIDATION_DEFAULT,
-        { from: controller }
-      );
-    } catch (e) {
-      console.log(e);
-      assert.ok(false);
-    }
+    this.token = await ERC1400HoldableCertificate.new(
+      "ERC1400Token",
+      "DAU",
+      1,
+      [controller],
+      partitions,
+      this.extension.address,
+      owner,
+      CERTIFICATE_SIGNER,
+      CERTIFICATE_VALIDATION_DEFAULT,
+      { from: controller }
+    );
   });
 
   // MOCK
