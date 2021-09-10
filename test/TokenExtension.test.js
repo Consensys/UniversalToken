@@ -1648,21 +1648,18 @@ contract("ERC1400HoldableCertificate with token extension", function ([
       );
     });
     after(async function () {
-      console.log('aaaa')
       await this.registry.setInterfaceImplementer(
         tokenHolder,
         soliditySha3(ERC1400_TOKENS_SENDER),
         ZERO_ADDRESS,
         { from: tokenHolder }
       );
-      console.log('bbbb')
       await this.registry.setInterfaceImplementer(
         recipient,
         soliditySha3(ERC1400_TOKENS_RECIPIENT),
         ZERO_ADDRESS,
         { from: recipient }
       );
-      console.log('cccc')
     });
 
     beforeEach(async function () {
