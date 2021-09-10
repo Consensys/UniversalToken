@@ -397,7 +397,6 @@ contract("ERC1400HoldableCertificate with token extension", function ([
       describe("when the the validator contract is not already a minter", function () {
         describe("when there is was no previous validator contract", function () {
           it("sets the token extension", async function () {
-            console.log('1')
             this.token = await ERC1400HoldableCertificate.new(
               "ERC1400Token",
               "DAU",
@@ -410,22 +409,25 @@ contract("ERC1400HoldableCertificate with token extension", function ([
               CERTIFICATE_VALIDATION_DEFAULT,
               { from: controller }
             );
-            console.log('2')
 
-            assert.equal(await this.token.owner(), owner)
-            console.log('3')
+            let [_currentOwner, extensionImplementer] = await Promise.all([
+              this.token.owner(),
+              this.registry.getInterfaceImplementer(
+                this.token.address,
+                soliditySha3(ERC1400_TOKENS_VALIDATOR)
+              )
+            ]);
 
-            let extensionImplementer = await this.registry.getInterfaceImplementer(
-              this.token.address,
-              soliditySha3(ERC1400_TOKENS_VALIDATOR)
-            );
-            console.log('4')
+            assert.equal(_currentOwner, owner)
             assert.equal(extensionImplementer, ZERO_ADDRESS);
-            console.log('5')
-            assert.equal(await this.token.isOperator(this.extension.address, unknown), false)
-            console.log('6')
-            assert.equal(await this.token.isMinter(this.extension.address), false)
-            console.log('7')
+
+            let [isOperator, isMinter] = await Promise.all([
+              this.token.isOperator(this.extension.address, unknown),
+              this.token.isMinter(this.extension.address)
+            ]);
+
+            assert.equal(isOperator, false)
+            assert.equal(isMinter, false)
     
             await this.token.setTokenExtension(
               this.extension.address,
@@ -435,19 +437,19 @@ contract("ERC1400HoldableCertificate with token extension", function ([
               true,
               { from: owner }
             );
-            console.log('8')
+
+            [extensionImplementer, isOperator, isMinter] = await Promise.all([
+              this.registry.getInterfaceImplementer(
+                this.token.address,
+                soliditySha3(ERC1400_TOKENS_VALIDATOR)
+              ),
+              this.token.isOperator(this.extension.address, unknown),
+              this.token.isMinter(this.extension.address)
+            ]);
     
-            extensionImplementer = await this.registry.getInterfaceImplementer(
-              this.token.address,
-              soliditySha3(ERC1400_TOKENS_VALIDATOR)
-            );
-            console.log('9')
             assert.equal(extensionImplementer, this.extension.address);
-            console.log('10')
-            assert.equal(await this.token.isOperator(this.extension.address, unknown), true)
-            console.log('11')
-            assert.equal(await this.token.isMinter(this.extension.address), true)
-            console.log('12')
+            assert.equal(isOperator, true)
+            assert.equal(isMinter, true)
           });
         });
         describe("when there is was a previous validator contract", function () {
