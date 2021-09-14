@@ -14,6 +14,7 @@ import "../../roles/AllowlistedRole.sol";
 import "../../roles/BlocklistedRole.sol";
 
 import "../../tools/ERC1820Client.sol";
+import "../../tools/DomainAware.sol";
 import "../../interface/ERC1820Implementer.sol";
 
 import "../../IERC1400.sol";
@@ -28,7 +29,7 @@ interface IMinterRole {
 }
 
 
-contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, CertificateSignerRole, AllowlistedRole, BlocklistedRole, ERC1820Client, ERC1820Implementer {
+contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, CertificateSignerRole, AllowlistedRole, BlocklistedRole, ERC1820Client, ERC1820Implementer, DomainAware {
   using SafeMath for uint256;
 
   string constant internal ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
@@ -199,6 +200,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
 
   constructor() {
     ERC1820Implementer._setInterface(ERC1400_TOKENS_VALIDATOR);
+
+
   }
 
   /**
@@ -1224,7 +1227,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
    */
   function _functionSupportsCertificateValidation(bytes memory payload) internal pure returns(bool) {
     bytes4 functionSig = _getFunctionSig(payload);
-    if(_areEqual(functionSig, ERC20_TRANSFER_ID) || _areEqual(functionSig, ERC20_TRANSFERFROM_ID)) {
+    if(functionSig == ERC20_TRANSFER_ID || functionSig == ERC20_TRANSFERFROM_ID) {
       return false;
     } else {
       return true;
@@ -1254,19 +1257,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
    */
   function _getFunctionSig(bytes memory payload) internal pure returns(bytes4) {
     return (bytes4(payload[0]) | bytes4(payload[1]) >> 8 | bytes4(payload[2]) >> 16 | bytes4(payload[3]) >> 24);
-  }
-
-  /**
-   * @dev Check if 2 variables of type bytes4 are identical.
-   * @return 'true' if 2 variables are identical, 'false' if not.
-   */
-  function _areEqual(bytes4 a, bytes4 b) internal pure returns(bool) {
-    for (uint256 i = 0; i < a.length; i++) {
-      if(a[i] != b[i]) {
-        return false;
-      }
-    }
-    return true;
   }
 
   /**
@@ -1344,7 +1334,15 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
         e,
         _usedCertificateNonce[token][msgSender]
       );
-      bytes32 hash = keccak256(pack);
+      bytes32 dataHash = keccak256(pack);
+      bytes32 eip712DomainHash = _generateDomainSeparator();
+
+      bytes32 hash = keccak256(
+        abi.encodePacked(
+          eip712DomainHash,
+          dataHash
+        )
+      );
 
       bytes32 r;
       bytes32 s;
@@ -1431,7 +1429,15 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
         e,
         salt
       );
-      bytes32 hash = keccak256(pack);
+      bytes32 dataHash = keccak256(pack);
+      bytes32 eip712DomainHash = _generateDomainSeparator();
+
+      bytes32 hash = keccak256(
+        abi.encodePacked(
+          eip712DomainHash,
+          dataHash
+        )
+      );
 
       bytes32 r;
       bytes32 s;
@@ -1451,4 +1457,11 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     return (false, "");
   }
 
+  function domainName() public override view returns (string memory) {
+    return ERC1400_TOKENS_VALIDATOR;
+  }
+
+  function domainVersion() public override view returns (string memory) {
+    return "1";
+  }
 }
