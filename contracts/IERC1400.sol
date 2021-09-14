@@ -24,6 +24,7 @@ interface IERC1400 is IERC20, IERC1643 { // Interfaces can currently not inherit
 
   // *************** Partition Token Transfers ****************
   function transferByPartition(bytes32 partition, address to, uint256 value, bytes calldata data) external returns (bytes32);
+  function transferFromByPartition(bytes32 partition, address from, address to, uint256 value, bytes calldata data) external returns (bytes32);
   function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData) external returns (bytes32);
 
   // ****************** Controller Operation ******************

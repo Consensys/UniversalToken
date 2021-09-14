@@ -420,6 +420,30 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   {
     return _transferByPartition(partition, msg.sender, msg.sender, to, value, data, "");
   }
+
+
+  function transferFromByPartition(
+    bytes32 partition,
+    address from,
+    address to,
+    uint256 value,
+    bytes calldata data
+  )
+    external
+    override
+    returns (bytes32)
+  {
+    require(value <= _allowedByPartition[partition][from][msg.sender], "53"); // 0x53	insufficient allowance
+
+    if(_allowedByPartition[partition][from][msg.sender] >= value) {
+      _allowedByPartition[partition][from][msg.sender] = _allowedByPartition[partition][from][msg.sender].sub(value);
+    } else {
+      _allowedByPartition[partition][from][msg.sender] = 0;
+    }
+
+    return _transferByPartition(partition, msg.sender, from, to, value, data, "");
+  }
+
   /**
    * @dev Transfer tokens from a specific partition through an operator.
    * @param partition Name of the partition.
@@ -443,13 +467,6 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     returns (bytes32)
   {
     require(_isOperatorForPartition(partition, msg.sender, from), "58"); // 0x58	invalid operator (transfer agent)
-    require(value <= _allowedByPartition[partition][from][msg.sender], "53"); // 0x53	insufficient allowance
-
-    if(_allowedByPartition[partition][from][msg.sender] >= value) {
-      _allowedByPartition[partition][from][msg.sender] = _allowedByPartition[partition][from][msg.sender].sub(value);
-    } else {
-      _allowedByPartition[partition][from][msg.sender] = 0;
-    }
 
     return _transferByPartition(partition, msg.sender, from, to, value, data, operatorData);
   }
