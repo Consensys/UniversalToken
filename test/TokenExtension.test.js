@@ -195,13 +195,15 @@ const craftCertificate = async (
   _txSender
 ) => {
   const tokenSetup = await _extension.retrieveTokenSetup(_token.address);
+  const domainSeperator = await _token.generateDomainSeparator();
   if (parseInt(tokenSetup[0]) === CERTIFICATE_VALIDATION_NONCE) {
     return craftNonceBasedCertificate(
       _txPayload,
       _token,
       _extension,
       _clock, // this.clock
-      _txSender
+      _txSender,
+      domainSeperator
     );
   } else if (parseInt(tokenSetup[0]) === CERTIFICATE_VALIDATION_SALT) {
     return craftSaltBasedCertificate(
@@ -209,7 +211,8 @@ const craftCertificate = async (
       _token,
       _extension,
       _clock,
-      _txSender
+      _txSender,
+      domainSeperator
     );
   } else {
     return EMPTY_CERTIFICATE;
@@ -221,7 +224,8 @@ const craftNonceBasedCertificate = async (
   _token,
   _extension,
   _clock, // this.clock
-  _txSender
+  _txSender,
+  _domain
 ) => {
   // Retrieve current nonce from smart contract
   const nonce = await _extension.usedCertificateNonce(_token.address, _txSender);
@@ -251,8 +255,13 @@ const craftNonceBasedCertificate = async (
     { type: 'uint256', value: nonce.toString()  },
   );
 
+  const packedAndHashedData = soliditySha3(
+    { type: 'bytes32', value: _domain },
+    { type: 'bytes32', value: packedAndHashedParameters }
+  );
+
   const signature = Account.sign(
-    packedAndHashedParameters,
+    packedAndHashedData,
     CERTIFICATE_SIGNER_PRIVATE_KEY,
   );
   const vrs = Account.decodeSignature(signature);
@@ -271,7 +280,8 @@ const craftSaltBasedCertificate = async (
   _token,
   _extension,
   _clock, // this.clock
-  _txSender
+  _txSender,
+  _domain
 ) => {
   // Generate a random salt, which has never been used before
   const salt = soliditySha3(new Date().getTime().toString());
@@ -308,8 +318,13 @@ const craftSaltBasedCertificate = async (
     { type: 'bytes32', value: salt.toString() },
   );
 
+  const packedAndHashedData = soliditySha3(
+    { type: 'bytes32', value: _domain },
+    { type: 'bytes32', value: packedAndHashedParameters }
+  );
+
   const signature = Account.sign(
-    packedAndHashedParameters,
+    packedAndHashedData,
     CERTIFICATE_SIGNER_PRIVATE_KEY,
   );
   const vrs = Account.decodeSignature(signature);

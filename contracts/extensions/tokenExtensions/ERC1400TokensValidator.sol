@@ -29,7 +29,7 @@ interface IMinterRole {
 }
 
 
-contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, CertificateSignerRole, AllowlistedRole, BlocklistedRole, ERC1820Client, ERC1820Implementer, DomainAware {
+contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, CertificateSignerRole, AllowlistedRole, BlocklistedRole, ERC1820Client, ERC1820Implementer {
   using SafeMath for uint256;
 
   string constant internal ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
@@ -1334,13 +1334,10 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
         e,
         _usedCertificateNonce[token][msgSender]
       );
-      bytes32 dataHash = keccak256(pack);
-      bytes32 eip712DomainHash = _generateDomainSeparator();
-
       bytes32 hash = keccak256(
         abi.encodePacked(
-          eip712DomainHash,
-          dataHash
+          DomainAware(token).generateDomainSeparator(),
+          keccak256(pack)
         )
       );
 
@@ -1429,13 +1426,11 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
         e,
         salt
       );
-      bytes32 dataHash = keccak256(pack);
-      bytes32 eip712DomainHash = _generateDomainSeparator();
 
       bytes32 hash = keccak256(
         abi.encodePacked(
-          eip712DomainHash,
-          dataHash
+          DomainAware(token).generateDomainSeparator(),
+          keccak256(pack)
         )
       );
 
@@ -1455,13 +1450,5 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       }
     }
     return (false, "");
-  }
-
-  function domainName() public override view returns (string memory) {
-    return ERC1400_TOKENS_VALIDATOR;
-  }
-
-  function domainVersion() public override view returns (string memory) {
-    return "1";
   }
 }

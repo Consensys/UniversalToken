@@ -20,13 +20,14 @@ import "./extensions/tokenExtensions/IERC1400TokensValidator.sol";
 import "./extensions/tokenExtensions/IERC1400TokensChecker.sol";
 import "./extensions/userExtensions/IERC1400TokensSender.sol";
 import "./extensions/userExtensions/IERC1400TokensRecipient.sol";
+import "./tools/DomainAware.sol";
 
 
 /**
  * @title ERC1400
  * @dev ERC1400 logic
  */
-contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer, MinterRole {
+contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer, MinterRole, DomainAware {
   using SafeMath for uint256;
 
   // Token
@@ -421,29 +422,6 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     return _transferByPartition(partition, msg.sender, msg.sender, to, value, data, "");
   }
 
-
-  function transferFromByPartition(
-    bytes32 partition,
-    address from,
-    address to,
-    uint256 value,
-    bytes calldata data
-  )
-    external
-    override
-    returns (bytes32)
-  {
-    require(value <= _allowedByPartition[partition][from][msg.sender], "53"); // 0x53	insufficient allowance
-
-    if(_allowedByPartition[partition][from][msg.sender] >= value) {
-      _allowedByPartition[partition][from][msg.sender] = _allowedByPartition[partition][from][msg.sender].sub(value);
-    } else {
-      _allowedByPartition[partition][from][msg.sender] = 0;
-    }
-
-    return _transferByPartition(partition, msg.sender, from, to, value, data, "");
-  }
-
   /**
    * @dev Transfer tokens from a specific partition through an operator.
    * @param partition Name of the partition.
@@ -466,7 +444,18 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     override
     returns (bytes32)
   {
-    require(_isOperatorForPartition(partition, msg.sender, from), "58"); // 0x58	invalid operator (transfer agent)
+    //We want to check if the msg.sender is an authorized operator for `from`
+    //(msg.sender == from OR msg.sender is authorized by from OR msg.sender is a controller if this token is controlable)
+    //OR
+    //We want to check if msg.sender is an `allowed` operator/spender for `from`
+    require(_isOperatorForPartition(partition, msg.sender, from)
+      || (value <= _allowedByPartition[partition][from][msg.sender]), "53"); // 0x53	insufficient allowance
+
+    if(_allowedByPartition[partition][from][msg.sender] >= value) {
+      _allowedByPartition[partition][from][msg.sender] = _allowedByPartition[partition][from][msg.sender].sub(value);
+    } else {
+      _allowedByPartition[partition][from][msg.sender] = 0;
+    }
 
     return _transferByPartition(partition, msg.sender, from, to, value, data, operatorData);
   }
@@ -651,8 +640,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     external
     override
   {
-    require(_isOperatorForPartition(partition, msg.sender, tokenHolder), "58"); // 0x58	invalid operator (transfer agent)
-    require(value <= _allowedByPartition[partition][tokenHolder][msg.sender], "53"); // 0x53	insufficient allowance
+    require(_isOperatorForPartition(partition, msg.sender, tokenHolder) || value <= _allowedByPartition[partition][tokenHolder][msg.sender], "58"); // 0x58	invalid operator (transfer agent)
 
     if(_allowedByPartition[partition][tokenHolder][msg.sender] >= value) {
       _allowedByPartition[partition][tokenHolder][msg.sender] = _allowedByPartition[partition][tokenHolder][msg.sender].sub(value);
@@ -1443,4 +1431,13 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   }
   /************************************************************************************************/
 
+  /************************************* Domain Aware ******************************************/
+  function domainName() public override view returns (string memory) {
+    return _name;
+  }
+
+  function domainVersion() public override view returns (string memory) {
+    return "1";
+  }
+  /************************************************************************************************/
 }

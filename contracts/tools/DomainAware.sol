@@ -19,11 +19,11 @@ abstract contract DomainAware {
 
     function domainVersion() public virtual view returns (string memory);
 
-    function _generateDomainSeparator() internal view returns (bytes32) {
+    function generateDomainSeparator() public view returns (bytes32) {
         uint256 chainID = _chainID();
 
         // no need for assembly, running very rarely
-        bytes32 newDomainSeparator = keccak256(
+        bytes32 domainSeparatorHash = keccak256(
             abi.encode(
                 keccak256(
                     "EIP712Domain(string name,string version,uint256 chainId,address verifyingContract)"
@@ -35,7 +35,7 @@ abstract contract DomainAware {
             )
         );
 
-        return newDomainSeparator;
+        return domainSeparatorHash;
     }
 
     function domainSeparator() public returns (bytes32) {
@@ -45,7 +45,7 @@ abstract contract DomainAware {
     function _updateDomainSeparator() private returns (bytes32) {
         uint256 chainID = _chainID();
 
-        bytes32 newDomainSeparator = _generateDomainSeparator();
+        bytes32 newDomainSeparator = generateDomainSeparator();
 
         domainSeparators[chainID] = newDomainSeparator;
 
