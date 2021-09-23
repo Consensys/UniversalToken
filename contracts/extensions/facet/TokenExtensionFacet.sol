@@ -106,9 +106,9 @@ contract TokenExtensionFacet is IERC20, ITokenExtensionFacet {
      * This value changes when {approve} or {transferFrom} are called.
      */
     function allowance(address owner, address spender) external override view returns (uint256) {
-        bytes memory result = invokeCore(abi.encodeWithSelector(IERC20.allowance.selector, owner, spender));
-
-        return uint256(result);
+        //bytes memory result = invokeCore(abi.encodeWithSelector(IERC20.allowance.selector, owner, spender));
+        return 0;
+        //return uint256(result);
     }
 
     /**
