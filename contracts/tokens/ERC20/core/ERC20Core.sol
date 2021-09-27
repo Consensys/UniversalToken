@@ -53,8 +53,12 @@ contract ERC20Core is IERC20Core {
         );
     }
 
+    function _getProxyAddress() internal virtual view returns (address) {
+        return StorageSlot.getAddressSlot(ERC20_PROXY_ADDRESS).value;
+    }
+
     function _confirmContext() internal virtual view returns (bool) {
-        return msg.sender == StorageSlot.getAddressSlot(ERC20_PROXY_ADDRESS).value && _getStorageContract().allowWriteFrom(address(this));
+        return msg.sender == _getProxyAddress() && _getStorageContract().allowWriteFrom(address(this));
     }
 
     function _balanceOf(address account) internal virtual view returns (uint256) {
@@ -93,7 +97,7 @@ contract ERC20Core is IERC20Core {
      * Emits a {Transfer} event.
      */
     function transfer(address caller, address recipient, uint256 amount) external override confirmContext returns (bool) {
-        _transfer(caller, recipient, amount);
+        _transfer(caller, caller, recipient, amount);
         return true;
     }
 
@@ -112,7 +116,7 @@ contract ERC20Core is IERC20Core {
      * Emits an {Approval} event.
      */
     function approve(address caller, address spender, uint256 amount) external override confirmContext returns (bool) {
-        _approve(caller, spender, amount);
+        _approve(caller, caller, spender, amount);
         return true;
     }
 
@@ -131,13 +135,13 @@ contract ERC20Core is IERC20Core {
         address recipient,
         uint256 amount
     ) external override confirmContext returns (bool) {
-        _transfer(sender, recipient, amount);
+        _transfer(caller, sender, recipient, amount);
 
         uint256 currentAllowance = _allowance(sender, caller);
         require(currentAllowance >= amount, "ERC20: transfer amount exceeds allowance");
 
         unchecked {
-            _approve(sender, caller, currentAllowance - amount);
+            _approve(caller, sender, caller, currentAllowance - amount);
         }
 
         return true;
@@ -156,7 +160,7 @@ contract ERC20Core is IERC20Core {
      * - `spender` cannot be the zero address.
      */
     function increaseAllowance(address caller, address spender, uint256 addedValue) public override confirmContext returns (bool) {
-        _approve(caller, spender, _allowance(caller, spender) + addedValue);
+        _approve(caller, caller, spender, _allowance(caller, spender) + addedValue);
         return true;
     }
 
@@ -177,7 +181,7 @@ contract ERC20Core is IERC20Core {
     function decreaseAllowance(address caller, address spender, uint256 subtractedValue) public override confirmContext returns (bool) {
         uint256 currentAllowance = _allowance(caller, spender);
         require(currentAllowance >= subtractedValue, "ERC20: decreased allowance below zero");
-        _approve(caller, spender, currentAllowance - subtractedValue);
+        _approve(caller, caller, spender, currentAllowance - subtractedValue);
 
         return true;
     }
@@ -197,6 +201,7 @@ contract ERC20Core is IERC20Core {
      * - `sender` must have a balance of at least `amount`.
      */
     function _transfer(
+        address caller,
         address sender,
         address recipient,
         uint256 amount
@@ -204,14 +209,14 @@ contract ERC20Core is IERC20Core {
         require(sender != address(0), "ERC20: transfer from the zero address");
         require(recipient != address(0), "ERC20: transfer to the zero address");
 
-        _beforeTokenTransfer(sender, recipient, amount);
+        _beforeTokenTransfer(caller, sender, recipient, amount);
 
         uint256 senderBalance = _balanceOf(sender);
         require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
         require(_setBalance(sender, senderBalance - amount), "ERC20: Set balance of sender failed");
         require(_increaseBalance(recipient, amount), "ERC20: Increase balance of recipient failed");
 
-        _afterTokenTransfer(sender, recipient, amount);
+        _afterTokenTransfer(caller, sender, recipient, amount);
     }
 
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
@@ -223,15 +228,15 @@ contract ERC20Core is IERC20Core {
      *
      * - `account` cannot be the zero address.
      */
-    function _mint(address account, uint256 amount) internal virtual {
+    function _mint(address caller, address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: mint to the zero address");
 
-        _beforeTokenTransfer(address(0), account, amount);
+        _beforeTokenTransfer(caller, address(0), account, amount);
         
         require(_increaseTotalSupply(amount), "ERC20: increase total supply failed");
         require(_increaseBalance(account, amount), "ERC20: increase balance failed");
 
-        _afterTokenTransfer(address(0), account, amount);
+        _afterTokenTransfer(caller, address(0), account, amount);
     }
 
     /**
@@ -245,17 +250,17 @@ contract ERC20Core is IERC20Core {
      * - `account` cannot be the zero address.
      * - `account` must have at least `amount` tokens.
      */
-    function _burn(address account, uint256 amount) internal virtual {
+    function _burn(address caller, address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: burn from the zero address");
 
-        _beforeTokenTransfer(account, address(0), amount);
+        _beforeTokenTransfer(caller, account, address(0), amount);
 
         uint256 accountBalance = _getStorageContract().balanceOf(account);
         require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
         require(_setBalance(account, accountBalance - amount), "ERC20: Set balance of account failed");
         require(_decreaseTotalSupply(amount), "ERC20: Decrease of total supply failed");
 
-        _afterTokenTransfer(account, address(0), amount);
+        _afterTokenTransfer(caller, account, address(0), amount);
     }
 
     /**
@@ -272,6 +277,7 @@ contract ERC20Core is IERC20Core {
      * - `spender` cannot be the zero address.
      */
     function _approve(
+        address caller,
         address owner,
         address spender,
         uint256 amount
@@ -296,6 +302,7 @@ contract ERC20Core is IERC20Core {
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
     function _beforeTokenTransfer(
+        address caller,
         address from,
         address to,
         uint256 amount
@@ -316,6 +323,7 @@ contract ERC20Core is IERC20Core {
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
     function _afterTokenTransfer(
+        address caller,
         address from,
         address to,
         uint256 amount
