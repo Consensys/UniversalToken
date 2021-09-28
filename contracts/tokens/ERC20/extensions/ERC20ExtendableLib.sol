@@ -2,6 +2,7 @@ pragma solidity ^0.8.0;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC20Extension} from "./IERC20Extension.sol";
+import {ERC20CoreExtendableBase} from "./ERC20CoreExtendableBase.sol";
 
 /**
 * @dev Verify if a token transfer can be executed or not, on the validator's perspective.
@@ -105,7 +106,40 @@ library ERC20ExtendableLib {
         extensionData.extensionStateCache[extension] = EXTENSION_NOT_EXISTS;
     }
 
-    function _validateTransfer(TransferData memory data) internal view returns (bool) {
+    function _invokeExtensionDelegateCall(address extension, bytes memory _calldata) private returns (bool) {
+        address ext = address(extension);
+        (bool success, bytes memory data) = ext.delegatecall(_calldata);
+        if (!success) {
+            if (data.length > 0) {
+                // bubble up the error
+                revert(string(data));
+            } else {
+                revert("ERC20ExtendableLib: delegatecall to extension reverted");
+            }
+        }
+
+        return data[0] == 0x01;
+    }
+
+    function _callValidateTransfer(TransferData memory data) internal returns (bool) {
+        return _validateTransfer(data, false);
+    }
+
+    
+    function _delegatecallValidateTransfer(TransferData memory data) internal returns (bool) {
+        return _validateTransfer(data, true);
+    }
+
+    function _callAfterTransfer(TransferData memory data) internal returns (bool) {
+        return _executeAfterTransfer(data, false);
+    }
+
+    function _delegatecallAfterTransfer(TransferData memory data) internal returns (bool) {
+        return _executeAfterTransfer(data, true);
+    }
+
+
+    function _validateTransfer(TransferData memory data, bool useDelegateCall) private returns (bool) {
         //Go through each extension, if it's enabled execute the validate function
         //If any extension returns false, halt and return false
         //If they all return true (or there are no extensions), then return true
@@ -122,15 +156,22 @@ library ERC20ExtendableLib {
             //Execute the validate function
             IERC20Extension ext = IERC20Extension(extension);
 
-            if (!ext.validateTransfer(data)) {
-                return false;
+            if (useDelegateCall) {
+                bytes memory cdata = abi.encodeWithSelector(IERC20Extension.validateTransfer.selector, data);
+                if (!_invokeExtensionDelegateCall(extension, cdata)) {
+                    return false;
+                }
+            } else {
+                if (!ext.validateTransfer(data)) {
+                    return false;
+                }
             }
         }
 
         return true;
     }
 
-    function _executeAfterTransfer(TransferData memory data) internal returns (bool) {
+    function _executeAfterTransfer(TransferData memory data, bool useDelegateCall) private returns (bool) {
         //Go through each extension, if it's enabled execute the onTransferExecuted function
         //If any extension returns false, halt and return false
         //If they all return true (or there are no extensions), then return true
@@ -147,8 +188,16 @@ library ERC20ExtendableLib {
             //Execute the validate function
             IERC20Extension ext = IERC20Extension(extension);
 
-            if (!ext.onTransferExecuted(data)) {
-                return false;
+            if (useDelegateCall) {
+                bytes memory cdata = abi.encodeWithSelector(IERC20Extension.onTransferExecuted.selector, data);
+                if (!_invokeExtensionDelegateCall(extension, cdata)) {
+                    return false;
+                }
+            } 
+            else {
+                if (!ext.onTransferExecuted(data)) {
+                  return false;
+                }
             }
         }
 

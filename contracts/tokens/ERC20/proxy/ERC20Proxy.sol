@@ -6,26 +6,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {ERC20ProxyStorage} from "../storage/ERC20ProxyStorage.sol";
 
-contract ERC20Proxy is IERC20Metadata, Context {
-    bytes32 constant ERC20_CORE_ADDRESS = keccak256("erc20.proxy.core.address");
-    bytes32 constant ERC20_STORAGE_ADDRESS = keccak256("erc20.proxy.storage.address");
-    bytes32 constant ERC20_MANAGER_ADDRESS = keccak256("erc20.proxy.manager.address");
+contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage {
 
     constructor() {
         StorageSlot.getAddressSlot(ERC20_MANAGER_ADDRESS).value = msg.sender;
-    }
-
-    function _setImplementation(address implementation) internal {
-        StorageSlot.getAddressSlot(ERC20_CORE_ADDRESS).value = implementation;
-    }
-
-    function _setStore(address store) internal {
-        StorageSlot.getAddressSlot(ERC20_STORAGE_ADDRESS).value = store;
-    }
-
-    function manager() public view returns (address) {
-        return StorageSlot.getAddressSlot(ERC20_MANAGER_ADDRESS).value;
     }
 
     function _getStorageContract() internal view returns (IERC20Storage) {
@@ -38,15 +24,6 @@ contract ERC20Proxy is IERC20Metadata, Context {
         return IERC20Core(
             StorageSlot.getAddressSlot(ERC20_CORE_ADDRESS).value
         );
-    }
-
-    modifier onlyManager {
-        require(_msgSender() == manager(), "This function can only be invoked by the manager");
-        _;
-    }
-
-    function changeManager(address newManager) external onlyManager {
-        StorageSlot.getAddressSlot(ERC20_MANAGER_ADDRESS).value = newManager;
     }
 
     /**
