@@ -4,14 +4,17 @@
  */
 pragma solidity ^0.8.0;
 
+import {IERC1820Implementer} from "./IERC1820Implementer.sol";
 
-contract ERC1820Implementer {
+
+contract ERC1820Implementer is IERC1820Implementer {
   bytes32 constant ERC1820_ACCEPT_MAGIC = keccak256(abi.encodePacked("ERC1820_ACCEPT_MAGIC"));
 
   mapping(bytes32 => bool) internal _interfaceHashes;
 
   function canImplementInterfaceForAddress(bytes32 interfaceHash, address /*addr*/) // Comments to avoid compilation warnings for unused variables.
     external
+    override
     view
     returns(bytes32)
   {
