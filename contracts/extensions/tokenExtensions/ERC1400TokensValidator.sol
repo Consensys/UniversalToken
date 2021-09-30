@@ -37,6 +37,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   bytes4 constant internal ERC20_TRANSFER_ID = bytes4(keccak256("transfer(address,uint256)"));
   bytes4 constant internal ERC20_TRANSFERFROM_ID = bytes4(keccak256("transferFrom(address,address,uint256)"));
 
+  bytes32 constant internal ZERO_ID = 0x00000000000000000000000000000000;
+
   // Mapping from token to token controllers.
   mapping(address => address[]) internal _tokenControllers;
 
@@ -736,6 +738,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       _canHoldOrCanPreHold(token, msg.sender, sender, certificate),
       "A hold can only be created with adapted authorizations"
     );
+    
     if (sender != address(0)) { // hold (tokens already exist)
       require(value <= _spendableBalanceOfByPartition(token, partition, sender), "Amount of the hold can't be greater than the spendable balance of the sender");
     }
@@ -753,6 +756,16 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       // In case tokens already exist, increase held balance
       _increaseHeldBalance(token, newHold, holdId);
     }
+
+    (bytes32 holdHash,) = _retrieveHoldHashId(
+      token, newHold.partition,
+      newHold.notary,
+      newHold.sender,
+      newHold.recipient,
+      newHold.value
+    );
+
+    _holdIds[holdHash] = holdId;
 
     emit HoldCreated(
       token,
@@ -806,6 +819,16 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     if(releasableHold.sender != address(0)) { // In case tokens already exist, decrease held balance
       _decreaseHeldBalance(token, releasableHold, releasableHold.value);
     }
+
+    (bytes32 holdHash,) = _retrieveHoldHashId(
+      token, releasableHold.partition,
+      releasableHold.notary,
+      releasableHold.sender,
+      releasableHold.recipient,
+      releasableHold.value
+    );
+
+    delete _holdIds[holdHash];
 
     emit HoldReleased(token, holdId, releasableHold.notary, releasableHold.status);
 
@@ -1061,7 +1084,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   }
 
   /**
-   * @dev Retrieve hold hash, nonce, and ID for given parameters
+   * @dev Retrieve hold hash, and ID for given parameters
    */
   function _retrieveHoldHashId(address token, bytes32 partition, address notary, address sender, address recipient, uint value) internal view returns (bytes32, bytes32) {
     // Pack and hash hold parameters
