@@ -5375,7 +5375,7 @@ contract("ERC1400HoldableCertificate with token extension", function ([
           assert.equal(this.holdData[7], EMPTY_BYTE32);
           assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_EXECUTED);
         });
-        it("executes 2 holds", async function() {
+        /* it("executes 2 holds", async function() {
           // Create a second hold in state Ordered
           this.time2 = await this.clock.getTime();
           this.holdId2 = newHoldId();
@@ -5468,7 +5468,7 @@ contract("ERC1400HoldableCertificate with token extension", function ([
           assert.equal(this.holdData[6], this.secretHashPair.hash);
           assert.equal(this.holdData[7], EMPTY_BYTE32);
           assert.equal(parseInt(this.holdData[8]), HOLD_STATUS_EXECUTED);
-        });
+        }); */
   
       });
       // describe("when a hold is not executed", function () {

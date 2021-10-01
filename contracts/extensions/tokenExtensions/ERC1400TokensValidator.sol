@@ -755,17 +755,17 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     if(sender != address(0)) {
       // In case tokens already exist, increase held balance
       _increaseHeldBalance(token, newHold, holdId);
+
+      (bytes32 holdHash,) = _retrieveHoldHashId(
+        token, newHold.partition,
+        newHold.notary,
+        newHold.sender,
+        newHold.recipient,
+        newHold.value
+      );
+
+      _holdIds[holdHash] = holdId;
     }
-
-    (bytes32 holdHash,) = _retrieveHoldHashId(
-      token, newHold.partition,
-      newHold.notary,
-      newHold.sender,
-      newHold.recipient,
-      newHold.value
-    );
-
-    _holdIds[holdHash] = holdId;
 
     emit HoldCreated(
       token,
@@ -818,17 +818,17 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
 
     if(releasableHold.sender != address(0)) { // In case tokens already exist, decrease held balance
       _decreaseHeldBalance(token, releasableHold, releasableHold.value);
+
+      (bytes32 holdHash,) = _retrieveHoldHashId(
+        token, releasableHold.partition,
+        releasableHold.notary,
+        releasableHold.sender,
+        releasableHold.recipient,
+        releasableHold.value
+      );
+
+      delete _holdIds[holdHash];
     }
-
-    (bytes32 holdHash,) = _retrieveHoldHashId(
-      token, releasableHold.partition,
-      releasableHold.notary,
-      releasableHold.sender,
-      releasableHold.recipient,
-      releasableHold.value
-    );
-
-    delete _holdIds[holdHash];
 
     emit HoldReleased(token, holdId, releasableHold.notary, releasableHold.status);
 
