@@ -5,16 +5,14 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+// ****************** Document Management *******************
+import "./interface/IERC1643.sol";
 
 /**
  * @title IERC1400 security token standard
  * @dev See https://github.com/SecurityTokenStandard/EIP-Spec/blob/master/eip/eip-1400.md
  */
-interface IERC1400 is IERC20 { // Interfaces can currently not inherit interfaces, but IERC1400 shall include IERC20
-
-  // ****************** Document Management *******************
-  function getDocument(bytes32 name) external view returns (string memory, bytes32);
-  function setDocument(bytes32 name, string calldata uri, bytes32 documentHash) external;
+interface IERC1400 is IERC20, IERC1643 {
 
   // ******************* Token Information ********************
   function balanceOfByPartition(bytes32 partition, address tokenHolder) external view returns (uint256);
@@ -81,9 +79,6 @@ interface IERC1400 is IERC20 { // Interfaces can currently not inherit interface
   //       bytes data,
   //       bytes operatorData
   //   );
-
-  // ******************** Document Events *********************
-  event Document(bytes32 indexed name, string uri, bytes32 documentHash);
 
   // ******************** Transfer Events *********************
   event TransferByPartition(

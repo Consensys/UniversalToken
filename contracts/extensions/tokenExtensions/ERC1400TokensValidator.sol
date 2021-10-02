@@ -14,6 +14,7 @@ import "../../roles/AllowlistedRole.sol";
 import "../../roles/BlocklistedRole.sol";
 
 import "../../tools/ERC1820Client.sol";
+import "../../tools/DomainAware.sol";
 import "../../interface/ERC1820Implementer.sol";
 
 import "../../IERC1400.sol";
@@ -35,6 +36,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
 
   bytes4 constant internal ERC20_TRANSFER_ID = bytes4(keccak256("transfer(address,uint256)"));
   bytes4 constant internal ERC20_TRANSFERFROM_ID = bytes4(keccak256("transferFrom(address,address,uint256)"));
+
+  bytes32 constant internal ZERO_ID = 0x00000000000000000000000000000000;
 
   // Mapping from token to token controllers.
   mapping(address => address[]) internal _tokenControllers;
@@ -109,11 +112,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   // Total balance on hold.
   mapping(address => uint256) internal _totalHeldBalance;
 
-  // Mapping from hold parameter's hash to hold's nonce.
-  mapping(bytes32 => uint256) internal _hashNonce;
-
-  // Mapping from (hash, nonce) to hold ID.
-  mapping(bytes32 => mapping(uint256 => bytes32)) internal _holdIds;
+  // Mapping from hash to hold ID.
+  mapping(bytes32 => bytes32) internal _holdIds;
 
   event HoldCreated(
     address indexed token,
@@ -202,6 +202,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
 
   constructor() {
     ERC1820Implementer._setInterface(ERC1400_TOKENS_VALIDATOR);
+
+
   }
 
   /**
@@ -325,7 +327,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     }
     
     {
-        (,, bytes32 holdId) = _retrieveHoldHashNonceId(msg.sender, partition, operator, from, to, value);
+        (, bytes32 holdId) = _retrieveHoldHashId(msg.sender, partition, operator, from, to, value);
         if (_holdsActivated[msg.sender] && holdId != "") {
           Hold storage executableHold = _holds[msg.sender][holdId];
           _setHoldToExecuted(
@@ -475,7 +477,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   {
     if (_holdsActivated[token] && from != address(0)) {
       if(operator != from) {
-        (,, bytes32 holdId) = _retrieveHoldHashNonceId(token, partition, operator, from, to, value);
+        (, bytes32 holdId) = _retrieveHoldHashId(token, partition, operator, from, to, value);
         Hold storage hold = _holds[token][holdId];
         
         if (_holdCanBeExecutedAsNotary(hold, operator, value) && value <= IERC1400(token).balanceOfByPartition(partition, from)) {
@@ -736,6 +738,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       _canHoldOrCanPreHold(token, msg.sender, sender, certificate),
       "A hold can only be created with adapted authorizations"
     );
+    
     if (sender != address(0)) { // hold (tokens already exist)
       require(value <= _spendableBalanceOfByPartition(token, partition, sender), "Amount of the hold can't be greater than the spendable balance of the sender");
     }
@@ -752,6 +755,16 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     if(sender != address(0)) {
       // In case tokens already exist, increase held balance
       _increaseHeldBalance(token, newHold, holdId);
+
+      (bytes32 holdHash,) = _retrieveHoldHashId(
+        token, newHold.partition,
+        newHold.notary,
+        newHold.sender,
+        newHold.recipient,
+        newHold.value
+      );
+
+      _holdIds[holdHash] = holdId;
     }
 
     emit HoldCreated(
@@ -805,6 +818,16 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
 
     if(releasableHold.sender != address(0)) { // In case tokens already exist, decrease held balance
       _decreaseHeldBalance(token, releasableHold, releasableHold.value);
+
+      (bytes32 holdHash,) = _retrieveHoldHashId(
+        token, releasableHold.partition,
+        releasableHold.notary,
+        releasableHold.sender,
+        releasableHold.recipient,
+        releasableHold.value
+      );
+
+      delete _holdIds[holdHash];
     }
 
     emit HoldReleased(token, holdId, releasableHold.notary, releasableHold.status);
@@ -1009,8 +1032,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
 
     _heldBalanceByPartition[token][executableHold.sender][executableHold.partition] = _heldBalanceByPartition[token][executableHold.sender][executableHold.partition].add(executableHold.value);
     _totalHeldBalanceByPartition[token][executableHold.partition] = _totalHeldBalanceByPartition[token][executableHold.partition].add(executableHold.value);
-
-    _increaseNonce(token, executableHold, holdId);
   }
 
   /**
@@ -1022,41 +1043,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
 
     _heldBalanceByPartition[token][executableHold.sender][executableHold.partition] = _heldBalanceByPartition[token][executableHold.sender][executableHold.partition].sub(value);
     _totalHeldBalanceByPartition[token][executableHold.partition] = _totalHeldBalanceByPartition[token][executableHold.partition].sub(value);
-
-    if(executableHold.status == HoldStatusCode.Ordered) {
-      _decreaseNonce(token, executableHold);
-    }
-  }
-
-  /**
-   * @dev Increase nonce.
-   */
-  function _increaseNonce(address token, Hold storage executableHold, bytes32 holdId) private {
-    (bytes32 holdHash, uint256 nonce,) = _retrieveHoldHashNonceId(
-      token, executableHold.partition,
-      executableHold.notary,
-      executableHold.sender,
-      executableHold.recipient,
-      executableHold.value
-    );
-    _hashNonce[holdHash] = nonce.add(1);
-    _holdIds[holdHash][nonce.add(1)] = holdId;
-  }
-
-  /**
-   * @dev Decrease nonce.
-   */
-  function _decreaseNonce(address token, Hold storage executableHold) private {
-    (bytes32 holdHash, uint256 nonce,) = _retrieveHoldHashNonceId(
-      token,
-      executableHold.partition,
-      executableHold.notary,
-      executableHold.sender,
-      executableHold.recipient,
-      executableHold.value
-    );
-    _holdIds[holdHash][nonce] = "";
-    _hashNonce[holdHash] = _hashNonce[holdHash].sub(1);
   }
 
   /**
@@ -1098,9 +1084,9 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   }
 
   /**
-   * @dev Retrieve hold hash, nonce, and ID for given parameters
+   * @dev Retrieve hold hash, and ID for given parameters
    */
-  function _retrieveHoldHashNonceId(address token, bytes32 partition, address notary, address sender, address recipient, uint value) internal view returns (bytes32, uint256, bytes32) {
+  function _retrieveHoldHashId(address token, bytes32 partition, address notary, address sender, address recipient, uint value) internal view returns (bytes32, bytes32) {
     // Pack and hash hold parameters
     bytes32 holdHash = keccak256(abi.encodePacked(
       token,
@@ -1110,10 +1096,9 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
       notary,
       value
     ));
-    uint256 nonce = _hashNonce[holdHash];
-    bytes32 holdId = _holdIds[holdHash][nonce];
+    bytes32 holdId = _holdIds[holdHash];
 
-    return (holdHash, nonce, holdId);
+    return (holdHash, holdId);
   }  
 
   /**
@@ -1265,7 +1250,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
    */
   function _functionSupportsCertificateValidation(bytes memory payload) internal pure returns(bool) {
     bytes4 functionSig = _getFunctionSig(payload);
-    if(_areEqual(functionSig, ERC20_TRANSFER_ID) || _areEqual(functionSig, ERC20_TRANSFERFROM_ID)) {
+    if(functionSig == ERC20_TRANSFER_ID || functionSig == ERC20_TRANSFERFROM_ID) {
       return false;
     } else {
       return true;
@@ -1295,19 +1280,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
    */
   function _getFunctionSig(bytes memory payload) internal pure returns(bytes4) {
     return (bytes4(payload[0]) | bytes4(payload[1]) >> 8 | bytes4(payload[2]) >> 16 | bytes4(payload[3]) >> 24);
-  }
-
-  /**
-   * @dev Check if 2 variables of type bytes4 are identical.
-   * @return 'true' if 2 variables are identical, 'false' if not.
-   */
-  function _areEqual(bytes4 a, bytes4 b) internal pure returns(bool) {
-    for (uint256 i = 0; i < a.length; i++) {
-      if(a[i] != b[i]) {
-        return false;
-      }
-    }
-    return true;
   }
 
   /**
@@ -1385,7 +1357,12 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
         e,
         _usedCertificateNonce[token][msgSender]
       );
-      bytes32 hash = keccak256(pack);
+      bytes32 hash = keccak256(
+        abi.encodePacked(
+          DomainAware(token).generateDomainSeparator(),
+          keccak256(pack)
+        )
+      );
 
       bytes32 r;
       bytes32 s;
@@ -1472,7 +1449,13 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
         e,
         salt
       );
-      bytes32 hash = keccak256(pack);
+
+      bytes32 hash = keccak256(
+        abi.encodePacked(
+          DomainAware(token).generateDomainSeparator(),
+          keccak256(pack)
+        )
+      );
 
       bytes32 r;
       bytes32 s;
@@ -1491,5 +1474,4 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     }
     return (false, "");
   }
-
 }
