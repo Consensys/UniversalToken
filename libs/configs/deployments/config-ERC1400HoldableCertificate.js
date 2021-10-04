@@ -1,0 +1,17 @@
+const certificateModes = require('../../utils/certificateModes');
+
+module.exports = {
+  from: '0x4EeABa74D7f51fe3202D7963EFf61D2e7e166cBa',
+  name: 'Test1400',
+  symbol: 'T1400',
+  granularity: 1,
+  controller: '0xc4ba9659442360ffe327aBf93E3d9aE0A838a8D2',
+  partitions: [
+    '0x5265736572766564000000000000000000000000000000000000000000000000',
+    '0x4973737565640000000000000000000000000000000000000000000000000000',
+    '0x4c6f636b65640000000000000000000000000000000000000000000000000000'
+  ],
+  owner: '0xc4ba9659442360ffe327aBf93E3d9aE0A838a8D2',
+  certificateMode: certificateModes.SaltBased,
+  certificateSigner: '0x2A3cE238F1903B1cA935D734e6160aBA029ff80a'
+}

@@ -2,10 +2,16 @@ require('dotenv').config();
 require('babel-register');
 require('babel-polyfill');
 
-const HDWalletProvider = require('truffle-hdwallet-provider');
+const HDWalletProvider = require('@truffle/hdwallet-provider');
 
 const providerWithMnemonic = (mnemonic, rpcEndpoint) => () =>
-  new HDWalletProvider(mnemonic, rpcEndpoint);
+  new HDWalletProvider({
+    mnemonic: {
+      phrase: mnemonic
+    },
+    providerOrUrl: rpcEndpoint,
+    numberOfAddresses: 5
+  });
 
 const infuraProvider = network => providerWithMnemonic(
   process.env.MNEMONIC || '',
@@ -15,6 +21,10 @@ const infuraProvider = network => providerWithMnemonic(
 const ropstenProvider = process.env.SOLIDITY_COVERAGE
   ? undefined
   : infuraProvider('ropsten');
+
+const rinkebyProvider = process.env.SOLIDITY_COVERAGE
+  ? undefined
+  : infuraProvider('rinkeby');
 
 module.exports = {
   networks: {
@@ -32,6 +42,11 @@ module.exports = {
     },
     ropsten: {
       provider: ropstenProvider,
+      network_id: 3, // eslint-disable-line camelcase
+      gasPrice: 5000000000,
+    },
+    rinkeby: {
+      provider: rinkebyProvider,
       network_id: 3, // eslint-disable-line camelcase
       gasPrice: 5000000000,
     },
@@ -56,7 +71,10 @@ module.exports = {
       network_id: parseInt(process.env.NETWORK_ID) || '*', // eslint-disable-line camelcase
     },
   },
-  plugins: ["solidity-coverage"],
+  plugins: [
+    "solidity-coverage",
+    "truffle-plugin-verify"
+  ],
   compilers: {
     solc: {
       version: '0.8.7',
@@ -67,5 +85,8 @@ module.exports = {
         },
       },
     },
+  },
+  api_keys: {
+    etherscan: process.env.ETHERSCAN_API_KEY
   },
 };
