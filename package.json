@@ -14,7 +14,7 @@
     "build:ERC1400TokensValidator": "sol-merger \"./contracts/extensions/tokenExtensions/ERC1400TokensValidator.sol\" ./artifacts",
     "build": "yarn run clean && yarn run build:ERC1400 && yarn run build:ERC1400TokensValidator && yarn run build:ERC1400HoldableCertificateNonceToken && yarn run build:ERC1400HoldableCertificateSaltToken && yarn run build:DVPHoldableLockable",
     "clean": "rm -rf artifacts",
-    "coverage": "yarn truffle run coverage",
+    "coverage": "yarn truffle run coverage --network coverage",
     "env": "node setup.js",
     "lint": "eslint ./migrations ./test ",
     "lint:fix": "eslint ./test ./migrations --fix",
