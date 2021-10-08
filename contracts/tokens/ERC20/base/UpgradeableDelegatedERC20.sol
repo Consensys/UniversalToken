@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {ERC20DelegateCore} from "../core/ERC20DelegateCore.sol";
+import {ERC20DelegateCore} from "../implementation/core/ERC20DelegateCore.sol";
 import {ERC20DelegateProxy} from "../proxy/ERC20DelegateProxy.sol";
 import {BaseERC20Storage} from "../storage/BaseERC20Storage.sol";
 

@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 import {ERC20Core} from "./ERC20Core.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
-import {IERC20Storage} from "../storage/IERC20Storage.sol";
+import {IERC20Storage} from "../../storage/IERC20Storage.sol";
 
 /**
 * @dev Contract to be used with an ERC20DelegateProxy. This contract assumes it will be delegatecall'ed 

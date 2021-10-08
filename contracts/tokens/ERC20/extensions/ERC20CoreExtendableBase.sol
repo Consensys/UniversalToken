@@ -1,31 +1,31 @@
 pragma solidity ^0.8.0;
 
-import {ERC20Core} from "../core/ERC20Core.sol";
-import {ERC20ExtendableLib, TransferData} from "./ERC20ExtendableLib.sol";
-import {IERC20Extension} from "./IERC20Extension.sol";
+import {ERC20Core} from "../implementation/core/ERC20Core.sol";
+import {ERC20ExtendableLib} from "./ERC20ExtendableLib.sol";
+import {IERC20Extension, TransferData} from "../../../extensions/IERC20Extension.sol";
 
 
 abstract contract ERC20CoreExtendableBase is ERC20Core {
 
-    function registerExtension(address extension) external confirmContext returns (bool) {
+    function registerExtension(address extension) public virtual confirmContext returns (bool) {
         ERC20ExtendableLib._registerExtension(extension);
 
         return true;
     }
 
-    function removeExtension(address extension) external confirmContext returns (bool) {
+    function removeExtension(address extension) public virtual confirmContext returns (bool) {
         ERC20ExtendableLib._removeExtension(extension);
 
         return true;
     }
 
-    function disableExtension(address extension) external confirmContext returns (bool) {
+    function disableExtension(address extension) external virtual confirmContext returns (bool) {
         ERC20ExtendableLib._disableExtension(extension);
 
         return true;
     }
 
-    function enableExtension(address extension) external confirmContext returns (bool) {
+    function enableExtension(address extension) external virtual confirmContext returns (bool) {
         ERC20ExtendableLib._enableExtension(extension);
 
         return true;

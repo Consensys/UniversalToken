@@ -1,10 +1,10 @@
 pragma solidity ^0.8.0;
 
-import {IERC20Storage} from "../storage/IERC20Storage.sol";
+import {IERC20Storage} from "../../storage/IERC20Storage.sol";
 import {IERC20Core} from "./IERC20Core.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
-import {IERC20Storage} from "../storage/IERC20Storage.sol";
+import {IERC20Storage} from "../../storage/IERC20Storage.sol";
 
 /**
 * @dev Contract to be used with along with an ERC20Proxy and an ERC20Storage. This contract requires

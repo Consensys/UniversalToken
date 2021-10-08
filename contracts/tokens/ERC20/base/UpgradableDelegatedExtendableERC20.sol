@@ -1,14 +1,15 @@
 pragma solidity ^0.8.0;
 
 import {ERC20CoreExtendableBase} from "../extensions/ERC20CoreExtendableBase.sol";
-import {ERC20DelegateCore} from "../core/ERC20DelegateCore.sol";
+import {ERC20DelegateCore} from "../implementation/core/ERC20DelegateCore.sol";
 import {ERC20DelegateProxy} from "../proxy/ERC20DelegateProxy.sol";
 import {BaseERC20Storage} from "../storage/BaseERC20Storage.sol";
 import {ERC20ExtendableLib} from "../extensions/ERC20ExtendableLib.sol";
+import {Diamond} from "../extensions/diamond/Diamond.sol";
 
-contract UpgradableDelegatedExtendableERC20 is ERC20DelegateProxy {
+contract UpgradableDelegatedExtendableERC20 is ERC20DelegateProxy, Diamond {
     
-    constructor(string memory name_, string memory symbol_, address core_implementation_) ERC20DelegateProxy() {
+    constructor(string memory name_, string memory symbol_, address core_implementation_) ERC20DelegateProxy() Diamond(msg.sender) {
         BaseERC20Storage store = new BaseERC20Storage(name_, symbol_);
         ERC20DelegateCore implementation = ERC20DelegateCore(core_implementation_);
 

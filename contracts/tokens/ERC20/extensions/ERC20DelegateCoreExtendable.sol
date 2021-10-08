@@ -1,12 +1,70 @@
 pragma solidity ^0.8.0;
 
-import {ERC20Core} from "../core/ERC20Core.sol";
-import {ERC20DelegateCore} from "../core/ERC20DelegateCore.sol";
+import {ERC20Core} from "../implementation/core/ERC20Core.sol";
+import {ERC20DelegateCore} from "../implementation/core/ERC20DelegateCore.sol";
 import {ERC20CoreExtendableBase} from "./ERC20CoreExtendableBase.sol";
-import {ERC20ExtendableLib, TransferData} from "./ERC20ExtendableLib.sol";
+import {ERC20ExtendableLib} from "./ERC20ExtendableLib.sol";
+import {IERC20Extension, TransferData} from "../../../extensions/IERC20Extension.sol";
+import {LibDiamond} from "./diamond/LibDiamond.sol";
 
 
 contract ERC20DelegateCoreExtendable is ERC20CoreExtendableBase, ERC20DelegateCore {
+
+    function registerExtension(address extension) public override confirmContext returns (bool) {
+        bool result = super.registerExtension(extension);
+
+        if (result) {
+            _registerExtensionFunctions(extension);
+        }
+
+        return result;
+    }
+
+    function removeExtension(address extension) public override(ERC20CoreExtendableBase) confirmContext returns (bool) {
+        bool result = super.removeExtension(extension);
+
+        if (result) {
+            _removeExtensionFunctions(extension);
+        }
+
+        return true;
+    }
+    
+    function _registerExtensionFunctions(address extensionAddress) internal {
+        IERC20Extension extension = IERC20Extension(extensionAddress);
+
+        //First register the function selectors with the diamond
+        bytes4[] memory externalFunctions = extension.externalFunctions();
+
+        if (externalFunctions.length > 0) {
+            LibDiamond.FacetCut[] memory cut = new LibDiamond.FacetCut[](1);
+            cut[0] = LibDiamond.FacetCut({
+                facetAddress: extensionAddress, 
+                action: LibDiamond.FacetCutAction.Add, 
+                functionSelectors: externalFunctions
+            });
+            LibDiamond.diamondCut(cut, extensionAddress, abi.encodeWithSelector(IERC20Extension.initalize.selector));
+        }
+    }
+
+    function _removeExtensionFunctions(address extensionAddress) internal {
+        IERC20Extension extension = IERC20Extension(extensionAddress);
+
+        //First register the function selectors with the diamond
+        bytes4[] memory externalFunctions = extension.externalFunctions();
+
+        if (externalFunctions.length > 0) {
+            LibDiamond.FacetCut[] memory cut = new LibDiamond.FacetCut[](1);
+            cut[0] = LibDiamond.FacetCut({
+                facetAddress: extensionAddress, 
+                action: LibDiamond.FacetCutAction.Remove, 
+                functionSelectors: externalFunctions
+            });
+
+            //Dont call initalize when removing functions
+            LibDiamond.diamondCut(cut, address(0), "");
+        }
+    }
 
     /**
      * @dev Hook that is called before any transfer of tokens. This includes
