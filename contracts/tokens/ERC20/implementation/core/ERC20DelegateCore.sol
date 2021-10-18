@@ -16,11 +16,11 @@ contract ERC20DelegateCore is ERC20Core {
 
     constructor() ERC20Core(ZERO_ADDRESS, ZERO_ADDRESS) { }
 
-    function _getStorageLocation() internal override pure returns (bytes32) {
+    function _getStorageLocation() internal override virtual pure returns (bytes32) {
         return ERC20_STORAGE_ADDRESS;
     }
 
-    function _confirmContext() internal override view returns (bool) {
+    function _confirmContext() internal override virtual view returns (bool) {
         IERC20Storage store = _getStorageContract();
         return address(store) != ZERO_ADDRESS && store.allowWriteFrom(address(this));
     }

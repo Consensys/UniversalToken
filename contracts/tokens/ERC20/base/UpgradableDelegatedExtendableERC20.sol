@@ -45,7 +45,7 @@ contract UpgradableDelegatedExtendableERC20 is ERC20DelegateProxy, Diamond {
         return _invokeCore(abi.encodeWithSelector(ERC20CoreExtendableBase.enableExtension.selector, extension))[0] == 0x01;
     }
 
-    function allExtension() external view returns (address[] memory) {
+    function allExtensions() external view returns (address[] memory) {
         //To return all the extensions, we'll read directly from the ERC20CoreExtendableBase's storage struct
         //since it's store here at the proxy
         //The ERC20ExtendableLib library offers functions to do this

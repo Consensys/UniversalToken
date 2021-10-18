@@ -78,6 +78,7 @@
     "solidity-coverage": "0.8.0-beta.0",
     "solium": "^1.2.5",
     "solium-plugin-zeppelin": "^0.0.2",
+    "truffle-plugin-verify": "^0.5.15",
     "web3-utils": "^1.2.8"
   },
   "dependencies": {

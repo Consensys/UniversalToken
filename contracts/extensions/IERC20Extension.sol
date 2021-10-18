@@ -34,5 +34,5 @@ interface IERC20Extension is IERC165 {
 
     function onTransferExecuted(TransferData memory data) external returns (bool);
 
-    function externalFunctions() external pure returns (bytes4[] memory);
+    function externalFunctions() external view returns (bytes4[] memory);
 }

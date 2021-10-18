@@ -1,27 +1,64 @@
 module.exports = async function(callback) {
-  const UpgradableERC20 = artifacts.require('UpgradableERC20');
-  const erc20Diamond = await UpgradableERC20.new(
-    'TestToken', 'TEST'
+  const ERC20Core = artifacts.require('ERC20DelegateCoreExtendable');
+  const coreLogic = await ERC20Core.new();
+
+  const ERC20Extendable = artifacts.require('ERC20Extendable');
+  const token1 = await ERC20Extendable.new(
+    'TestToken', 'TEST', coreLogic.address
+  );
+  const token2 = await ERC20Extendable.new(
+    'TestToken2', 'TEST2', coreLogic.address
   );
 
- /*  const ERC20Token = artifacts.require('ERC20Token');
-  const erc20 = await ERC20Token.at(erc20Diamond.address);
+  const PauseExtension = artifacts.require('PauseExtension');
+  const ext = await PauseExtension.new();
 
-  await erc20.mint('0xA1b9E2228ab592e742817aD4BE61509d5e6e331f', 1000000);
+  //Lets check the balance of both
+  let b1 = await token1.balanceOf('0x4EeABa74D7f51fe3202D7963EFf61D2e7e166cBa');
+  let b2 = await token2.balanceOf('0x4EeABa74D7f51fe3202D7963EFf61D2e7e166cBa');
 
-  const balance = await erc20.balanceOf('0xA1b9E2228ab592e742817aD4BE61509d5e6e331f');
-  const totalSupply = await erc20.totalSupply();
+  console.log(b1.toString());
+  console.log(b2.toString());
 
-  console.log('Total Supply: ' + totalSupply);
-  console.log('Balance: ' + balance);
+  //Lets try a transfer and ensure only one balance changes
+  await token1.transfer('0xc4ba9659442360ffe327aBf93E3d9aE0A838a8D2', '1000000000000000000');
 
-  await erc20.transfer('0xc4ba9659442360ffe327aBf93E3d9aE0A838a8D2', 100); */
+  b1 = await token1.balanceOf('0x4EeABa74D7f51fe3202D7963EFf61D2e7e166cBa');
+  b2 = await token2.balanceOf('0x4EeABa74D7f51fe3202D7963EFf61D2e7e166cBa');
+  let b1_1 = await token1.balanceOf('0xc4ba9659442360ffe327aBf93E3d9aE0A838a8D2');
+  let b2_1 = await token2.balanceOf('0xc4ba9659442360ffe327aBf93E3d9aE0A838a8D2');
 
-  const newBalance = await erc20Diamond.balanceOf('0xc4ba9659442360ffe327aBf93E3d9aE0A838a8D2');
-  const totalSupply2 = await erc20Diamond.totalSupply();
+  console.log(b1.toString());
+  console.log(b2.toString());
+  console.log(b1_1.toString());
+  console.log(b2_1.toString());
 
-  console.log('Total Supply: ' + totalSupply2);
-  console.log('Balance: ' + newBalance);
+  await token1.registerExtension(ext.address);
+
+  const pauseExt = await PauseExtension.at(token1.address);
+
+  await pauseExt.pause();
+
+  let isPaused = await pauseExt.isPaused();
+
+  console.log(isPaused);
+
+  try {
+     //Lets try a transfer again and ensure we revert
+    await token1.transfer('0xc4ba9659442360ffe327aBf93E3d9aE0A838a8D2', '1000000000000000000');
+  } catch (e) {
+    console.log(e);
+  }
+
+  b1 = await token1.balanceOf('0x4EeABa74D7f51fe3202D7963EFf61D2e7e166cBa');
+  b2 = await token2.balanceOf('0x4EeABa74D7f51fe3202D7963EFf61D2e7e166cBa');
+  b1_1 = await token1.balanceOf('0xc4ba9659442360ffe327aBf93E3d9aE0A838a8D2');
+  b2_1 = await token2.balanceOf('0xc4ba9659442360ffe327aBf93E3d9aE0A838a8D2');
+
+  console.log(b1.toString());
+  console.log(b2.toString());
+  console.log(b1_1.toString());
+  console.log(b2_1.toString());
 
   callback();
 }

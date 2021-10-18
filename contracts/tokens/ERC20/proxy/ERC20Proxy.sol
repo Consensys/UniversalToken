@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC20Storage} from "../storage/IERC20Storage.sol";
-import {IERC20Core} from "../core/IERC20Core.sol";
+import {IERC20Core} from "../implementation/core/IERC20Core.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
@@ -29,35 +29,35 @@ contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage {
     /**
      * @dev Returns the amount of tokens in existence.
      */
-    function totalSupply() external override view returns (uint256) {
+    function totalSupply() public override view returns (uint256) {
         return _getStorageContract().totalSupply();
     }
 
     /**
      * @dev Returns the amount of tokens owned by `account`.
      */
-    function balanceOf(address account) external override view returns (uint256) {
+    function balanceOf(address account) public override view returns (uint256) {
         return _getStorageContract().balanceOf(account);
     }
 
     /**
      * @dev Returns the name of the token.
      */
-    function name() external override view returns (string memory) {
+    function name() public override view returns (string memory) {
         return _getStorageContract().name();
     }
 
     /**
      * @dev Returns the symbol of the token.
      */
-    function symbol() external override view returns (string memory) {
+    function symbol() public override view returns (string memory) {
         return _getStorageContract().symbol();
     }
 
     /**
      * @dev Returns the decimals places of the token.
      */
-    function decimals() external override view returns (uint8) {
+    function decimals() public override view returns (uint8) {
         return _getStorageContract().decimals();
     }
 
@@ -68,7 +68,7 @@ contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage {
      *
      * Emits a {Transfer} event.
      */
-    function transfer(address recipient, uint256 amount) external override returns (bool) {
+    function transfer(address recipient, uint256 amount) public override returns (bool) {
         bool result = _executeTransfer(_msgSender(), recipient, amount);
         if (result) {
             emit Transfer(_msgSender(), recipient, amount);
@@ -83,7 +83,7 @@ contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage {
      *
      * This value changes when {approve} or {transferFrom} are called.
      */
-    function allowance(address owner, address spender) external override view returns (uint256) {
+    function allowance(address owner, address spender) public override view returns (uint256) {
         return _getStorageContract().allowance(owner, spender);
     }
 
@@ -101,7 +101,7 @@ contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage {
      *
      * Emits an {Approval} event.
      */
-    function approve(address spender, uint256 amount) external override returns (bool) {
+    function approve(address spender, uint256 amount) public override returns (bool) {
         bool result = _executeApprove(_msgSender(), spender, amount);
         if (result) {
             emit Approval(_msgSender(), spender, amount);
@@ -122,7 +122,7 @@ contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage {
         address sender,
         address recipient,
         uint256 amount
-    ) external override returns (bool) {
+    ) public override returns (bool) {
         bool result = _executeTransferFrom(_msgSender(), sender, recipient, amount);
 
         if (result) {
@@ -175,6 +175,10 @@ contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage {
             emit Approval(_msgSender(), spender, allowanceAmount);
         }
         return result;
+    }
+
+    function _executeMint(address caller, address receipient, uint256 amount) internal virtual returns (bool) {
+        return _getImplementationContract().mint(caller, receipient, amount);
     }
 
     function _executeDecreaseAllowance(address caller, address spender, uint256 subtractedValue) internal virtual returns (bool) {

@@ -46,7 +46,7 @@ contract UpgradableERC20 is ERC20Proxy {
         return extCore.enableExtension(extension);
     }
 
-    function allExtension() external view returns (address[] memory) {
+    function allExtensions() external view returns (address[] memory) {
         ERC20CoreExtendable extCore = ERC20CoreExtendable(address(_getImplementationContract()));
         return extCore.allExtension();
     }

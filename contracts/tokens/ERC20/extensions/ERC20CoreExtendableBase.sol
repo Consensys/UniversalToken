@@ -54,7 +54,7 @@ abstract contract ERC20CoreExtendableBase is ERC20Core {
         address from,
         address to,
         uint256 amount
-    ) internal override {
+    ) internal override virtual {
         TransferData memory data = TransferData(
             _getProxyAddress(),
             msg.data,
@@ -89,7 +89,7 @@ abstract contract ERC20CoreExtendableBase is ERC20Core {
         address from,
         address to,
         uint256 amount
-    ) internal override {
+    ) internal override virtual {
         TransferData memory data = TransferData(
             _getProxyAddress(),
             msg.data,

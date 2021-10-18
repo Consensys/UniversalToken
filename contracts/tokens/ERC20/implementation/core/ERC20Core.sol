@@ -186,6 +186,12 @@ contract ERC20Core is IERC20Core {
         return true;
     }
 
+    function mint(address caller, address recipient, uint256 amount) external override returns (bool) {
+        _mint(caller, recipient, amount);
+
+        return true;
+    }
+
     /**
      * @dev Moves `amount` of tokens from `sender` to `recipient`.
      *

@@ -56,7 +56,10 @@ module.exports = {
       network_id: parseInt(process.env.NETWORK_ID) || '*', // eslint-disable-line camelcase
     },
   },
-  plugins: ["solidity-coverage"],
+  plugins: [
+    "solidity-coverage",
+    "truffle-plugin-verify"
+  ],
   compilers: {
     solc: {
       version: '0.8.7',
@@ -67,5 +70,8 @@ module.exports = {
         },
       },
     },
+  },
+  api_keys: {
+    etherscan: process.env.ETHERSCAN_API_KEY
   },
 };

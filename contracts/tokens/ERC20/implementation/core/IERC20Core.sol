@@ -26,6 +26,11 @@ interface IERC20Core {
     function approve(address caller, address spender, uint256 amount) external returns (bool);
 
     /**
+
+    */
+    function mint(address caller, address recipient, uint256 amount) external returns (bool);
+
+    /**
      * @dev Moves `amount` tokens from `sender` to `recipient` using the
      * allowance mechanism. `amount` is then deducted from the caller's
      * allowance.
