@@ -23,6 +23,10 @@ abstract contract ERC20Extension is IERC20Extension {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
         _exposedFuncSigs.push(selector);
     }
+
+    function _transfer(TransferData memory data) internal {
+        
+    }
     
 
     function externalFunctions() external override view returns (bytes4[] memory) {

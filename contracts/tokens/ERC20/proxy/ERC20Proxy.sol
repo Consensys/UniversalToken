@@ -7,8 +7,9 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {ERC20ProxyStorage} from "../storage/ERC20ProxyStorage.sol";
+import {DomainAware} from "../../../tools/DomainAware.sol";
 
-contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage {
+contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware {
 
     constructor() {
         StorageSlot.getAddressSlot(ERC20_MANAGER_ADDRESS).value = msg.sender;
@@ -199,5 +200,13 @@ contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage {
 
     function _executeTransfer(address caller, address recipient, uint256 amount) internal virtual returns (bool) {
         return _getImplementationContract().transfer(caller, recipient, amount);
+    }
+
+    function domainName() public virtual override view returns (string memory) {
+        return name();
+    }
+
+    function domainVersion() public virtual override view returns (string memory) {
+        return "1.0.0";
     }
 }

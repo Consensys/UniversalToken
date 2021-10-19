@@ -1,5 +1,5 @@
 
-import {UpgradableDelegatedExtendableERC20} from "./tokens/ERC20/base/UpgradableDelegatedExtendableERC20.sol";
+import {UpgradableDelegatedExtendableERC20} from "./tokens/ERC20/implementation/base/UpgradableDelegatedExtendableERC20.sol";
 
 contract ERC20Extendable is UpgradableDelegatedExtendableERC20 {
     uint256 constant TOTAL_SUPPLY = 500 ether;
