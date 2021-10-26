@@ -4,8 +4,11 @@ import {IERC20Extension, TransferData} from "../IERC20Extension.sol";
 import {Roles} from "../../roles/Roles.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IERC20Core} from "../../tokens/ERC20/implementation/core/IERC20Core.sol";
 
 abstract contract ERC20Extension is IERC20Extension {
+    bytes32 constant ERC20_CORE_ADDRESS = keccak256("erc20.proxy.core.address");
+
     //Should only be modified inside the constructor
     bytes4[] private _exposedFuncSigs;
     mapping(bytes4 => bool) private _interfaceMap;
@@ -24,10 +27,46 @@ abstract contract ERC20Extension is IERC20Extension {
         _exposedFuncSigs.push(selector);
     }
 
-    function _transfer(TransferData memory data) internal {
-        
+    function _getImplementationContract() private view returns (IERC20Core) {
+        return IERC20Core(
+            StorageSlot.getAddressSlot(ERC20_CORE_ADDRESS).value
+        );
     }
-    
+
+    function _invokeCore(bytes memory _calldata) private returns (bytes memory) {
+        address erc20Core = address(_getImplementationContract());
+        (bool success, bytes memory data) = erc20Core.delegatecall(_calldata);
+        if (!success) {
+            if (data.length > 0) {
+                // bubble up the error
+                revert(string(data));
+            } else {
+                revert("TokenExtensionFacet: delegatecall to ERC20Core reverted");
+            }
+        }
+
+        return data;
+    }
+
+    function _transfer(address from, address recipient, uint256 amount) internal returns (bool) {
+        TransferData memory data = TransferData(
+            address(this),
+            msg.data,
+            0x00000000000000000000000000000000,
+            address(this), //TODO who is the operator?
+            from,
+            recipient,
+            amount,
+            "",
+            ""
+        );
+
+        return _transfer(data);
+    }
+
+    function _transfer(TransferData memory data) internal returns (bool) {
+        return _invokeCore(abi.encodeWithSelector(IERC20Core.customTransfer.selector, data))[0] == 0x01;
+    }
 
     function externalFunctions() external override view returns (bytes4[] memory) {
         return _exposedFuncSigs;

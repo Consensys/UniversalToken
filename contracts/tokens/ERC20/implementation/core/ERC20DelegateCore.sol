@@ -24,4 +24,8 @@ contract ERC20DelegateCore is ERC20Core {
         IERC20Storage store = _getStorageContract();
         return address(store) != ZERO_ADDRESS && store.allowWriteFrom(address(this));
     }
+
+    function _getProxyAddress() internal override virtual view returns (address) {
+        return address(this); //we are also the proxy with delegatecall
+    }
 }

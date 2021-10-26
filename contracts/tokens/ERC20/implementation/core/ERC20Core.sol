@@ -5,6 +5,7 @@ import {IERC20Core} from "./IERC20Core.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC20Storage} from "../../storage/IERC20Storage.sol";
+import {TransferData} from "../../../../extensions/IERC20Extension.sol";
 
 /**
 * @dev Contract to be used with along with an ERC20Proxy and an ERC20Storage. This contract requires
@@ -98,6 +99,11 @@ contract ERC20Core is IERC20Core {
      */
     function transfer(address caller, address recipient, uint256 amount) external override confirmContext returns (bool) {
         _transfer(caller, caller, recipient, amount);
+        return true;
+    }
+
+    function customTransfer(TransferData memory data) external override confirmContext returns (bool) {
+        _transfer(data);
         return true;
     }
 
@@ -212,17 +218,47 @@ contract ERC20Core is IERC20Core {
         address recipient,
         uint256 amount
     ) internal virtual {
-        require(sender != address(0), "ERC20: transfer from the zero address");
-        require(recipient != address(0), "ERC20: transfer to the zero address");
+        TransferData memory data = TransferData(
+            _getProxyAddress(),
+            msg.data,
+            0x00000000000000000000000000000000,
+            caller,
+            sender,
+            recipient,
+            amount,
+            "",
+            ""
+        );
 
-        _beforeTokenTransfer(caller, sender, recipient, amount);
+        _transfer(data);
+    }
 
-        uint256 senderBalance = _balanceOf(sender);
-        require(senderBalance >= amount, "ERC20: transfer amount exceeds balance");
-        require(_setBalance(sender, senderBalance - amount), "ERC20: Set balance of sender failed");
-        require(_increaseBalance(recipient, amount), "ERC20: Increase balance of recipient failed");
+        /**
+     * @dev Moves `amount` of tokens from `sender` to `recipient`.
+     *
+     * This internal function is equivalent to {transfer}, and can be used to
+     * e.g. implement automatic token fees, slashing mechanisms, etc.
+     *
+     * Emits a {Transfer} event.
+     *
+     * Requirements:
+     *
+     * - `sender` cannot be the zero address.
+     * - `recipient` cannot be the zero address.
+     * - `sender` must have a balance of at least `amount`.
+     */
+    function _transfer(TransferData memory data) internal virtual {
+        require(data.from != address(0), "ERC20: transfer from the zero address");
+        require(data.to != address(0), "ERC20: transfer to the zero address");
 
-        _afterTokenTransfer(caller, sender, recipient, amount);
+        _beforeTokenTransfer(data);
+
+        uint256 senderBalance = _balanceOf(data.from);
+        require(senderBalance >= data.value, "ERC20: transfer amount exceeds balance");
+        require(_setBalance(data.from, senderBalance - data.value), "ERC20: Set balance of sender failed");
+        require(_increaseBalance(data.to, data.value), "ERC20: Increase balance of recipient failed");
+
+        _afterTokenTransfer(data);
     }
 
     /** @dev Creates `amount` tokens and assigns them to `account`, increasing
@@ -237,12 +273,24 @@ contract ERC20Core is IERC20Core {
     function _mint(address caller, address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: mint to the zero address");
 
-        _beforeTokenTransfer(caller, address(0), account, amount);
+        TransferData memory data = TransferData(
+            _getProxyAddress(),
+            msg.data,
+            0x00000000000000000000000000000000,
+            caller,
+            address(0),
+            account,
+            amount,
+            "",
+            ""
+        );
+
+        _beforeTokenTransfer(data);
         
         require(_increaseTotalSupply(amount), "ERC20: increase total supply failed");
         require(_increaseBalance(account, amount), "ERC20: increase balance failed");
 
-        _afterTokenTransfer(caller, address(0), account, amount);
+        _afterTokenTransfer(data);
     }
 
     /**
@@ -259,14 +307,26 @@ contract ERC20Core is IERC20Core {
     function _burn(address caller, address account, uint256 amount) internal virtual {
         require(account != address(0), "ERC20: burn from the zero address");
 
-        _beforeTokenTransfer(caller, account, address(0), amount);
+        TransferData memory data = TransferData(
+            _getProxyAddress(),
+            msg.data,
+            0x00000000000000000000000000000000,
+            caller,
+            account,
+            address(0),
+            amount,
+            "",
+            ""
+        );
+
+        _beforeTokenTransfer(data);
 
         uint256 accountBalance = _getStorageContract().balanceOf(account);
         require(accountBalance >= amount, "ERC20: burn amount exceeds balance");
         require(_setBalance(account, accountBalance - amount), "ERC20: Set balance of account failed");
         require(_decreaseTotalSupply(amount), "ERC20: Decrease of total supply failed");
 
-        _afterTokenTransfer(caller, account, address(0), amount);
+        _afterTokenTransfer(data);
     }
 
     /**
@@ -307,12 +367,7 @@ contract ERC20Core is IERC20Core {
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _beforeTokenTransfer(
-        address caller,
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {}
+    function _beforeTokenTransfer(TransferData memory data) internal virtual {}
 
     /**
      * @dev Hook that is called after any transfer of tokens. This includes
@@ -328,10 +383,5 @@ contract ERC20Core is IERC20Core {
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _afterTokenTransfer(
-        address caller,
-        address from,
-        address to,
-        uint256 amount
-    ) internal virtual {}
+    function _afterTokenTransfer(TransferData memory data) internal virtual {}
 }

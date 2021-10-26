@@ -1,3 +1,6 @@
+pragma solidity ^0.8.0;
+
+import {TransferData} from "../../../../extensions/IERC20Extension.sol";
 
 interface IERC20Core {
     /**
@@ -8,6 +11,9 @@ interface IERC20Core {
      * Emits a {Transfer} event.
      */
     function transfer(address caller, address recipient, uint256 amount) external returns (bool);
+
+    
+    function customTransfer(TransferData memory data) external returns (bool);
 
     /**
      * @dev Sets `amount` as the allowance of `spender` over the caller's tokens.

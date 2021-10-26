@@ -49,24 +49,7 @@ abstract contract ERC20CoreExtendableBase is ERC20Core {
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _beforeTokenTransfer(
-        address caller,
-        address from,
-        address to,
-        uint256 amount
-    ) internal override virtual {
-        TransferData memory data = TransferData(
-            _getProxyAddress(),
-            msg.data,
-            0x00000000000000000000000000000000,
-            caller,
-            from,
-            to,
-            amount,
-            "",
-            ""
-        );
-
+    function _beforeTokenTransfer(TransferData memory data) internal override virtual {
         require(ERC20ExtendableLib._callValidateTransfer(data), "Extension failed validation of transfer");
     }
 
@@ -84,24 +67,7 @@ abstract contract ERC20CoreExtendableBase is ERC20Core {
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _afterTokenTransfer(
-        address caller,
-        address from,
-        address to,
-        uint256 amount
-    ) internal override virtual {
-        TransferData memory data = TransferData(
-            _getProxyAddress(),
-            msg.data,
-            0x00000000000000000000000000000000,
-            caller,
-            from,
-            to,
-            amount,
-            "",
-            ""
-        );
-
+    function _afterTokenTransfer(TransferData memory data) internal override virtual {
         require(ERC20ExtendableLib._callAfterTransfer(data), "Extension failed execution of post-transfer");
     }
 }

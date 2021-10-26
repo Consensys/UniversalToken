@@ -80,24 +80,7 @@ contract ERC20DelegateCoreExtendable is ERC20CoreExtendableBase, ERC20DelegateCo
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _beforeTokenTransfer(
-        address caller,
-        address from,
-        address to,
-        uint256 amount
-    ) internal override(ERC20Core, ERC20CoreExtendableBase) {
-        TransferData memory data = TransferData(
-            address(this),
-            msg.data,
-            0x00000000000000000000000000000000,
-            caller,
-            from,
-            to,
-            amount,
-            "",
-            ""
-        );
-
+    function _beforeTokenTransfer(TransferData memory data) internal override(ERC20Core, ERC20CoreExtendableBase) {
         require(ERC20ExtendableLib._delegatecallValidateTransfer(data), "Extension failed validation of transfer");
     }
 
@@ -115,24 +98,7 @@ contract ERC20DelegateCoreExtendable is ERC20CoreExtendableBase, ERC20DelegateCo
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _afterTokenTransfer(
-        address caller,
-        address from,
-        address to,
-        uint256 amount
-    ) internal override(ERC20Core, ERC20CoreExtendableBase) {
-        TransferData memory data = TransferData(
-            address(this),
-            msg.data,
-            0x00000000000000000000000000000000,
-            caller,
-            from,
-            to,
-            amount,
-            "",
-            ""
-        );
-
+    function _afterTokenTransfer(TransferData memory data) internal override(ERC20Core, ERC20CoreExtendableBase) {
         require(ERC20ExtendableLib._delegatecallAfterTransfer(data), "Extension failed execution of post-transfer");
     }
 
@@ -142,5 +108,9 @@ contract ERC20DelegateCoreExtendable is ERC20CoreExtendableBase, ERC20DelegateCo
 
     function _confirmContext() internal override(ERC20DelegateCore, ERC20Core) view returns (bool) {
         return ERC20DelegateCore._confirmContext();
+    }
+
+    function _getProxyAddress() internal override(ERC20Core, ERC20DelegateCore) virtual view returns (address) {
+        return ERC20DelegateCore._getProxyAddress();
     }
 }

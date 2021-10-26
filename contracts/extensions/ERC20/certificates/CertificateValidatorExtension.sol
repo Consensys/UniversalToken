@@ -45,11 +45,36 @@ contract CertificateValidatorExtension is ERC20Extension, ICertificateValidator 
     }
 
     function transferWithCertificate(address to, uint256 amount, bytes memory certificate) external override {
+        address from = msg.sender;
+        TransferData memory data = TransferData(
+            address(this),
+            msg.data,
+            0x00000000000000000000000000000000,
+            from, //TODO who is the operator?
+            from,
+            to,
+            amount,
+            certificate,
+            ""
+        );
 
+        require(_transfer(data), "Transfer failed");
     }
 
     function transferFromWithCertificate(address from, address to, uint256 amount, bytes memory certificate) external override {
+        TransferData memory data = TransferData(
+            address(this),
+            msg.data,
+            0x00000000000000000000000000000000,
+            msg.sender,
+            from,
+            to,
+            amount,
+            certificate,
+            ""
+        );
 
+        require(_transfer(data), "Transfer failed");
     }
 
     function validateTransfer(TransferData memory data) external override view returns (bool) {

@@ -7,6 +7,4 @@ contract ERC20Extendable is UpgradableDelegatedExtendableERC20 {
     constructor(string memory name_, string memory symbol_, address core_implementation_) UpgradableDelegatedExtendableERC20(name_, symbol_, core_implementation_) {
         _executeMint(msg.sender, msg.sender, TOTAL_SUPPLY);
     }
-
-    
 }
