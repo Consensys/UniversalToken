@@ -6,7 +6,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "./ERC20Token.sol";
-import "./IERC20HoldableToken.sol";
+import "../interface/IERC20HoldableToken.sol";
 
 /**
  * @title ERC20HoldableToken
