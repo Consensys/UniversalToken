@@ -132,6 +132,15 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       bytes metadata
   );
   event DestroyNote(address indexed owner, bytes32 indexed noteHash);
+
+  struct TokenData {
+    address tokenAddress;
+    uint256 tokenValue;
+    bytes32 tokenId;
+    Standard tokenStandard;
+    bool accepted;
+    bool approved;
+  }
   
   /**
    * @dev Input data for the requestTrade function
@@ -170,8 +179,8 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     address holder2;
     address executer;
     uint256 expirationDate;
-    bytes tokenData1;
-    bytes tokenData2;
+    TokenData tokenData1;
+    TokenData tokenData2;
     TradeType tradeType;
     State state;
   }
@@ -289,8 +298,8 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       uint256 _expirationDate = _getTradeExpirationDate(data);
 
       // Token data: < 1: address > < 2: amount > < 3: id/partition > < 4: standard > < 5: accepted > < 6: approved >
-      bytes memory _tokenData1 = abi.encode(msg.sender, value, partition, Standard.ERC1400, true, false);
-      bytes memory _tokenData2 = _getTradeTokenData(data);
+      TokenData memory _tokenData1 = TokenData(msg.sender, value, partition, Standard.ERC1400, true, false);
+      TokenData memory _tokenData2 = _getTradeTokenData(data);
 
       _requestTrade(
         from,
@@ -306,15 +315,10 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       uint256 index = _getTradeIndex(data);
       Trade storage trade = _trades[index];
 
-      bytes memory selectedTokenData = (from == trade.holder1) ? trade.tokenData1 : trade.tokenData2;
-      (address tokenAddress,,,,,) = abi.decode(selectedTokenData, (address, uint256, bytes32, Standard, bool, bool));
-      require(msg.sender == tokenAddress, "Wrong token sent");
-
-      (,, bytes32 tokenId,,,) = abi.decode(selectedTokenData, (address, uint256, bytes32, Standard, bool, bool));
-      require(partition == tokenId, "Tokens of the wrong partition sent");
-
-      (,,, Standard tokenStandard,,) = abi.decode(selectedTokenData, (address, uint256, bytes32, Standard, bool, bool));
-      require(Standard.ERC1400 == tokenStandard, "Tokens of the wrong standard sent");
+      TokenData memory selectedTokenData = (from == trade.holder1) ? trade.tokenData1 : trade.tokenData2;
+      require(msg.sender == selectedTokenData.tokenAddress, "Wrong token sent");
+      require(partition == selectedTokenData.tokenId, "Tokens of the wrong partition sent");
+      require(Standard.ERC1400 == selectedTokenData.tokenStandard, "Tokens of the wrong standard sent");
 
       _acceptTrade(index, from, 0, value);         
     }
@@ -329,8 +333,8 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     payable
   {
     // Token data: < 1: address > < 2: amount > < 3: id/partition > < 4: standard > < 5: accepted > < 6: approved >
-    bytes memory _tokenData1 = abi.encode(inputData.tokenAddress1, inputData.tokenValue1, inputData.tokenId1, inputData.tokenStandard1, false, false);
-    bytes memory _tokenData2 = abi.encode(inputData.tokenAddress2, inputData.tokenValue2, inputData.tokenId2, inputData.tokenStandard2, false, false);
+    TokenData memory _tokenData1 = TokenData(inputData.tokenAddress1, inputData.tokenValue1, inputData.tokenId1, inputData.tokenStandard1, false, false);
+    TokenData memory _tokenData2 = TokenData(inputData.tokenAddress2, inputData.tokenValue2, inputData.tokenId2, inputData.tokenStandard2, false, false);
 
     _requestTrade(
       inputData.holder1,
@@ -363,15 +367,13 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     address holder2,
     address executer, // Set to address(0) if no executer is required for the trade
     uint256 expirationDate,
-    bytes memory tokenData1,
-    bytes memory tokenData2,
+    TokenData memory tokenData1,
+    TokenData memory tokenData2,
     TradeType tradeType
   ) 
     internal
   {
-    (,,,Standard standard1,,) = abi.decode(tokenData1, (address, uint256, bytes32, Standard, bool, bool));
-    (,,,Standard standard2,,) = abi.decode(tokenData2, (address, uint256, bytes32, Standard, bool, bool));
-    if(standard1 == Standard.ETH || standard2 == Standard.ETH) {
+    if(tokenData1.tokenStandard == Standard.ETH || tokenData2.tokenStandard == Standard.ETH) {
       require(tradeType == TradeType.Escrow, "Ether trades need to be of type Escrow");
     }
 
@@ -442,28 +444,27 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       revert("Only registered holders can accept a trade");
     }
 
-    bytes memory selectedTokenData = (selectedHolder == trade.holder1) ? trade.tokenData1 : trade.tokenData2;
+    TokenData memory selectedTokenData = (selectedHolder == trade.holder1) ? trade.tokenData1 : trade.tokenData2;
 
-    (address tokenAddress, uint256 tokenValue, bytes32 tokenId, Standard tokenStandard, bool accepted, bool approved) = abi.decode(selectedTokenData, (address, uint256, bytes32, Standard, bool, bool));
-    require(!accepted, "Trade already accepted by the holder");
+    require(!selectedTokenData.accepted, "Trade already accepted by the holder");
 
     if(trade.tradeType == TradeType.Escrow) {
-      if(tokenStandard == Standard.ETH) {
-        require(ethValue == tokenValue, "Amount of ETH is not correct");
-      } else if(tokenStandard == Standard.ERC20 || tokenStandard == Standard.HoldableERC20) {        
-        ERC20(tokenAddress).transferFrom(sender, address(this), tokenValue);
-      } else if(tokenStandard == Standard.ERC721) {
-        ERC721(tokenAddress).transferFrom(sender, address(this), uint256(tokenId));
-      } else if((tokenStandard == Standard.ERC1400 || tokenStandard == Standard.HoldableERC1400) && erc1400TokenValue == 0){
-        ERC1400(tokenAddress).operatorTransferByPartition(tokenId, sender, address(this), tokenValue, abi.encodePacked(BYPASS_ACTION_FLAG), abi.encodePacked(BYPASS_ACTION_FLAG));
-      } else if((tokenStandard == Standard.ERC1400 || tokenStandard == Standard.HoldableERC1400) && erc1400TokenValue != 0){
-        require(erc1400TokenValue == tokenValue, "Amount of ERC1400 tokens is not correct");
+      if(selectedTokenData.tokenStandard == Standard.ETH) {
+        require(ethValue == selectedTokenData.tokenValue, "Amount of ETH is not correct");
+      } else if(selectedTokenData.tokenStandard == Standard.ERC20 || selectedTokenData.tokenStandard == Standard.HoldableERC20) {        
+        ERC20(selectedTokenData.tokenAddress).transferFrom(sender, address(this), selectedTokenData.tokenValue);
+      } else if(selectedTokenData.tokenStandard == Standard.ERC721) {
+        ERC721(selectedTokenData.tokenAddress).transferFrom(sender, address(this), uint256(selectedTokenData.tokenId));
+      } else if((selectedTokenData.tokenStandard == Standard.ERC1400 || selectedTokenData.tokenStandard == Standard.HoldableERC1400) && erc1400TokenValue == 0){
+        ERC1400(selectedTokenData.tokenAddress).operatorTransferByPartition(selectedTokenData.tokenId, sender, address(this), selectedTokenData.tokenValue, abi.encodePacked(BYPASS_ACTION_FLAG), abi.encodePacked(BYPASS_ACTION_FLAG));
+      } else if((selectedTokenData.tokenStandard == Standard.ERC1400 || selectedTokenData.tokenStandard == Standard.HoldableERC1400) && erc1400TokenValue != 0){
+        require(erc1400TokenValue == selectedTokenData.tokenValue, "Amount of ERC1400 tokens is not correct");
       } else {
         // OffChain
       }
     } else { // trade.tradeType == TradeType.Swap
-        if (tokenStandard == Standard.HoldableERC1400 || tokenStandard == Standard.HoldableERC20) {
-          if (tokenId != bytes32(0)) {
+        if (selectedTokenData.tokenStandard == Standard.HoldableERC1400 || selectedTokenData.tokenStandard == Standard.HoldableERC20) {
+          if (selectedTokenData.tokenId != bytes32(0)) {
             //If tokenId is non-zero, then a holdId was given
             require(_holdExists(sender, selectedTokenData), "Hold needs to be provided in token smart contract first");
           }
@@ -471,11 +472,10 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
         require(_allowanceIsProvided(sender, selectedTokenData), "Allowance needs to be provided in token smart contract first");
     }
 
-    bytes memory newTokenData = abi.encode(tokenAddress, tokenValue, tokenId, tokenStandard, true, approved);
     if(selectedHolder == trade.holder1) {
-      trade.tokenData1 = newTokenData;
+      trade.tokenData1.accepted = true;
     } else {
-      trade.tokenData2= newTokenData;
+      trade.tokenData2.accepted = true;
     }
 
     if(
@@ -494,9 +494,6 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
   function _tradeisAccepted(uint256 index) internal view returns(bool) {
     Trade storage trade = _trades[index];
 
-    (,,,, bool accepted1,) = abi.decode(trade.tokenData1, (address, uint256, bytes32, Standard, bool, bool));
-    (,,,, bool accepted2,) = abi.decode(trade.tokenData2, (address, uint256, bytes32, Standard, bool, bool));
-
     if(trade.tradeType == TradeType.Swap && trade.state == State.Pending) {
       if(!_allowanceIsProvided(trade.holder1, trade.tokenData1)) {
         return false;
@@ -506,7 +503,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       }
     }
 
-    return(accepted1 && accepted2);
+    return(trade.tokenData1.accepted && trade.tokenData2.accepted);
   }
 
   /**
@@ -515,9 +512,12 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @param sender Address of the sender.
    * @param tokenData Encoded pack of variables for the token (address, amount, id/partition, standard, accepted, approved).
    */
-  function _allowanceIsProvided(address sender, bytes memory tokenData) internal view returns(bool) {
+  function _allowanceIsProvided(address sender, TokenData memory tokenData) internal view returns(bool) {
+    address tokenAddress = tokenData.tokenAddress;
+    uint256 tokenValue = tokenData.tokenValue;
+    bytes32 tokenId = tokenData.tokenId;
+    Standard tokenStandard = tokenData.tokenStandard;
 
-    (address tokenAddress, uint256 tokenValue, bytes32 tokenId, Standard tokenStandard,,) = abi.decode(tokenData, (address, uint256, bytes32, Standard, bool, bool));
     if(tokenStandard == Standard.ERC20) {        
       return(ERC20(tokenAddress).allowance(sender, address(this)) >= tokenValue);
     } else if(tokenStandard == Standard.ERC721) {
@@ -546,19 +546,14 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     Trade storage trade = _trades[index];
     require(trade.state == State.Pending, "Trade is not pending");
 
-    (address tokenAddress1,,,,,) = abi.decode(trade.tokenData1, (address, uint256, bytes32, Standard, bool, bool));
-    (address tokenAddress2,,,,,) = abi.decode(trade.tokenData2, (address, uint256, bytes32, Standard, bool, bool));
+    require(_isTokenController[trade.tokenData1.tokenAddress][msg.sender] || _isTokenController[trade.tokenData2.tokenAddress][msg.sender], "Only token controllers of involved tokens can approve a trade");
 
-    require(_isTokenController[tokenAddress1][msg.sender] || _isTokenController[tokenAddress2][msg.sender], "Only token controllers of involved tokens can approve a trade");
-
-    if(_isTokenController[tokenAddress1][msg.sender]) {
-      (, uint256 tokenValue1, bytes32 tokenId1, Standard tokenStandard1, bool accepted1,) = abi.decode(trade.tokenData1, (address, uint256, bytes32, Standard, bool, bool));
-      trade.tokenData1 = abi.encode(tokenAddress1, tokenValue1, tokenId1, tokenStandard1, accepted1, approved);
+    if(_isTokenController[trade.tokenData1.tokenAddress][msg.sender]) {
+      trade.tokenData1.approved = approved;
     }
     
-    if(_isTokenController[tokenAddress2][msg.sender]) {
-      (, uint256 tokenValue2, bytes32 tokenId2, Standard tokenStandard2, bool accepted2,) = abi.decode(trade.tokenData2, (address, uint256, bytes32, Standard, bool, bool));
-      trade.tokenData2 = abi.encode(tokenAddress2, tokenValue2, tokenId2, tokenStandard2, accepted2, approved);
+    if(_isTokenController[trade.tokenData2.tokenAddress][msg.sender]) {
+      trade.tokenData2.approved = approved;
     }
 
     if(trade.executer == address(0) && _tradeisAccepted(index) && _tradeisApproved(index)) {
@@ -576,14 +571,11 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
   function _tradeisApproved(uint256 index) internal view returns(bool) {
     Trade storage trade = _trades[index];
 
-    (address tokenAddress1,,,,,bool approved1) = abi.decode(trade.tokenData1, (address, uint256, bytes32, Standard, bool, bool));
-    (address tokenAddress2,,,,,bool approved2) = abi.decode(trade.tokenData2, (address, uint256, bytes32, Standard, bool, bool));
-
-    if(_tokenControllers[tokenAddress1].length != 0 && !approved1) {
+    if(_tokenControllers[trade.tokenData1.tokenAddress].length != 0 && !trade.tokenData1.approved) {
       return false;
     }
 
-    if(_tokenControllers[tokenAddress2].length != 0 && !approved2) {
+    if(_tokenControllers[trade.tokenData2.tokenAddress].length != 0 && !trade.tokenData2.approved) {
       return false;
     }
 
@@ -622,8 +614,8 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
 
     uint256 price = _getPrice(index);
 
-    (,uint256 tokenValue1 ,,,,) = abi.decode(trade.tokenData1, (address, uint256, bytes32, Standard, bool, bool));
-    (,uint256 tokenValue2 ,,,,) = abi.decode(trade.tokenData2, (address, uint256, bytes32, Standard, bool, bool));
+    uint256 tokenValue1 = trade.tokenData1.tokenValue;
+    uint256 tokenValue2 = trade.tokenData2.tokenValue;
 
     if(price == tokenValue2) {
       _transferUsersTokens(index, Holder.Holder1, tokenValue1, false);
@@ -647,10 +639,15 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
   function forceTrade(uint256 index) external {
     Trade storage trade = _trades[index];
     require(trade.state == State.Pending, "Trade is not pending");
-
-    (address tokenAddress1 ,uint256 tokenValue1 ,,, bool accepted1,) = abi.decode(trade.tokenData1, (address, uint256, bytes32, Standard, bool, bool));
-    (address tokenAddress2 ,uint256 tokenValue2 ,,, bool accepted2,) = abi.decode(trade.tokenData2, (address, uint256, bytes32, Standard, bool, bool));
     
+    address tokenAddress1 = trade.tokenData1.tokenAddress;
+    uint256 tokenValue1 = trade.tokenData1.tokenValue;
+    bool accepted1 = trade.tokenData1.accepted;
+
+    address tokenAddress2 = trade.tokenData2.tokenAddress;
+    uint256 tokenValue2 = trade.tokenData2.tokenValue;
+    bool accepted2 = trade.tokenData2.accepted;
+
     require(!(accepted1 && accepted2), "executeTrade can be called");
     require(_tokenControllers[tokenAddress1].length == 0 && _tokenControllers[tokenAddress2].length == 0, "Trade can not be forced if tokens have controllers");
 
@@ -683,9 +680,14 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     Trade storage trade = _trades[index];
     require(trade.state == State.Pending, "Trade is not pending");
 
-    (,uint256 tokenValue1 ,,, bool accepted1,) = abi.decode(trade.tokenData1, (address, uint256, bytes32, Standard, bool, bool));
-    (,uint256 tokenValue2 ,,, bool accepted2,) = abi.decode(trade.tokenData2, (address, uint256, bytes32, Standard, bool, bool));
-    
+    address tokenAddress1 = trade.tokenData1.tokenAddress;
+    uint256 tokenValue1 = trade.tokenData1.tokenValue;
+    bool accepted1 = trade.tokenData1.accepted;
+
+    address tokenAddress2 = trade.tokenData2.tokenAddress;
+    uint256 tokenValue2 = trade.tokenData2.tokenValue;
+    bool accepted2 = trade.tokenData2.accepted;
+
     if(accepted1 && accepted2) {
       require(msg.sender == trade.executer || (block.timestamp >= trade.expirationDate && (msg.sender == trade.holder1 || msg.sender == trade.holder2) ), "Sender is not allowed to cancel trade (0)");
       if(trade.tradeType == TradeType.Escrow) {
@@ -712,9 +714,9 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
   function _transferUsersTokens(uint256 index, Holder holder, uint256 value, bool revertTransfer) internal { 
     Trade storage trade = _trades[index];
 
-    bytes memory senderTokenData = (holder == Holder.Holder1) ? trade.tokenData1 : trade.tokenData2;
+    TokenData memory senderTokenData = (holder == Holder.Holder1) ? trade.tokenData1 : trade.tokenData2;
 
-    (,,, Standard tokenStandard,,) = abi.decode(senderTokenData, (address, uint256, bytes32, Standard, bool, bool));
+    Standard tokenStandard = senderTokenData.tokenStandard;
 
     if (tokenStandard == Standard.HoldableERC20 || tokenStandard == Standard.HoldableERC1400) {
       _executeHoldOnUsersTokens(index, holder, value, revertTransfer);
@@ -728,7 +730,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
 
     address sender = (holder == Holder.Holder1) ? trade.holder1 : trade.holder2;
     address recipient = (holder == Holder.Holder1) ? trade.holder2 : trade.holder1;
-    bytes memory senderTokenData = (holder == Holder.Holder1) ? trade.tokenData1 : trade.tokenData2;
+    TokenData memory senderTokenData = (holder == Holder.Holder1) ? trade.tokenData1 : trade.tokenData2;
 
     if(revertTransfer) {
       recipient = sender;
@@ -736,7 +738,9 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       require(block.timestamp <= trade.expirationDate, "Expiration date is past");
     }
 
-    (address tokenAddress,, bytes32 tokenId, Standard tokenStandard,,) = abi.decode(senderTokenData, (address, uint256, bytes32, Standard, bool, bool));
+    address tokenAddress = senderTokenData.tokenAddress;
+    bytes32 tokenId = senderTokenData.tokenId;
+    Standard tokenStandard = senderTokenData.tokenStandard;
 
     require(tokenStandard == Standard.HoldableERC20 || tokenStandard == Standard.HoldableERC1400, "Token standard must be holdable");
 
@@ -757,9 +761,11 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
 
     address sender = (holder == Holder.Holder1) ? trade.holder1 : trade.holder2;
     address recipient = (holder == Holder.Holder1) ? trade.holder2 : trade.holder1;
-    bytes memory senderTokenData = (holder == Holder.Holder1) ? trade.tokenData1 : trade.tokenData2;
+    TokenData memory senderTokenData = (holder == Holder.Holder1) ? trade.tokenData1 : trade.tokenData2;
 
-    (address tokenAddress,, bytes32 tokenId, Standard tokenStandard,,) = abi.decode(senderTokenData, (address, uint256, bytes32, Standard, bool, bool));
+    address tokenAddress = senderTokenData.tokenAddress;
+    bytes32 tokenId = senderTokenData.tokenId;
+    Standard tokenStandard = senderTokenData.tokenStandard;
 
     address currentHolder = sender;
     if(trade.tradeType == TradeType.Escrow) {
@@ -918,7 +924,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @param data Concatenated information about the trade proposal.
    * @return tokenData Trade token data < 1: address > < 2: amount > < 3: id/partition > < 4: standard > < 5: accepted > < 6: approved >.
    */
-  function _getTradeTokenData(bytes memory data) internal pure returns(bytes memory tokenData) {
+  function _getTradeTokenData(bytes memory data) internal pure returns(TokenData memory tokenData) {
     address tokenAddress;
     uint256 tokenAmount;
     bytes32 tokenId;
@@ -929,7 +935,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       tokenId:= mload(add(data, 224))
       tokenStandard:= mload(add(data, 256))
     }
-    tokenData = abi.encode(tokenAddress, tokenAmount, tokenId, tokenStandard, false, false);
+    tokenData = TokenData(tokenAddress, tokenAmount, tokenId, tokenStandard, false, false);
   }
 
   /**
@@ -1161,8 +1167,14 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    */
   function _getPrice(uint256 index) internal view returns(uint256) {  
     Trade storage trade = _trades[index];
-    (address tokenAddress1, uint256 tokenValue1, bytes32 tokenId1,,,) = abi.decode(trade.tokenData1, (address, uint256, bytes32, Standard, bool, bool));
-    (address tokenAddress2, uint256 tokenValue2, bytes32 tokenId2,,,) = abi.decode(trade.tokenData2, (address, uint256, bytes32, Standard, bool, bool));
+
+    address tokenAddress1 = trade.tokenData1.tokenAddress;
+    uint256 tokenValue1 = trade.tokenData1.tokenValue;
+    bytes32 tokenId1 = trade.tokenData1.tokenId;
+
+    address tokenAddress2 = trade.tokenData2.tokenAddress;
+    uint256 tokenValue2 = trade.tokenData2.tokenValue;
+    bytes32 tokenId2 = trade.tokenData2.tokenId;
 
     require(!(_priceOwnership[tokenAddress1][tokenAddress2] && _priceOwnership[tokenAddress2][tokenAddress1]), "Competition on price ownership");
 
@@ -1213,7 +1225,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @param index Index of the trade.
    * @return Trade.
    */
-  function getTrade(uint256 index) external view returns(address, address, address, uint256, bytes memory, bytes memory, TradeType, State) {
+  function getTrade(uint256 index) external view returns(address, address, address, uint256, TokenData memory, TokenData memory, TradeType, State) {
     Trade storage trade = _trades[index];
     return (
       trade.holder1,
@@ -1322,29 +1334,16 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
         );
     }
 
-    function _holdAmount(address sender, bytes memory tokenData) internal view returns(uint256) {
-        (address tokenAddress, , bytes32 holdId, Standard tokenStandard,,) = abi.decode(tokenData, (address, uint256, bytes32, Standard, bool, bool));
-        require(tokenStandard == Standard.ERC1400, "Token standard must be ERC1400");
-
-         address tokenExtension = interfaceAddr(tokenAddress, ERC1400_TOKENS_VALIDATOR);
-        require(
-            tokenExtension != address(0),
-            "token has no holdable token extension"
-        );
-
-        uint256 holdValue;
-        (,,,,holdValue,,,,) = IHoldableERC1400TokenExtension(tokenExtension).retrieveHoldData(tokenAddress, holdId);
-
-        //Hold exists if the hold value matches the tokenData's tokenValue
-        return holdValue;
-    }
-
-    function _holdExists(address sender, bytes memory tokenData) internal view returns(bool) {
-        (address tokenAddress, uint256 tokenValue, bytes32 tokenId, Standard tokenStandard,,) = abi.decode(tokenData, (address, uint256, bytes32, Standard, bool, bool));
+    function _holdExists(address, TokenData memory tokenData) internal view returns(bool) {
+        address tokenAddress = tokenData.tokenAddress;
+        uint256 tokenValue = tokenData.tokenValue;
+        bytes32 holdId = tokenData.tokenId;
+        Standard tokenStandard = tokenData.tokenStandard;
+        
         if(tokenStandard == Standard.HoldableERC1400) {
-          return _erc1400HoldExists(tokenAddress, tokenId, tokenValue);
+          return _erc1400HoldExists(tokenAddress, holdId, tokenValue);
         } else if (tokenStandard == Standard.HoldableERC20) {
-          return _erc20HoldExists(tokenAddress, tokenId);
+          return _erc20HoldExists(tokenAddress, holdId);
         } else {
           revert("Invalid tokenStandard provided");
         }
