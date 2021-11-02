@@ -14,26 +14,18 @@ const ZERO_BYTE = "0x";
 const ZERO_BYTES32 =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
 
-const TRUE_BYTES32 =
-  "0x0000000000000000000000000000000000000000000000000000000000000001";
-const FALSE_BYTES32 =
-  "0x0000000000000000000000000000000000000000000000000000000000000000";
+//TODO Change name
+const TRUE_BYTES32 = true;
+const FALSE_BYTES32 = false;
 
-const OFFCHAIN =
-  "0x0000000000000000000000000000000000000000000000000000000000000000";
-const ETHSTANDARD =
-  "0x0000000000000000000000000000000000000000000000000000000000000001";
-const ERC20STANDARD =
-  "0x0000000000000000000000000000000000000000000000000000000000000002";
-const ERC721STANDARD =
-  "0x0000000000000000000000000000000000000000000000000000000000000003";
-const ERC1400STANDARD =
-  "0x0000000000000000000000000000000000000000000000000000000000000004";
+const OFFCHAIN = 0;
+const ETHSTANDARD = 1;
+const ERC20STANDARD = 2;
+const ERC721STANDARD = 3;
+const ERC1400STANDARD = 4;
 
-const HEX_TYPE_ESCROW =
-  "0x0000000000000000000000000000000000000000000000000000000000000000";
-const HEX_TYPE_SWAP =
-  "0x0000000000000000000000000000000000000000000000000000000000000001";
+const HEX_TYPE_ESCROW = 0;
+const HEX_TYPE_SWAP = 1;
 
 const CERTIFICATE_SIGNER = "0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630";
 
@@ -303,22 +295,28 @@ const NumToNumBytes32 = (_num, _fillTo = 32) => {
 };
 
 const extractTokenAddress = (tokenData) => {
-  return web3.utils.toChecksumAddress(`0x${tokenData.substr(26, 40)}`);
+  return tokenData.tokenAddress;
+  //return web3.utils.toChecksumAddress(`0x${tokenData.substr(26, 40)}`);
 };
 const extractTokenAmount = (tokenData) => {
-  return parseInt(tokenData.substr(66, 64), 16);
+  return tokenData.tokenValue;
+  //return parseInt(tokenData.substr(66, 64), 16);
 };
 const extractTokenId = (tokenData) => {
-  return `0x${tokenData.substr(130, 64)}`;
+  return tokenData.tokenId;
+  //return `0x${tokenData.substr(130, 64)}`;
 };
 const extractTokenStandard = (tokenData) => {
-  return parseInt(`0x${tokenData.substr(194, 64)}`);
+  return tokenData.tokenStandard;
+  //return parseInt(`0x${tokenData.substr(194, 64)}`);
 };
 const extractTokenAccepted = (tokenData) => {
-  return `0x${tokenData.substr(258, 64)}`;
+  return tokenData.accepted;
+  //return `0x${tokenData.substr(258, 64)}`;
 };
 const extractTokenApproved = (tokenData) => {
-  return `0x${tokenData.substr(322, 64)}`;
+  return tokenData.approved;
+  //return `0x${tokenData.substr(322, 64)}`;
 };
 
 const getTradeProposalData = (
@@ -346,7 +344,7 @@ const getTradeProposalData = (
   } else {
     throw new Error("getTradeProposalData: Invalid type for tokenId");
   }
-  const hexTradeTokenStandard2 = _token2Standard.substring(2);
+  const hexTradeTokenStandard2 = _token2Standard.toString(16).padStart(63, '0');
   const tradeTokenData = `${hexTradeTokenAddress2}${hexTradeTokenAmount2}${hexTradeTokenId}${hexTradeTokenStandard2}`;
 
   return `${flag}${hexTradeRecipient}${hexTradeExecuter}${hexExpirationDate}${tradeTokenData}`;
