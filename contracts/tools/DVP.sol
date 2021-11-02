@@ -96,7 +96,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
 
   enum State {Undefined, Pending, Executed, Forced, Cancelled}
 
-  enum TradeType {Escrow, Swap, Hold}
+  enum TradeType {Escrow, Swap}
 
   enum Holder {Holder1, Holder2}
 
@@ -375,10 +375,15 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       require(tradeType == TradeType.Escrow, "Ether trades need to be of type Escrow");
     }
 
-    if (tradeType == TradeType.Hold) {
-      require(standard1 == Standard.HoldableERC1400 || standard1 == Standard.HoldableERC20, "Hold Trades must use a Holdable token");
-      require(standard2 == Standard.HoldableERC1400 || standard2 == Standard.HoldableERC20, "Hold Trades must use a Holdable token");
+    //TODO Is this a requirement?
+    // HoldableERC1400/HoldableERC20 are ErC1400/ERC20 tokens so
+    // they should also work with Escrow trade type right?
+    /*
+    if (standard1 == Standard.HoldableERC1400 || standard1 == Standard.HoldableERC20 || 
+        standard2 == Standard.HoldableERC1400 || standard2 == Standard.HoldableERC20) {
+          require(tradeType == TradeType.Swap, "Hold tokens need to be used in a Swap");
     }
+    */
 
     if(_ownedContract) {
       require(_isTradeExecuter[executer], "Trade executer needs to belong to the list of allowed trade executers");
@@ -445,21 +450,25 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     if(trade.tradeType == TradeType.Escrow) {
       if(tokenStandard == Standard.ETH) {
         require(ethValue == tokenValue, "Amount of ETH is not correct");
-      } else if(tokenStandard == Standard.ERC20) {        
+      } else if(tokenStandard == Standard.ERC20 || tokenStandard == Standard.HoldableERC20) {        
         ERC20(tokenAddress).transferFrom(sender, address(this), tokenValue);
       } else if(tokenStandard == Standard.ERC721) {
         ERC721(tokenAddress).transferFrom(sender, address(this), uint256(tokenId));
-      } else if(tokenStandard == Standard.ERC1400 && erc1400TokenValue == 0){
+      } else if((tokenStandard == Standard.ERC1400 || tokenStandard == Standard.HoldableERC1400) && erc1400TokenValue == 0){
         ERC1400(tokenAddress).operatorTransferByPartition(tokenId, sender, address(this), tokenValue, abi.encodePacked(BYPASS_ACTION_FLAG), abi.encodePacked(BYPASS_ACTION_FLAG));
-      } else if(tokenStandard == Standard.ERC1400 && erc1400TokenValue != 0){
+      } else if((tokenStandard == Standard.ERC1400 || tokenStandard == Standard.HoldableERC1400) && erc1400TokenValue != 0){
         require(erc1400TokenValue == tokenValue, "Amount of ERC1400 tokens is not correct");
       } else {
         // OffChain
       }
-    } else if (trade.tradeType == TradeType.Swap) { // trade.tradeType == TradeType.Swap
-      require(_allowanceIsProvided(sender, selectedTokenData), "Allowance needs to be provided in token smart contract first");
-    } else { // trade.tradeType == TradeType.Hold
-      require(_holdExists(sender, selectedTokenData), "Hold needs to be provided in token smart contract first");
+    } else { // trade.tradeType == TradeType.Swap
+        if (tokenStandard == Standard.HoldableERC1400 || tokenStandard == Standard.HoldableERC20) {
+          if (tokenId != bytes32(0)) {
+            //If tokenId is non-zero, then a holdId was given
+            require(_holdExists(sender, selectedTokenData), "Hold needs to be provided in token smart contract first");
+          }
+        }
+        require(_allowanceIsProvided(sender, selectedTokenData), "Allowance needs to be provided in token smart contract first");
     }
 
     bytes memory newTokenData = abi.encode(tokenAddress, tokenValue, tokenId, tokenStandard, true, approved);
@@ -702,14 +711,19 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
 
   function _transferUsersTokens(uint256 index, Holder holder, uint256 value, bool revertTransfer) internal { 
     Trade storage trade = _trades[index];
-    if (trade.tradeType == TradeType.Hold) {
+
+    bytes memory senderTokenData = (holder == Holder.Holder1) ? trade.tokenData1 : trade.tokenData2;
+
+    (,,, Standard tokenStandard,,) = abi.decode(senderTokenData, (address, uint256, bytes32, Standard, bool, bool));
+
+    if (tokenStandard == Standard.HoldableERC20 || tokenStandard == Standard.HoldableERC1400) {
       _executeHoldOnUsersTokens(index, holder, value, revertTransfer);
     } else {
       _executeTransferOnUsersTokens(index, holder, value, revertTransfer);
     }
   }
 
-  function _executeHoldOnUsersTokens(uint256 index, Holder holder, uint256 value, bool revertTransfer) internal { 
+  function _executeHoldOnUsersTokens(uint256 index, Holder holder, uint256, bool revertTransfer) internal { 
     Trade storage trade = _trades[index];
 
     address sender = (holder == Holder.Holder1) ? trade.holder1 : trade.holder2;
@@ -1308,8 +1322,8 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
         );
     }
 
-    function _holdExists(address sender, bytes memory tokenData) internal view returns(bool) {
-        (address tokenAddress, uint256 tokenValue, bytes32 tokenId, Standard tokenStandard,,) = abi.decode(tokenData, (address, uint256, bytes32, Standard, bool, bool));
+    function _holdAmount(address sender, bytes memory tokenData) internal view returns(uint256) {
+        (address tokenAddress, , bytes32 holdId, Standard tokenStandard,,) = abi.decode(tokenData, (address, uint256, bytes32, Standard, bool, bool));
         require(tokenStandard == Standard.ERC1400, "Token standard must be ERC1400");
 
          address tokenExtension = interfaceAddr(tokenAddress, ERC1400_TOKENS_VALIDATOR);
@@ -1319,10 +1333,39 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
         );
 
         uint256 holdValue;
-        (,,,,holdValue,,,,) = IHoldableERC1400TokenExtension(tokenExtension).retrieveHoldData(tokenAddress, tokenId);
+        (,,,,holdValue,,,,) = IHoldableERC1400TokenExtension(tokenExtension).retrieveHoldData(tokenAddress, holdId);
+
+        //Hold exists if the hold value matches the tokenData's tokenValue
+        return holdValue;
+    }
+
+    function _holdExists(address sender, bytes memory tokenData) internal view returns(bool) {
+        (address tokenAddress, uint256 tokenValue, bytes32 tokenId, Standard tokenStandard,,) = abi.decode(tokenData, (address, uint256, bytes32, Standard, bool, bool));
+        if(tokenStandard == Standard.HoldableERC1400) {
+          return _erc1400HoldExists(tokenAddress, tokenId, tokenValue);
+        } else if (tokenStandard == Standard.HoldableERC20) {
+          return _erc20HoldExists(tokenAddress, tokenId);
+        } else {
+          revert("Invalid tokenStandard provided");
+        }
+    }
+
+    function _erc1400HoldExists(address tokenAddress, bytes32 holdId, uint256 tokenValue) internal view returns (bool) {
+        address tokenExtension = interfaceAddr(tokenAddress, ERC1400_TOKENS_VALIDATOR);
+        require(
+            tokenExtension != address(0),
+            "token has no holdable token extension"
+        );
+
+        uint256 holdValue;
+        (,,,,holdValue,,,,) = IHoldableERC1400TokenExtension(tokenExtension).retrieveHoldData(tokenAddress, holdId);
 
         //Hold exists if the hold value matches the tokenData's tokenValue
         return holdValue == tokenValue;
+    }
+
+    function _erc20HoldExists(address tokenAddress, bytes32 holdId) internal view returns (bool) {
+      return IERC20HoldableToken(tokenAddress).holdStatus(holdId) == IERC20HoldableToken.HoldStatusCode.Held;
     }
 
  }
