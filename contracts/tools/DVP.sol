@@ -92,11 +92,11 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
 
   bytes32 constant internal ALL_PARTITIONS = 0x0000000000000000000000000000000000000000000000000000000000000000;
 
-  enum Standard {OffChain, ETH, ERC20, ERC721, ERC1400, HoldableERC20, HoldableERC1400}
+  enum Standard {OffChain, ETH, ERC20, ERC721, ERC1400}
 
   enum State {Undefined, Pending, Executed, Forced, Cancelled}
 
-  enum TradeType {Escrow, Swap}
+  enum TradeType {Allowance, Hold, Escrow}
 
   enum Holder {Holder1, Holder2}
 
@@ -203,9 +203,6 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
   // Mapping from (token1, token2, tokenId1, tokenId2) to price.
   mapping(address => mapping (address => mapping (bytes32 =>  mapping (bytes32 => uint256)))) internal _tokenUnitPricesByPartition;
 
-  // Indicate whether DVP smart contract allows escrow or not.
-  bool internal _isEscrowForbidden;
-
   // Indicate whether DVP smart contract is owned or not (for instance by an exchange, etc.).
   bool internal _ownedContract;
 
@@ -255,7 +252,6 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     setInterfaceImplementation(ERC1400_TOKENS_RECIPIENT, address(this));
 
     _ownedContract = owned;
-    _isEscrowForbidden = escrowForbidden;
 
     if(_ownedContract) {
       address[] memory initialTradeExecuters = new address[] (1);
@@ -389,10 +385,6 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
 
     if(_ownedContract) {
       require(_isTradeExecuter[executer], "Trade executer needs to belong to the list of allowed trade executers");
-    }
-
-    if(_isEscrowForbidden) {
-      require(tradeType != TradeType.Escrow, "This DVP contract doesn't allow Escrows");
     }
 
     require(holder1 != address(0), "A trade can not be created with the zero address");
@@ -796,6 +788,8 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     }
 
   }
+
+  //TODO Move hold functions here
 
   /**
    * @dev Indicate whether or not the DVP contract can receive the tokens or not.
