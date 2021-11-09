@@ -787,7 +787,114 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
 
   }
 
-  //TODO Move hold functions here
+  function _executeHold(
+    address token,
+    bytes32 tokenHoldId,
+    Standard tokenStandard,
+    bytes32 preimage,
+    address tokenRecipient
+  ) internal {
+    // Token 1
+    if (tokenStandard == Standard.ERC20) {
+        _executeERC20Hold(token, tokenHoldId, preimage, tokenRecipient);
+    } else if (tokenStandard == Standard.ERC1400) {
+        _executeERC1400Hold(
+            token,
+            tokenHoldId,
+            preimage
+        );
+    } else {
+        revert("invalid token standard");
+    }
+
+    emit ExecutedHold(
+        token,
+        tokenHoldId,
+        preimage,
+        tokenRecipient
+    );
+  }
+
+  function _executeERC20Hold(
+    address token,
+    bytes32 tokenHoldId,
+    bytes32 preimage,
+    address tokenRecipient
+  ) internal {
+    require(token != address(0), "token can not be a zero address");
+
+    if (tokenRecipient == address(0)) {
+        IERC20HoldableToken(token).executeHold(tokenHoldId, preimage);
+    } else {
+        IERC20HoldableToken(token).executeHold(
+            tokenHoldId,
+            preimage,
+            tokenRecipient
+        );
+    }
+  }
+
+  function _executeERC1400Hold(
+    address token,
+    bytes32 tokenHoldId,
+    bytes32 preimage
+  ) internal {
+    require(token != address(0), "token can not be a zero address");
+
+    address tokenExtension = interfaceAddr(token, ERC1400_TOKENS_VALIDATOR);
+    require(
+        tokenExtension != address(0),
+        "token has no holdable token extension"
+    );
+
+    uint256 holdValue;
+    (,,,,holdValue,,,,) = IHoldableERC1400TokenExtension(tokenExtension).retrieveHoldData(token, tokenHoldId);
+
+    IHoldableERC1400TokenExtension(tokenExtension).executeHold(
+        token,
+        tokenHoldId,
+        holdValue,
+        preimage
+    );
+  }
+
+  function _holdExists(address sender, address recipient, TokenData memory tokenData) internal view returns(bool) {
+    address tokenAddress = tokenData.tokenAddress;
+    uint256 tokenValue = tokenData.tokenValue;
+    bytes32 holdId = tokenData.tokenId;
+    Standard tokenStandard = tokenData.tokenStandard;
+    
+    if(tokenStandard == Standard.ERC1400) {
+      return _erc1400HoldExists(tokenAddress, holdId, sender, recipient, tokenData);
+    } else if (tokenStandard == Standard.ERC20) {
+      return _erc20HoldExists(tokenAddress, holdId, sender, recipient, tokenData);
+    } else {
+      revert("Invalid tokenStandard provided");
+    }
+  }
+
+  function _erc1400HoldExists(address tokenAddress, bytes32 holdId, address sender, address recipient, TokenData memory tokenData) internal view returns (bool) {
+    address tokenExtension = interfaceAddr(tokenAddress, ERC1400_TOKENS_VALIDATOR);
+    require(
+        tokenExtension != address(0),
+        "token has no holdable token extension"
+    );
+
+    HoldStatusCode holdStatus;
+    address holdSender;
+    address holdRecipient;
+    uint256 holdValue;
+    (,holdSender,holdRecipient,,holdValue,,,,holdStatus) = IHoldableERC1400TokenExtension(tokenExtension).retrieveHoldData(tokenAddress, holdId);
+
+    //Hold exists if the hold value matches the tokenData's tokenValue
+    return holdStatus == HoldStatusCode.Ordered && holdValue == tokenData.tokenValue && holdSender == sender && holdRecipient == recipient;
+  }
+
+  function _erc20HoldExists(address tokenAddress, bytes32 holdId, address sender, address recipient, TokenData memory tokenData) internal view returns (bool) {
+    ERC20HoldData memory data = IERC20HoldableToken(tokenAddress).retrieveHoldData(holdId);
+
+    return data.sender == sender && data.recipient == recipient && data.amount == tokenData.tokenValue && data.status == HoldStatusCode.Held;
+  }
 
   /**
    * @dev Indicate whether or not the DVP contract can receive the tokens or not.
@@ -1255,109 +1362,4 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
   function getTradeApprovalStatus(uint256 index) external view returns(bool) {
     return _tradeisApproved(index);
   }
-
-    function _executeHold(
-      address token,
-      bytes32 tokenHoldId,
-      Standard tokenStandard,
-      bytes32 preimage,
-      address tokenRecipient
-    ) internal {
-      // Token 1
-        if (tokenStandard == Standard.ERC20) {
-            _executeERC20Hold(token, tokenHoldId, preimage, tokenRecipient);
-        } else if (tokenStandard == Standard.ERC1400) {
-            _executeERC1400Hold(
-                token,
-                tokenHoldId,
-                preimage
-            );
-        } else {
-            revert("invalid token standard");
-        }
-
-        emit ExecutedHold(
-            token,
-            tokenHoldId,
-            preimage,
-            tokenRecipient
-        );
-    }
-
-    function _executeERC20Hold(
-        address token,
-        bytes32 tokenHoldId,
-        bytes32 preimage,
-        address tokenRecipient
-    ) internal {
-        require(token != address(0), "token can not be a zero address");
-
-        if (tokenRecipient == address(0)) {
-            IERC20HoldableToken(token).executeHold(tokenHoldId, preimage);
-        } else {
-            IERC20HoldableToken(token).executeHold(
-                tokenHoldId,
-                preimage,
-                tokenRecipient
-            );
-        }
-    }
-
-    function _executeERC1400Hold(
-        address token,
-        bytes32 tokenHoldId,
-        bytes32 preimage
-    ) internal {
-        require(token != address(0), "token can not be a zero address");
-
-        address tokenExtension = interfaceAddr(token, ERC1400_TOKENS_VALIDATOR);
-        require(
-            tokenExtension != address(0),
-            "token has no holdable token extension"
-        );
-
-        uint256 holdValue;
-        (,,,,holdValue,,,,) = IHoldableERC1400TokenExtension(tokenExtension).retrieveHoldData(token, tokenHoldId);
-
-        IHoldableERC1400TokenExtension(tokenExtension).executeHold(
-            token,
-            tokenHoldId,
-            holdValue,
-            preimage
-        );
-    }
-
-    function _holdExists(address, TokenData memory tokenData) internal view returns(bool) {
-        address tokenAddress = tokenData.tokenAddress;
-        uint256 tokenValue = tokenData.tokenValue;
-        bytes32 holdId = tokenData.tokenId;
-        Standard tokenStandard = tokenData.tokenStandard;
-        
-        if(tokenStandard == Standard.ERC1400) {
-          return _erc1400HoldExists(tokenAddress, holdId, tokenValue);
-        } else if (tokenStandard == Standard.ERC20) {
-          return _erc20HoldExists(tokenAddress, holdId);
-        } else {
-          revert("Invalid tokenStandard provided");
-        }
-    }
-
-    function _erc1400HoldExists(address tokenAddress, bytes32 holdId, uint256 tokenValue) internal view returns (bool) {
-        address tokenExtension = interfaceAddr(tokenAddress, ERC1400_TOKENS_VALIDATOR);
-        require(
-            tokenExtension != address(0),
-            "token has no holdable token extension"
-        );
-
-        uint256 holdValue;
-        (,,,,holdValue,,,,) = IHoldableERC1400TokenExtension(tokenExtension).retrieveHoldData(tokenAddress, holdId);
-
-        //Hold exists if the hold value matches the tokenData's tokenValue
-        return holdValue == tokenValue;
-    }
-
-    function _erc20HoldExists(address tokenAddress, bytes32 holdId) internal view returns (bool) {
-      return IERC20HoldableToken(tokenAddress).holdStatus(holdId) == IERC20HoldableToken.HoldStatusCode.Held;
-    }
-
  }

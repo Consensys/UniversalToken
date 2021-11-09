@@ -6,12 +6,28 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+enum HoldStatusCode {
+    Nonexistent, 
+    Held, 
+    Executed, 
+    Released
+}
+
+struct ERC20HoldData {
+    address sender;
+    address recipient;
+    address notary;
+    uint256 amount;
+    uint256 expirationDateTime;
+    bytes32 secretHash;
+    HoldStatusCode status;
+}
+
 /**
  * @title Holdable ERC20 Token Interface.
  * @dev like approve except the tokens can't be spent by the sender while they are on hold.
  */
 interface IERC20HoldableToken is IERC20 {
-    enum HoldStatusCode {Nonexistent, Held, Executed, Released}
 
     event NewHold(
         bytes32 indexed holdId,
@@ -44,6 +60,8 @@ interface IERC20HoldableToken is IERC20 {
         uint256 expirationDateTime,
         bytes32 lockHash
     ) external returns (bytes32 holdId);
+
+    function retrieveHoldData(bytes32 holdId) external view returns (ERC20HoldData memory);
 
     /**
      @notice Called by the notary to transfer the held tokens to the set at the hold recipient if there is no hash lock.

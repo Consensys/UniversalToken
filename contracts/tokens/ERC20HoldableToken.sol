@@ -20,18 +20,8 @@ import "../interface/IERC20HoldableToken.sol";
 contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
     using SafeMath for uint256;
 
-    struct HoldData {
-        address sender;
-        address recipient;
-        address notary;
-        uint256 amount;
-        uint256 expirationDateTime;
-        bytes32 lockHash;
-        HoldStatusCode status;
-    }
-
     // mapping of accounts to hold data
-    mapping(bytes32 => HoldData) internal holds;
+    mapping(bytes32 => ERC20HoldData) internal holds;
     // mapping of accounts and their total amount on hold
     mapping(address => uint256) internal accountHoldBalances;
     uint256 override public totalSupplyOnHold;
@@ -84,7 +74,7 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
             holds[holdId].status == HoldStatusCode.Nonexistent,
             "hold: id already exists"
         );
-        holds[holdId] = HoldData(
+        holds[holdId] = ERC20HoldData(
             msg.sender,
             recipient,
             notary,
@@ -108,6 +98,10 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
         );
     }
 
+    function retrieveHoldData(bytes32 holdId) external override view returns (ERC20HoldData memory) {
+        return holds[holdId];
+    }
+
     /**
      @notice Called by the notary to transfer the held tokens to the set at the hold recipient if there is no hash lock.
      @param holdId a unique identifier for the hold.
@@ -118,7 +112,7 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
             "executeHold: must pass the recipient on execution as the recipient was not set on hold"
         );
         require(
-            holds[holdId].lockHash == bytes32(0),
+            holds[holdId].secretHash == bytes32(0),
             "executeHold: need preimage if the hold has a lock hash"
         );
 
@@ -135,9 +129,9 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
             holds[holdId].recipient != address(0),
             "executeHold: must pass the recipient on execution as the recipient was not set on hold"
         );
-        if (holds[holdId].lockHash != bytes32(0)) {
+        if (holds[holdId].secretHash != bytes32(0)) {
             require(
-                holds[holdId].lockHash ==
+                holds[holdId].secretHash ==
                     sha256(abi.encodePacked(lockPreimage)),
                 "executeHold: preimage hash does not match lock hash"
             );
@@ -165,9 +159,9 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
             recipient != address(0),
             "executeHold: recipient must not be a zero address"
         );
-        if (holds[holdId].lockHash != bytes32(0)) {
+        if (holds[holdId].secretHash != bytes32(0)) {
             require(
-                holds[holdId].lockHash ==
+                holds[holdId].secretHash ==
                     sha256(abi.encodePacked(lockPreimage)),
                 "executeHold: preimage hash does not match lock hash"
             );
