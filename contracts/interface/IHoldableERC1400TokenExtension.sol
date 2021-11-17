@@ -1,17 +1,8 @@
 pragma solidity ^0.8.0;
 
-interface IHoldableERC1400TokenExtension {
-    
-    enum HoldStatusCode {
-        Nonexistent,
-        Ordered,
-        Executed,
-        ExecutedAndKeptOpen,
-        ReleasedByNotary,
-        ReleasedByPayee,
-        ReleasedOnExpiration
-    }
+import "./HoldStatusCode.sol";
 
+interface IHoldableERC1400TokenExtension {
     function executeHold(
         address token,
         bytes32 holdId,

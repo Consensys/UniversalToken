@@ -28,7 +28,7 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
 
     modifier isHeld(bytes32 holdId) {
         require(
-            holds[holdId].status == HoldStatusCode.Held,
+            holds[holdId].status == HoldStatusCode.Ordered,
             "Hold is not in Held status"
         );
         _;
@@ -81,7 +81,7 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
             amount,
             expirationDateTime,
             lockHash,
-            HoldStatusCode.Held
+            HoldStatusCode.Ordered
         );
         accountHoldBalances[msg.sender] = accountHoldBalances[msg.sender].add(
             amount
@@ -204,11 +204,13 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
                 block.timestamp > holds[holdId].expirationDateTime,
                 "releaseHold: can only release after the expiration date."
             );
+            holds[holdId].status = HoldStatusCode.ReleasedOnExpiration;
         } else if (holds[holdId].notary != msg.sender) {
             revert("releaseHold: caller must be the hold sender or notary.");
+        } else {
+            holds[holdId].status = HoldStatusCode.ReleasedByNotary;
         }
 
-        holds[holdId].status = HoldStatusCode.Released;
         accountHoldBalances[holds[holdId]
             .sender] = accountHoldBalances[holds[holdId].sender].sub(
             holds[holdId].amount
