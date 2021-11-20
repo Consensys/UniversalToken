@@ -786,7 +786,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
    * @param spender address The address which will spend the funds.
    * @return A uint256 specifying the value of tokens still available for the spender.
    */
-  function allowanceByPartition(bytes32 partition, address owner, address spender) external view returns (uint256) {
+  function allowanceByPartition(bytes32 partition, address owner, address spender) external override view returns (uint256) {
     return _allowedByPartition[partition][owner][spender];
   }
   /**

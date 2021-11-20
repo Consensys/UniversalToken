@@ -9,7 +9,7 @@ const DELIVERY_VS_PAYMENT = 'DeliveryVsPayment';
 module.exports = async function (deployer, network, accounts) {
   if (network == "test") return; // test maintains own contracts
   
-  await deployer.deploy(DVPContract, false, false);
+  await deployer.deploy(DVPContract, false);
   console.log('\n   > DVP deployment: Success -->', DVPContract.address);
 
   const registry = await ERC1820Registry.at('0x1820a4B7618BdE71Dce8cdc73aAB6C95905faD24');
