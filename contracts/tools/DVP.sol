@@ -142,7 +142,6 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     bool accepted;
     bool approved;
     TradeType tradeType;
-    address intermediary;
   }
   
   /**
@@ -167,12 +166,10 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     address executer; // Set to address(0) if no executer is required for the trade
     uint256 expirationDate;
     address tokenAddress1;
-    address intermediary1;
     uint256 tokenValue1;
     bytes32 tokenId1;
     Standard tokenStandard1;
     address tokenAddress2; // Set to address(0) if no token is expected in return (for example in case of an off-chain payment)
-    address intermediary2;
     uint256 tokenValue2;
     bytes32 tokenId2;
     Standard tokenStandard2;
@@ -297,12 +294,12 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     bytes32 flag;
     uint256 index;
     TradeRequestInput memory tradeData;
+    bytes32 preimage;
 
-    (flag, index, tradeData) = _decodeTokenTransferData(partition, from, msg.sender, value, data);
+    (flag, index, tradeData, preimage) = _decodeTokenTransferData(partition, from, msg.sender, value, data);
 
     if(flag == TRADE_PROPOSAL_FLAG) {
-      //TODO Grab preimage from somewhere
-      _requestTrade(tradeData, bytes32(0));
+      _requestTrade(tradeData, preimage);
     } else if (flag == TRADE_ACCEPTANCE_FLAG) {
       Trade storage trade = _trades[index];
 
@@ -311,8 +308,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       require(partition == selectedUserTradeData.tokenId, "Tokens of the wrong partition sent");
       require(Standard.ERC1400 == selectedUserTradeData.tokenStandard, "Tokens of the wrong standard sent");
       
-      //TODO Grab preimage from somewhere
-      _acceptTrade(index, from, 0, value, bytes32(0));         
+      _acceptTrade(index, from, 0, value, preimage);         
     }
   }
 
@@ -335,23 +331,55 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     internal
   {
     // Token data: < 1: address > < 2: amount > < 3: id/partition > < 4: standard > < 5: accepted > < 6: approved >
-    UserTradeData memory _userTradeData1 = UserTradeData(inputData.holder1, inputData.tokenAddress1, inputData.tokenValue1, inputData.tokenId1, inputData.tokenStandard1, false, false, inputData.tradeType1, inputData.intermediary1);
-    UserTradeData memory _userTradeData2 = UserTradeData(inputData.holder2, inputData.tokenAddress2, inputData.tokenValue2, inputData.tokenId2, inputData.tokenStandard2, false, false, inputData.tradeType2, inputData.intermediary2);
+    UserTradeData memory _userTradeData1 = UserTradeData(inputData.holder1, inputData.tokenAddress1, inputData.tokenValue1, inputData.tokenId1, inputData.tokenStandard1, false, false, inputData.tradeType1);
+    UserTradeData memory _userTradeData2 = UserTradeData(inputData.holder2, inputData.tokenAddress2, inputData.tokenValue2, inputData.tokenId2, inputData.tokenStandard2, false, false, inputData.tradeType2);
+    
+    if (_isValidHoldTrade(_userTradeData1, _userTradeData2)) {
+      _requestHoldTrade(inputData, _userTradeData1, _userTradeData2, preimage);
+    } else {
+      _requestTrade(
+        inputData.holder1,
+        inputData.holder2,
+        inputData.executer,
+        inputData.expirationDate,
+        inputData.settlementDate,
+        _userTradeData1,
+        _userTradeData2
+      );
+      
+      if(msg.sender == inputData.holder1 || msg.sender == inputData.holder2) {
+        _acceptTrade(_index, msg.sender, msg.value, 0, preimage);
+      }
+    }
+  }
 
+  function _isValidHoldTrade(UserTradeData memory userTrade1, UserTradeData memory userTrade2) internal view returns (bool) {
+    return userTrade1.tradeType == TradeType.Hold && userTrade2.tradeType == TradeType.Hold && _holdExists(userTrade1.holder, userTrade2.holder, userTrade1) && _holdExists(userTrade2.holder, userTrade1.holder, userTrade2);
+  }
+
+  function _requestHoldTrade(TradeRequestInput memory inputData, UserTradeData memory userTrade1, UserTradeData memory userTrade2, bytes32 preimage) internal {
+    //Create the trade
     _requestTrade(
       inputData.holder1,
       inputData.holder2,
-      inputData.executer,
+      msg.sender,
       inputData.expirationDate,
       inputData.settlementDate,
-      _userTradeData1,
-      _userTradeData2
+      userTrade1,
+      userTrade2
     );
 
-    if(msg.sender == inputData.holder1 || msg.sender == inputData.holder2) {
-      _acceptTrade(_index, msg.sender, msg.value, 0, preimage);
-    }
-    
+    //Accept both sides of trade
+    _acceptTrade(_index, userTrade1.holder, msg.value, 0, preimage);
+    _acceptTrade(_index, userTrade2.holder, msg.value, 0, preimage);
+
+    //Approve the trade
+    Trade storage trade = _trades[_index];
+    trade.userTradeData1.approved = true;
+    trade.userTradeData2.approved = true;
+
+    //Execute the trade
+    _executeTrade(_index, preimage);
   }
 
   /**
@@ -435,13 +463,13 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
 
     address recipientHolder;
     address selectedHolder;
-    if(sender == trade.holder1 || sender == trade.userTradeData1.intermediary) {
+    if(sender == trade.holder1) {
       selectedHolder = trade.holder1;
       recipientHolder = trade.holder2;
-    } else if(sender == trade.holder2 || sender == trade.userTradeData2.intermediary) {
+    } else if(sender == trade.holder2) {
       selectedHolder = trade.holder2;
       recipientHolder = trade.holder1;
-    } else if(trade.holder2 == address(0) && trade.userTradeData2.intermediary == address(0)) {
+    } else if(trade.holder2 == address(0)) {
       trade.holder2 = sender;
       selectedHolder = trade.holder2;
     } else {
@@ -978,10 +1006,47 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * 000000000000000000000000000000000000000000000000000000000037252000000000000000000000000000000000000000000000000000000000000002
    * 000000000000000000000000000000000000000000000000000000000000001000000000000000000000000000000000000000000000000000000000000001
    */
-  function _decodeTokenTransferData(bytes32 partition, address from, address fromTokenAddress, uint value, bytes memory data) internal pure returns(bytes32 flag, uint256 index, TradeRequestInput memory tradeData) {
+  function encodeTokenTransferData(address _recipient, address _executer, uint256 _expirationDate, uint256 _settlementDate, UserTradeData memory holder2Data) external pure returns (bytes memory data) {
+    data = new bytes(320);
+    bytes32 recipient = bytes32(uint256(uint160(_recipient)));
+    bytes32 executer = bytes32(uint256(uint160(_executer)));
+    bytes32 expirationDate = bytes32(uint256(_expirationDate));
+    bytes32 settlementDate = bytes32(uint256(_settlementDate));
+    bytes32 tokenAddress = bytes32(uint256(uint160(holder2Data.tokenAddress)));
+    bytes32 tokenAmount = bytes32(uint256(holder2Data.tokenValue));
+    bytes32 tokenId = holder2Data.tokenId;
+    bytes32 tokenStandard = bytes32(uint256(holder2Data.tokenStandard));
+    bytes32 tradeType = bytes32(uint256(holder2Data.tradeType));
+    
     assembly {
-      flag:= mload(add(data, 32))
+      mstore(add(data, 32), TRADE_PROPOSAL_FLAG)
+      mstore(add(data, 64), recipient)
+      mstore(add(data, 96), executer)
+      mstore(add(data, 128), expirationDate)
+      mstore(add(data, 160), settlementDate)
+      mstore(add(data, 192), tokenAddress)
+      mstore(add(data, 224), tokenAmount)
+      mstore(add(data, 288), tokenId)
+      mstore(add(data, 320), tokenStandard)
+      mstore(add(data, 352), tradeType)
     }
+
+    return data;
+  }
+
+  function encodeTokenTransferData(uint256 index) external pure returns (bytes memory data) {
+    data = new bytes(64);
+
+    assembly {
+      mstore(add(data, 32), TRADE_ACCEPTANCE_FLAG)
+      mstore(add(data, 64), index)
+    }
+
+    return data;
+  }
+
+  function _decodeTokenTransferData(bytes32 partition, address from, address fromTokenAddress, uint value, bytes memory data) internal pure returns(bytes32 flag, uint256 index, TradeRequestInput memory tradeData, bytes32 preimage) {
+    flag = _getTradeFlag(data);
 
     if (flag == TRADE_ACCEPTANCE_FLAG) {
       assembly {
@@ -996,21 +1061,19 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
         ZERO_ADDRESS,
         0,
         ZERO_ADDRESS,
-        ZERO_ADDRESS,
         0,
-        bytes32(0),
+        0,
         Standard.OffChain,
         ZERO_ADDRESS,
-        ZERO_ADDRESS,
         0,
-        bytes32(0),
+        0,
         Standard.OffChain,
         TradeType.Escrow,
         TradeType.Escrow,
         0
       );
 
-      return (flag, index, tradeData);
+      return (flag, index, tradeData, _getPreImage(data));
     }
 
     address recipient;
@@ -1030,19 +1093,21 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       expirationDate:= mload(add(data, 128))
     }
 
+    assembly {
+      settlementDate:= mload(add(data, 160))
+    }
+
     address tokenAddress;
     uint256 tokenAmount;
     bytes32 tokenId;
-    address intermediary;
     Standard tokenStandard;
     TradeType tradeType;
     assembly {
-      tokenAddress:= mload(add(data, 160))
-      tokenAmount:= mload(add(data, 192))
-      tokenId:= mload(add(data, 224))
-      intermediary:= mload(add(data, 256))
-      tokenStandard:= mload(add(data, 288))
-      tradeType:= mload(add(data, 288))  //TODO What is the offset of an enum
+      tokenAddress:= mload(add(data, 192))
+      tokenAmount:= mload(add(data, 224))
+      tokenId:= mload(add(data, 288))
+      tokenStandard:= mload(add(data, 320))
+      tradeType:= mload(add(data, 352))
     }
 
     tradeData = TradeRequestInput(
@@ -1051,12 +1116,10 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       executer,
       expirationDate,
       fromTokenAddress,
-      address(0),
       value,
       partition,
       Standard.ERC1400,
       tokenAddress,
-      intermediary,
       tokenAmount,
       tokenId,
       tokenStandard,
@@ -1065,7 +1128,23 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       settlementDate
     );
 
-    return (flag, 0, tradeData);
+    return (flag, 0, tradeData, _getPreImage(data));
+  }
+
+  function _getPreImage(bytes memory data) internal pure returns (bytes32 preimage) {
+    bytes32 flag = _getTradeFlag(data);
+
+    //The last position read by _decodeTokenTransferData
+    uint256 dataLastPosition = flag == TRADE_ACCEPTANCE_FLAG ? 64 : 352;
+    uint256 offset = dataLastPosition + 32;
+
+    if (data.length < offset) {
+      return 0;
+    }
+
+    assembly {
+      preimage:= mload(add(data, offset))
+    }
   }
 
   /**
