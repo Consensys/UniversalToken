@@ -320,10 +320,12 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @dev Create a new trade request in the DVP smart contract.
    * @param inputData The input for this function
    */
-  function requestTrade(TradeRequestInput calldata inputData, bytes32 preimage)
+  function requestTrade(TradeRequestInput calldata inputData)
     external
     payable
   {
+    //TODO Add support for single transaction trade via two holds
+
     // Token data: < 1: address > < 2: amount > < 3: id/partition > < 4: standard > < 5: accepted > < 6: approved >
     UserTradeData memory _userTradeData1 = UserTradeData(inputData.tokenAddress1, inputData.tokenValue1, inputData.tokenId1, inputData.tokenStandard1, false, false, inputData.tradeType1);
     UserTradeData memory _userTradeData2 = UserTradeData(inputData.tokenAddress2, inputData.tokenValue2, inputData.tokenId2, inputData.tokenStandard2, false, false, inputData.tradeType2);
@@ -339,7 +341,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     );
 
     if(msg.sender == inputData.holder1 || msg.sender == inputData.holder2) {
-      _acceptTrade(_index, msg.sender, msg.value, 0, preimage);
+      _acceptTrade(_index, msg.sender, msg.value, 0, 0);
     }
   }
 
@@ -406,6 +408,14 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     //To check if this is possible, the following line would be required
     //however, adding the following line to this contract causes it to be too large to deploy onchain
     //bool test = userTradeData1.tradeType == TradeType.Hold && userTradeData2.tradeType == TradeType.Hold && _holdExists(holder1, holder2, userTradeData1) && _holdExists(holder2, holder1, userTradeData2);
+  }
+
+  /**
+   * @dev Accept a given trade (+ potentially escrow tokens).
+   * @param index Index of the trade to be accepted.
+   */
+  function acceptTrade(uint256 index) external payable {
+    _acceptTrade(index, msg.sender, msg.value, 0, 0);
   }
 
   /**
@@ -523,6 +533,10 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     return true;
   }
 
+  function approveTrade(uint256 index, bool approved) external {
+    approveTrade(index, approved, 0);
+  }
+
   /**
    * @dev Approve a trade (if the tokens involved in the trade are controlled)
    *
@@ -536,7 +550,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @param index Index of the trade to be executed.
    * @param approved 'true' if trade is approved, 'false' if not.
    */
-  function approveTrade(uint256 index, bool approved, bytes32 preimage) external {
+  function approveTrade(uint256 index, bool approved, bytes32 preimage) public {
     Trade storage trade = _trades[index];
     require(trade.state == State.Pending, "Trade is not pending");
 
@@ -576,6 +590,10 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     return true;
   }
 
+  function executeTrade(uint256 index) external {
+    executeTrade(index, 0);
+  }
+
   /**
    * @dev Execute a trade in the DVP contract if possible (e.g. if tokens have been esccrowed, in case it is required).
    *
@@ -584,7 +602,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    *
    * @param index Index of the trade to be executed.
    */
-  function executeTrade(uint256 index, bytes32 preimage) external {
+  function executeTrade(uint256 index, bytes32 preimage) public {
     Trade storage trade = _trades[index];
     require(trade.state == State.Pending, "Trade is not pending");
 
@@ -628,11 +646,15 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
 
   }
 
+  function forceTrade(uint256 index) external {
+    forceTrade(index, 0);
+  }
+
   /**
    * @dev Force a trade execution in the DVP contract by transferring tokens back to their target recipients.
    * @param index Index of the trade to be forced.
    */
-  function forceTrade(uint256 index, bytes32 preimage) external {
+  function forceTrade(uint256 index, bytes32 preimage) public {
     Trade storage trade = _trades[index];
     require(trade.state == State.Pending, "Trade is not pending");
     
@@ -721,18 +743,14 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     }
   }
 
-  function _executeHoldOnUsersTokens(uint256 index, Holder holder, uint256, bool revertTransfer, bytes32 preimage) internal { 
+  function _executeHoldOnUsersTokens(uint256 index, Holder holder, uint256, bool, bytes32 preimage) internal { 
     Trade storage trade = _trades[index];
 
     address sender = (holder == Holder.Holder1) ? trade.holder1 : trade.holder2;
     address recipient = (holder == Holder.Holder1) ? trade.holder2 : trade.holder1;
     UserTradeData memory senderUserTradeData = (holder == Holder.Holder1) ? trade.userTradeData1 : trade.userTradeData2;
 
-    if(revertTransfer) {
-      recipient = sender;
-    } else {
-      require(block.timestamp <= trade.expirationDate, "Expiration date is past");
-    }
+    require(block.timestamp <= trade.expirationDate, "Expiration date is past");
 
     address tokenAddress = senderUserTradeData.tokenAddress;
     bytes32 tokenId = senderUserTradeData.tokenId;
@@ -896,9 +914,9 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
     }
     
     bytes32 flag = _getTradeFlag(data);
-    if(data.length == 256 && flag == TRADE_PROPOSAL_FLAG) {
+    if(data.length == 320 && flag == TRADE_PROPOSAL_FLAG) {
       return true;
-    } else if (data.length == 64 && flag == TRADE_ACCEPTANCE_FLAG) {
+    } else if ((data.length == 64 || data.length == 96) && flag == TRADE_ACCEPTANCE_FLAG) {
       return true;
     } else if (data.length == 32 && flag == BYPASS_ACTION_FLAG) {
       return true;
@@ -1055,8 +1073,14 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
   }
 
   function _getPreimage(bytes memory data) internal pure returns(bytes32 preimage) {
-    assembly {
-      preimage:= mload(add(data, 96))
+    if (data.length == 96) {
+      //This field is optional
+      //If the data's length does not include the preimage
+      //then return an empty preimage
+      //canReceive accepts both data lengths
+      assembly {
+        preimage:= mload(add(data, 96))
+      }
     }
   }
 
