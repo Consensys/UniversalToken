@@ -422,7 +422,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @dev Accept a given trade (+ potentially escrow tokens).
    * @param index Index of the trade to be accepted.
    */
-  function acceptTrade(uint256 index, bytes32 preimage) external payable {
+  function acceptTradeWithPreimage(uint256 index, bytes32 preimage) external payable {
     _acceptTrade(index, msg.sender, msg.value, 0, preimage);
   }
 
@@ -534,7 +534,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
   }
 
   function approveTrade(uint256 index, bool approved) external {
-    approveTrade(index, approved, 0);
+    approveTradeWithPreimage(index, approved, 0);
   }
 
   /**
@@ -550,7 +550,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    * @param index Index of the trade to be executed.
    * @param approved 'true' if trade is approved, 'false' if not.
    */
-  function approveTrade(uint256 index, bool approved, bytes32 preimage) public {
+  function approveTradeWithPreimage(uint256 index, bool approved, bytes32 preimage) public {
     Trade storage trade = _trades[index];
     require(trade.state == State.Pending, "Trade is not pending");
 
@@ -591,7 +591,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
   }
 
   function executeTrade(uint256 index) external {
-    executeTrade(index, 0);
+    executeTradeWithPreimage(index, 0);
   }
 
   /**
@@ -602,7 +602,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
    *
    * @param index Index of the trade to be executed.
    */
-  function executeTrade(uint256 index, bytes32 preimage) public {
+  function executeTradeWithPreimage(uint256 index, bytes32 preimage) public {
     Trade storage trade = _trades[index];
     require(trade.state == State.Pending, "Trade is not pending");
 
@@ -647,14 +647,14 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
   }
 
   function forceTrade(uint256 index) external {
-    forceTrade(index, 0);
+    forceTradeWithPreimage(index, 0);
   }
 
   /**
    * @dev Force a trade execution in the DVP contract by transferring tokens back to their target recipients.
    * @param index Index of the trade to be forced.
    */
-  function forceTrade(uint256 index, bytes32 preimage) public {
+  function forceTradeWithPreimage(uint256 index, bytes32 preimage) public {
     Trade storage trade = _trades[index];
     require(trade.state == State.Pending, "Trade is not pending");
     
