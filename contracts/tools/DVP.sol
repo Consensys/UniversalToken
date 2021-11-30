@@ -467,8 +467,6 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
         IERC1400(selectedUserTradeData.tokenAddress).operatorTransferByPartition(selectedUserTradeData.tokenId, sender, address(this), selectedUserTradeData.tokenValue, abi.encodePacked(BYPASS_ACTION_FLAG), abi.encodePacked(BYPASS_ACTION_FLAG));
       } else if((selectedUserTradeData.tokenStandard == Standard.ERC1400) && erc1400TokenValue != 0){
         require(erc1400TokenValue == selectedUserTradeData.tokenValue, "Amount of ERC1400 tokens is not correct");
-      } else {
-        // OffChain
       }
     } else if (selectedUserTradeData.tradeType == TradeType.Hold) {
         require(_holdExists(sender, recipientHolder, selectedUserTradeData), "Hold needs to be provided in token smart contract first");
@@ -805,8 +803,6 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       IERC721(tokenAddress).transferFrom(currentHolder, recipient, uint256(tokenId));
     } else if(tokenStandard == Standard.ERC1400) {
       IERC1400(tokenAddress).operatorTransferByPartition(tokenId, currentHolder, recipient, value, "", "");
-    } else {
-      // OffChain
     }
 
   }
