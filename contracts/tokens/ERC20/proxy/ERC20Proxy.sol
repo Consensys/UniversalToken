@@ -182,6 +182,10 @@ contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware {
         return _getImplementationContract().mint(caller, receipient, amount);
     }
 
+    function _executeBurn(address caller, address receipient, uint256 amount) internal virtual returns (bool) {
+        return _getImplementationContract().burn(caller, receipient, amount);
+    }
+
     function _executeDecreaseAllowance(address caller, address spender, uint256 subtractedValue) internal virtual returns (bool) {
         return _getImplementationContract().decreaseAllowance(caller, spender, subtractedValue);
     }

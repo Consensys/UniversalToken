@@ -43,4 +43,8 @@ contract ERC20DelegateProxy is ERC20Proxy {
     function _executeMint(address caller, address recipient, uint256 amount) internal override returns (bool) {
         return _invokeCore(abi.encodeWithSelector(IERC20Core.mint.selector, caller, recipient, amount))[0] == 0x01; 
     }
+
+    function _executeBurn(address caller, address receipient, uint256 amount) internal override returns (bool) {
+        return _invokeCore(abi.encodeWithSelector(IERC20Core.burn.selector, caller, receipient, amount))[0] == 0x01;
+    }
 }

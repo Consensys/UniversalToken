@@ -198,6 +198,12 @@ contract ERC20Core is IERC20Core {
         return true;
     }
 
+    function burn(address caller, address recipient, uint256 amount) external override returns (bool) {
+        _burn(caller, recipient, amount);
+
+        return true;
+    }
+
     /**
      * @dev Moves `amount` of tokens from `sender` to `recipient`.
      *
