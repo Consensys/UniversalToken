@@ -17,7 +17,10 @@ const HoldStatusCode = Object.freeze({
   Nonexistent: 0,
   Held: 1,
   Executed: 2,
-  Released: 3,
+  ExecutedAndKeptOpen: 3,
+  Released: 4,
+  ReleasedByPayee: 5,
+  ReleasedOnExpiration: 6
 });
 
 contract(
@@ -399,7 +402,7 @@ contract(
           assert(false, "transaction should have failed");
         } catch (err) {
           assert.instanceOf(err, Error);
-          assert.match(err.message, /Hold is not in Held status/);
+          assert.match(err.message, /Hold is not in Ordered status/);
           assert.equal(await this.token.balanceOf(holder), 20);
           assert.equal(await this.token.balanceOf(recipient), 900);
         }
@@ -410,7 +413,7 @@ contract(
           assert(false, "transaction should have failed");
         } catch (err) {
           assert.instanceOf(err, Error);
-          assert.match(err.message, /Hold is not in Held status/);
+          assert.match(err.message, /Hold is not in Ordered status/);
           assert.equal(await this.token.balanceOf(holder), 20);
           assert.equal(await this.token.balanceOf(recipient), 900);
         }
@@ -422,7 +425,7 @@ contract(
           assert(false, "transaction should have failed");
         } catch (err) {
           assert.instanceOf(err, Error);
-          assert.match(err.message, /Hold is not in Held status/);
+          assert.match(err.message, /Hold is not in Ordered status/);
           assert.equal(await this.token.balanceOf(holder), 20);
           assert.equal(await this.token.balanceOf(recipient), 900);
         }
@@ -529,7 +532,7 @@ contract(
           assert(false, "transaction should have failed");
         } catch (err) {
           assert.instanceOf(err, Error);
-          assert.match(err.message, /Hold is not in Held status/);
+          assert.match(err.message, /Hold is not in Ordered status/);
           assert.equal(await this.token.balanceOf(holder), 200);
           assert.equal(await this.token.holdBalanceOf(holder), 0);
           assert.equal(await this.token.grossBalanceOf(holder), 200);
@@ -544,7 +547,7 @@ contract(
           assert(false, "transaction should have failed");
         } catch (err) {
           assert.instanceOf(err, Error);
-          assert.match(err.message, /Hold is not in Held status/);
+          assert.match(err.message, /Hold is not in Ordered status/);
           assert.equal(await this.token.balanceOf(holder), 200);
           assert.equal(await this.token.holdBalanceOf(holder), 0);
           assert.equal(await this.token.grossBalanceOf(holder), 200);
@@ -557,7 +560,7 @@ contract(
           assert(false, "transaction should have failed");
         } catch (err) {
           assert.instanceOf(err, Error);
-          assert.match(err.message, /Hold is not in Held status/);
+          assert.match(err.message, /Hold is not in Ordered status/);
           assert.equal(await this.token.balanceOf(holder), 200);
           assert.equal(await this.token.holdBalanceOf(holder), 0);
           assert.equal(await this.token.grossBalanceOf(holder), 200);
@@ -642,7 +645,7 @@ contract(
           assert(false, "transaction should have failed");
         } catch (err) {
           assert.instanceOf(err, Error);
-          assert.match(err.message, /Hold is not in Held status/);
+          assert.match(err.message, /Hold is not in Ordered status/);
           assert.equal(await this.token.balanceOf(holder), 3);
           assert.equal(await this.token.holdBalanceOf(holder), 0);
           assert.equal(await this.token.grossBalanceOf(holder), 3);
@@ -654,7 +657,7 @@ contract(
           assert(false, "transaction should have failed");
         } catch (err) {
           assert.instanceOf(err, Error);
-          assert.match(err.message, /Hold is not in Held status/);
+          assert.match(err.message, /Hold is not in Ordered status/);
           assert.equal(await this.token.balanceOf(holder), 3);
           assert.equal(await this.token.holdBalanceOf(holder), 0);
           assert.equal(await this.token.grossBalanceOf(holder), 3);
@@ -722,7 +725,7 @@ contract(
         const result = await this.token.releaseHold(holdId, { from: holder });
         assert.equal(
           await this.token.holdStatus(holdId),
-          HoldStatusCode.Released
+          HoldStatusCode.ReleasedOnExpiration
         );
         assert.equal(result.receipt.status, 1);
         assert.equal(await this.token.balanceOf(holder), 3);
@@ -736,7 +739,7 @@ contract(
           assert(false, "transaction should have failed");
         } catch (err) {
           assert.instanceOf(err, Error);
-          assert.match(err.message, /Hold is not in Held status/);
+          assert.match(err.message, /Hold is not in Ordered status/);
           assert.equal(await this.token.balanceOf(holder), 3);
           assert.equal(await this.token.holdBalanceOf(holder), 0);
           assert.equal(await this.token.grossBalanceOf(holder), 3);
@@ -748,7 +751,7 @@ contract(
           assert(false, "transaction should have failed");
         } catch (err) {
           assert.instanceOf(err, Error);
-          assert.match(err.message, /Hold is not in Held status/);
+          assert.match(err.message, /Hold is not in Ordered status/);
           assert.equal(await this.token.balanceOf(holder), 3);
           assert.equal(await this.token.holdBalanceOf(holder), 0);
           assert.equal(await this.token.grossBalanceOf(holder), 3);
@@ -1140,7 +1143,7 @@ contract(
         const result = await this.token.releaseHold(holdId, { from: holder });
         assert.equal(
           await this.token.holdStatus(holdId),
-          HoldStatusCode.Released
+          HoldStatusCode.ReleasedOnExpiration
         );
         assert.equal(result.receipt.status, 1);
         assert.equal(await this.token.balanceOf(holder), 123);
