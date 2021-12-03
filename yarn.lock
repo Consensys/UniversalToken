@@ -2446,6 +2446,11 @@ ansi-regex@^5.0.0:
   resolved "https://registry.yarnpkg.com/ansi-regex/-/ansi-regex-5.0.0.tgz#388539f55179bf39339c81af30a654d69f87cb75"
   integrity sha512-bY6fj56OUQ0hU1KjFNDQuJFezqKdrAyFdIevADiqrWHwSlbmBNMHp5ak2f40Pm8JTFyM2mqxkG6ngkHO11f/lg==
 
+ansi-regex@^5.0.1:
+  version "5.0.1"
+  resolved "https://registry.yarnpkg.com/ansi-regex/-/ansi-regex-5.0.1.tgz#082cb2c89c9fe8659a311a53bd6a4dc5301db304"
+  integrity sha512-quJQXlTSUGL2LH9SUXo8VwsY4soanhgo6LNSm84E1LBcE8s3O0wpdiRzyR9z/ZZJMlMWv37qOOb9pdJlMUEKFQ==
+
 ansi-styles@^2.2.1:
   version "2.2.1"
   resolved "https://registry.yarnpkg.com/ansi-styles/-/ansi-styles-2.2.1.tgz#b432dd3358b634cf75e1e4664368240533c1ddbe"
@@ -4398,6 +4403,14 @@ cli-spinners@^2.0.0:
   version "2.6.0"
   resolved "https://registry.yarnpkg.com/cli-spinners/-/cli-spinners-2.6.0.tgz#36c7dc98fb6a9a76bd6238ec3f77e2425627e939"
   integrity sha512-t+4/y50K/+4xcCRosKkA7W4gTr1MySvLV0q+PxmG7FJ5g+66ChKurYjxBCjHggHH3HA5Hh9cy+lcUGWDqVH+4Q==
+
+cli-table@^0.3.1:
+  version "0.3.9"
+  resolved "https://registry.yarnpkg.com/cli-table/-/cli-table-0.3.9.tgz#c0570b079296608a31761a67d9af9841dbee8300"
+  integrity sha512-7eA6hFtAZwVx3dWAGoaBqTrzWko5jRUFKpHT64ZHkJpaA3y5wf5NlLjguqTRmqycatJZiwftODYYyGNLbQ7MuA==
+  dependencies:
+    colors "1.0.3"
+    strip-ansi "^6.0.1"
 
 cli-truncate@^2.1.0:
   version "2.1.0"
@@ -13308,6 +13321,13 @@ strip-ansi@^6.0.0:
   dependencies:
     ansi-regex "^5.0.0"
 
+strip-ansi@^6.0.1:
+  version "6.0.1"
+  resolved "https://registry.yarnpkg.com/strip-ansi/-/strip-ansi-6.0.1.tgz#9e26c63d30f53443e9489495b2105d37b67a85d9"
+  integrity sha512-Y38VPSHcqkFrCpFnQ9vuSXmquuv5oXOKpGeT6aGrr3o3Gc9AlVa6JBfUSOCnbxGGZF+/0ooI7KrPuUSztUdU5A==
+  dependencies:
+    ansi-regex "^5.0.1"
+
 strip-bom-stream@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/strip-bom-stream/-/strip-bom-stream-1.0.0.tgz#e7144398577d51a6bed0fa1994fa05f43fd988ee"
@@ -13774,6 +13794,14 @@ trim-right@^1.0.1:
   version "1.0.1"
   resolved "https://registry.yarnpkg.com/trim-right/-/trim-right-1.0.1.tgz#cb2e1203067e0c8de1f614094b9fe45704ea6003"
   integrity sha1-yy4SAwZ+DI3h9hQJS5/kVwTqYAM=
+
+truffle-contract-size@^2.0.1:
+  version "2.0.1"
+  resolved "https://registry.yarnpkg.com/truffle-contract-size/-/truffle-contract-size-2.0.1.tgz#9ec1b078b0b3221cc1612400bd6f5df83c7a3a09"
+  integrity sha512-AIKPwHPC/1pZwtVjgUcgcK23k6gWxKhn4ZnKLr339uieb94UgAUeIwGUkfc87T+0lqgC6ePY7YhsFeoZK2YEsA==
+  dependencies:
+    cli-table "^0.3.1"
+    yargs "^15.3.1"
 
 truffle-hdwallet-provider@1.0.1:
   version "1.0.1"

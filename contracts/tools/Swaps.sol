@@ -281,7 +281,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    * @param data Information attached to the token transfer.
    * @param operatorData Information attached to the DVP transfer, by the operator.
    */
-  function tokensReceived(bytes calldata, bytes32 partition, address, address from, address to, uint value, bytes calldata data, bytes calldata operatorData) external override {
+  function tokensReceived(bytes calldata, bytes32 partition, address, address from, address to, uint value, bytes memory data, bytes calldata operatorData) external override {
     require(interfaceAddr(msg.sender, "ERC1400Token") == msg.sender, "55"); // funds locked (lockup period)
 
     require(to == address(this), "50"); // 0x50	transfer failure
@@ -289,22 +289,45 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
 
     bytes32 flag = _getTradeFlag(data);
     if(flag == TRADE_PROPOSAL_FLAG) {
+      address recipient;
+      address executor;
+      uint256 expirationDate;
+      uint256 settlementDate;
+      assembly {
+        recipient:= mload(add(data, 64))
+        executor:= mload(add(data, 96))
+        expirationDate:= mload(add(data, 128))
+        settlementDate:= mload(add(data, 160))
+      }
       // Token data: < 1: address > < 2: amount > < 3: id/partition > < 4: standard > < 5: accepted > < 6: approved >
       UserTradeData memory _tradeData1 = UserTradeData(msg.sender, value, partition, Standard.ERC1400, true, false, TradeType.Escrow);
       UserTradeData memory _tokenData2 = _getTradeTokenData(data);
 
       _requestTrade(
         from,
-        _getTradeRecipient(data),
-        _getTradeExecuter(data),
-        _getTradeExpirationDate(data),
-        _getTradeSettlementDate(data),
+        recipient,
+        executor,
+        expirationDate,
+        settlementDate,
         _tradeData1,
         _tokenData2
       );
 
     } else if (flag == TRADE_ACCEPTANCE_FLAG) {
-      uint256 index = _getTradeIndex(data);
+      uint256 index;
+      bytes32 preimage = bytes32(0);
+      assembly {
+        index:= mload(add(data, 64))
+      }
+      if (data.length == 96) {
+        //This field is optional
+        //If the data's length does not include the preimage
+        //then return an empty preimage
+        //canReceive accepts both data lengths
+        assembly {
+          preimage:= mload(add(data, 96))
+        }
+      }
       Trade storage trade = _trades[index];
 
       UserTradeData memory selectedUserTradeData = (from == trade.holder1) ? trade.userTradeData1 : trade.userTradeData2;
@@ -312,7 +335,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
       require(partition == selectedUserTradeData.tokenId, "Tokens of the wrong partition sent");
       require(Standard.ERC1400 == selectedUserTradeData.tokenStandard, "Tokens of the wrong standard sent");
 
-      _acceptTrade(index, from, 0, value, _getPreimage(data));         
+      _acceptTrade(index, from, 0, value, preimage);         
     }
   }
 
@@ -481,12 +504,23 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
       trade.userTradeData2.accepted = true;
     }
 
+    
+    if (trade.executer == address(0) && trade.userTradeData1.tradeType == TradeType.Hold && trade.userTradeData2.tradeType == TradeType.Hold && getTradeApprovalStatus(index)) {
+      //we know selectedUserTradeData has a hold that exists, so check the other one
+      UserTradeData memory otherUserTradeData = (selectedHolder == trade.holder1) ? trade.userTradeData2 : trade.userTradeData1;
+      if (_holdExists(recipientHolder, sender, otherUserTradeData)) {
+        //If both holds exist, then mark both sides of trade as accepted
+        //Next if will execute trade
+        trade.userTradeData1.accepted = true;
+        trade.userTradeData2.accepted = true;
+      }
+    }
+
     if(
-      trade.executer == address(0) && _tradeisAccepted(index) && _tradeisApproved(index) && block.timestamp >= trade.settlementDate) {
+      trade.executer == address(0) && getTradeAcceptanceStatus(index) && getTradeApprovalStatus(index) && block.timestamp >= trade.settlementDate) {
       _executeTrade(index, preimage);
     }
   }
-
   /**
    * @dev Verify if a trade has been accepted by the token holders.
    *
@@ -494,7 +528,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    *
    * @param index Index of the trade to be accepted.
    */
-  function _tradeisAccepted(uint256 index) internal view returns(bool) {
+  function getTradeAcceptanceStatus(uint256 index) public view returns(bool) {
     Trade storage trade = _trades[index];
 
     if(trade.state == State.Pending) {
@@ -563,7 +597,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
       trade.userTradeData2.approved = approved;
     }
 
-    if(trade.executer == address(0) && _tradeisAccepted(index) && _tradeisApproved(index)) {
+    if(trade.executer == address(0) && getTradeAcceptanceStatus(index) && getTradeApprovalStatus(index)) {
       _executeTrade(index, preimage);
     }
   }
@@ -575,7 +609,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    *
    * @param index Index of the trade to be approved.
    */
-  function _tradeisApproved(uint256 index) internal view returns(bool) {
+  function getTradeApprovalStatus(uint256 index) public view returns(bool) {
     Trade storage trade = _trades[index];
 
     if(_tokenControllers[trade.userTradeData1.tokenAddress].length != 0 && !trade.userTradeData1.approved) {
@@ -611,9 +645,9 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
 
     require(block.timestamp >= trade.settlementDate, "Trade can only be executed on or after settlement date");
 
-    require(_tradeisAccepted(index), "Trade has not been accepted by all token holders yet");
+    require(getTradeAcceptanceStatus(index), "Trade has not been accepted by all token holders yet");
     
-    require(_tradeisApproved(index), "Trade has not been approved by all token controllers yet");
+    require(getTradeApprovalStatus(index), "Trade has not been approved by all token controllers yet");
 
     _executeTrade(index, preimage);
   }
@@ -625,7 +659,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   function _executeTrade(uint256 index, bytes32 preimage) internal {
     Trade storage trade = _trades[index];
 
-    uint256 price = _getPrice(index);
+    uint256 price = getPrice(index);
 
     uint256 tokenValue1 = trade.userTradeData1.tokenValue;
     uint256 tokenValue2 = trade.userTradeData2.tokenValue;
@@ -777,7 +811,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
 
     address sender = (holder == Holder.Holder1) ? trade.holder1 : trade.holder2;
     address recipient = (holder == Holder.Holder1) ? trade.holder2 : trade.holder1;
-    UserTradeData memory senderUserTradeData = (holder == Holder.Holder1) ? trade.userTradeData1 : trade.userTradeData2;
+    UserTradeData storage senderUserTradeData = (holder == Holder.Holder1) ? trade.userTradeData1 : trade.userTradeData2;
 
     address tokenAddress = senderUserTradeData.tokenAddress;
     bytes32 tokenId = senderUserTradeData.tokenId;
@@ -973,54 +1007,6 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    */
 
   /**
-   * @dev Retrieve the recipient from the 'data' field.
-   *
-   * @param data Concatenated information about the trade proposal.
-   * @return recipient Trade recipient address.
-   */
-  function _getTradeRecipient(bytes memory data) internal pure returns(address recipient) {
-    assembly {
-      recipient:= mload(add(data, 64))
-    }
-  }
-
-  /**
-   * @dev Retrieve the trade executer address from the 'data' field.
-   *
-   * @param data Concatenated information about the trade proposal.
-   * @return executer Trade executer address.
-   */
-  function _getTradeExecuter(bytes memory data) internal pure returns(address executer) {
-    assembly {
-      executer:= mload(add(data, 96))
-    }
-  }
-
-  /**
-   * @dev Retrieve the expiration date from the 'data' field.
-   *
-   * @param data Concatenated information about the trade proposal.
-   * @return expirationDate Trade expiration date.
-   */
-  function _getTradeExpirationDate(bytes memory data) internal pure returns(uint256 expirationDate) {
-    assembly {
-      expirationDate:= mload(add(data, 128))
-    }
-  }
-  
-  /**
-   * @dev Retrieve the settlement date from the 'data' field.
-   *
-   * @param data Concatenated information about the trade proposal.
-   * @return settlementDate Trade expiration date.
-   */
-  function _getTradeSettlementDate(bytes memory data) internal pure returns(uint256 settlementDate) {
-    assembly {
-      settlementDate:= mload(add(data, 160))
-    }
-  }
-
-  /**
    * @dev Retrieve the tokenData from the 'data' field.
    *
    * @param data Concatenated information about the trade proposal.
@@ -1066,23 +1052,6 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    * @param data Concatenated information about the trade validation.
    * @return index Trade index.
    */
-  function _getTradeIndex(bytes memory data) internal pure returns(uint256 index) {
-    assembly {
-      index:= mload(add(data, 64))
-    }
-  }
-
-  function _getPreimage(bytes memory data) internal pure returns(bytes32 preimage) {
-    if (data.length == 96) {
-      //This field is optional
-      //If the data's length does not include the preimage
-      //then return an empty preimage
-      //canReceive accepts both data lengths
-      assembly {
-        preimage:= mload(add(data, 96))
-      }
-    }
-  }
 
   /**************************** TRADE EXECUTERS *******************************/
 
@@ -1143,15 +1112,6 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    * @param operators Operators addresses.
    */
   function setTokenControllers(address tokenAddress, address[] calldata operators) external onlyTokenController(tokenAddress) {
-    _setTokenControllers(tokenAddress, operators);
-  }
-
-  /**
-   * @dev Set list of token controllers for a given token.
-   * @param tokenAddress Token address.
-   * @param operators Operators addresses.
-   */
-  function _setTokenControllers(address tokenAddress, address[] memory operators) internal {
     for (uint i = 0; i<_tokenControllers[tokenAddress].length; i++){
       _isTokenController[tokenAddress][_tokenControllers[tokenAddress][i]] = false;
     }
@@ -1178,15 +1138,6 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    * @param oracles Oracles addresses.
    */
   function setPriceOracles(address tokenAddress, address[] calldata oracles) external onlyPriceOracle(tokenAddress) {
-    _setPriceOracles(tokenAddress, oracles);
-  }
-
-  /**
-   * @dev Set list of price oracles for a given token.
-   * @param tokenAddress Token address.
-   * @param oracles Oracles addresses.
-   */
-  function _setPriceOracles(address tokenAddress, address[] memory oracles) internal {
     for (uint i = 0; i<_priceOracles[tokenAddress].length; i++){
       _isPriceOracle[tokenAddress][_priceOracles[tokenAddress][i]] = false;
     }
@@ -1281,15 +1232,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    * @dev Get amount of token2 to pay to acquire the token1.
    * @param index Index of the DVP request.
    */
-  function getPrice(uint256 index) external view returns(uint256) {
-    return _getPrice(index);
-  }
-
-  /**
-   * @dev Get amount of token2 to pay to acquire the token1.
-   * @param index Index of the DVP request.
-   */
-  function _getPrice(uint256 index) internal view returns(uint256) {  
+  function getPrice(uint256 index) public view returns(uint256) {
     Trade storage trade = _trades[index];
 
     address tokenAddress1 = trade.userTradeData1.tokenAddress;
@@ -1339,7 +1282,6 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     } else {
       return tokenValue2;
     }
-
   }
 
   /**************************** VIEW FUNCTIONS *******************************/
@@ -1360,21 +1302,5 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    */
   function getNbTrades() external view returns(uint256) {
     return _index;
-  }
-
-  /**
-   * @dev Get global acceptance status for a given a trade.
-   * @return Acceptance status.
-   */
-  function getTradeAcceptanceStatus(uint256 index) external view returns(bool) {
-    return _tradeisAccepted(index);
-  }
-
-  /**
-   * @dev Get global approval status for a given a trade.
-   * @return Approval status.
-   */
-  function getTradeApprovalStatus(uint256 index) external view returns(bool) {
-    return _tradeisApproved(index);
   }
  }
