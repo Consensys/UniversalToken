@@ -4,7 +4,7 @@ const { assert } = require("chai");
 const { soliditySha3 } = require("web3-utils");
 const { advanceTimeAndBlock } = require("./utils/time");
 
-const DVPContract = artifacts.require("DVP");
+const DVPContract = artifacts.require("Swaps");
 const ERC1400 = artifacts.require("ERC1400");
 const ERC20 = artifacts.require("ERC20Token");
 const ERC721 = artifacts.require("ERC721Token");

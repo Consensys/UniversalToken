@@ -1,6 +1,6 @@
 const { soliditySha3 } = require("web3-utils");
 
-const DVPContract = artifacts.require('./DVP.sol');
+const DVPContract = artifacts.require('./Swaps.sol');
 
 const ERC1820Registry = artifacts.require('IERC1820Registry');
 
