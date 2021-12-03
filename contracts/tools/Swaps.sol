@@ -75,7 +75,7 @@ import "../IERC1400.sol";
  * This feature is particularly useful for assets with NAV (net asset value).
  *
  */
-contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implementer {
+contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implementer {
   string constant internal DELIVERY_VS_PAYMENT = "DeliveryVsPayment";
   string constant internal ERC1400_TOKENS_RECIPIENT = "ERC1400TokensRecipient";
 
@@ -447,6 +447,7 @@ contract DVP is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implemen
       recipientHolder = trade.holder1;
     } else if(trade.holder2 == address(0)) {
       trade.holder2 = sender;
+      recipientHolder = trade.holder1;
       selectedHolder = trade.holder2;
     } else {
       revert("Only registered holders can accept a trade");

@@ -29,7 +29,7 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
     modifier isHeld(bytes32 holdId) {
         require(
             holds[holdId].status == HoldStatusCode.Ordered,
-            "Hold is not in Held status"
+            "Hold is not in Ordered status"
         );
         _;
     }
