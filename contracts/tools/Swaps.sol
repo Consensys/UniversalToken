@@ -634,7 +634,10 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
       _transferUsersTokens(index, Holder.Holder1, tokenValue1, false, preimage);
       _transferUsersTokens(index, Holder.Holder2, tokenValue2, false, preimage);
     } else {
-      require(price <= tokenValue2, "Price is higher than amount escrowed/authorized");
+      //Holds cannot move a specific amount of tokens
+      //So require that if the price is less than the value
+      //that the trade is not a hold trade
+      require(price <= tokenValue2 && trade.userTradeData2.tradeType != TradeType.Hold, "Price is higher than amount escrowed/authorized");
       _transferUsersTokens(index, Holder.Holder1, tokenValue1, false, preimage);
       _transferUsersTokens(index, Holder.Holder2, price, false, preimage);
       if(trade.userTradeData2.tradeType == TradeType.Escrow) {
