@@ -24,6 +24,9 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
     mapping(bytes32 => ERC20HoldData) internal holds;
     // mapping of accounts and their total amount on hold
     mapping(address => uint256) internal accountHoldBalances;
+
+    mapping(bytes32 => bytes32) internal _holdHashToId;
+
     uint256 override public totalSupplyOnHold;
 
     modifier isHeld(bytes32 holdId) {
@@ -36,6 +39,41 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
 
     constructor(string memory name, string memory symbol, uint8 decimals) ERC20Token(name, symbol, decimals) {}
 
+    function generateHoldId(
+        address recipient,
+        address notary,
+        uint256 amount,
+        uint256 expirationDateTime,
+        bytes32 lockHash
+    ) external pure returns (bytes32 holdId) {
+        holdId = keccak256(
+            abi.encodePacked(
+                recipient,
+                notary,
+                amount,
+                expirationDateTime,
+                lockHash
+            )
+        );
+    }
+
+    /**
+    * @dev Retrieve hold hash, and ID for given parameters
+    */
+    function retrieveHoldHashId(address notary, address sender, address recipient, uint value) public view returns (bytes32, bytes32) {
+        // Pack and hash hold parameters
+        bytes32 holdHash = keccak256(abi.encodePacked(
+            address(this), //Include the token address to indicate domain
+            sender,
+            recipient,
+            notary,
+            value
+        ));
+        bytes32 holdId = _holdHashToId[holdHash];
+
+        return (holdHash, holdId);
+    }  
+
     /**
      @notice Called by the sender to hold some tokens for a recipient that the sender can not release back to themself until after the expiration date.
      @param recipient optional account the tokens will be transferred to on execution. If a zero address, the recipient must be specified on execution of the hold.
@@ -46,12 +84,13 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
      @return holdId a unique identifier for the hold.
      */
     function hold(
+        bytes32 holdId,
         address recipient,
         address notary,
         uint256 amount,
         uint256 expirationDateTime,
         bytes32 lockHash
-    ) public override returns (bytes32 holdId) {
+    ) public override returns (bool) {
         require(
             notary != address(0),
             "hold: notary must not be a zero address"
@@ -61,15 +100,16 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
             this.balanceOf(msg.sender) >= amount,
             "hold: amount exceeds available balance"
         );
-        holdId = keccak256(
-            abi.encodePacked(
-                recipient,
-                notary,
-                amount,
-                expirationDateTime,
-                lockHash
-            )
+
+        (bytes32 holdHash,) = retrieveHoldHashId(
+            notary,
+            _msgSender(),
+            recipient,
+            amount
         );
+
+        _holdHashToId[holdHash] = holdId;
+
         require(
             holds[holdId].status == HoldStatusCode.Nonexistent,
             "hold: id already exists"
@@ -191,6 +231,15 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
         );
         totalSupplyOnHold = totalSupplyOnHold.sub(holds[holdId].amount);
 
+        (bytes32 holdHash,) = retrieveHoldHashId(
+            holds[holdId].notary,
+            holds[holdId].sender,
+            holds[holdId].recipient,
+            holds[holdId].amount
+        );
+
+        delete _holdHashToId[holdHash];
+
         emit ExecutedHold(holdId, lockPreimage, recipient);
     }
 
@@ -225,14 +274,15 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
      @param account owner of the tokensß
      */
     function balanceOf(address account) public override(ERC20, IERC20) view returns (uint256) {
-        return super.balanceOf(account).sub(accountHoldBalances[account]);
+        return super.balanceOf(account);
+        
     }
 
     /**
      @notice Amount of tokens owned by an account that are held pending execution or release.
      @param account owner of the tokens
      */
-    function holdBalanceOf(address account) public override view returns (uint256) {
+    function balanceOnHold(address account) public override view returns (uint256) {
         return accountHoldBalances[account];
     }
 
@@ -240,8 +290,8 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
      @notice Total amount of tokens owned by an account including all the held tokens pending execution or release.
      @param account owner of the tokens
      */
-    function grossBalanceOf(address account) public override view returns (uint256) {
-        return super.balanceOf(account);
+    function spendableBalanceOf(address account) public override view returns (uint256) {
+        return super.balanceOf(account).sub(accountHoldBalances[account]);
     }
 
     /**
