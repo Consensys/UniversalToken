@@ -343,7 +343,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    * @dev Create a new trade request in the DVP smart contract.
    * @param inputData The input for this function
    */
-  function requestTrade(TradeRequestInput calldata inputData)
+  function requestTrade(TradeRequestInput calldata inputData, bytes32 preimage)
     external
     payable
   {
@@ -364,7 +364,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     );
 
     if(msg.sender == inputData.holder1 || msg.sender == inputData.holder2) {
-      _acceptTrade(_index, msg.sender, msg.value, 0, 0);
+      _acceptTrade(_index, msg.sender, msg.value, 0, preimage);
     }
   }
 
@@ -505,7 +505,15 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     }
 
     
-    if (trade.executer == address(0) && trade.userTradeData1.tradeType == TradeType.Hold && trade.userTradeData2.tradeType == TradeType.Hold && getTradeApprovalStatus(index)) {
+    bool settlementDatePassed = block.timestamp >= trade.settlementDate;
+    bool tradeApproved = getTradeApprovalStatus(index);
+    //Execute both holds of a trade if the following conditions are met
+    //* There is no executer set. Only the executer should execute transactions if one is defined
+    //* Both trade types are holds
+    //* The trade is approved. Token controllers must pre-approve this trade. This is also true if the token has no token controllers
+    //* If both holds exist according to _holdExists
+    //* If the current block timestamp is after the settlement date
+    if (settlementDatePassed && trade.executer == address(0) && trade.userTradeData1.tradeType == TradeType.Hold && trade.userTradeData2.tradeType == TradeType.Hold && tradeApproved) {
       //we know selectedUserTradeData has a hold that exists, so check the other one
       UserTradeData memory otherUserTradeData = (selectedHolder == trade.holder1) ? trade.userTradeData2 : trade.userTradeData1;
       if (_holdExists(recipientHolder, sender, otherUserTradeData)) {
@@ -517,7 +525,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     }
 
     if(
-      trade.executer == address(0) && getTradeAcceptanceStatus(index) && getTradeApprovalStatus(index) && block.timestamp >= trade.settlementDate) {
+      trade.executer == address(0) && getTradeAcceptanceStatus(index) && tradeApproved && settlementDatePassed) {
       _executeTrade(index, preimage);
     }
   }
@@ -856,15 +864,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     if (tokenStandard == Standard.ERC20) {
       require(token != address(0), "token can not be a zero address");
 
-      if (tokenRecipient == address(0)) {
-          IERC20HoldableToken(token).executeHold(tokenHoldId, preimage);
-      } else {
-          IERC20HoldableToken(token).executeHold(
-              tokenHoldId,
-              preimage,
-              tokenRecipient
-          );
-      }
+      IERC20HoldableToken(token).executeHold(tokenHoldId, preimage);
     } else if (tokenStandard == Standard.ERC1400) {
       require(token != address(0), "token can not be a zero address");
 
@@ -911,11 +911,13 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
       address holdSender;
       address holdRecipient;
       uint256 holdValue;
-      (,holdSender,holdRecipient,,holdValue,,,,holdStatus) = IHoldableERC1400TokenExtension(tokenExtension).retrieveHoldData(tokenAddress, holdId);
-      return holdStatus == HoldStatusCode.Ordered && holdValue == userTradeData.tokenValue && holdSender == sender && holdRecipient == recipient;
+      address notary;
+      bytes32 secretHash;
+      (,holdSender,holdRecipient,notary,holdValue,,secretHash,,holdStatus) = IHoldableERC1400TokenExtension(tokenExtension).retrieveHoldData(tokenAddress, holdId);
+      return holdStatus == HoldStatusCode.Ordered && holdValue == userTradeData.tokenValue && holdSender == sender && holdRecipient == recipient && (secretHash != bytes32(0) || notary == address(this));
     } else if (tokenStandard == Standard.ERC20) {
       ERC20HoldData memory data = IERC20HoldableToken(tokenAddress).retrieveHoldData(holdId);
-      return data.sender == sender && data.recipient == recipient && data.amount == userTradeData.tokenValue && data.status == HoldStatusCode.Ordered;
+      return data.sender == sender && data.recipient == recipient && data.amount == userTradeData.tokenValue && data.status == HoldStatusCode.Ordered && (data.secretHash != bytes32(0) || data.notary == address(this));
     } else {
       revert("Invalid tokenStandard provided");
     }
