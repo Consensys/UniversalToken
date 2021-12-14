@@ -307,7 +307,7 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
      */
     function transfer(address recipient, uint256 amount) public override(ERC20, IERC20) returns (bool) {
         require(
-            this.balanceOf(msg.sender) >= amount,
+            this.spendableBalanceOf(msg.sender) >= amount,
             "HoldableToken: amount exceeds available balance"
         );
         return super.transfer(recipient, amount);
@@ -322,7 +322,7 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
         uint256 amount
     ) public override(ERC20, IERC20) returns (bool) {
         require(
-            this.balanceOf(sender) >= amount,
+            this.spendableBalanceOf(sender) >= amount,
             "HoldableToken: amount exceeds available balance"
         );
         return super.transferFrom(sender, recipient, amount);
@@ -333,7 +333,7 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
      */
     function approve(address spender, uint256 amount) public override(ERC20, IERC20) returns (bool) {
         require(
-            this.balanceOf(msg.sender) >= amount,
+            this.spendableBalanceOf(msg.sender) >= amount,
             "HoldableToken: amount exceeds available balance"
         );
         return super.approve(spender, amount);
@@ -344,7 +344,7 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
      */
     function burn(uint256 amount) public override {
         require(
-            this.balanceOf(msg.sender) >= amount,
+            this.spendableBalanceOf(msg.sender) >= amount,
             "HoldableToken: amount exceeds available balance"
         );
         super.burn(amount);
@@ -355,7 +355,7 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
      */
     function burnFrom(address account, uint256 amount) public override {
         require(
-            this.balanceOf(msg.sender) >= amount,
+            this.spendableBalanceOf(msg.sender) >= amount,
             "HoldableToken: amount exceeds available balance"
         );
         super.burnFrom(account, amount);
