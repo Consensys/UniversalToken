@@ -347,20 +347,14 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     external
     payable
   {
-    //TODO Add support for single transaction trade via two holds
-
-    // Token data: < 1: address > < 2: amount > < 3: id/partition > < 4: standard > < 5: accepted > < 6: approved >
-    UserTradeData memory _userTradeData1 = UserTradeData(inputData.tokenAddress1, inputData.tokenValue1, inputData.tokenId1, inputData.tokenStandard1, false, false, inputData.tradeType1);
-    UserTradeData memory _userTradeData2 = UserTradeData(inputData.tokenAddress2, inputData.tokenValue2, inputData.tokenId2, inputData.tokenStandard2, false, false, inputData.tradeType2);
-
     _requestTrade(
       inputData.holder1,
       inputData.holder2,
       inputData.executer,
       inputData.expirationDate,
       inputData.settlementDate,
-      _userTradeData1,
-      _userTradeData2
+      UserTradeData(inputData.tokenAddress1, inputData.tokenValue1, inputData.tokenId1, inputData.tokenStandard1, false, false, inputData.tradeType1),
+      UserTradeData(inputData.tokenAddress2, inputData.tokenValue2, inputData.tokenId2, inputData.tokenStandard2, false, false, inputData.tradeType2)
     );
 
     if(msg.sender == inputData.holder1 || msg.sender == inputData.holder2) {
@@ -426,26 +420,13 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
       userTradeData2: userTradeData2,
       state: State.Pending
     });
-
-    //Cannot add single transaction trade with two holds
-    //To check if this is possible, the following line would be required
-    //however, adding the following line to this contract causes it to be too large to deploy onchain
-    //bool test = userTradeData1.tradeType == TradeType.Hold && userTradeData2.tradeType == TradeType.Hold && _holdExists(holder1, holder2, userTradeData1) && _holdExists(holder2, holder1, userTradeData2);
   }
 
   /**
    * @dev Accept a given trade (+ potentially escrow tokens).
    * @param index Index of the trade to be accepted.
    */
-  function acceptTrade(uint256 index) external payable {
-    _acceptTrade(index, msg.sender, msg.value, 0, 0);
-  }
-
-  /**
-   * @dev Accept a given trade (+ potentially escrow tokens).
-   * @param index Index of the trade to be accepted.
-   */
-  function acceptTradeWithPreimage(uint256 index, bytes32 preimage) external payable {
+  function acceptTrade(uint256 index, bytes32 preimage) external payable {
     _acceptTrade(index, msg.sender, msg.value, 0, preimage);
   }
 
