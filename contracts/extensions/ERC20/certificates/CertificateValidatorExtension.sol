@@ -7,6 +7,9 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {CertificateLib, CertificateValidationType} from "./CertificateLib.sol";
 
 contract CertificateValidatorExtension is ERC20Extension, ICertificateValidator {
+    
+    bytes32 constant CERTIFICATE_SIGNER_ROLE = keccak256("certificates.roles.certificatesigner");
+
     constructor() {
         _registerFunction(CertificateValidatorExtension.addCertificateSigner.selector);
         _registerFunction(CertificateValidatorExtension.removeCertificateSigner.selector);
@@ -20,20 +23,25 @@ contract CertificateValidatorExtension is ERC20Extension, ICertificateValidator 
         _supportInterface(type(ICertificateValidator).interfaceId);
     }
 
+    modifier onlyCertificateSigner {
+        require(hasRole(_msgSender(), CERTIFICATE_SIGNER_ROLE), "Only certificate signers");
+        _;
+    }
+
     function initalize() external override {
-        CertificateLib.addCertificateSigner(msg.sender);
+        _addRole(_msgSender(), CERTIFICATE_SIGNER_ROLE);
     }
 
     function isCertificateSigner(address account) external override view returns (bool) {
-        return CertificateLib.isCertificateSigner(account);
+        return hasRole(account, CERTIFICATE_SIGNER_ROLE);
     }
     
     function addCertificateSigner(address account) external override onlyCertificateSigner {
-        CertificateLib.addCertificateSigner(account);
+        _addRole(account, CERTIFICATE_SIGNER_ROLE);
     }
 
     function removeCertificateSigner(address account) external override onlyCertificateSigner {
-        CertificateLib.removeCertificateSigner(account);
+        _removeRole(account, CERTIFICATE_SIGNER_ROLE);
     }
 
     function usedCertificateNonce(address sender) external override view returns (uint256) {

@@ -17,20 +17,4 @@ interface IPausable {
     function removePauser(address account) external;
 
     function renouncePauser() external;
-
-         /**
-     * @dev Modifier to make a function callable only when the contract is not paused.
-     */
-    modifier whenNotPaused() {
-        require(!this.isPaused(), "Token must not be paused");
-        _;
-    }
-
-    /**
-     * @dev Modifier to make a function callable only when the contract is paused.
-     */
-    modifier whenPaused() {
-        require(this.isPaused(), "Token must be paused");
-        _;
-    }
 }

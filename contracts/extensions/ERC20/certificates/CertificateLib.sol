@@ -15,8 +15,8 @@ library CertificateLib {
 
     using Roles for Roles.Role;
 
-    bytes32 constant CERTIFICATE_SIGNER_ROLE = keccak256("certificates.roles.certificatesigner");
     bytes32 constant CERTIFICATE_DATA_SLOT = keccak256("certificates.data");
+    bytes32 constant CERTIFICATE_SIGNER_ROLE = keccak256("certificates.roles.certificatesigner");
 
     struct CertificateData {
         // Mapping from (token, certificateNonce) to "used" status to ensure a certificate can be used only once
@@ -37,14 +37,6 @@ library CertificateLib {
 
     function isCertificateSigner(address account) internal view returns (bool) {
         return Roles.roleStorage(CERTIFICATE_SIGNER_ROLE).has(account);
-    }
-    
-    function addCertificateSigner(address account) internal {
-        Roles.roleStorage(CERTIFICATE_SIGNER_ROLE).add(account);
-    }
-
-    function removeCertificateSigner(address account) internal {
-        Roles.roleStorage(CERTIFICATE_SIGNER_ROLE).remove(account);
     }
 
     function usedCertificateNonce(address sender) internal view returns (uint256) {

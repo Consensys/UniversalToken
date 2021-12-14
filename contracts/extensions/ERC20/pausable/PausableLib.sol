@@ -6,7 +6,6 @@ library PausableLib {
     using Roles for Roles.Role;
 
     bytes32 constant PAUSE_DATA_SLOT = keccak256("pausable.pausedata");
-    bytes32 constant PAUSER_ROLE = keccak256("pausable.roles.pausers");
 
     struct PauseData {
         bool isPaused;
@@ -26,18 +25,6 @@ library PausableLib {
 
     function isPausedFor(address caller) internal view returns (bool) {
         return isPaused() || pauseData().pausedFor[caller];
-    }
-
-    function isPauser(address caller) internal view returns (bool) {
-        return Roles.roleStorage(PAUSER_ROLE).has(caller);
-    }
-
-    function addPauser(address caller) internal {
-        Roles.roleStorage(PAUSER_ROLE).add(caller);
-    }
-
-    function removePauser(address caller) internal {
-        Roles.roleStorage(PAUSER_ROLE).remove(caller);
     }
 
     function pause() internal {

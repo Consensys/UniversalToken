@@ -5,10 +5,9 @@ import {Roles} from "../../roles/Roles.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC20Core} from "../../tokens/ERC20/implementation/core/IERC20Core.sol";
+import {ERC20ProxyStorage} from "../../tokens/ERC20/storage/ERC20ProxyStorage.sol";
 
-abstract contract ERC20Extension is IERC20Extension {
-    bytes32 constant ERC20_CORE_ADDRESS = keccak256("erc20.proxy.core.address");
-
+abstract contract ERC20Extension is IERC20Extension, ERC20ProxyStorage {
     //Should only be modified inside the constructor
     bytes4[] private _exposedFuncSigs;
     mapping(bytes4 => bool) private _interfaceMap;

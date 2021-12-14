@@ -3,7 +3,9 @@ pragma solidity ^0.8.0;
 import {ERC20Proxy} from "./ERC20Proxy.sol";
 import {IERC20Core} from "../implementation/core/IERC20Core.sol";
 
-contract ERC20DelegateProxy is ERC20Proxy {
+abstract contract ERC20DelegateProxy is ERC20Proxy {
+
+    constructor(bool allowMint, bool allowBurn, address owner) ERC20Proxy(allowMint, allowBurn, owner) { }
 
     function _invokeCore(bytes memory _calldata) internal returns (bytes memory) {
         address erc20Core = address(_getImplementationContract());
@@ -46,5 +48,9 @@ contract ERC20DelegateProxy is ERC20Proxy {
 
     function _executeBurn(address caller, address receipient, uint256 amount) internal override returns (bool) {
         return _invokeCore(abi.encodeWithSelector(IERC20Core.burn.selector, caller, receipient, amount))[0] == 0x01;
+    }
+
+    function _executeBurnFrom(address caller, address receipient, uint256 amount) internal override returns (bool) {
+        return _invokeCore(abi.encodeWithSelector(IERC20Core.burnFrom.selector, caller, receipient, amount))[0] == 0x01;
     }
 }

@@ -204,6 +204,17 @@ contract ERC20Core is IERC20Core {
         return true;
     }
 
+    function burnFrom(address caller, address account, uint256 amount) external override returns (bool) {
+        uint256 currentAllowance = _allowance(account, caller);
+        require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
+        unchecked {
+            _approve(caller, account, caller, currentAllowance - amount);
+        }
+        _burn(caller, account, amount);
+
+        return true;
+    }
+
     /**
      * @dev Moves `amount` of tokens from `sender` to `recipient`.
      *

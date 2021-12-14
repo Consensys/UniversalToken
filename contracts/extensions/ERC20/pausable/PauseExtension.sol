@@ -8,6 +8,8 @@ import {PausableLib} from "./PausableLib.sol";
 
 contract PauseExtension is ERC20Extension, IPausable {
 
+    bytes32 constant PAUSER_ROLE = keccak256("pausable.roles.pausers");
+
     constructor() {
         _registerFunction(PauseExtension.addPauser.selector);
         _registerFunction(PauseExtension.removePauser.selector);
@@ -17,9 +19,25 @@ contract PauseExtension is ERC20Extension, IPausable {
         _registerFunctionName('isPaused()');
         _supportInterface(type(IPausable).interfaceId);
     }
+    
+    /**
+     * @dev Modifier to make a function callable only when the contract is not paused.
+     */
+    modifier whenNotPaused() {
+        require(!this.isPaused(), "Token must not be paused");
+        _;
+    }
+
+    /**
+     * @dev Modifier to make a function callable only when the contract is paused.
+     */
+    modifier whenPaused() {
+        require(this.isPaused(), "Token must be paused");
+        _;
+    }
 
     modifier onlyPauser() {
-        require(PausableLib.isPauser(msg.sender), "Only pausers can use this function");
+        require(hasRole(_msgSender(), PAUSER_ROLE), "Only pausers can use this function");
         _;
     }
 
@@ -28,7 +46,7 @@ contract PauseExtension is ERC20Extension, IPausable {
     }
 
     function initalize() external override {
-        PausableLib.addPauser(msg.sender);
+        _addRole(_msgSender(), PAUSER_ROLE);
     }
 
     function pause() external override onlyPauser whenNotPaused {
@@ -54,12 +72,12 @@ contract PauseExtension is ERC20Extension, IPausable {
     }
 
     function _addPauser(address account) internal {
-        PausableLib.addPauser(account);
+        _addRole(account, PAUSER_ROLE);
         emit PauserAdded(account);
     }
 
     function _removePauser(address account) internal {
-        PausableLib.removePauser(account);
+        _removeRole(account, PAUSER_ROLE);
         emit PauserRemoved(account);
     }
 

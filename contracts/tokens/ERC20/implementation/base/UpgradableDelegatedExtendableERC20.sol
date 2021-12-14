@@ -9,7 +9,11 @@ import {Diamond} from "../../extensions/diamond/Diamond.sol";
 
 contract UpgradableDelegatedExtendableERC20 is ERC20DelegateProxy, Diamond {
     
-    constructor(string memory name_, string memory symbol_, address core_implementation_) ERC20DelegateProxy() Diamond(msg.sender) {
+    constructor(
+        string memory name_, string memory symbol_, 
+        address core_implementation_, bool allowMint, 
+        bool allowBurn, address owner
+    ) ERC20DelegateProxy(allowMint, allowBurn, owner) Diamond(_msgSender()) {
         BaseERC20Storage store = new BaseERC20Storage(name_, symbol_);
         ERC20DelegateCore implementation = ERC20DelegateCore(core_implementation_);
 

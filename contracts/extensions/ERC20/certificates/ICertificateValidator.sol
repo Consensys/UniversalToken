@@ -17,9 +17,4 @@ interface ICertificateValidator {
     function transferWithCertificate(address to, uint256 amount, bytes memory certificate) external;
 
     function transferFromWithCertificate(address from, address to, uint256 amount, bytes memory certificate) external;
-
-    modifier onlyCertificateSigner {
-        require(this.isCertificateSigner(msg.sender), "Only certificate signers");
-        _;
-    }
 }

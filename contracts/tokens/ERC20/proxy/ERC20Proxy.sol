@@ -9,10 +9,17 @@ import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IER
 import {ERC20ProxyStorage} from "../storage/ERC20ProxyStorage.sol";
 import {DomainAware} from "../../../tools/DomainAware.sol";
 
-contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware {
+abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware {
 
-    constructor() {
+    constructor(bool allowMint, bool allowBurn, address owner) {
         StorageSlot.getAddressSlot(ERC20_MANAGER_ADDRESS).value = msg.sender;
+
+        if (owner != _msgSender()) {
+            transferOwnership(owner);
+        }
+
+        _toggleMinting(allowMint);
+        _toggleBurning(allowBurn);
     }
 
     function _getStorageContract() internal view returns (IERC20Storage) {
@@ -60,6 +67,57 @@ contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware {
      */
     function decimals() public override view returns (uint8) {
         return _getStorageContract().decimals();
+    }
+
+    /**
+     * @dev Creates `amount` new tokens for `to`.
+     *
+     * See {ERC20-_mint}.
+     *
+     * Requirements:
+     *
+     * - the caller must have the `MINTER_ROLE`.
+     */
+    function mint(address to, uint256 amount) public virtual onlyMinter mintingEnabled returns (bool) {
+        bool result = _executeMint(_msgSender(), to, amount);
+        if (result) {
+            emit Transfer(address(0), to, amount);
+        }
+        return result;
+    }
+
+        /**
+     * @dev Destroys `amount` tokens from the caller.
+     *
+     * See {ERC20-_burn}.
+     */
+    function burn(uint256 amount) public virtual burningEnabled returns (bool) {
+        address to = _msgSender();
+        bool result = _executeBurn(to, to, amount);
+        if (result) {
+            emit Transfer(to, address(0), amount);
+        }
+        return result;
+    }
+
+    /**
+     * @dev Destroys `amount` tokens from `account`, deducting from the caller's
+     * allowance.
+     *
+     * See {ERC20-_burn} and {ERC20-allowance}.
+     *
+     * Requirements:
+     *
+     * - the caller must have allowance for ``accounts``'s tokens of at least
+     * `amount`.
+     */
+    function burnFrom(address account, uint256 amount) public virtual burningEnabled returns (bool) {
+        address caller = _msgSender();
+        bool result = _executeBurn(caller, account, amount);
+        if (result) {
+            emit Transfer(account, address(0), amount);
+        }
+        return result;
     }
 
     /**
@@ -184,6 +242,10 @@ contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware {
 
     function _executeBurn(address caller, address receipient, uint256 amount) internal virtual returns (bool) {
         return _getImplementationContract().burn(caller, receipient, amount);
+    }
+
+    function _executeBurnFrom(address caller, address receipient, uint256 amount) internal virtual returns (bool) {
+        return _getImplementationContract().burnFrom(caller, receipient, amount);
     }
 
     function _executeDecreaseAllowance(address caller, address spender, uint256 subtractedValue) internal virtual returns (bool) {

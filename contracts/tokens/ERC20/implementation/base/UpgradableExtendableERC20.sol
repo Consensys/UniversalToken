@@ -6,7 +6,10 @@ import {BaseERC20Storage} from "../../storage/BaseERC20Storage.sol";
 
 contract UpgradableERC20 is ERC20Proxy {
     
-    constructor(string memory name_, string memory symbol_) ERC20Proxy() {
+    constructor(
+        string memory name_, string memory symbol_,
+        bool allowMint, bool allowBurn, address owner
+    ) ERC20Proxy(allowMint, allowBurn, owner) {
         BaseERC20Storage store = new BaseERC20Storage(name_, symbol_);
         ERC20CoreExtendable implementation = new ERC20CoreExtendable(address(this), address(store));
 
