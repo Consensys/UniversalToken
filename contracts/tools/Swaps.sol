@@ -895,10 +895,10 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
       address notary;
       bytes32 secretHash;
       (,holdSender,holdRecipient,notary,holdValue,,secretHash,,holdStatus) = IHoldableERC1400TokenExtension(tokenExtension).retrieveHoldData(tokenAddress, holdId);
-      return holdStatus == HoldStatusCode.Ordered && holdValue == userTradeData.tokenValue && holdSender == sender && holdRecipient == recipient && (secretHash != bytes32(0) || notary == address(this));
+      return holdStatus == HoldStatusCode.Ordered && holdValue == userTradeData.tokenValue && (holdSender == sender || holdSender == address(0)) && holdRecipient == recipient && (secretHash != bytes32(0) || notary == address(this));
     } else if (tokenStandard == Standard.ERC20) {
       ERC20HoldData memory data = IERC20HoldableToken(tokenAddress).retrieveHoldData(holdId);
-      return data.sender == sender && data.recipient == recipient && data.amount == userTradeData.tokenValue && data.status == HoldStatusCode.Ordered && (data.secretHash != bytes32(0) || data.notary == address(this));
+      return (data.sender == sender || data.sender == address(0)) && data.recipient == recipient && data.amount == userTradeData.tokenValue && data.status == HoldStatusCode.Ordered && (data.secretHash != bytes32(0) || data.notary == address(this));
     } else {
       revert("Invalid tokenStandard provided");
     }
