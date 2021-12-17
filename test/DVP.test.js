@@ -819,7 +819,8 @@ const createTradeRequest = async (
     tradeType,
     tokenAmount1,
     tokenAmount2,
-    0
+    0,
+    ZERO_BYTES32
   )
 }
 
@@ -838,7 +839,8 @@ const fullCreateTradeRequest = async (
   tradeType2,
   tokenAmount1,
   tokenAmount2,
-  settlementDate
+  settlementDate,
+  preimage
 ) => {
   const tokenAmount =
     requester === holder1
@@ -917,6 +919,7 @@ const fullCreateTradeRequest = async (
 
   await dvp.requestTrade(
     tradeInputData,
+    preimage,
     { from: requester, value: tokenStandard === ETHSTANDARD ? tokenAmount : 0 }
   );
 
@@ -1059,6 +1062,28 @@ const acceptTradeRequest = async (
   newTradeState,
   acceptedTrade
 ) => {
+  await acceptTradeRequestWithPreimage(
+    dvp,
+    token1,
+    token2,
+    tradeIndex,
+    requester,
+    newTradeState,
+    acceptedTrade,
+    ZERO_BYTES32
+  ) 
+};
+
+const acceptTradeRequestWithPreimage = async (
+  dvp,
+  token1,
+  token2,
+  tradeIndex,
+  requester,
+  newTradeState,
+  acceptedTrade,
+  preimage
+) => {
   const trade = await dvp.getTrade(tradeIndex);
   const holder1 = trade.holder1;
   const holder2 = trade.holder2;
@@ -1088,7 +1113,7 @@ const acceptTradeRequest = async (
 
   await assertGlobalBalancesAreCorrect(dvp, token1, token2, tradeIndex);
 
-  await dvp.acceptTrade(tradeIndex, {
+  await dvp.acceptTrade(tradeIndex, preimage, {
     from: requester,
     value: tokenStandard === ETHSTANDARD ? tokenAmount : 0,
   });
@@ -2311,6 +2336,7 @@ contract("DVP", function ([
                   await expectRevert.unspecified(
                     this.dvp.requestTrade(
                       tradeInputData,
+                      ZERO_BYTES32,
                       { from: unknown }
                     )
                   );
@@ -2672,7 +2698,7 @@ contract("DVP", function ([
                 token2Amount
               );
               await expectRevert.unspecified(
-                this.dvp.acceptTrade(1, {
+                this.dvp.acceptTrade(1, ZERO_BYTES32, {
                   from: recipient1,
                   value: token2Amount - 1,
                 })
@@ -2759,7 +2785,7 @@ contract("DVP", function ([
                 { from: recipient1 }
               );
               await expectRevert.unspecified(
-                this.dvp.acceptTrade(1, { from: recipient1 })
+                this.dvp.acceptTrade(1, ZERO_BYTES32, { from: recipient1 })
               );
             });
           });
@@ -3062,7 +3088,7 @@ contract("DVP", function ([
             from: recipient1,
           });
           await expectRevert.unspecified(
-            this.dvp.acceptTrade(999, { from: recipient1 })
+            this.dvp.acceptTrade(999, ZERO_BYTES32, { from: recipient1 })
           );
         });
       });
@@ -3089,9 +3115,9 @@ contract("DVP", function ([
           await this.token2.approve(this.dvp.address, token2Amount, {
             from: recipient1,
           });
-          await this.dvp.acceptTrade(1, { from: recipient1 });
+          await this.dvp.acceptTrade(1, ZERO_BYTES32, { from: recipient1 });
           await expectRevert.unspecified(
-            this.dvp.acceptTrade(1, { from: recipient1 })
+            this.dvp.acceptTrade(1, ZERO_BYTES32, { from: recipient1 })
           );
         });
       });
@@ -4098,13 +4124,14 @@ contract("DVP", function ([
                 }
                 await this.dvp.requestTrade(
                   tradeInputData,
+                  ZERO_BYTES32,
                   { from: tokenHolder1 }
                 );
 
                 await this.token2.approve(this.dvp.address, token2Amount, {
                   from: recipient1,
                 });
-                await this.dvp.acceptTrade(1, { from: recipient1 });
+                await this.dvp.acceptTrade(1, ZERO_BYTES32, { from: recipient1 });
               });
             });
           });

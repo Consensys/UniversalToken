@@ -97,7 +97,7 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
         );
         require(amount != 0, "hold: amount must be greater than zero");
         require(
-            this.balanceOf(msg.sender) >= amount,
+            this.spendableBalanceOf(msg.sender) >= amount,
             "hold: amount exceeds available balance"
         );
 

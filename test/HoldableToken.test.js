@@ -1,4 +1,5 @@
 const { assert } = require("chai");
+const { web3 } = require("@openzeppelin/test-helpers/src/setup");
 const {
   nowSeconds,
   advanceTime,
@@ -41,20 +42,21 @@ contract(
       });
       it("Mint 1000 tokens to holder", async () => {
         assert.equal(await this.token.totalSupply(), 0);
-        assert.equal(await this.token.balanceOf(holder), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 0);
         const result = await this.token.mint(holder, 1000, { from: deployer });
         assert.equal(result.receipt.status, 1);
-        assert.equal(await this.token.balanceOf(deployer), 0);
-        assert.equal(await this.token.balanceOf(holder), 1000);
-        assert.equal(await this.token.balanceOf(sender), 0);
-        assert.equal(await this.token.balanceOf(recipient), 0);
-        assert.equal(await this.token.balanceOf(recipient2), 0);
-        assert.equal(await this.token.balanceOf(notary), 0);
+        assert.equal(await this.token.spendableBalanceOf(deployer), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 1000);
+        assert.equal(await this.token.spendableBalanceOf(sender), 0);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+        assert.equal(await this.token.spendableBalanceOf(recipient2), 0);
+        assert.equal(await this.token.spendableBalanceOf(notary), 0);
         assert.equal(await this.token.totalSupply(), 1000);
       });
       it("Failed hold from notary with zero address", async () => {
         try {
           await this.token.hold(
+            web3.utils.randomHex(32),
             recipient2,
             ZERO_ADDRESS,
             900,
@@ -66,14 +68,15 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /notary must not be a zero address/);
+          assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+          assert.equal(await this.token.balanceOnHold(recipient), 0);
           assert.equal(await this.token.balanceOf(recipient), 0);
-          assert.equal(await this.token.holdBalanceOf(recipient), 0);
-          assert.equal(await this.token.grossBalanceOf(recipient), 0);
         }
       });
       it("Failed hold from a zero amount", async () => {
         try {
           await this.token.hold(
+            web3.utils.randomHex(32),
             recipient2,
             notary,
             0,
@@ -85,14 +88,15 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /amount must be greater than zero/);
+          assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+          assert.equal(await this.token.balanceOnHold(recipient), 0);
           assert.equal(await this.token.balanceOf(recipient), 0);
-          assert.equal(await this.token.holdBalanceOf(recipient), 0);
-          assert.equal(await this.token.grossBalanceOf(recipient), 0);
         }
       });
       it("Recipient can not hold as they have no tokens", async () => {
         try {
           await this.token.hold(
+            web3.utils.randomHex(32),
             recipient2,
             notary,
             900,
@@ -104,14 +108,15 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /amount exceeds available balance/);
+          assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+          assert.equal(await this.token.balanceOnHold(recipient), 0);
           assert.equal(await this.token.balanceOf(recipient), 0);
-          assert.equal(await this.token.holdBalanceOf(recipient), 0);
-          assert.equal(await this.token.grossBalanceOf(recipient), 0);
         }
       });
       it("Holder can not hold more than what they own", async () => {
         try {
           await this.token.hold(
+            web3.utils.randomHex(32),
             recipient,
             notary,
             1001,
@@ -123,13 +128,15 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /amount exceeds available balance/);
+          assert.equal(await this.token.spendableBalanceOf(holder), 1000);
+          assert.equal(await this.token.balanceOnHold(holder), 0);
           assert.equal(await this.token.balanceOf(holder), 1000);
-          assert.equal(await this.token.holdBalanceOf(holder), 0);
-          assert.equal(await this.token.grossBalanceOf(holder), 1000);
         }
       });
       it("Holder holds 900 tokens for the recipient with a lock hash", async () => {
+        holdId = web3.utils.randomHex(32);
         const result = await this.token.hold(
+          holdId,
           recipient,
           notary,
           900,
@@ -139,24 +146,23 @@ contract(
         );
         assert.equal(result.receipt.status, 1);
         assert.lengthOf(result.receipt.logs, 1);
-        holdId = result.receipt.logs[0].args.holdId;
         assert.match(holdId, bytes32);
         assert.equal(await this.token.holdStatus(holdId), HoldStatusCode.Held);
-        assert.equal(await this.token.balanceOf(deployer), 0);
-        assert.equal(await this.token.balanceOf(holder), 100);
-        assert.equal(await this.token.balanceOf(sender), 0);
-        assert.equal(await this.token.balanceOf(recipient), 0);
-        assert.equal(await this.token.balanceOf(recipient2), 0);
-        assert.equal(await this.token.balanceOf(notary), 0);
+        assert.equal(await this.token.spendableBalanceOf(deployer), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 100);
+        assert.equal(await this.token.spendableBalanceOf(sender), 0);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+        assert.equal(await this.token.spendableBalanceOf(recipient2), 0);
+        assert.equal(await this.token.spendableBalanceOf(notary), 0);
 
-        assert.equal(await this.token.holdBalanceOf(deployer), 0);
-        assert.equal(await this.token.holdBalanceOf(holder), 900);
-        assert.equal(await this.token.holdBalanceOf(sender), 0);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.holdBalanceOf(recipient2), 0);
-        assert.equal(await this.token.holdBalanceOf(notary), 0);
+        assert.equal(await this.token.balanceOnHold(deployer), 0);
+        assert.equal(await this.token.balanceOnHold(holder), 900);
+        assert.equal(await this.token.balanceOnHold(sender), 0);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
+        assert.equal(await this.token.balanceOnHold(recipient2), 0);
+        assert.equal(await this.token.balanceOnHold(notary), 0);
 
-        assert.equal(await this.token.grossBalanceOf(holder), 1000);
+        assert.equal(await this.token.balanceOf(holder), 1000);
 
         assert.equal(await this.token.totalSupply(), 1000);
       });
@@ -170,9 +176,9 @@ contract(
             err.message,
             /can only release after the expiration date/
           );
-          assert.equal(await this.token.balanceOf(holder), 100);
-          assert.equal(await this.token.holdBalanceOf(holder), 900);
-          assert.equal(await this.token.grossBalanceOf(holder), 1000);
+          assert.equal(await this.token.spendableBalanceOf(holder), 100);
+          assert.equal(await this.token.balanceOnHold(holder), 900);
+          assert.equal(await this.token.balanceOf(holder), 1000);
         }
       });
       it("Recipient can not execute the hold", async () => {
@@ -184,9 +190,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /caller must be the hold notary/);
-          assert.equal(await this.token.balanceOf(holder), 100);
-          assert.equal(await this.token.holdBalanceOf(holder), 900);
-          assert.equal(await this.token.grossBalanceOf(holder), 1000);
+          assert.equal(await this.token.spendableBalanceOf(holder), 100);
+          assert.equal(await this.token.balanceOnHold(holder), 900);
+          assert.equal(await this.token.balanceOf(holder), 1000);
         }
       });
       it("Notary can not execute hold with the wrong lock hash", async () => {
@@ -199,9 +205,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /preimage hash does not match lock hash/);
-          assert.equal(await this.token.balanceOf(holder), 100);
-          assert.equal(await this.token.holdBalanceOf(holder), 900);
-          assert.equal(await this.token.grossBalanceOf(holder), 1000);
+          assert.equal(await this.token.spendableBalanceOf(holder), 100);
+          assert.equal(await this.token.balanceOnHold(holder), 900);
+          assert.equal(await this.token.balanceOf(holder), 1000);
         }
       });
       it("Notary can not execute hold with the wrong execute function", async () => {
@@ -213,9 +219,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /can not set a recipient on execution as it was set on hold/);
-          assert.equal(await this.token.balanceOf(holder), 100);
-          assert.equal(await this.token.holdBalanceOf(holder), 900);
-          assert.equal(await this.token.grossBalanceOf(holder), 1000);
+          assert.equal(await this.token.spendableBalanceOf(holder), 100);
+          assert.equal(await this.token.balanceOnHold(holder), 900);
+          assert.equal(await this.token.balanceOf(holder), 1000);
         }
       });
       it("Recipient can not release the hold", async () => {
@@ -225,14 +231,15 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /caller must be the hold sender or notary/);
-          assert.equal(await this.token.balanceOf(holder), 100);
-          assert.equal(await this.token.holdBalanceOf(holder), 900);
-          assert.equal(await this.token.grossBalanceOf(holder), 1000);
+          assert.equal(await this.token.spendableBalanceOf(holder), 100);
+          assert.equal(await this.token.balanceOnHold(holder), 900);
+          assert.equal(await this.token.balanceOf(holder), 1000);
         }
       });
       it("Holder can not transfer 200 tokens with only 100 available and 900 on hold", async () => {
         try {
           await this.token.hold(
+            web3.utils.randomHex(32),
             recipient,
             notary,
             900,
@@ -244,9 +251,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /amount exceeds available balance/);
-          assert.equal(await this.token.balanceOf(holder), 100);
-          assert.equal(await this.token.holdBalanceOf(holder), 900);
-          assert.equal(await this.token.grossBalanceOf(holder), 1000);
+          assert.equal(await this.token.spendableBalanceOf(holder), 100);
+          assert.equal(await this.token.balanceOnHold(holder), 900);
+          assert.equal(await this.token.balanceOf(holder), 1000);
         }
       });
       it("Holder can not approve 200 tokens for recipient2 to spend with only 100 available and 900 on hold", async () => {
@@ -257,9 +264,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /amount exceeds available balance/);
-          assert.equal(await this.token.balanceOf(holder), 100);
-          assert.equal(await this.token.holdBalanceOf(holder), 900);
-          assert.equal(await this.token.grossBalanceOf(holder), 1000);
+          assert.equal(await this.token.spendableBalanceOf(holder), 100);
+          assert.equal(await this.token.balanceOnHold(holder), 900);
+          assert.equal(await this.token.balanceOf(holder), 1000);
           assert.equal(await this.token.allowance(holder, recipient2), 0);
         }
       });
@@ -270,9 +277,9 @@ contract(
         });
         assert.equal(result.receipt.status, 1);
         assert.equal(await this.token.allowance(holder, recipient2), 30);
-        assert.equal(await this.token.balanceOf(holder), 100);
-        assert.equal(await this.token.holdBalanceOf(holder), 900);
-        assert.equal(await this.token.grossBalanceOf(holder), 1000);
+        assert.equal(await this.token.spendableBalanceOf(holder), 100);
+        assert.equal(await this.token.balanceOnHold(holder), 900);
+        assert.equal(await this.token.balanceOf(holder), 1000);
       });
       it("Holder can transfer 80 tokens with 100 available and 30 approved for spending", async () => {
         const result = await this.token.transfer(recipient2, 80, {
@@ -281,23 +288,23 @@ contract(
         assert.equal(result.receipt.status, 1);
         assert.equal(result.receipt.status, 1);
 
-        assert.equal(await this.token.balanceOf(deployer), 0);
-        assert.equal(await this.token.balanceOf(holder), 20);
-        assert.equal(await this.token.balanceOf(sender), 0);
+        assert.equal(await this.token.spendableBalanceOf(deployer), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 20);
+        assert.equal(await this.token.spendableBalanceOf(sender), 0);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+        assert.equal(await this.token.spendableBalanceOf(recipient2), 80);
+        assert.equal(await this.token.spendableBalanceOf(notary), 0);
+
+        assert.equal(await this.token.balanceOnHold(deployer), 0);
+        assert.equal(await this.token.balanceOnHold(holder), 900);
+        assert.equal(await this.token.balanceOnHold(sender), 0);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
+        assert.equal(await this.token.balanceOnHold(recipient2), 0);
+        assert.equal(await this.token.balanceOnHold(notary), 0);
+
+        assert.equal(await this.token.balanceOf(holder), 920);
         assert.equal(await this.token.balanceOf(recipient), 0);
         assert.equal(await this.token.balanceOf(recipient2), 80);
-        assert.equal(await this.token.balanceOf(notary), 0);
-
-        assert.equal(await this.token.holdBalanceOf(deployer), 0);
-        assert.equal(await this.token.holdBalanceOf(holder), 900);
-        assert.equal(await this.token.holdBalanceOf(sender), 0);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.holdBalanceOf(recipient2), 0);
-        assert.equal(await this.token.holdBalanceOf(notary), 0);
-
-        assert.equal(await this.token.grossBalanceOf(holder), 920);
-        assert.equal(await this.token.grossBalanceOf(recipient), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient2), 80);
 
         assert.equal(await this.token.totalSupply(), 1000);
       });
@@ -310,9 +317,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /amount exceeds available balance/);
-          assert.equal(await this.token.balanceOf(holder), 20);
-          assert.equal(await this.token.holdBalanceOf(holder), 900);
-          assert.equal(await this.token.grossBalanceOf(holder), 920);
+          assert.equal(await this.token.spendableBalanceOf(holder), 20);
+          assert.equal(await this.token.balanceOnHold(holder), 900);
+          assert.equal(await this.token.balanceOf(holder), 920);
         }
       });
       it("Recipient 2 can not transfer 30 approved tokens from holder as only 20 are available", async () => {
@@ -325,9 +332,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /amount exceeds available balance/);
-          assert.equal(await this.token.balanceOf(holder), 20);
-          assert.equal(await this.token.holdBalanceOf(holder), 900);
-          assert.equal(await this.token.grossBalanceOf(holder), 920);
+          assert.equal(await this.token.spendableBalanceOf(holder), 20);
+          assert.equal(await this.token.balanceOnHold(holder), 900);
+          assert.equal(await this.token.balanceOf(holder), 920);
           assert.equal(await this.token.allowance(holder, recipient2), 30);
         }
       });
@@ -343,9 +350,9 @@ contract(
             err.message,
             /need preimage if the hold has a lock hash/
           );
-          assert.equal(await this.token.balanceOf(holder), 20);
-          assert.equal(await this.token.balanceOf(recipient), 0);
-          assert.equal(await this.token.balanceOf(notary), 0);
+          assert.equal(await this.token.spendableBalanceOf(holder), 20);
+          assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+          assert.equal(await this.token.spendableBalanceOf(notary), 0);
         }
       });
       it("Notary can not execute hold with the wrong lock hash", async () => {
@@ -358,9 +365,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /preimage hash does not match lock hash/);
-          assert.equal(await this.token.balanceOf(holder), 20);
-          assert.equal(await this.token.balanceOf(recipient), 0);
-          assert.equal(await this.token.balanceOf(notary), 0);
+          assert.equal(await this.token.spendableBalanceOf(holder), 20);
+          assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+          assert.equal(await this.token.spendableBalanceOf(notary), 0);
         }
       });
       it("Notary can execute the hold", async () => {
@@ -373,24 +380,24 @@ contract(
           HoldStatusCode.Executed
         );
 
-        assert.equal(await this.token.balanceOf(deployer), 0);
-        assert.equal(await this.token.balanceOf(holder), 20);
-        assert.equal(await this.token.balanceOf(sender), 0);
-        assert.equal(await this.token.balanceOf(recipient), 900);
-        assert.equal(await this.token.balanceOf(recipient2), 80);
-        assert.equal(await this.token.balanceOf(notary), 0);
+        assert.equal(await this.token.spendableBalanceOf(deployer), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 20);
+        assert.equal(await this.token.spendableBalanceOf(sender), 0);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 900);
+        assert.equal(await this.token.spendableBalanceOf(recipient2), 80);
+        assert.equal(await this.token.spendableBalanceOf(notary), 0);
         assert.equal(await this.token.totalSupply(), 1000);
 
-        assert.equal(await this.token.holdBalanceOf(deployer), 0);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.holdBalanceOf(sender), 0);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.holdBalanceOf(recipient2), 0);
-        assert.equal(await this.token.holdBalanceOf(notary), 0);
+        assert.equal(await this.token.balanceOnHold(deployer), 0);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
+        assert.equal(await this.token.balanceOnHold(sender), 0);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
+        assert.equal(await this.token.balanceOnHold(recipient2), 0);
+        assert.equal(await this.token.balanceOnHold(notary), 0);
 
-        assert.equal(await this.token.grossBalanceOf(holder), 20);
-        assert.equal(await this.token.grossBalanceOf(recipient), 900);
-        assert.equal(await this.token.grossBalanceOf(recipient2), 80);
+        assert.equal(await this.token.balanceOf(holder), 20);
+        assert.equal(await this.token.balanceOf(recipient), 900);
+        assert.equal(await this.token.balanceOf(recipient2), 80);
 
         assert.equal(await this.token.totalSupply(), 1000);
       });
@@ -403,8 +410,8 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /Hold is not in Ordered status/);
-          assert.equal(await this.token.balanceOf(holder), 20);
-          assert.equal(await this.token.balanceOf(recipient), 900);
+          assert.equal(await this.token.spendableBalanceOf(holder), 20);
+          assert.equal(await this.token.spendableBalanceOf(recipient), 900);
         }
       });
       it("The holder can not release a hold after execution", async () => {
@@ -414,8 +421,8 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /Hold is not in Ordered status/);
-          assert.equal(await this.token.balanceOf(holder), 20);
-          assert.equal(await this.token.balanceOf(recipient), 900);
+          assert.equal(await this.token.spendableBalanceOf(holder), 20);
+          assert.equal(await this.token.spendableBalanceOf(recipient), 900);
         }
       });
       it("The holder can not release a hold after expiration time and execution", async () => {
@@ -426,8 +433,8 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /Hold is not in Ordered status/);
-          assert.equal(await this.token.balanceOf(holder), 20);
-          assert.equal(await this.token.balanceOf(recipient), 900);
+          assert.equal(await this.token.spendableBalanceOf(holder), 20);
+          assert.equal(await this.token.spendableBalanceOf(recipient), 900);
         }
       });
     });
@@ -446,21 +453,23 @@ contract(
       });
       it("Mint 200 tokens to holder", async () => {
         assert.equal(await this.token.totalSupply(), 0);
-        assert.equal(await this.token.balanceOf(holder), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 0);
         const result = await this.token.mint(holder, 200, { from: deployer });
         assert.equal(result.receipt.status, 1);
-        assert.equal(await this.token.balanceOf(deployer), 0);
+        assert.equal(await this.token.spendableBalanceOf(deployer), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 200);
+        assert.equal(await this.token.spendableBalanceOf(sender), 0);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+        assert.equal(await this.token.spendableBalanceOf(recipient2), 0);
+        assert.equal(await this.token.spendableBalanceOf(notary), 0);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 200);
-        assert.equal(await this.token.balanceOf(sender), 0);
-        assert.equal(await this.token.balanceOf(recipient), 0);
-        assert.equal(await this.token.balanceOf(recipient2), 0);
-        assert.equal(await this.token.balanceOf(notary), 0);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 200);
         assert.equal(await this.token.totalSupply(), 200);
       });
       it("Holder holds 30 tokens for the recipient", async () => {
+        holdId = web3.utils.randomHex(32);
         const result = await this.token.hold(
+          holdId,
           recipient,
           notary,
           30,
@@ -470,29 +479,29 @@ contract(
         );
         assert.equal(result.receipt.status, 1);
         assert.lengthOf(result.receipt.logs, 1);
-        holdId = result.receipt.logs[0].args.holdId;
         assert.match(holdId, bytes32);
-        assert.equal(await this.token.balanceOf(deployer), 0);
-        assert.equal(await this.token.balanceOf(holder), 170);
-        assert.equal(await this.token.balanceOf(sender), 0);
-        assert.equal(await this.token.balanceOf(recipient), 0);
-        assert.equal(await this.token.balanceOf(recipient2), 0);
-        assert.equal(await this.token.balanceOf(notary), 0);
+        assert.equal(await this.token.spendableBalanceOf(deployer), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 170);
+        assert.equal(await this.token.spendableBalanceOf(sender), 0);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+        assert.equal(await this.token.spendableBalanceOf(recipient2), 0);
+        assert.equal(await this.token.spendableBalanceOf(notary), 0);
 
-        assert.equal(await this.token.holdBalanceOf(deployer), 0);
-        assert.equal(await this.token.holdBalanceOf(holder), 30);
-        assert.equal(await this.token.holdBalanceOf(sender), 0);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.holdBalanceOf(recipient2), 0);
-        assert.equal(await this.token.holdBalanceOf(notary), 0);
+        assert.equal(await this.token.balanceOnHold(deployer), 0);
+        assert.equal(await this.token.balanceOnHold(holder), 30);
+        assert.equal(await this.token.balanceOnHold(sender), 0);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
+        assert.equal(await this.token.balanceOnHold(recipient2), 0);
+        assert.equal(await this.token.balanceOnHold(notary), 0);
 
-        assert.equal(await this.token.grossBalanceOf(holder), 200);
+        assert.equal(await this.token.balanceOf(holder), 200);
 
         assert.equal(await this.token.totalSupply(), 200);
       });
       it("Holder can not hold with the same parameters again", async () => {
         try {
           await this.token.hold(
+            holdId,
             recipient,
             notary,
             30,
@@ -504,7 +513,7 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /id already exists/);
-          assert.equal(await this.token.balanceOf(holder), 170);
+          assert.equal(await this.token.spendableBalanceOf(holder), 170);
         }
       });
       it("Notary releases 30 tokens back to holder", async () => {
@@ -514,15 +523,15 @@ contract(
           HoldStatusCode.Released
         );
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 200);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 200);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 200);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
         assert.equal(await this.token.balanceOf(recipient), 0);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient), 0);
+        assert.equal(await this.token.spendableBalanceOf(notary), 0);
+        assert.equal(await this.token.balanceOnHold(notary), 0);
         assert.equal(await this.token.balanceOf(notary), 0);
-        assert.equal(await this.token.holdBalanceOf(notary), 0);
-        assert.equal(await this.token.grossBalanceOf(notary), 0);
 
         assert.equal(await this.token.totalSupply(), 200);
       });
@@ -533,9 +542,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /Hold is not in Ordered status/);
+          assert.equal(await this.token.spendableBalanceOf(holder), 200);
+          assert.equal(await this.token.balanceOnHold(holder), 0);
           assert.equal(await this.token.balanceOf(holder), 200);
-          assert.equal(await this.token.holdBalanceOf(holder), 0);
-          assert.equal(await this.token.grossBalanceOf(holder), 200);
           assert.equal(await this.token.totalSupply(), 200);
         }
       });
@@ -548,9 +557,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /Hold is not in Ordered status/);
+          assert.equal(await this.token.spendableBalanceOf(holder), 200);
+          assert.equal(await this.token.balanceOnHold(holder), 0);
           assert.equal(await this.token.balanceOf(holder), 200);
-          assert.equal(await this.token.holdBalanceOf(holder), 0);
-          assert.equal(await this.token.grossBalanceOf(holder), 200);
           assert.equal(await this.token.totalSupply(), 200);
         }
       });
@@ -561,9 +570,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /Hold is not in Ordered status/);
+          assert.equal(await this.token.spendableBalanceOf(holder), 200);
+          assert.equal(await this.token.balanceOnHold(holder), 0);
           assert.equal(await this.token.balanceOf(holder), 200);
-          assert.equal(await this.token.holdBalanceOf(holder), 0);
-          assert.equal(await this.token.grossBalanceOf(holder), 200);
           assert.equal(await this.token.totalSupply(), 200);
         }
       });
@@ -583,16 +592,18 @@ contract(
       });
       it("Mint 3 tokens to holder", async () => {
         assert.equal(await this.token.totalSupply(), 0);
-        assert.equal(await this.token.balanceOf(holder), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 0);
         const result = await this.token.mint(holder, 3, { from: deployer });
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 3);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 3);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 3);
         assert.equal(await this.token.totalSupply(), 3);
       });
       it("Holder holds 2 tokens for the recipient", async () => {
+        holdId = web3.utils.randomHex(32);
         const result = await this.token.hold(
+          holdId,
           recipient,
           notary,
           2,
@@ -602,11 +613,10 @@ contract(
         );
         assert.equal(result.receipt.status, 1);
         assert.lengthOf(result.receipt.logs, 1);
-        holdId = result.receipt.logs[0].args.holdId;
         assert.match(holdId, bytes32);
-        assert.equal(await this.token.balanceOf(holder), 1);
-        assert.equal(await this.token.holdBalanceOf(holder), 2);
-        assert.equal(await this.token.grossBalanceOf(holder), 3);
+        assert.equal(await this.token.spendableBalanceOf(holder), 1);
+        assert.equal(await this.token.balanceOnHold(holder), 2);
+        assert.equal(await this.token.balanceOf(holder), 3);
         assert.equal(await this.token.totalSupply(), 3);
       });
       it("Holder can not release the hold before expiration", async () => {
@@ -619,9 +629,9 @@ contract(
             err.message,
             /can only release after the expiration date/
           );
-          assert.equal(await this.token.balanceOf(holder), 1);
-          assert.equal(await this.token.holdBalanceOf(holder), 2);
-          assert.equal(await this.token.grossBalanceOf(holder), 3);
+          assert.equal(await this.token.spendableBalanceOf(holder), 1);
+          assert.equal(await this.token.balanceOnHold(holder), 2);
+          assert.equal(await this.token.balanceOf(holder), 3);
         }
       });
       it("Advance time to after expiration", async () => {
@@ -634,9 +644,9 @@ contract(
           HoldStatusCode.Released
         );
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 3);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 3);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 3);
         assert.equal(await this.token.totalSupply(), 3);
       });
       it("Notary can not release the hold twice", async () => {
@@ -646,9 +656,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /Hold is not in Ordered status/);
+          assert.equal(await this.token.spendableBalanceOf(holder), 3);
+          assert.equal(await this.token.balanceOnHold(holder), 0);
           assert.equal(await this.token.balanceOf(holder), 3);
-          assert.equal(await this.token.holdBalanceOf(holder), 0);
-          assert.equal(await this.token.grossBalanceOf(holder), 3);
         }
       });
       it("Holder can not release the hold after release", async () => {
@@ -658,9 +668,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /Hold is not in Ordered status/);
+          assert.equal(await this.token.spendableBalanceOf(holder), 3);
+          assert.equal(await this.token.balanceOnHold(holder), 0);
           assert.equal(await this.token.balanceOf(holder), 3);
-          assert.equal(await this.token.holdBalanceOf(holder), 0);
-          assert.equal(await this.token.grossBalanceOf(holder), 3);
         }
       });
     });
@@ -679,16 +689,18 @@ contract(
       });
       it("Mint 3 tokens to holder", async () => {
         assert.equal(await this.token.totalSupply(), 0);
-        assert.equal(await this.token.balanceOf(holder), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 0);
         const result = await this.token.mint(holder, 3, { from: deployer });
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 3);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 3);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 3);
         assert.equal(await this.token.totalSupply(), 3);
       });
       it("Holder holds 2 tokens for the recipient", async () => {
+        holdId = web3.utils.randomHex(32);
         const result = await this.token.hold(
+          holdId,
           recipient,
           notary,
           2,
@@ -698,11 +710,10 @@ contract(
         );
         assert.equal(result.receipt.status, 1);
         assert.lengthOf(result.receipt.logs, 1);
-        holdId = result.receipt.logs[0].args.holdId;
         assert.match(holdId, bytes32);
-        assert.equal(await this.token.balanceOf(holder), 1);
-        assert.equal(await this.token.holdBalanceOf(holder), 2);
-        assert.equal(await this.token.grossBalanceOf(holder), 3);
+        assert.equal(await this.token.spendableBalanceOf(holder), 1);
+        assert.equal(await this.token.balanceOnHold(holder), 2);
+        assert.equal(await this.token.balanceOf(holder), 3);
         assert.equal(await this.token.totalSupply(), 3);
       });
       it("Holder can not release the hold before expiration", async () => {
@@ -715,9 +726,9 @@ contract(
             err.message,
             /can only release after the expiration date/
           );
-          assert.equal(await this.token.balanceOf(holder), 1);
-          assert.equal(await this.token.holdBalanceOf(holder), 2);
-          assert.equal(await this.token.grossBalanceOf(holder), 3);
+          assert.equal(await this.token.spendableBalanceOf(holder), 1);
+          assert.equal(await this.token.balanceOnHold(holder), 2);
+          assert.equal(await this.token.balanceOf(holder), 3);
         }
       });
       it("After expiration, holder releases 3 tokens back to holder", async () => {
@@ -728,9 +739,9 @@ contract(
           HoldStatusCode.ReleasedOnExpiration
         );
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 3);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 3);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 3);
         assert.equal(await this.token.totalSupply(), 3);
       });
       it("Holder can not release the hold twice", async () => {
@@ -740,9 +751,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /Hold is not in Ordered status/);
+          assert.equal(await this.token.spendableBalanceOf(holder), 3);
+          assert.equal(await this.token.balanceOnHold(holder), 0);
           assert.equal(await this.token.balanceOf(holder), 3);
-          assert.equal(await this.token.holdBalanceOf(holder), 0);
-          assert.equal(await this.token.grossBalanceOf(holder), 3);
         }
       });
       it("Notary can not release the hold after release", async () => {
@@ -752,9 +763,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /Hold is not in Ordered status/);
+          assert.equal(await this.token.spendableBalanceOf(holder), 3);
+          assert.equal(await this.token.balanceOnHold(holder), 0);
           assert.equal(await this.token.balanceOf(holder), 3);
-          assert.equal(await this.token.holdBalanceOf(holder), 0);
-          assert.equal(await this.token.grossBalanceOf(holder), 3);
         }
       });
     });
@@ -773,16 +784,18 @@ contract(
       });
       it("Mint 3 tokens to holder", async () => {
         assert.equal(await this.token.totalSupply(), 0);
-        assert.equal(await this.token.balanceOf(holder), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 0);
         const result = await this.token.mint(holder, 3, { from: deployer });
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 3);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 3);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 3);
         assert.equal(await this.token.totalSupply(), 3);
       });
       it("Holder holds 2 tokens for the recipient", async () => {
+        holdId = web3.utils.randomHex(32);
         const result = await this.token.hold(
+          holdId,
           recipient,
           notary,
           2,
@@ -792,11 +805,10 @@ contract(
         );
         assert.equal(result.receipt.status, 1);
         assert.lengthOf(result.receipt.logs, 1);
-        holdId = result.receipt.logs[0].args.holdId;
         assert.match(holdId, bytes32);
-        assert.equal(await this.token.balanceOf(holder), 1);
-        assert.equal(await this.token.holdBalanceOf(holder), 2);
-        assert.equal(await this.token.grossBalanceOf(holder), 3);
+        assert.equal(await this.token.spendableBalanceOf(holder), 1);
+        assert.equal(await this.token.balanceOnHold(holder), 2);
+        assert.equal(await this.token.balanceOf(holder), 3);
         assert.equal(await this.token.totalSupply(), 3);
       });
       it("Advance time to after expiration", async () => {
@@ -811,12 +823,12 @@ contract(
           HoldStatusCode.Executed
         );
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 1);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 1);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 1);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 2);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
         assert.equal(await this.token.balanceOf(recipient), 2);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient), 2);
         assert.equal(await this.token.totalSupply(), 3);
       });
     });
@@ -835,18 +847,20 @@ contract(
       });
       it("Mint 9876543210 tokens to holder", async () => {
         assert.equal(await this.token.totalSupply(), 0);
-        assert.equal(await this.token.balanceOf(holder), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 0);
         const result = await this.token.mint(holder, 9876543210, {
           from: deployer,
         });
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 9876543210);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 9876543210);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 9876543210);
         assert.equal(await this.token.totalSupply(), 9876543210);
       });
       it("Holder holds 9000000000 tokens with no recipient", async () => {
+        holdId = web3.utils.randomHex(32);
         const result = await this.token.hold(
+          holdId,
           ZERO_ADDRESS,
           notary,
           9000000000,
@@ -856,14 +870,13 @@ contract(
         );
         assert.equal(result.receipt.status, 1);
         assert.lengthOf(result.receipt.logs, 1);
-        holdId = result.receipt.logs[0].args.holdId;
         assert.match(holdId, bytes32);
-        assert.equal(await this.token.balanceOf(holder), 876543210);
-        assert.equal(await this.token.holdBalanceOf(holder), 9000000000);
-        assert.equal(await this.token.grossBalanceOf(holder), 9876543210);
+        assert.equal(await this.token.spendableBalanceOf(holder), 876543210);
+        assert.equal(await this.token.balanceOnHold(holder), 9000000000);
+        assert.equal(await this.token.balanceOf(holder), 9876543210);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
         assert.equal(await this.token.balanceOf(recipient), 0);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient), 0);
         assert.equal(await this.token.totalSupply(), 9876543210);
       });
       it("Recipient can not execute a hold", async () => {
@@ -875,12 +888,12 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /caller must be the hold notary/);
-          assert.equal(await this.token.balanceOf(holder), 876543210);
-          assert.equal(await this.token.holdBalanceOf(holder), 9000000000);
-          assert.equal(await this.token.grossBalanceOf(holder), 9876543210);
+          assert.equal(await this.token.spendableBalanceOf(holder), 876543210);
+          assert.equal(await this.token.balanceOnHold(holder), 9000000000);
+          assert.equal(await this.token.balanceOf(holder), 9876543210);
+          assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+          assert.equal(await this.token.balanceOnHold(recipient), 0);
           assert.equal(await this.token.balanceOf(recipient), 0);
-          assert.equal(await this.token.holdBalanceOf(recipient), 0);
-          assert.equal(await this.token.grossBalanceOf(recipient), 0);
           assert.equal(await this.token.totalSupply(), 9876543210);
         }
       });
@@ -896,12 +909,12 @@ contract(
             err.message,
             /must pass the recipient on execution as the recipient was not set on hold/
           );
-          assert.equal(await this.token.balanceOf(holder), 876543210);
-          assert.equal(await this.token.holdBalanceOf(holder), 9000000000);
-          assert.equal(await this.token.grossBalanceOf(holder), 9876543210);
+          assert.equal(await this.token.spendableBalanceOf(holder), 876543210);
+          assert.equal(await this.token.balanceOnHold(holder), 9000000000);
+          assert.equal(await this.token.balanceOf(holder), 9876543210);
+          assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+          assert.equal(await this.token.balanceOnHold(recipient), 0);
           assert.equal(await this.token.balanceOf(recipient), 0);
-          assert.equal(await this.token.holdBalanceOf(recipient), 0);
-          assert.equal(await this.token.grossBalanceOf(recipient), 0);
           assert.equal(await this.token.totalSupply(), 9876543210);
         }
       });
@@ -914,12 +927,12 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /recipient must not be a zero address/);
-          assert.equal(await this.token.balanceOf(holder), 876543210);
-          assert.equal(await this.token.holdBalanceOf(holder), 9000000000);
-          assert.equal(await this.token.grossBalanceOf(holder), 9876543210);
+          assert.equal(await this.token.spendableBalanceOf(holder), 876543210);
+          assert.equal(await this.token.balanceOnHold(holder), 9000000000);
+          assert.equal(await this.token.balanceOf(holder), 9876543210);
+          assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+          assert.equal(await this.token.balanceOnHold(recipient), 0);
           assert.equal(await this.token.balanceOf(recipient), 0);
-          assert.equal(await this.token.holdBalanceOf(recipient), 0);
-          assert.equal(await this.token.grossBalanceOf(recipient), 0);
           assert.equal(await this.token.totalSupply(), 9876543210);
         }
       });
@@ -935,9 +948,9 @@ contract(
             err.message,
             /must pass the recipient on execution as the recipient was not set on hold/
           );
-          assert.equal(await this.token.balanceOf(holder), 876543210);
-          assert.equal(await this.token.holdBalanceOf(holder), 9000000000);
-          assert.equal(await this.token.grossBalanceOf(holder), 9876543210);
+          assert.equal(await this.token.spendableBalanceOf(holder), 876543210);
+          assert.equal(await this.token.balanceOnHold(holder), 9000000000);
+          assert.equal(await this.token.balanceOf(holder), 9876543210);
         }
       });
       it("Notary can not execute hold with the wrong lock hash", async () => {
@@ -950,9 +963,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /preimage hash does not match lock hash/);
-          assert.equal(await this.token.balanceOf(holder), 876543210);
-          assert.equal(await this.token.holdBalanceOf(holder), 9000000000);
-          assert.equal(await this.token.grossBalanceOf(holder), 9876543210);
+          assert.equal(await this.token.spendableBalanceOf(holder), 876543210);
+          assert.equal(await this.token.balanceOnHold(holder), 9000000000);
+          assert.equal(await this.token.balanceOf(holder), 9876543210);
         }
       });
       it("Notary can execute the hold specifying the recipient", async () => {
@@ -964,12 +977,12 @@ contract(
           HoldStatusCode.Executed
         );
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 876543210);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 876543210);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 876543210);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 9000000000);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
         assert.equal(await this.token.balanceOf(recipient), 9000000000);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient), 9000000000);
         assert.equal(await this.token.totalSupply(), 9876543210);
       });
     });
@@ -987,16 +1000,18 @@ contract(
       });
       it("Mint 123 tokens to holder", async () => {
         assert.equal(await this.token.totalSupply(), 0);
-        assert.equal(await this.token.balanceOf(holder), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 0);
         const result = await this.token.mint(holder, 123, { from: deployer });
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 123);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 123);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 123);
         assert.equal(await this.token.totalSupply(), 123);
       });
       it("Holder holds 100 tokens with no hash lock", async () => {
+        holdId = web3.utils.randomHex(32);
         const result = await this.token.hold(
+          holdId,
           recipient,
           notary,
           100,
@@ -1006,14 +1021,13 @@ contract(
         );
         assert.equal(result.receipt.status, 1);
         assert.lengthOf(result.receipt.logs, 1);
-        holdId = result.receipt.logs[0].args.holdId;
         assert.match(holdId, bytes32);
-        assert.equal(await this.token.balanceOf(holder), 23);
-        assert.equal(await this.token.holdBalanceOf(holder), 100);
-        assert.equal(await this.token.grossBalanceOf(holder), 123);
+        assert.equal(await this.token.spendableBalanceOf(holder), 23);
+        assert.equal(await this.token.balanceOnHold(holder), 100);
+        assert.equal(await this.token.balanceOf(holder), 123);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
         assert.equal(await this.token.balanceOf(recipient), 0);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient), 0);
         assert.equal(await this.token.totalSupply(), 123);
       });
       it("Notary can execute the hold without a lock preimage", async () => {
@@ -1026,12 +1040,12 @@ contract(
           HoldStatusCode.Executed
         );
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 23);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 23);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 23);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 100);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
         assert.equal(await this.token.balanceOf(recipient), 100);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient), 100);
         assert.equal(await this.token.totalSupply(), 123);
       });
     });
@@ -1049,16 +1063,18 @@ contract(
       });
       it("Mint 123 tokens to holder", async () => {
         assert.equal(await this.token.totalSupply(), 0);
-        assert.equal(await this.token.balanceOf(holder), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 0);
         const result = await this.token.mint(holder, 123, { from: deployer });
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 123);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 123);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 123);
         assert.equal(await this.token.totalSupply(), 123);
       });
       it("Holder holds 100 tokens with no hash lock", async () => {
+        holdId = web3.utils.randomHex(32);
         const result = await this.token.hold(
+          holdId,
           ZERO_ADDRESS,
           notary,
           100,
@@ -1068,14 +1084,13 @@ contract(
         );
         assert.equal(result.receipt.status, 1);
         assert.lengthOf(result.receipt.logs, 1);
-        holdId = result.receipt.logs[0].args.holdId;
         assert.match(holdId, bytes32);
-        assert.equal(await this.token.balanceOf(holder), 23);
-        assert.equal(await this.token.holdBalanceOf(holder), 100);
-        assert.equal(await this.token.grossBalanceOf(holder), 123);
+        assert.equal(await this.token.spendableBalanceOf(holder), 23);
+        assert.equal(await this.token.balanceOnHold(holder), 100);
+        assert.equal(await this.token.balanceOf(holder), 123);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
         assert.equal(await this.token.balanceOf(recipient), 0);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient), 0);
         assert.equal(await this.token.totalSupply(), 123);
       });
       it("Notary can execute the hold specifying a recipient without a lock preimage", async () => {
@@ -1087,12 +1102,12 @@ contract(
           HoldStatusCode.Executed
         );
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 23);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 23);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 23);
+        assert.equal(await this.token.spendableBalanceOf(recipient2), 100);
+        assert.equal(await this.token.balanceOnHold(recipient2), 0);
         assert.equal(await this.token.balanceOf(recipient2), 100);
-        assert.equal(await this.token.holdBalanceOf(recipient2), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient2), 100);
         assert.equal(await this.token.totalSupply(), 123);
       });
     });
@@ -1110,16 +1125,18 @@ contract(
       });
       it("Mint 123 tokens to holder", async () => {
         assert.equal(await this.token.totalSupply(), 0);
-        assert.equal(await this.token.balanceOf(holder), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 0);
         const result = await this.token.mint(holder, 123, { from: deployer });
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 123);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 123);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 123);
         assert.equal(await this.token.totalSupply(), 123);
       });
       it("Holder holds 100 tokens with no hash lock", async () => {
+        holdId = web3.utils.randomHex(32);
         const result = await this.token.hold(
+          holdId,
           ZERO_ADDRESS,
           notary,
           100,
@@ -1129,14 +1146,13 @@ contract(
         );
         assert.equal(result.receipt.status, 1);
         assert.lengthOf(result.receipt.logs, 1);
-        holdId = result.receipt.logs[0].args.holdId;
         assert.match(holdId, bytes32);
-        assert.equal(await this.token.balanceOf(holder), 23);
-        assert.equal(await this.token.holdBalanceOf(holder), 100);
-        assert.equal(await this.token.grossBalanceOf(holder), 123);
+        assert.equal(await this.token.spendableBalanceOf(holder), 23);
+        assert.equal(await this.token.balanceOnHold(holder), 100);
+        assert.equal(await this.token.balanceOf(holder), 123);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
         assert.equal(await this.token.balanceOf(recipient), 0);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient), 0);
         assert.equal(await this.token.totalSupply(), 123);
       });
       it("Holder releases tokens back to holder straight away", async () => {
@@ -1146,9 +1162,9 @@ contract(
           HoldStatusCode.ReleasedOnExpiration
         );
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 123);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 123);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 123);
         assert.equal(await this.token.totalSupply(), 123);
       });
     });
@@ -1166,16 +1182,18 @@ contract(
       });
       it("Mint 123 tokens to holder", async () => {
         assert.equal(await this.token.totalSupply(), 0);
-        assert.equal(await this.token.balanceOf(holder), 0);
+        assert.equal(await this.token.spendableBalanceOf(holder), 0);
         const result = await this.token.mint(holder, 123, { from: deployer });
         assert.equal(result.receipt.status, 1);
+        assert.equal(await this.token.spendableBalanceOf(holder), 123);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 123);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 123);
         assert.equal(await this.token.totalSupply(), 123);
       });
       it("Holder holds 100 tokens with no hash lock", async () => {
+        holdId = web3.utils.randomHex(32);
         const result = await this.token.hold(
+          holdId,
           ZERO_ADDRESS,
           notary,
           100,
@@ -1185,15 +1203,14 @@ contract(
         );
         assert.equal(result.receipt.status, 1);
         assert.lengthOf(result.receipt.logs, 1);
-        holdId = result.receipt.logs[0].args.holdId;
         assert.equal(await this.token.holdStatus(holdId), HoldStatusCode.Held);
         assert.match(holdId, bytes32);
-        assert.equal(await this.token.balanceOf(holder), 23);
-        assert.equal(await this.token.holdBalanceOf(holder), 100);
-        assert.equal(await this.token.grossBalanceOf(holder), 123);
+        assert.equal(await this.token.spendableBalanceOf(holder), 23);
+        assert.equal(await this.token.balanceOnHold(holder), 100);
+        assert.equal(await this.token.balanceOf(holder), 123);
+        assert.equal(await this.token.spendableBalanceOf(recipient), 0);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
         assert.equal(await this.token.balanceOf(recipient), 0);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient), 0);
         assert.equal(await this.token.totalSupply(), 123);
       });
       it("Holder can not burn on hold tokens", async () => {
@@ -1203,9 +1220,9 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /amount exceeds available balance/);
-          assert.equal(await this.token.balanceOf(holder), 23);
-          assert.equal(await this.token.holdBalanceOf(holder), 100);
-          assert.equal(await this.token.grossBalanceOf(holder), 123);
+          assert.equal(await this.token.spendableBalanceOf(holder), 23);
+          assert.equal(await this.token.balanceOnHold(holder), 100);
+          assert.equal(await this.token.balanceOf(holder), 123);
         }
       });
       it("Holder approves a recipient to spend 10 tokens", async () => {
@@ -1217,9 +1234,9 @@ contract(
         assert.equal(result.receipt.status, 1);
 
         assert.equal(await this.token.allowance(holder, recipient), 10);
-        assert.equal(await this.token.balanceOf(holder), 23);
-        assert.equal(await this.token.holdBalanceOf(holder), 100);
-        assert.equal(await this.token.grossBalanceOf(holder), 123);
+        assert.equal(await this.token.spendableBalanceOf(holder), 23);
+        assert.equal(await this.token.balanceOnHold(holder), 100);
+        assert.equal(await this.token.balanceOf(holder), 123);
         assert.equal(await this.token.totalSupply(), 123);
       });
       it("Recipient transfers 4 tokens from the holder to themselves", async () => {
@@ -1229,13 +1246,13 @@ contract(
         assert.equal(result.receipt.status, 1);
 
         assert.equal(await this.token.allowance(holder, recipient), 6);
-        assert.equal(await this.token.balanceOf(holder), 19);
-        assert.equal(await this.token.holdBalanceOf(holder), 100);
-        assert.equal(await this.token.grossBalanceOf(holder), 119);
+        assert.equal(await this.token.spendableBalanceOf(holder), 19);
+        assert.equal(await this.token.balanceOnHold(holder), 100);
+        assert.equal(await this.token.balanceOf(holder), 119);
 
+        assert.equal(await this.token.spendableBalanceOf(recipient), 4);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
         assert.equal(await this.token.balanceOf(recipient), 4);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient), 4);
 
         assert.equal(await this.token.totalSupply(), 123);
       });
@@ -1245,13 +1262,13 @@ contract(
         });
         assert.equal(result.receipt.status, 1);
         assert.equal(await this.token.allowance(holder, recipient), 5);
-        assert.equal(await this.token.balanceOf(holder), 18);
-        assert.equal(await this.token.holdBalanceOf(holder), 100);
-        assert.equal(await this.token.grossBalanceOf(holder), 118);
+        assert.equal(await this.token.spendableBalanceOf(holder), 18);
+        assert.equal(await this.token.balanceOnHold(holder), 100);
+        assert.equal(await this.token.balanceOf(holder), 118);
 
+        assert.equal(await this.token.spendableBalanceOf(recipient), 4);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
         assert.equal(await this.token.balanceOf(recipient), 4);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient), 4);
 
         assert.equal(await this.token.totalSupply(), 122);
       });
@@ -1264,22 +1281,22 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /amount exceeds available balance/);
-          assert.equal(await this.token.balanceOf(holder), 18);
-          assert.equal(await this.token.holdBalanceOf(holder), 100);
-          assert.equal(await this.token.grossBalanceOf(holder), 118);
+          assert.equal(await this.token.spendableBalanceOf(holder), 18);
+          assert.equal(await this.token.balanceOnHold(holder), 100);
+          assert.equal(await this.token.balanceOf(holder), 118);
         }
       });
       it("Holder can burn tokens not on hold", async () => {
         const result = await this.token.burn(18, { from: holder });
         assert.equal(result.receipt.status, 1);
         assert.equal(await this.token.allowance(holder, recipient), 5);
-        assert.equal(await this.token.balanceOf(holder), 0);
-        assert.equal(await this.token.holdBalanceOf(holder), 100);
-        assert.equal(await this.token.grossBalanceOf(holder), 100);
+        assert.equal(await this.token.spendableBalanceOf(holder), 0);
+        assert.equal(await this.token.balanceOnHold(holder), 100);
+        assert.equal(await this.token.balanceOf(holder), 100);
 
+        assert.equal(await this.token.spendableBalanceOf(recipient), 4);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
         assert.equal(await this.token.balanceOf(recipient), 4);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient), 4);
 
         assert.equal(await this.token.totalSupply(), 104);
       });
@@ -1302,13 +1319,13 @@ contract(
         );
         assert.equal(result.receipt.status, 1);
         assert.equal(await this.token.allowance(holder, recipient), 5);
+        assert.equal(await this.token.spendableBalanceOf(holder), 0);
+        assert.equal(await this.token.balanceOnHold(holder), 0);
         assert.equal(await this.token.balanceOf(holder), 0);
-        assert.equal(await this.token.holdBalanceOf(holder), 0);
-        assert.equal(await this.token.grossBalanceOf(holder), 0);
 
+        assert.equal(await this.token.spendableBalanceOf(recipient), 104);
+        assert.equal(await this.token.balanceOnHold(recipient), 0);
         assert.equal(await this.token.balanceOf(recipient), 104);
-        assert.equal(await this.token.holdBalanceOf(recipient), 0);
-        assert.equal(await this.token.grossBalanceOf(recipient), 104);
 
         assert.equal(await this.token.totalSupply(), 104);
       });
