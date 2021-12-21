@@ -83,7 +83,6 @@
   "dependencies": {
     "@openzeppelin/contracts": "^4.2.0",
     "crypto": "^1.0.1",
-    "erc1820": "git+https://github.com/0xjac/ERC1820#885549fe3e9f0fd22444f78532be3dce4ee8a5e2",
     "ethereumjs-wallet": "^0.6.3",
     "truffle": "5.4.5",
     "truffle-hdwallet-provider": "1.0.1"
