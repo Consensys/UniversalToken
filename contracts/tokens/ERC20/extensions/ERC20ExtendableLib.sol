@@ -55,7 +55,7 @@ library ERC20ExtendableLib {
                 functionSelectors: externalFunctions
             });
             //We dont need to initalize anything
-            LibDiamond.diamondCut(cut, address(0), new bytes(0));
+            LibDiamond.diamondCut(cut, address(0), "");
         }
 
         //Initalize the new extension context
