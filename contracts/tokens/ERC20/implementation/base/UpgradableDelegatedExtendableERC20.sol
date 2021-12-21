@@ -4,7 +4,7 @@ import {ERC20CoreExtendable} from "../core/ERC20CoreExtendable.sol";
 import {ERC20DelegateCore} from "../core/ERC20DelegateCore.sol";
 import {ERC20DelegateProxy} from "../../proxy/ERC20DelegateProxy.sol";
 import {BaseERC20Storage} from "../../storage/BaseERC20Storage.sol";
-import {ERC20ExtendableLib} from "../../libraries/ERC20ExtendableLib.sol";
+import {ERC20ExtendableLib} from "../../extensions/ERC20ExtendableLib.sol";
 import {Diamond} from "../../../../tools/diamond/Diamond.sol";
 
 contract UpgradableDelegatedExtendableERC20 is ERC20DelegateProxy, Diamond {
