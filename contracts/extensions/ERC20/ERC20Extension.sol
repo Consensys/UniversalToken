@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {IERC20Extension, TransferData} from "../IERC20Extension.sol";
+import {IERC20Extension, TransferData} from "./IERC20Extension.sol";
 import {Roles} from "../../roles/Roles.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";

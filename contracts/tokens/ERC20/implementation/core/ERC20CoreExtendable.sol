@@ -1,38 +1,32 @@
 pragma solidity ^0.8.0;
 
-import {ERC20Core} from "../implementation/core/ERC20Core.sol";
-import {ERC20ExtendableLib} from "./ERC20ExtendableLib.sol";
-import {IERC20Extension, TransferData} from "../../../extensions/IERC20Extension.sol";
+import {ERC20Core} from "./ERC20Core.sol";
+import {ERC20ExtendableLib} from "../../extensions/ERC20ExtendableLib.sol";
+import {ERC20ExtendableBase} from "../../extensions/ERC20ExtendableBase.sol";
+import {IERC20Extension, TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
 
 
-abstract contract ERC20CoreExtendableBase is ERC20Core {
+contract ERC20CoreExtendable is ERC20Core, ERC20ExtendableBase {
+    constructor(address proxy, address store) ERC20Core(proxy, store) { }
 
     function registerExtension(address extension) public virtual confirmContext returns (bool) {
-        ERC20ExtendableLib._registerExtension(extension);
-
-        return true;
+        return _registerExtension(extension);
     }
 
     function removeExtension(address extension) public virtual confirmContext returns (bool) {
-        ERC20ExtendableLib._removeExtension(extension);
-
-        return true;
+        return _removeExtension(extension);
     }
 
     function disableExtension(address extension) external virtual confirmContext returns (bool) {
-        ERC20ExtendableLib._disableExtension(extension);
-
-        return true;
+        return _disableExtension(extension);
     }
 
     function enableExtension(address extension) external virtual confirmContext returns (bool) {
-        ERC20ExtendableLib._enableExtension(extension);
-
-        return true;
+        return _enableExtension(extension);
     }
 
     function allExtension() external view confirmContext returns (address[] memory) {
-        return ERC20ExtendableLib._allExtensions();
+        return _allExtension();
     }
 
     /**
@@ -50,7 +44,7 @@ abstract contract ERC20CoreExtendableBase is ERC20Core {
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
     function _beforeTokenTransfer(TransferData memory data) internal override virtual {
-        require(ERC20ExtendableLib._callValidateTransfer(data), "Extension failed validation of transfer");
+        require(ERC20ExtendableLib._validateTransfer(data), "Extension failed validation of transfer");
     }
 
     /**
@@ -68,6 +62,6 @@ abstract contract ERC20CoreExtendableBase is ERC20Core {
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
     function _afterTokenTransfer(TransferData memory data) internal override virtual {
-        require(ERC20ExtendableLib._callAfterTransfer(data), "Extension failed execution of post-transfer");
+        require(ERC20ExtendableLib._executeAfterTransfer(data), "Extension failed execution of post-transfer");
     }
 }

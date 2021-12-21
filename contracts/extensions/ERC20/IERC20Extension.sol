@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IExtension} from "../IExtension.sol";
 
 /**
 * @dev Verify if a token transfer can be executed or not, on the validator's perspective.
@@ -26,13 +27,8 @@ struct TransferData {
     bytes operatorData;
 }
 
-interface IERC20Extension is IERC165 {
-
-    function initalize() external;
-
+interface IERC20Extension is IExtension, IERC165 {
     function validateTransfer(TransferData memory data) external view returns (bool);
 
     function onTransferExecuted(TransferData memory data) external returns (bool);
-
-    function externalFunctions() external view returns (bytes4[] memory);
 }

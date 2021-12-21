@@ -1,9 +1,10 @@
 pragma solidity ^0.8.0;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {IERC20Extension} from "../../../extensions/IERC20Extension.sol";
-import {ERC20CoreExtendableBase} from "./ERC20CoreExtendableBase.sol";
-import {TransferData} from "../../../extensions/IERC20Extension.sol";
+import {IERC20Extension} from "../../../extensions/ERC20/IERC20Extension.sol";
+import {TransferData} from "../../../extensions/ERC20/IERC20Extension.sol";
+import {ExtensionContext} from "../../../extensions/ExtensionContext.sol";
+import {Diamond, LibDiamond} from "../../../tools/diamond/Diamond.sol";
 
 
 library ERC20ExtendableLib {
@@ -16,6 +17,7 @@ library ERC20ExtendableLib {
         address[] registeredExtensions;
         mapping(address => uint8) extensionStateCache;
         mapping(address => uint256) extensionIndexes;
+        mapping(address => address) contextAddresses;
     }
 
     function extensionStorage() private pure returns (ERC20ExtendableData storage ds) {
@@ -35,10 +37,35 @@ library ERC20ExtendableLib {
         require(ext165.supportsInterface(0x01ffc9a7), "The extension must support IERC165");
         require(ext165.supportsInterface(type(IERC20Extension).interfaceId), "The extension must support IERC20Extension interface");
 
-        //Interface has been validated, add it to storage
+        //Interface has been validated, lets begin setup
+
+        //Next we need to deploy the ExtensionContext contract
+        //To sandbox our extension's storage
+        ExtensionContext context = new ExtensionContext(address(this), extension);
+
+        //Next lets figure out what external functions to register in the Diamond
+        bytes4[] memory externalFunctions = context.externalFunctions();
+
+        //If we have external functions to register, then lets register them
+        if (externalFunctions.length > 0) {
+            LibDiamond.FacetCut[] memory cut = new LibDiamond.FacetCut[](1);
+            cut[0] = LibDiamond.FacetCut({
+                facetAddress: address(context), //Use the context address as the facet address
+                action: LibDiamond.FacetCutAction.Add, 
+                functionSelectors: externalFunctions
+            });
+            //We dont need to initalize anything
+            LibDiamond.diamondCut(cut, address(0), new bytes(0));
+        }
+
+        //Initalize the new extension context
+        context.initalize();
+
+        //Finally, add it to storage
         extensionData.extensionIndexes[extension] = extensionData.registeredExtensions.length;
         extensionData.registeredExtensions.push(extension);
         extensionData.extensionStateCache[extension] = EXTENSION_ENABLED;
+        extensionData.contextAddresses[extension] = address(context);
     }
 
     function _disableExtension(address extension) internal {
@@ -98,25 +125,7 @@ library ERC20ExtendableLib {
         return data[0] == 0x01;
     }
 
-    function _callValidateTransfer(TransferData memory data) internal returns (bool) {
-        return _validateTransfer(data, false);
-    }
-
-    
-    function _delegatecallValidateTransfer(TransferData memory data) internal returns (bool) {
-        return _validateTransfer(data, true);
-    }
-
-    function _callAfterTransfer(TransferData memory data) internal returns (bool) {
-        return _executeAfterTransfer(data, false);
-    }
-
-    function _delegatecallAfterTransfer(TransferData memory data) internal returns (bool) {
-        return _executeAfterTransfer(data, true);
-    }
-
-
-    function _validateTransfer(TransferData memory data, bool useDelegateCall) private returns (bool) {
+    function _validateTransfer(TransferData memory data) internal returns (bool) {
         //Go through each extension, if it's enabled execute the validate function
         //If any extension returns false, halt and return false
         //If they all return true (or there are no extensions), then return true
@@ -130,25 +139,22 @@ library ERC20ExtendableLib {
                 continue; //Skip if the extension is disabled
             }
 
-            //Execute the validate function
-            IERC20Extension ext = IERC20Extension(extension);
+            //Execute the validate function using the proper interface
+            //however, execute the call at the ExtensionContext contract address
+            //The ExtensionContext contract will delegatecall the extension logic
+            //and manage storage/api
+            address context = extensionData.contextAddresses[extension];
+            IERC20Extension ext = IERC20Extension(context);
 
-            if (useDelegateCall) {
-                bytes memory cdata = abi.encodeWithSelector(IERC20Extension.validateTransfer.selector, data);
-                if (!_invokeExtensionDelegateCall(extension, cdata)) {
-                    return false;
-                }
-            } else {
-                if (!ext.validateTransfer(data)) {
-                    return false;
-                }
+            if (!ext.validateTransfer(data)) {
+                return false;
             }
         }
 
         return true;
     }
 
-    function _executeAfterTransfer(TransferData memory data, bool useDelegateCall) private returns (bool) {
+    function _executeAfterTransfer(TransferData memory data) internal returns (bool) {
         //Go through each extension, if it's enabled execute the onTransferExecuted function
         //If any extension returns false, halt and return false
         //If they all return true (or there are no extensions), then return true
@@ -162,19 +168,15 @@ library ERC20ExtendableLib {
                 continue; //Skip if the extension is disabled
             }
 
-            //Execute the validate function
-            IERC20Extension ext = IERC20Extension(extension);
+            //Execute the validate function using the proper interface
+            //however, execute the call at the ExtensionContext contract address
+            //The ExtensionContext contract will delegatecall the extension logic
+            //and manage storage/api
+            address context = extensionData.contextAddresses[extension];
+            IERC20Extension ext = IERC20Extension(context);
 
-            if (useDelegateCall) {
-                bytes memory cdata = abi.encodeWithSelector(IERC20Extension.onTransferExecuted.selector, data);
-                if (!_invokeExtensionDelegateCall(extension, cdata)) {
-                    return false;
-                }
-            } 
-            else {
-                if (!ext.onTransferExecuted(data)) {
-                  return false;
-                }
+            if (!ext.onTransferExecuted(data)) {
+                return false;
             }
         }
 

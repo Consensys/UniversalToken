@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {ERC20Core} from "./ERC20Core.sol";
+import {ERC20CoreExtendable} from "./ERC20CoreExtendable.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC20Storage} from "../../storage/IERC20Storage.sol";
 
@@ -11,10 +11,10 @@ import {IERC20Storage} from "../../storage/IERC20Storage.sol";
 * pointer exists (has a value that is non-zero) and that the ERC20Storage address it points to accepts
 * us as a writer
 */
-contract ERC20DelegateCore is ERC20Core {
+contract ERC20DelegateCore is ERC20CoreExtendable {
     bytes32 constant ERC20_STORAGE_ADDRESS = keccak256("erc20.proxy.storage.address");
 
-    constructor() ERC20Core(ZERO_ADDRESS, ZERO_ADDRESS) { }
+    constructor() ERC20CoreExtendable(ZERO_ADDRESS, ZERO_ADDRESS) { }
 
     function _getStorageLocation() internal override virtual pure returns (bytes32) {
         return ERC20_STORAGE_ADDRESS;

@@ -1,10 +1,10 @@
 pragma solidity ^0.8.0;
 
-import {ERC20CoreExtendable} from "../../extensions/ERC20CoreExtendable.sol";
+import {ERC20CoreExtendable} from "../core/ERC20CoreExtendable.sol";
 import {ERC20Proxy} from "../../proxy/ERC20Proxy.sol";
 import {BaseERC20Storage} from "../../storage/BaseERC20Storage.sol";
 
-contract UpgradableERC20 is ERC20Proxy {
+contract UpgradableExtendableERC20 is ERC20Proxy {
     
     constructor(
         string memory name_, string memory symbol_,

@@ -1,11 +1,11 @@
 pragma solidity ^0.8.0;
 
-import {ERC20CoreExtendableBase} from "../../extensions/ERC20CoreExtendableBase.sol";
-import {ERC20DelegateCore} from "../../implementation/core/ERC20DelegateCore.sol";
+import {ERC20CoreExtendable} from "../core/ERC20CoreExtendable.sol";
+import {ERC20DelegateCore} from "../core/ERC20DelegateCore.sol";
 import {ERC20DelegateProxy} from "../../proxy/ERC20DelegateProxy.sol";
 import {BaseERC20Storage} from "../../storage/BaseERC20Storage.sol";
-import {ERC20ExtendableLib} from "../../extensions/ERC20ExtendableLib.sol";
-import {Diamond} from "../../extensions/diamond/Diamond.sol";
+import {ERC20ExtendableLib} from "../../libraries/ERC20ExtendableLib.sol";
+import {Diamond} from "../../../../tools/diamond/Diamond.sol";
 
 contract UpgradableDelegatedExtendableERC20 is ERC20DelegateProxy, Diamond {
     
@@ -34,19 +34,19 @@ contract UpgradableDelegatedExtendableERC20 is ERC20DelegateProxy, Diamond {
     }
 
     function registerExtension(address extension) external onlyManager returns (bool) {
-        return _invokeCore(abi.encodeWithSelector(ERC20CoreExtendableBase.registerExtension.selector, extension))[0] == 0x01;
+        return _invokeCore(abi.encodeWithSelector(ERC20CoreExtendable.registerExtension.selector, extension))[0] == 0x01;
     }
 
     function removeExtension(address extension) external onlyManager returns (bool) {
-        return _invokeCore(abi.encodeWithSelector(ERC20CoreExtendableBase.removeExtension.selector, extension))[0] == 0x01;
+        return _invokeCore(abi.encodeWithSelector(ERC20CoreExtendable.removeExtension.selector, extension))[0] == 0x01;
     }
 
     function disableExtension(address extension) external onlyManager returns (bool) {
-        return _invokeCore(abi.encodeWithSelector(ERC20CoreExtendableBase.disableExtension.selector, extension))[0] == 0x01;
+        return _invokeCore(abi.encodeWithSelector(ERC20CoreExtendable.disableExtension.selector, extension))[0] == 0x01;
     }
 
     function enableExtension(address extension) external onlyManager returns (bool) {
-        return _invokeCore(abi.encodeWithSelector(ERC20CoreExtendableBase.enableExtension.selector, extension))[0] == 0x01;
+        return _invokeCore(abi.encodeWithSelector(ERC20CoreExtendable.enableExtension.selector, extension))[0] == 0x01;
     }
 
     function allExtensions() external view returns (address[] memory) {
