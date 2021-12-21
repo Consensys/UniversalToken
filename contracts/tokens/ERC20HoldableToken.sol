@@ -31,7 +31,8 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
 
     modifier isHeld(bytes32 holdId) {
         require(
-            holds[holdId].status == HoldStatusCode.Ordered,
+            holds[holdId].status == HoldStatusCode.Ordered ||
+            holds[holdId].status == HoldStatusCode.ExecutedAndKeptOpen,
             "Hold is not in Ordered status"
         );
         _;
