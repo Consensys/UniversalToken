@@ -1,12 +1,13 @@
 pragma solidity ^0.8.0;
 
+import {Diamond} from "../../../../tools/diamond/Diamond.sol";
 import {ERC20ExtendableBase} from "../../extensions/ERC20ExtendableBase.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20Extension, TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
 
-contract ExtendableERC20 is ERC20, ERC20ExtendableBase, Ownable {
-    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) { }
+contract ExtendableERC20 is ERC20, ERC20ExtendableBase, Ownable, Diamond {
+    constructor(string memory name_, string memory symbol_) ERC20(name_, symbol_) Diamond(_msgSender()) { }
 
     function registerExtension(address extension) public virtual onlyOwner returns (bool) {
         return _registerExtension(extension);
@@ -58,5 +59,11 @@ contract ExtendableERC20 is ERC20, ERC20ExtendableBase, Ownable {
         );
 
         _triggerAfterTokenTransfer(data);
+    }
+
+    // Find facet for function that is called and execute the
+    // function if a facet is found and return any value.
+    fallback() external override payable {
+        _callFunction(msg.sig);
     }
 }
