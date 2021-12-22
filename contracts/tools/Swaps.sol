@@ -442,22 +442,18 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     require(trade.state == State.Pending, "Trade is not pending");
 
     address recipientHolder;
-    address selectedHolder;
     if(sender == trade.holder1) {
-      selectedHolder = trade.holder1;
       recipientHolder = trade.holder2;
     } else if(sender == trade.holder2) {
-      selectedHolder = trade.holder2;
       recipientHolder = trade.holder1;
     } else if(trade.holder2 == address(0)) {
       trade.holder2 = sender;
       recipientHolder = trade.holder1;
-      selectedHolder = trade.holder2;
     } else {
       revert("Only registered holders can accept a trade");
     }
 
-    UserTradeData memory selectedUserTradeData = (selectedHolder == trade.holder1) ? trade.userTradeData1 : trade.userTradeData2;
+    UserTradeData memory selectedUserTradeData = (sender == trade.holder1) ? trade.userTradeData1 : trade.userTradeData2;
 
     require(!selectedUserTradeData.accepted, "Trade already accepted by the holder");
 
@@ -479,7 +475,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
         require(_allowanceIsProvided(sender, selectedUserTradeData), "Allowance needs to be provided in token smart contract first");
     }
 
-    if(selectedHolder == trade.holder1) {
+    if(sender == trade.holder1) {
       trade.userTradeData1.accepted = true;
     } else {
       trade.userTradeData2.accepted = true;
@@ -496,7 +492,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     //* If the current block timestamp is after the settlement date
     if (settlementDatePassed && trade.executer == address(0) && trade.userTradeData1.tradeType == TradeType.Hold && trade.userTradeData2.tradeType == TradeType.Hold && tradeApproved) {
       //we know selectedUserTradeData has a hold that exists, so check the other one
-      UserTradeData memory otherUserTradeData = (selectedHolder == trade.holder1) ? trade.userTradeData2 : trade.userTradeData1;
+      UserTradeData memory otherUserTradeData = (sender == trade.holder1) ? trade.userTradeData2 : trade.userTradeData1;
       if (_holdExists(recipientHolder, sender, otherUserTradeData)) {
         //If both holds exist, then mark both sides of trade as accepted
         //Next if will execute trade
