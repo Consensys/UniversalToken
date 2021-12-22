@@ -19,41 +19,41 @@ import "../IERC1400.sol";
 
 
 /**
- * @title DVP
+ * @title Swaps
  * @dev Delivery-Vs-Payment contract for investor-to-investor token trades.
  * @dev Intended usage:
  * The purpose of the contract is to allow secure token transfers/exchanges between 2 stakeholders (called holder1 and holder2).
- * From now on, an operation in the DVP smart contract (transfer/exchange) is called a trade.
+ * From now on, an operation in the Swaps smart contract (transfer/exchange) is called a trade.
  * Depending on the type of trade, one/multiple token transfers will be executed.
  *
  * The simplified workflow is the following:
- * 1) A trade request is created in the DVP smart contract, it specifies:
+ * 1) A trade request is created in the Swaps smart contract, it specifies:
  *  - The token holder(s) involved in the trade
  *  - The trade executer (optional)
  *  - An expiration date
  *  - Details on the first token (address, requested amount, standard)
  *  - Details on the second token (address, requested amount, standard)
- *  - Whether the tokens need to be escrowed in the DVP contract or not
+ *  - Whether the tokens need to be escrowed in the Swaps contract or not
  *  - The current status of the trade (pending / executed / forced / cancelled)
  * 2) The trade is accepted by both token holders
  * 3) [OPTIONAL] The trade is approved by token controllers (only if requested by tokens controllers)
  * 4) The trade is executed (either by the executer in case the executer is specified, or by anyone)
  *
  * STANDARD-AGNOSTIC:
- * The DVP smart contract is standard-agnostic, it supports ETH, ERC20, ERC721, ERC1400.
+ * The Swaps smart contract is standard-agnostic, it supports ETH, ERC20, ERC721, ERC1400.
  * The advantage of using an ERC1400 token is to leverages its hook property, thus requiring ONE single
- * transaction (operatorTransferByPartition()) to send tokens to the DVP smart contract instead of TWO
+ * transaction (operatorTransferByPartition()) to send tokens to the Swaps smart contract instead of TWO
  * with the ERC20 token standard (approve() + transferFrom()).
  *
  * OFF-CHAIN PAYMENT:
  * The contract can be used as escrow contract while waiting for an off-chain payment.
  * Once payment is received off-chain, the token sender realeases the tokens escrowed in
- * the DVP contract to deliver them to the recipient.
+ * the Swaps contract to deliver them to the recipient.
  *
  * ESCROW VS SWAP MODE:
- * In case escrow mode is selected, tokens need to be escrowed in DVP smart contract
+ * In case escrow mode is selected, tokens need to be escrowed in Swaps smart contract
  * before the trade can occur.
- * In case swap mode is selected, tokens are not escrowed in the DVP. Instead, the DVP
+ * In case swap mode is selected, tokens are not escrowed in the Swaps. Instead, the Swaps
  * contract is only allowed to transfer tokens ON BEHALF of their owners. When trade is
  * executed, an atomic token swap occurs.
  *
@@ -152,7 +152,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    * @param tokenValue2 Amount of tokens to send for the second token.
    * @param tokenId2 ERC721ID/holdId/partition of the second token.
    * @param tokenStandard2 Standard of the second token (ETH | ERC20 | ERC721 | ERC1400).
-   * @param tradeType Indicates whether or not tokens shall be escrowed in the DVP contract before the trade.
+   * @param tradeType Indicates whether or not tokens shall be escrowed in the Swaps contract before the trade.
    */
   struct TradeRequestInput {
     address holder1;
@@ -201,7 +201,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   // Mapping from (token1, token2, tokenId1, tokenId2) to price.
   mapping(address => mapping (address => mapping (bytes32 =>  mapping (bytes32 => uint256)))) internal _tokenUnitPricesByPartition;
 
-  // Indicate whether DVP smart contract is owned or not (for instance by an exchange, etc.).
+  // Indicate whether Swaps smart contract is owned or not (for instance by an exchange, etc.).
   bool internal _ownedContract;
 
   // Array of trade execcuters.
@@ -240,8 +240,8 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   }
 
   /**
-   * [DVP CONSTRUCTOR]
-   * @dev Initialize DVP + register
+   * [Swaps CONSTRUCTOR]
+   * @dev Initialize Swaps + register
    * the contract implementation in ERC1820Registry.
    */
   constructor(bool owned) {
@@ -260,10 +260,10 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
 
   /**
    * [ERC1400TokensRecipient INTERFACE (1/2)]
-   * @dev Indicate whether or not the DVP contract can receive the tokens or not. [USED FOR ERC1400 TOKENS ONLY]
+   * @dev Indicate whether or not the Swaps contract can receive the tokens or not. [USED FOR ERC1400 TOKENS ONLY]
    * @param data Information attached to the token transfer.
-   * @param operatorData Information attached to the DVP transfer, by the operator.
-   * @return 'true' if the DVP contract can receive the tokens, 'false' if not.
+   * @param operatorData Information attached to the Swaps transfer, by the operator.
+   * @return 'true' if the Swaps contract can receive the tokens, 'false' if not.
    */
   function canReceive(bytes calldata, bytes32, address, address, address, uint, bytes calldata  data, bytes calldata operatorData) external override view returns(bool) {
     return(_canReceive(data, operatorData));
@@ -271,13 +271,13 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
 
   /**
    * [ERC1400TokensRecipient INTERFACE (2/2)]
-   * @dev Hook function executed when tokens are sent to the DVP contract. [USED FOR ERC1400 TOKENS ONLY]
+   * @dev Hook function executed when tokens are sent to the Swaps contract. [USED FOR ERC1400 TOKENS ONLY]
    * @param partition Name of the partition.
    * @param from Token holder.
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
    * @param data Information attached to the token transfer.
-   * @param operatorData Information attached to the DVP transfer, by the operator.
+   * @param operatorData Information attached to the Swaps transfer, by the operator.
    */
   function tokensReceived(bytes calldata, bytes32 partition, address, address from, address to, uint value, bytes memory data, bytes calldata operatorData) external override {
     require(interfaceAddr(msg.sender, "ERC1400Token") == msg.sender, "55"); // funds locked (lockup period)
@@ -338,7 +338,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   }
 
   /**
-   * @dev Create a new trade request in the DVP smart contract.
+   * @dev Create a new trade request in the Swaps smart contract.
    * @param inputData The input for this function
    */
   function requestTrade(TradeRequestInput calldata inputData, bytes32 preimage)
@@ -361,7 +361,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   }
 
   /**
-   * @dev Create a new trade request in the DVP smart contract.
+   * @dev Create a new trade request in the Swaps smart contract.
    * @param holder1 Address of the first token holder.
    * @param holder2 Address of the second token holder.
    * @param executer Executer of the trade.
@@ -560,8 +560,8 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    *
    * Indeed, when a token smart contract is controlled by an owner, the owner can decide to open the
    * secondary market by:
-   *  - Allowlisting the DVP smart contract
-   *  - Setting "token controllers" in the DVP smart contract, in order to approve all the trades made with his token
+   *  - Allowlisting the Swaps smart contract
+   *  - Setting "token controllers" in the Swaps smart contract, in order to approve all the trades made with his token
    *
    * @param index Index of the trade to be executed.
    * @param approved 'true' if trade is approved, 'false' if not.
@@ -611,7 +611,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   }
 
   /**
-   * @dev Execute a trade in the DVP contract if possible (e.g. if tokens have been esccrowed, in case it is required).
+   * @dev Execute a trade in the Swaps contract if possible (e.g. if tokens have been esccrowed, in case it is required).
    *
    * This function can only be called by the executer specified at trade creation.
    * If no executer is specified, the trade can be launched by anyone.
@@ -636,7 +636,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   }
 
   /**
-   * @dev Execute a trade in the DVP contract if possible (e.g. if tokens have been esccrowed, in case it is required).
+   * @dev Execute a trade in the Swaps contract if possible (e.g. if tokens have been esccrowed, in case it is required).
    * @param index Index of the trade to be executed.
    */
   function _executeTrade(uint256 index, bytes32 preimage) internal {
@@ -670,7 +670,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   }
 
   /**
-   * @dev Force a trade execution in the DVP contract by transferring tokens back to their target recipients.
+   * @dev Force a trade execution in the Swaps contract by transferring tokens back to their target recipients.
    * @param index Index of the trade to be forced.
    */
   function forceTradeWithPreimage(uint256 index, bytes32 preimage) public {
@@ -710,7 +710,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   }
 
   /**
-   * @dev Cancel a trade execution in the DVP contract by transferring tokens back to their initial owners.
+   * @dev Cancel a trade execution in the Swaps contract by transferring tokens back to their initial owners.
    * @param index Index of the trade to be cancelled.
    */
   function cancelTrade(uint256 index) external {
@@ -899,25 +899,25 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   }
 
   /**
-   * @dev Indicate whether or not the DVP contract can receive the tokens or not.
+   * @dev Indicate whether or not the Swaps contract can receive the tokens or not.
    *
-   * By convention, the 32 first bytes of a token transfer to the DVP smart contract contain a flag.
+   * By convention, the 32 first bytes of a token transfer to the Swaps smart contract contain a flag.
    *
-   *  - When tokens are transferred to DVP contract to propose a new trade. The 'data' field starts with the
+   *  - When tokens are transferred to Swaps contract to propose a new trade. The 'data' field starts with the
    *  following flag: 0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
    *  In this case the data structure is the the following:
    *  <tradeFlag (32 bytes)><recipient address (32 bytes)><executer address (32 bytes)><expiration date (32 bytes)><requested token data (4 * 32 bytes)>
    *
-   *  - When tokens are transferred to DVP contract to accept an existing trade. The 'data' field starts with the
+   *  - When tokens are transferred to Swaps contract to accept an existing trade. The 'data' field starts with the
    *  following flag: 0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
    *  In this case the data structure is the the following:
    *  <tradeFlag (32 bytes)><request index (32 bytes)>
    *
-   * If the 'data' doesn't start with one of those flags, the DVP contract won't accept the token transfer.
+   * If the 'data' doesn't start with one of those flags, the Swaps contract won't accept the token transfer.
    *
-   * @param data Information attached to the DVP transfer.
-   * @param operatorData Information attached to the DVP transfer, by the operator.
-   * @return 'true' if the DVP contract can receive the tokens, 'false' if not.
+   * @param data Information attached to the Swaps transfer.
+   * @param operatorData Information attached to the Swaps transfer, by the operator.
+   * @return 'true' if the Swaps contract can receive the tokens, 'false' if not.
    */
   function _canReceive(bytes memory data, bytes memory operatorData) internal pure returns(bool) {
     if(operatorData.length == 0) { // The reason for this check is to avoid a certificate gets interpreted as a flag by mistake
@@ -939,10 +939,10 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     /**
    * @dev Retrieve the trade flag from the 'data' field.
    *
-   * By convention, the 32 first bytes of a token transfer to the DVP smart contract contain a flag.
-   *  - When tokens are transferred to DVP contract to propose a new trade. The 'data' field starts with the
+   * By convention, the 32 first bytes of a token transfer to the Swaps smart contract contain a flag.
+   *  - When tokens are transferred to Swaps contract to propose a new trade. The 'data' field starts with the
    *  following flag: 0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
-   *  - When tokens are transferred to DVP contract to accept an existing trade. The 'data' field starts with the
+   *  - When tokens are transferred to Swaps contract to accept an existing trade. The 'data' field starts with the
    *  following flag: 0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
    *
    * @param data Concatenated information about the trade proposal.
@@ -955,7 +955,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   }
 
   /**
-   * By convention, when tokens are transferred to DVP contract to propose a new trade, the 'data' of a token transfer has the following structure:
+   * By convention, when tokens are transferred to Swaps contract to propose a new trade, the 'data' of a token transfer has the following structure:
    *  <tradeFlag (32 bytes)><recipient address (32 bytes)><executer address (32 bytes)><expiration date (32 bytes)><requested token data (5 * 32 bytes)>
    *
    * The first 32 bytes are the flag 0xcccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc
@@ -1016,7 +1016,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   /**
    * @dev Retrieve the trade index from the 'data' field.
    *
-   * By convention, when tokens are transferred to DVP contract to accept an existing trade, the 'data' of a token transfer has the following structure:
+   * By convention, when tokens are transferred to Swaps contract to accept an existing trade, the 'data' of a token transfer has the following structure:
    *  <tradeFlag (32 bytes)><index uint256 (32 bytes)>
    *
    * The first 32 bytes are the flag 0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
@@ -1041,7 +1041,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   }
 
   /**
-   * @dev Get the list of trade executers as defined by the DVP contract.
+   * @dev Get the list of trade executers as defined by the Swaps contract.
    * @return List of addresses of all the trade executers.
    */
   function tradeExecuters() external view returns (address[] memory) {
@@ -1049,16 +1049,16 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   }
 
   /**
-   * @dev Set list of trade executers for the DVP contract.
+   * @dev Set list of trade executers for the Swaps contract.
    * @param operators Trade executers addresses.
    */
   function setTradeExecuters(address[] calldata operators) external onlyOwner {
-    require(_ownedContract, "DVP contract is not owned");
+    require(_ownedContract, "Swaps contract is not owned");
     _setTradeExecuters(operators);
   }
 
   /**
-   * @dev Set list of trade executers for the DVP contract.
+   * @dev Set list of trade executers for the Swaps contract.
    * @param operators Trade executers addresses.
    */
   function _setTradeExecuters(address[] memory operators) internal {
@@ -1134,7 +1134,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     return(_isPriceOracle[tokenAddress][oracle] || oracle == Ownable(tokenAddress).owner());
   }
 
-  /****************************** DVP PRICES *********************************/
+  /****************************** Swaps PRICES *********************************/
 
   /**
    * @dev Get price of the token.
@@ -1207,7 +1207,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
 
   /**
    * @dev Get amount of token2 to pay to acquire the token1.
-   * @param index Index of the DVP request.
+   * @param index Index of the Swaps request.
    */
   function getPrice(uint256 index) public view returns(uint256) {
     Trade storage trade = _trades[index];
@@ -1274,8 +1274,8 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   }
 
   /**
-   * @dev Get the total number of requests in the DVP contract.
-   * @return Total number of requests in the DVP contract.
+   * @dev Get the total number of requests in the Swaps contract.
+   * @return Total number of requests in the Swaps contract.
    */
   function getNbTrades() external view returns(uint256) {
     return _index;
