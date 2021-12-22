@@ -10,9 +10,8 @@ import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
 import "@openzeppelin/contracts/access/AccessControlEnumerable.sol";
 import "../interface/ERC1820Implementer.sol";
 import "../roles/MinterRole.sol";
-import "../tools/DomainAware.sol";
 
-contract ERC721Token is Ownable, ERC721, ERC721URIStorage, ERC721Enumerable, ERC721Burnable, ERC721Pausable,  MinterRole, ERC1820Implementer, AccessControlEnumerable, DomainAware {
+contract ERC721Token is Ownable, ERC721, ERC721URIStorage, ERC721Enumerable, ERC721Burnable, ERC721Pausable,  MinterRole, ERC1820Implementer, AccessControlEnumerable {
   string constant internal ERC721_TOKEN = "ERC721Token";
   string internal _baseUri;
 
@@ -70,12 +69,12 @@ contract ERC721Token is Ownable, ERC721, ERC721URIStorage, ERC721Enumerable, ERC
   }
 
   /************************************* Domain Aware ******************************************/
-  function domainName() public override view returns (string memory) {
+/*  function domainName() public override view returns (string memory) {
     return name();
   }
 
   function domainVersion() public override view returns (string memory) {
     return "1";
-  }
+  }*/
   /************************************************************************************************/
 }
