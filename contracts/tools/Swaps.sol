@@ -96,8 +96,6 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   enum TradeType {Allowance, Hold, Escrow}
 
   enum Holder {Holder1, Holder2}
-
-  string internal constant DVP_HOLDABLE_LOCKABLE = "DVPHoldableLockable";
     
   string internal constant ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
 
