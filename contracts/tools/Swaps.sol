@@ -475,7 +475,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
       }
     } else if (selectedUserTradeData.tradeType == TradeType.Hold) {
         require(_holdExists(sender, recipientHolder, selectedUserTradeData), "Hold needs to be provided in token smart contract first");
-    } else { // trade.tradeType == TradeType.Swap
+    } else { // trade.tradeType == TradeType.Allowance
         require(_allowanceIsProvided(sender, selectedUserTradeData), "Allowance needs to be provided in token smart contract first");
     }
 
