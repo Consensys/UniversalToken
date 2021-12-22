@@ -27,7 +27,7 @@ The simplified workflow is the following:
 3. [OPTIONAL] The trade is approved by token controllers (only if requested by tokens controllers)
 4. The trade is executed (either by the executer in case the executer is specified, or by anyone)
 
-![Swaps](../../images/Swaps/swaps.png)
+![Swaps](../../images/Swaps/dvp.png)
 
 # Features
 
