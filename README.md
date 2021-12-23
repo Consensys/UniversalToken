@@ -3,7 +3,7 @@
 # Overview of the repo
  - [Universal Token For Assets and Payments](https://github.com/ConsenSys/ERC1400/blob/master/README.md)
  - [Certificate-based token transfers](contracts/certificate/README.md)
- - [Delivery-vs-payment](contracts/tools/DVP.md)
+ - [Delivery-vs-payment](contracts/tools/Swaps.md)
  - [Fund issuance](contracts/tools/FundIssuer.md)
 
 # Introduction
@@ -190,7 +190,7 @@ As belonging to the hybrid token category, it benefits from both:
 It combines all requirements listed in this presentation:
  - For **control mechanisms**, it offers a module for certificate checks and a module for allowlist checks + it offers the possibility to force transfers
  - For **reliability of investor registry**, it provides a module to create token holds
- - For **certainty of delivery-vs-payment execution**, it includes token holds for atomic DVP, and HTLC mechanism for non-atomic DVPs
+ - For **certainty of delivery-vs-payment execution**, it includes token holds for atomic Swaps, and HTLC mechanism for non-atomic Swaps
  - For **interoperability**, it offers an ERC20 interface
 
 The features can be turned ON and OFF during the token’s lifecycle.

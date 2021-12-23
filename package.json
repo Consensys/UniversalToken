@@ -8,11 +8,10 @@
   ],
   "scripts": {
     "build:ERC1400": "sol-merger \"./contracts/ERC1400.sol\" ./artifacts",
-    "build:DVPHoldableLockable": "sol-merger \"./contracts/tools/DVPHoldableLockable.sol\" ./artifacts",
     "build:ERC1400HoldableCertificateNonceToken": "sol-merger \"./contracts/certificate/ERC1400HoldableCertificateNonceToken.sol\" ./artifacts",
     "build:ERC1400HoldableCertificateSaltToken": "sol-merger \"./contracts/certificate/ERC1400HoldableCertificateSaltToken.sol\" ./artifacts",
     "build:ERC1400TokensValidator": "sol-merger \"./contracts/extensions/tokenExtensions/ERC1400TokensValidator.sol\" ./artifacts",
-    "build": "yarn run clean && yarn run build:ERC1400 && yarn run build:ERC1400TokensValidator && yarn run build:ERC1400HoldableCertificateNonceToken && yarn run build:ERC1400HoldableCertificateSaltToken && yarn run build:DVPHoldableLockable",
+    "build": "yarn run clean && yarn run build:ERC1400 && yarn run build:ERC1400TokensValidator && yarn run build:ERC1400HoldableCertificateNonceToken && yarn run build:ERC1400HoldableCertificateSaltToken",
     "clean": "rm -rf artifacts",
     "coverage": "yarn truffle run coverage --network coverage",
     "env": "node setup.js",
@@ -25,7 +24,9 @@
     "console": "truffle console",
     "remix": "python -mwebbrowser http://localhost:8080 && remix-ide",
     "start:chain": "ganache-cli -p 7545",
-    "test": "yarn truffle test"
+    "test": "yarn truffle test",
+    "generate-types": "typechain --target=ethers-v5 'build/contracts/*.json'",
+    "postinstall": "truffle compile && yarn generate-types"
   },
   "repository": {
     "type": "git",
@@ -51,6 +52,8 @@
   "license": "Apache",
   "devDependencies": {
     "@openzeppelin/test-helpers": "^0.5.6",
+    "@typechain/ethers-v5": "^8.0.5",
+    "@typechain/truffle-v5": "^6.0.0",
     "babel-polyfill": "^6.23.0",
     "babel-preset-es2015": "^6.18.0",
     "babel-preset-stage-2": "^6.18.0",
@@ -78,6 +81,7 @@
     "solidity-coverage": "0.8.0-beta.0",
     "solium": "^1.2.5",
     "solium-plugin-zeppelin": "^0.0.2",
+    "typechain": "^6.0.5",
     "web3-utils": "^1.2.8"
   },
   "dependencies": {
@@ -85,7 +89,9 @@
     "crypto": "^1.0.1",
     "ethereumjs-wallet": "^0.6.3",
     "truffle": "5.4.5",
-    "truffle-hdwallet-provider": "1.0.1"
+    "truffle-contract-size": "^2.0.1",
+    "truffle-hdwallet-provider": "1.0.1",
+    "truffle-plugin-verify": "^0.5.19"
   },
   "resolutions": {
     "web3": "1.3.0"
