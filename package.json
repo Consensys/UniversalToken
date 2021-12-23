@@ -85,7 +85,7 @@
     "web3-utils": "^1.2.8"
   },
   "dependencies": {
-    "@openzeppelin/contracts": "^4.2.0",
+    "@openzeppelin/contracts": "^4.4.1",
     "crypto": "^1.0.1",
     "ethereumjs-wallet": "^0.6.3",
     "truffle": "5.4.5",
