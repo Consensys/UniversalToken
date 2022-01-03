@@ -3,14 +3,15 @@ pragma solidity ^0.8.0;
 import {Diamond, LibDiamond} from "../tools/diamond/Diamond.sol";
 import {IExtension} from "./IExtension.sol";
 
+struct ContextData {
+    address token;
+    address extension;
+    mapping(bytes4 => bool) diamondFunctions;
+    bool initalized;
+}
+
 contract ExtensionContext is Diamond {
     bytes32 constant CONTEXT_DATA_SLOT = keccak256("ext.context.data");
-    struct ContextData {
-        address token;
-        address extension;
-        mapping(bytes4 => bool) diamondFunctions;
-        bool initalized;
-    }
 
     constructor(address token, address extension) Diamond(token) {
         //Setup context data

@@ -6,6 +6,7 @@ import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC20Core} from "../../tokens/ERC20/implementation/core/IERC20Core.sol";
 import {ERC20ProxyStorage} from "../../tokens/ERC20/storage/ERC20ProxyStorage.sol";
+import {ContextData} from "../ExtensionContext.sol";
 
 abstract contract ERC20Extension is IERC20Extension, ERC20ProxyStorage {
     //Should only be modified inside the constructor
@@ -30,6 +31,28 @@ abstract contract ERC20Extension is IERC20Extension, ERC20ProxyStorage {
         return IERC20Core(
             StorageSlot.getAddressSlot(ERC20_CORE_ADDRESS).value
         );
+    }
+
+    function _currentTokenAddress() internal view returns (address) {
+        ContextData storage ds;
+        bytes32 position = CONTEXT_DATA_SLOT;
+        assembly {
+            ds.slot := position
+        }
+
+        return ds.token;
+    }
+
+    function _transfer() internal {
+
+    }
+
+    function _transferFrom() internal {
+        
+    }
+
+    function _approve() internal {
+        
     }
 
     function _invokeCore(bytes memory _calldata) private returns (bytes memory) {
