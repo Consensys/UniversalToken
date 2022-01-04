@@ -4,6 +4,7 @@ import {IERC20Extension, TransferData} from "./IERC20Extension.sol";
 import {Roles} from "../../roles/Roles.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Core} from "../../tokens/ERC20/implementation/core/IERC20Core.sol";
 import {ERC20ProxyStorage} from "../../tokens/ERC20/storage/ERC20ProxyStorage.sol";
 import {ContextData} from "../ExtensionContext.sol";
@@ -27,12 +28,6 @@ abstract contract ERC20Extension is IERC20Extension, ERC20ProxyStorage {
         _exposedFuncSigs.push(selector);
     }
 
-    function _getImplementationContract() private view returns (IERC20Core) {
-        return IERC20Core(
-            StorageSlot.getAddressSlot(ERC20_CORE_ADDRESS).value
-        );
-    }
-
     function _currentTokenAddress() internal view returns (address) {
         ContextData storage ds;
         bytes32 position = CONTEXT_DATA_SLOT;
@@ -43,51 +38,34 @@ abstract contract ERC20Extension is IERC20Extension, ERC20ProxyStorage {
         return ds.token;
     }
 
-    function _transfer() internal {
-
+    function _transfer(address recipient, uint256 amount) internal returns (bool) {
+        IERC20 token = IERC20(_currentTokenAddress());
+        return token.transfer(recipient, amount);
     }
 
-    function _transferFrom() internal {
-        
+    function _transferFrom(address sender, address recipient, uint256 amount) internal returns (bool) {
+        IERC20 token = IERC20(_currentTokenAddress());
+        return token.transferFrom(sender, recipient, amount);
     }
 
-    function _approve() internal {
-        
+    function _approve(address spender, uint256 amount) internal returns (bool) {
+        IERC20 token = IERC20(_currentTokenAddress());
+        return token.approve(spender, amount);
     }
 
-    function _invokeCore(bytes memory _calldata) private returns (bytes memory) {
-        address erc20Core = address(_getImplementationContract());
-        (bool success, bytes memory data) = erc20Core.delegatecall(_calldata);
-        if (!success) {
-            if (data.length > 0) {
-                // bubble up the error
-                revert(string(data));
-            } else {
-                revert("TokenExtensionFacet: delegatecall to ERC20Core reverted");
-            }
-        }
-
-        return data;
+    function _allowance(address owner, address spender) internal view returns (uint256) {
+        IERC20 token = IERC20(_currentTokenAddress());
+        return token.allowance(owner, spender);
+    }
+    
+    function _balanceOf(address account) internal view returns (uint256) {
+        IERC20 token = IERC20(_currentTokenAddress());
+        return token.balanceOf(account);
     }
 
-    function _transfer(address from, address recipient, uint256 amount) internal returns (bool) {
-        TransferData memory data = TransferData(
-            address(this),
-            msg.data,
-            0x00000000000000000000000000000000,
-            address(this), //TODO who is the operator?
-            from,
-            recipient,
-            amount,
-            "",
-            ""
-        );
-
-        return _transfer(data);
-    }
-
-    function _transfer(TransferData memory data) internal returns (bool) {
-        return _invokeCore(abi.encodeWithSelector(IERC20Core.customTransfer.selector, data))[0] == 0x01;
+    function _totalSupply() internal view returns (uint256) {
+        IERC20 token = IERC20(_currentTokenAddress());
+        return token.totalSupply();
     }
 
     function externalFunctions() external override view returns (bytes4[] memory) {

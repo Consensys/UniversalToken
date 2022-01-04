@@ -2,13 +2,15 @@ pragma solidity ^0.8.0;
 
 import {IPausable} from "./IPausable.sol";
 import {ERC20Extension} from "../ERC20Extension.sol";
-import {IERC20Extension, TransferData} from "../../IERC20Extension.sol";
+import {IERC20Extension, TransferData} from "../IERC20Extension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {PausableLib} from "./PausableLib.sol";
 
 contract PauseExtension is ERC20Extension, IPausable {
 
     bytes32 constant PAUSER_ROLE = keccak256("pausable.roles.pausers");
+
+    bool private _isPaused;
+    mapping(address => bool) private _pausedFor;
 
     constructor() {
         _registerFunction(PauseExtension.addPauser.selector);
@@ -17,6 +19,7 @@ contract PauseExtension is ERC20Extension, IPausable {
         _registerFunction(PauseExtension.pause.selector);
         _registerFunction(PauseExtension.unpause.selector);
         _registerFunctionName('isPaused()');
+        _registerFunctionName('isPausedFor(address)');
         _supportInterface(type(IPausable).interfaceId);
     }
     
@@ -42,7 +45,7 @@ contract PauseExtension is ERC20Extension, IPausable {
     }
 
     function isPaused() public override view returns (bool) {
-        return PausableLib.isPaused();
+        return _isPaused;
     }
 
     function initalize() external override {
@@ -50,13 +53,25 @@ contract PauseExtension is ERC20Extension, IPausable {
     }
 
     function pause() external override onlyPauser whenNotPaused {
-        PausableLib.pause();
+        _isPaused = true;
         emit Paused(msg.sender);
     }
 
     function unpause() external override onlyPauser whenPaused {
-        PausableLib.unpause();
+        _isPaused = false;
         emit Unpaused(msg.sender);
+    }
+
+    function isPausedFor(address caller) external override view returns (bool) {
+        return isPaused() || _pausedFor[caller];
+    }
+
+    function pauseFor(address caller) external override onlyPauser {
+        _pausedFor[caller] = true;
+    }
+
+    function unpauseFor(address caller) external override onlyPauser {
+        _pausedFor[caller] = false;
     }
 
     function addPauser(address account) external override onlyPauser {
