@@ -33,6 +33,10 @@ abstract contract ERC20ExtendableBase {
         return ERC20ExtendableLib._allExtensions();
     }
 
+    function _isActiveExtension(address extension) internal view virtual returns (bool) {
+        return ERC20ExtendableLib._isActiveExtension(extension);
+    } 
+
     /**
      * @dev Hook that is called before any transfer of tokens. This includes
      * minting and burning.

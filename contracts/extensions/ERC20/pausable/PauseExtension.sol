@@ -18,6 +18,8 @@ contract PauseExtension is ERC20Extension, IPausable {
         _registerFunction(PauseExtension.renouncePauser.selector);
         _registerFunction(PauseExtension.pause.selector);
         _registerFunction(PauseExtension.unpause.selector);
+        _registerFunction(PauseExtension.pauseFor.selector);
+        _registerFunction(PauseExtension.unpauseFor.selector);
         _registerFunctionName('isPaused()');
         _registerFunctionName('isPausedFor(address)');
         _supportInterface(type(IPausable).interfaceId);

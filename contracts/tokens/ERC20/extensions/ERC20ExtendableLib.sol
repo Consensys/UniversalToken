@@ -27,6 +27,11 @@ library ERC20ExtendableLib {
         }
     }
 
+    function _isActiveExtension(address extension) internal view returns (bool) {
+        ERC20ExtendableData storage extensionData = extensionStorage();
+        return extensionData.extensionStateCache[extension] == EXTENSION_ENABLED;
+    }
+
     function _registerExtension(address extension) internal {
         ERC20ExtendableData storage extensionData = extensionStorage();
         require(extensionData.extensionStateCache[extension] == EXTENSION_NOT_EXISTS, "The extension must not already exist");
