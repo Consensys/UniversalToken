@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
-import {TransferData} from "../../../../extensions/IERC20Extension.sol";
+import {TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
 
-interface IERC20Core {
+interface IERC20Logic {
     /**
      * @dev Moves `amount` tokens from the caller's account to `recipient`.
      *

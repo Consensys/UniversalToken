@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import {IERC20Storage} from "./IERC20Storage.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
-contract BaseERC20Storage is IERC20Storage, AccessControl {
+contract ERC20Storage is IERC20Storage, AccessControl {
     address private _currentWriter;
     address private _admin;
     mapping(address => uint256) private _balances;

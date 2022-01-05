@@ -1,15 +1,15 @@
 pragma solidity ^0.8.0;
 
 import {IERC20Storage} from "../../storage/IERC20Storage.sol";
-import {IERC20Core} from "./IERC20Core.sol";
+import {IERC20Logic} from "./IERC20Logic.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC20Storage} from "../../storage/IERC20Storage.sol";
-import {TransferData} from "../../../../extensions/IERC20Extension.sol";
+import {TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
 
 /**
-* @dev Contract to be used with along with an ERC20Proxy and an ERC20Storage. This contract requires
-* you to provide the address of the ERC20Proxy and the ERC20Storage contract to use. This contract
+* @dev Contract to be used with along with an ERC20ProxyBase and an ERC20Storage. This contract requires
+* you to provide the address of the ERC20ProxyBase and the ERC20Storage contract to use. This contract
 * will confirm the correct context by ensuring the caller of this contract is the proxy set,
 * there is a valid storage contract and that the ERC20Storage address it points to accepts
 * us as a writer
@@ -17,9 +17,8 @@ import {TransferData} from "../../../../extensions/IERC20Extension.sol";
 * This contract implements the core logic for an ERC20 token, storing the results in a
 * corrasponding ERC20Storage contract.
 *
-* NOTE: If there is no ERC20Proxy provided, then 
 */
-contract ERC20Core is IERC20Core {
+contract ERC20LogicBase is IERC20Logic {
     bytes32 constant ERC20_STORAGE_ADDRESS_DEFAULT = keccak256("erc20.core.storage.address");
     bytes32 constant ERC20_PROXY_ADDRESS = keccak256("erc20.core.proxy.address");
     address constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000;

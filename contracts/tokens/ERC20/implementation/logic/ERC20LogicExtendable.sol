@@ -1,13 +1,13 @@
 pragma solidity ^0.8.0;
 
-import {ERC20Core} from "./ERC20Core.sol";
+import {ERC20LogicBase} from "./ERC20LogicBase.sol";
 import {ERC20ExtendableLib} from "../../extensions/ERC20ExtendableLib.sol";
 import {ERC20ExtendableBase} from "../../extensions/ERC20ExtendableBase.sol";
 import {IERC20Extension, TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
 
 
-contract ERC20CoreExtendable is ERC20Core, ERC20ExtendableBase {
-    constructor(address proxy, address store) ERC20Core(proxy, store) { }
+contract ERC20LogicExtendable is ERC20LogicBase, ERC20ExtendableBase {
+    constructor(address proxy, address store) ERC20LogicBase(proxy, store) { }
 
     function registerExtension(address extension) public virtual confirmContext returns (bool) {
         return _registerExtension(extension);

@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 import {ICertificateValidator} from "./ICertificateValidator.sol";
 import {ERC20Extension} from "../ERC20Extension.sol";
-import {IERC20Extension, TransferData} from "../../IERC20Extension.sol";
+import {IERC20Extension, TransferData} from "../IERC20Extension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {CertificateLib, CertificateValidationType} from "./CertificateLib.sol";
 

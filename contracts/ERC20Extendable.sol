@@ -1,10 +1,12 @@
+pragma solidity ^0.8.0;
 
-import {UpgradableDelegatedExtendableERC20} from "./tokens/ERC20/implementation/base/UpgradableDelegatedExtendableERC20.sol";
+import {UpgradableExtendableERC20Base} from "./tokens/ERC20/implementation/base/UpgradableExtendableERC20Base.sol";
 
-contract ERC20Extendable is UpgradableDelegatedExtendableERC20 {
-    uint256 constant TOTAL_SUPPLY = 500 ether;
-
-    constructor(string memory name_, string memory symbol_, address core_implementation_) UpgradableDelegatedExtendableERC20(name_, symbol_, core_implementation_) {
-        _executeMint(msg.sender, msg.sender, TOTAL_SUPPLY);
+contract ERC20Extendable is UpgradableExtendableERC20Base {
+    constructor(
+        string memory name_, string memory symbol_, bool allowMint, 
+        bool allowBurn, address owner, uint256 totalSupply
+    ) UpgradableExtendableERC20Base(name_, symbol_, address(0), allowMint, allowBurn, owner) {
+        _executeMint(msg.sender, msg.sender, totalSupply);
     }
 }

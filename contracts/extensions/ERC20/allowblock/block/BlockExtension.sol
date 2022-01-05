@@ -4,7 +4,7 @@ import {IBlocklistedRole} from "./IBlocklistedRole.sol";
 import {IBlocklistedAdminRole} from "./IBlocklistedAdminRole.sol";
 import {AllowBlockLib} from "../AllowBlockLib.sol";
 import {ERC20Extension} from "../../ERC20Extension.sol";
-import {IERC20Extension, TransferData} from "../../../IERC20Extension.sol";
+import {IERC20Extension, TransferData} from "../../IERC20Extension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract BlockExtension is ERC20Extension, IBlocklistedRole, IBlocklistedAdminRole {

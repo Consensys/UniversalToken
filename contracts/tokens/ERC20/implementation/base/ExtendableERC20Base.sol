@@ -7,7 +7,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20Extension, TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
 import {Roles} from "../../../../roles/Roles.sol";
 
-contract ExtendableERC20 is ERC20, ERC20ExtendableBase, Ownable, Diamond {
+contract ExtendableERC20Base is ERC20, ERC20ExtendableBase, Ownable, Diamond {
     using Roles for Roles.Role;
 
     bool public burningAllowed;

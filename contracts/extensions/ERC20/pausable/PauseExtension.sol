@@ -64,7 +64,7 @@ contract PauseExtension is ERC20Extension, IPausable {
         emit Unpaused(msg.sender);
     }
 
-    function isPausedFor(address caller) external override view returns (bool) {
+    function isPausedFor(address caller) public override view returns (bool) {
         return isPaused() || _pausedFor[caller];
     }
 
@@ -99,7 +99,7 @@ contract PauseExtension is ERC20Extension, IPausable {
     }
 
     function validateTransfer(TransferData memory data) external override view returns (bool) {
-        bool isPaused = PausableLib.isPaused();
+        bool isPaused = isPausedFor(data.from);
 
         require(!isPaused, "Transfers are paused");
 
@@ -107,7 +107,7 @@ contract PauseExtension is ERC20Extension, IPausable {
     }
 
     function onTransferExecuted(TransferData memory data) external override returns (bool) {
-        bool isPaused = PausableLib.isPaused();
+        bool isPaused = isPausedFor(data.from);
 
         require(!isPaused, "Transfers are paused");
 

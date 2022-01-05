@@ -2,17 +2,9 @@ pragma solidity ^0.8.0;
 
 import {Diamond, LibDiamond} from "../tools/diamond/Diamond.sol";
 import {IExtension} from "./IExtension.sol";
+import {ExtensionBase} from "./ExtensionBase.sol";
 
-struct ContextData {
-    address token;
-    address extension;
-    mapping(bytes4 => bool) diamondFunctions;
-    bool initalized;
-}
-
-contract ExtensionContext is Diamond {
-    bytes32 constant CONTEXT_DATA_SLOT = keccak256("ext.context.data");
-
+contract ExtensionContext is ExtensionBase, Diamond {
     constructor(address token, address extension) Diamond(token) {
         //Setup context data
         ContextData storage ds;
@@ -42,31 +34,6 @@ contract ExtensionContext is Diamond {
 
         ds.token = token;
         ds.extension = extension;
-    }
-
-    function _extensionAddress() internal view returns (address) {
-        ContextData storage ds;
-        bytes32 position = CONTEXT_DATA_SLOT;
-        assembly {
-            ds.slot := position
-        }
-
-        return ds.extension;
-    }
-
-    function _tokenAddress() internal view returns (address) {
-        ContextData storage ds;
-        bytes32 position = CONTEXT_DATA_SLOT;
-        assembly {
-            ds.slot := position
-        }
-
-        return ds.token;
-    }
-
-    modifier onlyToken {
-        require(msg.sender == _tokenAddress(), "Unauthorized");
-        _;
     }
 
     fallback() external override payable onlyToken {

@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {ERC20Extension} from "../ERC20Extension.sol";
-import {IERC20Extension, TransferData} from "../../IERC20Extension.sol";
+import {IERC20Extension, TransferData} from "../IERC20Extension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../../../tokens/IERC20HoldableToken.sol";
 
@@ -209,7 +209,7 @@ contract HoldExtension is ERC20Extension {
             "executeHold: caller must be the hold notary"
         );
 
-        super._transfer(data.holds[holdId].sender, recipient, data.holds[holdId].amount);
+        _transferFrom(data.holds[holdId].sender, recipient, data.holds[holdId].amount);
 
         data.holds[holdId].status = HoldStatusCode.Executed;
         data.accountHoldBalances[data.holds[holdId]
@@ -263,7 +263,7 @@ contract HoldExtension is ERC20Extension {
     function spendableBalanceOf(address account) public view returns (uint256) {
         HoldExtensionData storage data = holdData();
         //TODO Add view functions to extensions
-        return super.balanceOf(account) - data.accountHoldBalances[account];
+        return _balanceOf(account) - data.accountHoldBalances[account];
     }
 
     /**

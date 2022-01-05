@@ -5,11 +5,10 @@ import {Roles} from "../../roles/Roles.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IERC20Core} from "../../tokens/ERC20/implementation/core/IERC20Core.sol";
+import {ExtensionBase} from "../ExtensionBase.sol";
 import {ERC20ProxyStorage} from "../../tokens/ERC20/storage/ERC20ProxyStorage.sol";
-import {ContextData} from "../ExtensionContext.sol";
 
-abstract contract ERC20Extension is IERC20Extension, ERC20ProxyStorage {
+abstract contract ERC20Extension is IERC20Extension, ERC20ProxyStorage, ExtensionBase {
     //Should only be modified inside the constructor
     bytes4[] private _exposedFuncSigs;
     mapping(bytes4 => bool) private _interfaceMap;
@@ -28,43 +27,33 @@ abstract contract ERC20Extension is IERC20Extension, ERC20ProxyStorage {
         _exposedFuncSigs.push(selector);
     }
 
-    function _currentTokenAddress() internal view returns (address) {
-        ContextData storage ds;
-        bytes32 position = CONTEXT_DATA_SLOT;
-        assembly {
-            ds.slot := position
-        }
-
-        return ds.token;
-    }
-
     function _transfer(address recipient, uint256 amount) internal returns (bool) {
-        IERC20 token = IERC20(_currentTokenAddress());
+        IERC20 token = IERC20(_tokenAddress());
         return token.transfer(recipient, amount);
     }
 
     function _transferFrom(address sender, address recipient, uint256 amount) internal returns (bool) {
-        IERC20 token = IERC20(_currentTokenAddress());
+        IERC20 token = IERC20(_tokenAddress());
         return token.transferFrom(sender, recipient, amount);
     }
 
     function _approve(address spender, uint256 amount) internal returns (bool) {
-        IERC20 token = IERC20(_currentTokenAddress());
+        IERC20 token = IERC20(_tokenAddress());
         return token.approve(spender, amount);
     }
 
     function _allowance(address owner, address spender) internal view returns (uint256) {
-        IERC20 token = IERC20(_currentTokenAddress());
+        IERC20 token = IERC20(_tokenAddress());
         return token.allowance(owner, spender);
     }
     
     function _balanceOf(address account) internal view returns (uint256) {
-        IERC20 token = IERC20(_currentTokenAddress());
+        IERC20 token = IERC20(_tokenAddress());
         return token.balanceOf(account);
     }
 
     function _totalSupply() internal view returns (uint256) {
-        IERC20 token = IERC20(_currentTokenAddress());
+        IERC20 token = IERC20(_tokenAddress());
         return token.totalSupply();
     }
 

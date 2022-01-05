@@ -1,17 +1,17 @@
 pragma solidity ^0.8.0;
 
-import {ERC20Core} from "../../implementation/core/ERC20Core.sol";
-import {ERC20Proxy} from "../../proxy/ERC20Proxy.sol";
-import {BaseERC20Storage} from "../../storage/BaseERC20Storage.sol";
+import {ERC20LogicBase} from "../../implementation/logic/ERC20LogicBase.sol";
+import {ERC20ProxyBase} from "../../proxy/ERC20ProxyBase.sol";
+import {ERC20Storage} from "../../storage/ERC20Storage.sol";
 
-contract UpgradableERC20 is ERC20Proxy {
+contract UpgradableERC20Base is ERC20ProxyBase {
     
     constructor(
         string memory name_, string memory symbol_,
         bool allowMint, bool allowBurn, address owner
-    ) ERC20Proxy(allowMint, allowBurn, owner) {
-        BaseERC20Storage store = new BaseERC20Storage(name_, symbol_);
-        ERC20Core implementation = new ERC20Core(address(this), address(store));
+    ) ERC20ProxyBase(allowMint, allowBurn, owner) {
+        ERC20Storage store = new ERC20Storage(name_, symbol_);
+        ERC20LogicBase implementation = new ERC20LogicBase(address(this), address(store));
 
         _setImplementation(address(implementation));
         _setStore(address(store));
