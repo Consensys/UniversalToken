@@ -60,14 +60,6 @@ abstract contract ERC20ProxyStorage is RolesBase, Context {
         _;
     }
 
-    function _setImplementation(address implementation) internal {
-        StorageSlot.getAddressSlot(ERC20_CORE_ADDRESS).value = implementation;
-    }
-
-    function _setStore(address store) internal {
-        StorageSlot.getAddressSlot(ERC20_STORAGE_ADDRESS).value = store;
-    }
-
     function manager() public view returns (address) {
         return StorageSlot.getAddressSlot(ERC20_MANAGER_ADDRESS).value;
     }

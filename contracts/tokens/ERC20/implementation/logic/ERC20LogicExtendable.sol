@@ -7,8 +7,6 @@ import {IERC20Extension, TransferData} from "../../../../extensions/ERC20/IERC20
 
 
 contract ERC20LogicExtendable is ERC20Logic {
-    constructor(address store) ERC20Logic(store) { }
-
     /**
      * @dev Hook that is called before any transfer of tokens. This includes
      * minting and burning.

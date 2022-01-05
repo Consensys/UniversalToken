@@ -2,8 +2,13 @@ pragma solidity ^0.8.0;
 
 import {IERC20Storage} from "./IERC20Storage.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {ERC1820Client} from "../../../tools/ERC1820Client.sol";
+import {ERC1820Implementer} from "../../../interface/ERC1820Implementer.sol";
 
-contract ERC20Storage is IERC20Storage, AccessControl {
+
+contract ERC20Storage is IERC20Storage, AccessControl, ERC1820Client, ERC1820Implementer {
+    string constant internal ERC20_STORAGE_INTERFACE_NAME = "ERC20TokenStorage";
+
     address private _currentWriter;
     address private _admin;
     mapping(address => uint256) private _balances;
@@ -28,6 +33,9 @@ contract ERC20Storage is IERC20Storage, AccessControl {
         _name = name_;
         _symbol = symbol_;
         _currentWriter = _admin = msg.sender;
+
+        ERC1820Client.setInterfaceImplementation(ERC20_STORAGE_INTERFACE_NAME, address(this));
+        ERC1820Implementer._setInterface(ERC20_STORAGE_INTERFACE_NAME); // For migration
     }
 
     modifier onlyWriter {

@@ -6,6 +6,9 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC20Storage} from "../../storage/IERC20Storage.sol";
 import {TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
+import {ERC1820Client} from "../../../../tools/ERC1820Client.sol";
+import {ERC1820Implementer} from "../../../../interface/ERC1820Implementer.sol";
+
 
 /**
 * @dev Contract to be used with along with an ERC20ProxyBase and an ERC20Storage. This contract requires
@@ -18,24 +21,17 @@ import {TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
 * corrasponding ERC20Storage contract.
 *
 */
-contract ERC20Logic is IERC20Logic {
+contract ERC20Logic is IERC20Logic, ERC1820Client, ERC1820Implementer {
+    string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
+    string constant internal ERC20_STORAGE_INTERFACE_NAME = "ERC20TokenStorage";
+    string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
     bytes32 constant ERC20_STORAGE_ADDRESS = keccak256("erc20.proxy.storage.address");
     bytes32 constant ERC20_PROXY_ADDRESS = keccak256("erc20.core.proxy.address");
     address constant ZERO_ADDRESS = 0x0000000000000000000000000000000000000000;
 
-    constructor(address store) {
-        _initalize(address(0), store);
-    }
-
-    function _initalize(address proxy, address store) internal {
-        //Don't write if value is zero
-        if (store != ZERO_ADDRESS) {
-            StorageSlot.getAddressSlot(_getStorageLocation()).value = store;
-        }
-        
-        if (proxy != ZERO_ADDRESS) {
-            StorageSlot.getAddressSlot(ERC20_PROXY_ADDRESS).value = proxy;
-        }
+    constructor() {
+        ERC1820Client.setInterfaceImplementation(ERC20_LOGIC_INTERFACE_NAME, address(this));
+        ERC1820Implementer._setInterface(ERC20_LOGIC_INTERFACE_NAME); // For migration
     }
 
     modifier confirmContext {
@@ -43,26 +39,16 @@ contract ERC20Logic is IERC20Logic {
         _;
     }
 
-/*     function _getStorageLocation() internal virtual pure returns (bytes32) {
-        return ERC20_STORAGE_ADDRESS_DEFAULT;
-    } */
-
     function _getStorageContract() internal virtual view returns (IERC20Storage) {
+        //The logic contract is called via the proxy with delegatecall
+        //Therefore, address(this) == proxy
         return IERC20Storage(
-            StorageSlot.getAddressSlot(_getStorageLocation()).value
+            ERC1820Client.interfaceAddr(address(this), ERC20_STORAGE_INTERFACE_NAME)
         );
     }
 
-    function _getStorageLocation() internal virtual pure returns (bytes32) {
-        return ERC20_STORAGE_ADDRESS;
-    }
-
     function _getProxyAddress() internal virtual view returns (address) {
-        address val = StorageSlot.getAddressSlot(ERC20_PROXY_ADDRESS).value;
-        if (val == address(0)) {
-            return address(this);
-        }
-        return val;
+        return ERC1820Client.interfaceAddr(address(this), ERC20_INTERFACE_NAME);
     }
 
     function _confirmContext() internal virtual view returns (bool) {

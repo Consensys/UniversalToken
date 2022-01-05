@@ -5,8 +5,15 @@ import {ExtensionContext} from "../../../extensions/ExtensionContext.sol";
 import {ERC20ExtendableLib} from "./ERC20ExtendableLib.sol";
 import {IERC20Extension, TransferData} from "../../../extensions/ERC20/IERC20Extension.sol";
 import {Diamond} from "../../../tools/diamond/Diamond.sol";
+import {ERC1820Client} from "../../../tools/ERC1820Client.sol";
 
-abstract contract ERC20ExtendableBase is Diamond, Context {
+abstract contract ERC20ExtendableBase is Diamond, Context, ERC1820Client {
+    string constant internal ERC20_EXTENDABLE_INTERFACE_NAME = "ERC20Extendable";
+
+    constructor() {
+        ERC1820Client.setInterfaceImplementation(ERC20_EXTENDABLE_INTERFACE_NAME, address(this));
+    }
+
     function _registerExtension(address extension) internal virtual returns (bool) {
         ERC20ExtendableLib._registerExtension(extension);
 

@@ -11,7 +11,7 @@ contract UpgradableERC20Base is ERC20Proxy {
         bool allowMint, bool allowBurn, address owner
     ) ERC20Proxy(allowMint, allowBurn, owner) {
         ERC20Storage store = new ERC20Storage(name_, symbol_);
-        ERC20Logic implementation = new ERC20Logic(address(store));
+        ERC20Logic implementation = new ERC20Logic();
 
         _setImplementation(address(implementation));
         _setStore(address(store));

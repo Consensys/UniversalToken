@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 import {IERC20Extension, TransferData} from "./IERC20Extension.sol";
 import {Roles} from "../../roles/Roles.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ExtensionBase} from "../ExtensionBase.sol";
@@ -25,6 +26,30 @@ abstract contract ERC20Extension is IERC20Extension, ExtensionBase, RolesBase {
     function _registerFunction(bytes4 selector) internal {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
         _exposedFuncSigs.push(selector);
+    }
+
+    
+    function externalFunctions() external override view returns (bytes4[] memory) {
+        return _exposedFuncSigs;
+    }
+
+    function isInsideConstructorCall() internal view returns (bool) {
+        uint size;
+        address addr = address(this);
+        assembly { size := extcodesize(addr) }
+        return size == 0;
+    } 
+
+    /**
+     * @dev Returns true if this contract implements the interface defined by
+     * `interfaceId`. See the corresponding
+     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
+     * to learn more about how these ids are created.
+     *
+     * This function call must use less than 30 000 gas.
+     */
+    function supportsInterface(bytes4 interfaceId) external override view returns (bool) {
+        return interfaceId == type(IERC20Extension).interfaceId || interfaceId == type(IERC165).interfaceId || _interfaceMap[interfaceId];
     }
 
     function _transfer(TransferData memory data) internal returns (bool) {
@@ -63,26 +88,13 @@ abstract contract ERC20Extension is IERC20Extension, ExtensionBase, RolesBase {
         return token.totalSupply();
     }
 
-    function externalFunctions() external override view returns (bytes4[] memory) {
-        return _exposedFuncSigs;
+    function _isTokenOwner(address addr) internal view returns (bool) {
+        return addr == _tokenOwner();
     }
 
-    function isInsideConstructorCall() internal view returns (bool) {
-        uint size;
-        address addr = address(this);
-        assembly { size := extcodesize(addr) }
-        return size == 0;
-    } 
+    function _tokenOwner() internal view returns (address) {
+        Ownable token = Ownable(_tokenAddress());
 
-    /**
-     * @dev Returns true if this contract implements the interface defined by
-     * `interfaceId`. See the corresponding
-     * https://eips.ethereum.org/EIPS/eip-165#how-interfaces-are-identified[EIP section]
-     * to learn more about how these ids are created.
-     *
-     * This function call must use less than 30 000 gas.
-     */
-    function supportsInterface(bytes4 interfaceId) external override view returns (bool) {
-        return interfaceId == type(IERC20Extension).interfaceId || interfaceId == type(IERC165).interfaceId || _interfaceMap[interfaceId];
+        return token.owner();
     }
 }

@@ -15,9 +15,7 @@ contract UpgradableExtendableERC20Base is ERC20Proxy, ERC20ExtendableBase {
         bool allowMint, bool allowBurn, address owner
     ) ERC20Proxy(allowMint, allowBurn, owner) Diamond(_msgSender()) {
         ERC20Storage store = new ERC20Storage(name_, symbol_);
-        ERC20LogicExtendable implementation = new ERC20LogicExtendable(address(store));
-
-        //TODO Check interface exported by core_implementation_
+        ERC20LogicExtendable implementation = new ERC20LogicExtendable();
 
         _setImplementation(address(implementation));
         _setStore(address(store));

@@ -8,8 +8,13 @@ import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {ERC20ProxyStorage} from "./ERC20ProxyStorage.sol";
 import {DomainAware} from "../../../tools/DomainAware.sol";
+import {ERC1820Client} from "../../../tools/ERC1820Client.sol";
+import {ERC1820Implementer} from "../../../interface/ERC1820Implementer.sol";
 
-abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware {
+abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, ERC1820Client, ERC1820Implementer {
+    string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
+    string constant internal ERC20_STORAGE_INTERFACE_NAME = "ERC20TokenStorage";
+    string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
 
     constructor(bool allowMint, bool allowBurn, address owner) {
         StorageSlot.getAddressSlot(ERC20_MANAGER_ADDRESS).value = msg.sender;
@@ -20,18 +25,29 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware {
 
         _toggleMinting(allowMint);
         _toggleBurning(allowBurn);
+
+        ERC1820Client.setInterfaceImplementation(ERC20_INTERFACE_NAME, address(this));
+        ERC1820Implementer._setInterface(ERC20_INTERFACE_NAME); // For migration
     }
 
     function _getStorageContract() internal view returns (IERC20Storage) {
         return IERC20Storage(
-            StorageSlot.getAddressSlot(ERC20_STORAGE_ADDRESS).value
+            ERC1820Client.interfaceAddr(address(this), ERC20_STORAGE_INTERFACE_NAME)
         );
     }
 
     function _getImplementationContract() internal view returns (IERC20Logic) {
         return IERC20Logic(
-            StorageSlot.getAddressSlot(ERC20_CORE_ADDRESS).value
+            ERC1820Client.interfaceAddr(address(this), ERC20_LOGIC_INTERFACE_NAME)
         );
+    }
+
+    function _setImplementation(address implementation) internal {
+        ERC1820Client.setInterfaceImplementation(ERC20_LOGIC_INTERFACE_NAME, implementation);
+    }
+
+    function _setStore(address store) internal {
+        ERC1820Client.setInterfaceImplementation(ERC20_STORAGE_INTERFACE_NAME, store);
     }
 
     /**
