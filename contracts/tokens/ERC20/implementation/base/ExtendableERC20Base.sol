@@ -7,7 +7,7 @@ import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20Extension, TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
 import {Roles} from "../../../../roles/Roles.sol";
 
-contract ExtendableERC20Base is ERC20, ERC20ExtendableBase, Ownable, Diamond {
+contract ExtendableERC20Base is ERC20, ERC20ExtendableBase, Ownable {
     using Roles for Roles.Role;
 
     bool public burningAllowed;
@@ -120,12 +120,6 @@ contract ExtendableERC20Base is ERC20, ERC20ExtendableBase, Ownable, Diamond {
         );
 
         _triggerAfterTokenTransfer(data);
-    }
-
-    // Find facet for function that is called and execute the
-    // function if a facet is found and return any value.
-    fallback() external override payable {
-        _callFunction(msg.sig);
     }
 
     /**

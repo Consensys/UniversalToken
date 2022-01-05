@@ -18,6 +18,7 @@ library ERC20ExtendableLib {
         mapping(address => uint8) extensionStateCache;
         mapping(address => uint256) extensionIndexes;
         mapping(address => address) contextAddresses;
+        mapping(address => bool) contextCache;
     }
 
     function extensionStorage() private pure returns (ERC20ExtendableData storage ds) {
@@ -71,6 +72,7 @@ library ERC20ExtendableLib {
         extensionData.registeredExtensions.push(extension);
         extensionData.extensionStateCache[extension] = EXTENSION_ENABLED;
         extensionData.contextAddresses[extension] = address(context);
+        extensionData.contextCache[address(context)] = true;
     }
 
     function _disableExtension(address extension) internal {
@@ -78,6 +80,7 @@ library ERC20ExtendableLib {
         require(extensionData.extensionStateCache[extension] == EXTENSION_ENABLED, "The extension must be enabled");
 
         extensionData.extensionStateCache[extension] = EXTENSION_DISABLED;
+        extensionData.contextCache[extensionData.contextAddresses[extension]] = false;
     }
 
     function _enableExtension(address extension) internal {
@@ -85,6 +88,13 @@ library ERC20ExtendableLib {
         require(extensionData.extensionStateCache[extension] == EXTENSION_DISABLED, "The extension must be enabled");
 
         extensionData.extensionStateCache[extension] = EXTENSION_ENABLED;
+        extensionData.contextCache[extensionData.contextAddresses[extension]] = true;
+    }
+
+    function _isContextAddress(address callsite) internal view returns (bool) {
+        ERC20ExtendableData storage extensionData = extensionStorage();
+
+        return extensionData.contextCache[callsite];
     }
 
     function _allExtensions() internal view returns (address[] memory) {
@@ -113,6 +123,8 @@ library ERC20ExtendableLib {
         extensionData.registeredExtensions.pop();
 
         extensionData.extensionStateCache[extension] = EXTENSION_NOT_EXISTS;
+        extensionData.contextCache[extensionData.contextAddresses[extension]] = false;
+        extensionData.contextAddresses[extension] = address(0);
     }
 
     function _invokeExtensionDelegateCall(address extension, bytes memory _calldata) private returns (bool) {

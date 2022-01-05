@@ -22,7 +22,7 @@ contract Diamond {
         _delegateCallFunction(msg.sig);
     }
 
-    function _callFunction(bytes4 funcSig) internal {
+    function _lookupFacet(bytes4 funcSig) internal view returns (address) {
         LibDiamond.DiamondStorage storage ds;
         bytes32 position = LibDiamond.DIAMOND_STORAGE_POSITION;
         // get diamond storage
@@ -32,6 +32,13 @@ contract Diamond {
 
         // get facet from function selector
         address facet = ds.selectorToFacetAndPosition[funcSig].facetAddress;
+
+        return facet;
+    }
+
+    function _callFunction(bytes4 funcSig) internal {
+        // get facet from function selector
+        address facet = _lookupFacet(funcSig);
         require(facet != address(0), "Diamond: Function does not exist");
 
         uint256 value = msg.value;
@@ -56,15 +63,8 @@ contract Diamond {
     }
 
     function _delegateCallFunction(bytes4 funcSig) internal {
-        LibDiamond.DiamondStorage storage ds;
-        bytes32 position = LibDiamond.DIAMOND_STORAGE_POSITION;
-        // get diamond storage
-        assembly {
-            ds.slot := position
-        }
-
         // get facet from function selector
-        address facet = ds.selectorToFacetAndPosition[funcSig].facetAddress;
+        address facet = _lookupFacet(funcSig);
         require(facet != address(0), "Diamond: Function does not exist");
 
         // Execute external function from facet using delegatecall and return any value.

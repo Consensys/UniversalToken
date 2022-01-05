@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 import {Diamond, LibDiamond} from "../tools/diamond/Diamond.sol";
 import {IExtension} from "./IExtension.sol";
 import {ExtensionBase} from "./ExtensionBase.sol";
+import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
 contract ExtensionContext is ExtensionBase, Diamond {
     constructor(address token, address extension) Diamond(token) {
@@ -25,15 +26,22 @@ contract ExtensionContext is ExtensionBase, Diamond {
                 functionSelectors: allExternalFunctions
             });
             LibDiamond.diamondCut(cut, extension, abi.encodeWithSelector(IExtension.initalize.selector));
-
-            for (uint i = 0; i < allExternalFunctions.length; i++) {
-                bytes4 func = allExternalFunctions[i];
-                ds.diamondFunctions[func] = true;
-            }
         }
 
         ds.token = token;
         ds.extension = extension;
+    }
+
+    function prepareCall(address caller, bytes4 func) external onlyToken {
+        StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = caller;
+
+        ContextData storage ds;
+        bytes32 position = CONTEXT_DATA_SLOT;
+        assembly {
+            ds.slot := position
+        }
+
+        ds.diamondFunctions[func] = true;
     }
 
     fallback() external override payable onlyToken {
@@ -45,6 +53,7 @@ contract ExtensionContext is ExtensionBase, Diamond {
 
         if (ds.diamondFunctions[msg.sig]) {
             _delegateCallFunction(msg.sig);
+            ds.diamondFunctions[msg.sig] = false;
         } else {
             _delegate(ds.extension);
         }

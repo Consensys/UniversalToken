@@ -3,8 +3,11 @@ pragma solidity ^0.8.0;
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {Roles} from "../../../roles/Roles.sol";
+import {RolesBase} from "../../../roles/RolesBase.sol";
+import {ERC20ExtendableLib} from "../extensions/ERC20ExtendableLib.sol";
 
-abstract contract ERC20ProxyStorage is Context {
+//TODO Rename/redo roles for new Sandbox environment
+abstract contract ERC20ProxyStorage is RolesBase, Context {
     using Roles for Roles.Role;
 
     bytes32 constant ERC20_CORE_ADDRESS = keccak256("erc20.proxy.core.address");
@@ -42,6 +45,12 @@ abstract contract ERC20ProxyStorage is Context {
         require(burningAllowed(), "Burning is disabled");
         _;
     }
+
+    modifier onlyExtensions {
+        address extension = _msgSender();
+        require(ERC20ExtendableLib._isActiveExtension(extension), "Only extensions can call");
+        _;
+    }
     
     /**
      * @dev Throws if called by any account other than the owner.
@@ -49,18 +58,6 @@ abstract contract ERC20ProxyStorage is Context {
     modifier onlyOwner() {
         require(owner() == _msgSender(), "Ownable: caller is not the owner");
         _;
-    }
-
-    function hasRole(address caller, bytes32 roleId) public view returns (bool) {
-        return Roles.roleStorage(roleId).has(caller);
-    }
-
-    function _addRole(address caller, bytes32 roleId) internal {
-        Roles.roleStorage(roleId).add(caller);
-    }
-
-    function _removeRole(address caller, bytes32 roleId) internal {
-        Roles.roleStorage(roleId).remove(caller);
     }
 
     function _setImplementation(address implementation) internal {

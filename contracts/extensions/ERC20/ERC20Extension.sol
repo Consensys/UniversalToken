@@ -6,9 +6,9 @@ import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ExtensionBase} from "../ExtensionBase.sol";
-import {ERC20ProxyStorage} from "../../tokens/ERC20/storage/ERC20ProxyStorage.sol";
+import {RolesBase} from "../../roles/RolesBase.sol";
 
-abstract contract ERC20Extension is IERC20Extension, ERC20ProxyStorage, ExtensionBase {
+abstract contract ERC20Extension is IERC20Extension, ExtensionBase, RolesBase {
     //Should only be modified inside the constructor
     bytes4[] private _exposedFuncSigs;
     mapping(bytes4 => bool) private _interfaceMap;
@@ -25,6 +25,12 @@ abstract contract ERC20Extension is IERC20Extension, ERC20ProxyStorage, Extensio
     function _registerFunction(bytes4 selector) internal {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
         _exposedFuncSigs.push(selector);
+    }
+
+    function _transfer(TransferData memory data) internal returns (bool) {
+        //TODO Implement custom transfers if token gives extension controllable permission
+        revert("Not Implemented");
+        return false;
     }
 
     function _transfer(address recipient, uint256 amount) internal returns (bool) {

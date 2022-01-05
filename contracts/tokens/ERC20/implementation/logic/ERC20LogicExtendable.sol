@@ -1,33 +1,13 @@
 pragma solidity ^0.8.0;
 
-import {ERC20LogicBase} from "./ERC20LogicBase.sol";
+import {ERC20Logic} from "./ERC20Logic.sol";
 import {ERC20ExtendableLib} from "../../extensions/ERC20ExtendableLib.sol";
 import {ERC20ExtendableBase} from "../../extensions/ERC20ExtendableBase.sol";
 import {IERC20Extension, TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
 
 
-contract ERC20LogicExtendable is ERC20LogicBase, ERC20ExtendableBase {
-    constructor(address proxy, address store) ERC20LogicBase(proxy, store) { }
-
-    function registerExtension(address extension) public virtual confirmContext returns (bool) {
-        return _registerExtension(extension);
-    }
-
-    function removeExtension(address extension) public virtual confirmContext returns (bool) {
-        return _removeExtension(extension);
-    }
-
-    function disableExtension(address extension) external virtual confirmContext returns (bool) {
-        return _disableExtension(extension);
-    }
-
-    function enableExtension(address extension) external virtual confirmContext returns (bool) {
-        return _enableExtension(extension);
-    }
-
-    function allExtension() external view confirmContext returns (address[] memory) {
-        return _allExtension();
-    }
+contract ERC20LogicExtendable is ERC20Logic {
+    constructor(address store) ERC20Logic(store) { }
 
     /**
      * @dev Hook that is called before any transfer of tokens. This includes
