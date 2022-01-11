@@ -1,144 +1,158 @@
 pragma solidity ^0.8.0;
 
-import {IERC20Storage} from "./IERC20Storage.sol";
-import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
+import {Diamond} from "../../../tools/diamond/Diamond.sol";
+import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ERC1820Client} from "../../../tools/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../interface/ERC1820Implementer.sol";
+import {ProxyContext} from "../../../tools/context/ProxyContext.sol";
+import {ERC1820Client} from "../../../tools/ERC1820Client.sol";
+import {ERC1820Implementer} from "../../../interface/ERC1820Implementer.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import {ERC20ExtendableRouter} from "../extensions/ERC20ExtendableRouter.sol";
+import {ERC20ExtendableLib} from "../extensions/ERC20ExtendableLib.sol";
 
-
-contract ERC20Storage is IERC20Storage, AccessControl, ERC1820Client, ERC1820Implementer {
+contract ERC20Storage is ProxyContext, ERC20, ERC1820Client, ERC1820Implementer, ERC20ExtendableRouter {
+    string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
     string constant internal ERC20_STORAGE_INTERFACE_NAME = "ERC20TokenStorage";
-
-    address private _currentWriter;
-    address private _admin;
-    mapping(address => uint256) private _balances;
-
-    mapping(address => mapping(address => uint256)) private _allowances;
-
-    uint256 private _totalSupply;
-
-    string private _name;
-    string private _symbol;
-
-    /**
-     * @dev Sets the values for {name} and {symbol}.
-     *
-     * The default value of {decimals} is 18. To select a different value for
-     * {decimals} you should overload it.
-     *
-     * All two of these values are immutable: they can only be set once during
-     * construction.
-     */
-    constructor(string memory name_, string memory symbol_) {
-        _name = name_;
-        _symbol = symbol_;
-        _currentWriter = _admin = msg.sender;
-
+    
+    constructor(
+        address token, 
+        string memory name_, 
+        string memory symbol_
+    ) ERC20(name_, symbol_) Diamond(address(0)) {
+        _setCallSite(token);
+        
         ERC1820Client.setInterfaceImplementation(ERC20_STORAGE_INTERFACE_NAME, address(this));
         ERC1820Implementer._setInterface(ERC20_STORAGE_INTERFACE_NAME); // For migration
     }
 
-    modifier onlyWriter {
-        require(_currentWriter == msg.sender, "Only writers can execute this function");
+    modifier onlyToken {
+        require(msg.sender == _callsiteAddress(), "Unauthorized");
         _;
     }
 
-    modifier onlyAdmin {
-        require(_admin == msg.sender, "Only writers can execute this function");
-        _;
+    function _getCurrentImplementationAddress() internal view returns (address) {
+        address token = _callsiteAddress();
+        return ERC1820Client.interfaceAddr(token, ERC20_LOGIC_INTERFACE_NAME);
     }
 
-    function changeCurrentWriter(address newWriter) external override onlyAdmin {
-        _currentWriter = newWriter;
-    }
-
-    /**
-     * @dev Returns the name of the token.
-     */
-    function name() external override view returns (string memory) {
-        return _name;
+    function _msgSender() internal view override(Context, ProxyContext) returns (address) {
+        return ProxyContext._msgSender();
     }
 
     /**
-     * @dev Returns the symbol of the token.
-     */
-    function symbol() external override view returns (string memory) {
-        return _symbol;
-    }
-
-    /**
-     * @dev Returns the number of decimals used to get its user representation.
-     * For example, if `decimals` equals `2`, a balance of `505` tokens should
-     * be displayed to a user as `5,05` (`505 / 10 ** 2`).
+     * @dev See {IERC20-transfer}.
      *
-     * Tokens usually opt for a value of 18, imitating the relationship between
-     * Ether and Wei. This is the value {ERC20} uses, unless this function is
-     * overridden;
+     * Requirements:
      *
-     * NOTE: This information is only used for _display_ purposes: it in
-     * no way affects any of the arithmetic of the contract, including
-     * {IERC20-balanceOf} and {IERC20-transfer}.
+     * - `recipient` cannot be the zero address.
+     * - the caller must have a balance of at least `amount`.
      */
-    function decimals() external override view returns (uint8) {
-        return 18;
+    function transfer(address recipient, uint256 amount) public override onlyToken returns (bool) {
+        address currentImplementation = _getCurrentImplementationAddress();
+        _delegate(currentImplementation);
+        
+        return true;
     }
 
     /**
-     * @dev Returns the amount of tokens in existence.
-     */
-    function totalSupply() external override view returns (uint256) {
-        return _totalSupply;
-    }
-
-    /**
-     * @dev Returns the amount of tokens owned by `account`.
-     */
-    function balanceOf(address account) external override view returns (uint256) {
-        return _balances[account];
-    }
-
-    /**
-     * @dev Returns the remaining number of tokens that `spender` will be
-     * allowed to spend on behalf of `owner` through {transferFrom}. This is
-     * zero by default.
+     * @dev See {IERC20-approve}.
      *
-     * This value changes when {approve} or {transferFrom} are called.
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
      */
-    function allowance(address owner, address spender) external override view returns (uint256) {
-        return _allowances[owner][spender];
-    }
-
-    function setAllowance(address owner, address spender, uint256 amount) external override onlyWriter returns (bool) {
-        _allowances[owner][spender] = amount;
+    function approve(address spender, uint256 amount) public override onlyToken returns (bool) {
+        address currentImplementation = _getCurrentImplementationAddress();
+        _delegate(currentImplementation);
+        
         return true;
     }
 
-    function setBalance(address owner, uint256 amount) external override onlyWriter returns (bool) {
-        _balances[owner] = amount;
+    /**
+     * @dev See {IERC20-transferFrom}.
+     *
+     * Emits an {Approval} event indicating the updated allowance. This is not
+     * required by the EIP. See the note at the beginning of {ERC20}.
+     *
+     * Requirements:
+     *
+     * - `sender` and `recipient` cannot be the zero address.
+     * - `sender` must have a balance of at least `amount`.
+     * - the caller must have allowance for ``sender``'s tokens of at least
+     * `amount`.
+     */
+    function transferFrom(
+        address sender,
+        address recipient,
+        uint256 amount
+    ) public override onlyToken returns (bool) {
+        address currentImplementation = _getCurrentImplementationAddress();
+        _delegate(currentImplementation);
+        
         return true;
     }
 
-    function decreaseTotalSupply(uint256 amount) external override onlyWriter returns (bool) {
-        _totalSupply -= amount;
+    /**
+     * @dev Atomically increases the allowance granted to `spender` by the caller.
+     *
+     * This is an alternative to {approve} that can be used as a mitigation for
+     * problems described in {IERC20-approve}.
+     *
+     * Emits an {Approval} event indicating the updated allowance.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     */
+    function increaseAllowance(address spender, uint256 addedValue) public override onlyToken returns (bool) {
+        address currentImplementation = _getCurrentImplementationAddress();
+        _delegate(currentImplementation);
+
         return true;
     }
 
-    function increaseTotalSupply(uint256 amount) external override onlyWriter returns (bool) {
-        _totalSupply += amount;
+    /**
+     * @dev Atomically decreases the allowance granted to `spender` by the caller.
+     *
+     * This is an alternative to {approve} that can be used as a mitigation for
+     * problems described in {IERC20-approve}.
+     *
+     * Emits an {Approval} event indicating the updated allowance.
+     *
+     * Requirements:
+     *
+     * - `spender` cannot be the zero address.
+     * - `spender` must have allowance for the caller of at least
+     * `subtractedValue`.
+     */
+    function decreaseAllowance(address spender, uint256 subtractedValue) public override onlyToken returns (bool) {
+        address currentImplementation = _getCurrentImplementationAddress();
+        _delegate(currentImplementation);
+
         return true;
     }
 
-    function setTotalSupply(uint256 amount) external override onlyWriter returns (bool) {
-        _totalSupply = amount;
-        return true;
+    function registerExtension(address extension) external onlyToken returns (bool) {
+        return _registerExtension(extension);
     }
 
-    function increaseBalance(address owner, uint256 amount) external override onlyWriter returns (bool) {
-        _balances[owner] += amount;
-        return true;
+    function removeExtension(address extension) external onlyToken returns (bool) {
+        return _removeExtension(extension);
     }
 
-    function allowWriteFrom(address source) external override view returns (bool) {
-        return _currentWriter == source;
+    function disableExtension(address extension) external onlyToken returns (bool) {
+        return _disableExtension(extension);
+    }
+
+    function enableExtension(address extension) external onlyToken returns (bool) {
+        return _enableExtension(extension);
+    }
+
+    function allExtensions() external view onlyToken returns (address[] memory) {
+        //To return all the extensions, we'll read directly from the ERC20CoreExtendableBase's storage struct
+        //since it's stored here at the proxy
+        //The ERC20ExtendableLib library offers functions to do this
+        return ERC20ExtendableLib._allExtensions();
     }
 }

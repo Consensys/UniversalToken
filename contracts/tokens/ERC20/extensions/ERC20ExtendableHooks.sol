@@ -1,12 +1,11 @@
 pragma solidity ^0.8.0;
 
-import {ERC20Logic} from "./ERC20Logic.sol";
-import {ERC20ExtendableLib} from "../../extensions/ERC20ExtendableLib.sol";
-import {ERC20ExtendableBase} from "../../extensions/ERC20ExtendableBase.sol";
-import {IERC20Extension, TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
+import {ERC20ExtendableLib} from "./ERC20ExtendableLib.sol";
+import {TransferData} from "../../../extensions/ERC20/IERC20Extension.sol";
+import {ERC20ExtendableBase} from "./ERC20ExtendableBase.sol";
 
+abstract contract ERC20ExtendableHooks is ERC20ExtendableBase {
 
-contract ERC20LogicExtendable is ERC20Logic {
     /**
      * @dev Hook that is called before any transfer of tokens. This includes
      * minting and burning.
@@ -21,7 +20,7 @@ contract ERC20LogicExtendable is ERC20Logic {
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _beforeTokenTransfer(TransferData memory data) internal override virtual {
+    function _triggerBeforeTokenTransfer(TransferData memory data) internal virtual {
         require(ERC20ExtendableLib._validateTransfer(data), "Extension failed validation of transfer");
     }
 
@@ -39,7 +38,7 @@ contract ERC20LogicExtendable is ERC20Logic {
      *
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
-    function _afterTokenTransfer(TransferData memory data) internal override virtual {
+    function _triggerAfterTokenTransfer(TransferData memory data) internal virtual {
         require(ERC20ExtendableLib._executeAfterTransfer(data), "Extension failed execution of post-transfer");
     }
 }
