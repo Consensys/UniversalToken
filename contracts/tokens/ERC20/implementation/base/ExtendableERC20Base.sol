@@ -1,13 +1,14 @@
 pragma solidity ^0.8.0;
 
 import {Diamond} from "../../../../tools/diamond/Diamond.sol";
-import {ERC20ExtendableBase} from "../../extensions/ERC20ExtendableBase.sol";
+import {ERC20ExtendableRouter} from "../../extensions/ERC20ExtendableRouter.sol";
+import {ERC20ExtendableHooks} from "../../extensions/ERC20ExtendableHooks.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {IERC20Extension, TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
 import {Roles} from "../../../../roles/Roles.sol";
 
-contract ExtendableERC20Base is ERC20, ERC20ExtendableBase, Ownable {
+contract ExtendableERC20Base is ERC20, ERC20ExtendableHooks, ERC20ExtendableRouter, Ownable {
     using Roles for Roles.Role;
 
     bool public burningAllowed;

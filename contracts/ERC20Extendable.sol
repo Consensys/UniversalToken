@@ -5,8 +5,8 @@ import {UpgradableExtendableERC20Base} from "./tokens/ERC20/implementation/base/
 contract ERC20Extendable is UpgradableExtendableERC20Base {
     constructor(
         string memory name_, string memory symbol_, bool allowMint, 
-        bool allowBurn, address owner, uint256 totalSupply
+        bool allowBurn, address owner, uint256 initalSupply
     ) UpgradableExtendableERC20Base(name_, symbol_, allowMint, allowBurn, owner) {
-        _executeMint(msg.sender, msg.sender, totalSupply);
+        mint(msg.sender, initalSupply);
     }
 }

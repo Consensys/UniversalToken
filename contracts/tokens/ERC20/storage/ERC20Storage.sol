@@ -2,6 +2,7 @@ pragma solidity ^0.8.0;
 
 import {Diamond} from "../../../tools/diamond/Diamond.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {IERC20Storage} from "./IERC20Storage.sol";
 import {ERC1820Client} from "../../../tools/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../interface/ERC1820Implementer.sol";
 import {ProxyContext} from "../../../tools/context/ProxyContext.sol";
@@ -10,8 +11,9 @@ import {ERC1820Implementer} from "../../../interface/ERC1820Implementer.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {ERC20ExtendableRouter} from "../extensions/ERC20ExtendableRouter.sol";
 import {ERC20ExtendableLib} from "../extensions/ERC20ExtendableLib.sol";
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract ERC20Storage is ProxyContext, ERC20, ERC1820Client, ERC1820Implementer, ERC20ExtendableRouter {
+contract ERC20Storage is IERC20Storage, ProxyContext, ERC20, ERC1820Client, ERC1820Implementer, ERC20ExtendableRouter {
     string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
     string constant internal ERC20_STORAGE_INTERFACE_NAME = "ERC20TokenStorage";
     
@@ -48,7 +50,7 @@ contract ERC20Storage is ProxyContext, ERC20, ERC1820Client, ERC1820Implementer,
      * - `recipient` cannot be the zero address.
      * - the caller must have a balance of at least `amount`.
      */
-    function transfer(address recipient, uint256 amount) public override onlyToken returns (bool) {
+    function transfer(address recipient, uint256 amount) public override(ERC20, IERC20) onlyToken returns (bool) {
         address currentImplementation = _getCurrentImplementationAddress();
         _delegate(currentImplementation);
         
@@ -62,7 +64,7 @@ contract ERC20Storage is ProxyContext, ERC20, ERC1820Client, ERC1820Implementer,
      *
      * - `spender` cannot be the zero address.
      */
-    function approve(address spender, uint256 amount) public override onlyToken returns (bool) {
+    function approve(address spender, uint256 amount) public override(ERC20, IERC20) onlyToken returns (bool) {
         address currentImplementation = _getCurrentImplementationAddress();
         _delegate(currentImplementation);
         
@@ -86,11 +88,9 @@ contract ERC20Storage is ProxyContext, ERC20, ERC1820Client, ERC1820Implementer,
         address sender,
         address recipient,
         uint256 amount
-    ) public override onlyToken returns (bool) {
+    ) public override(ERC20, IERC20) onlyToken returns (bool) {
         address currentImplementation = _getCurrentImplementationAddress();
         _delegate(currentImplementation);
-        
-        return true;
     }
 
     /**
@@ -105,11 +105,9 @@ contract ERC20Storage is ProxyContext, ERC20, ERC1820Client, ERC1820Implementer,
      *
      * - `spender` cannot be the zero address.
      */
-    function increaseAllowance(address spender, uint256 addedValue) public override onlyToken returns (bool) {
+    function increaseAllowance(address spender, uint256 addedValue) public override(ERC20, IERC20Storage) onlyToken returns (bool) {
         address currentImplementation = _getCurrentImplementationAddress();
         _delegate(currentImplementation);
-
-        return true;
     }
 
     /**
@@ -126,30 +124,43 @@ contract ERC20Storage is ProxyContext, ERC20, ERC1820Client, ERC1820Implementer,
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue) public override onlyToken returns (bool) {
+    function decreaseAllowance(address spender, uint256 subtractedValue) public override(ERC20, IERC20Storage) onlyToken returns (bool) {
         address currentImplementation = _getCurrentImplementationAddress();
         _delegate(currentImplementation);
-
-        return true;
     }
 
-    function registerExtension(address extension) external onlyToken returns (bool) {
+    function burn(uint256 amount) external override onlyToken returns (bool) {
+        address currentImplementation = _getCurrentImplementationAddress();
+        _delegate(currentImplementation);
+    }
+
+    function burnFrom(address account, uint256 amount) external override onlyToken returns (bool) {
+        address currentImplementation = _getCurrentImplementationAddress();
+        _delegate(currentImplementation);
+    }
+
+    function mint(address receipient, uint256 amoount) external override onlyToken returns (bool) {
+        address currentImplementation = _getCurrentImplementationAddress();
+        _delegate(currentImplementation);
+    }
+
+    function registerExtension(address extension) external override onlyToken returns (bool) {
         return _registerExtension(extension);
     }
 
-    function removeExtension(address extension) external onlyToken returns (bool) {
+    function removeExtension(address extension) external override onlyToken returns (bool) {
         return _removeExtension(extension);
     }
 
-    function disableExtension(address extension) external onlyToken returns (bool) {
+    function disableExtension(address extension) external override onlyToken returns (bool) {
         return _disableExtension(extension);
     }
 
-    function enableExtension(address extension) external onlyToken returns (bool) {
+    function enableExtension(address extension) external override onlyToken returns (bool) {
         return _enableExtension(extension);
     }
 
-    function allExtensions() external view onlyToken returns (address[] memory) {
+    function allExtensions() external override view onlyToken returns (address[] memory) {
         //To return all the extensions, we'll read directly from the ERC20CoreExtendableBase's storage struct
         //since it's stored here at the proxy
         //The ERC20ExtendableLib library offers functions to do this

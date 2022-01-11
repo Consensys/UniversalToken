@@ -2,11 +2,13 @@ pragma solidity ^0.8.0;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ERC20ExtendableHooks} from "../../extensions/ERC20ExtendableHooks.sol";
+import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ProxyContext} from "../../../../tools/context/ProxyContext.sol";
 import {IERC20Extension, TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
 import {Roles} from "../../../../roles/Roles.sol";
+import {ERC20ProxyRoles} from "../../proxy/ERC20ProxyRoles.sol";
 
 contract ERC20Logic is ERC20, ERC20ExtendableHooks, ProxyContext {
     constructor() ERC20("", "") { }
@@ -45,5 +47,51 @@ contract ERC20Logic is ERC20, ERC20ExtendableHooks, ProxyContext {
         );
 
         _triggerAfterTokenTransfer(data);
+    }
+
+    function _isMinter(address caller) internal view returns (bool) {
+        address tokenProxy = _callsiteAddress();
+        ERC20ProxyRoles proxy = ERC20ProxyRoles(tokenProxy);
+
+        return proxy.isMinter(caller);
+    }
+
+    function mint(address to, uint256 amount) external returns (bool) {
+        require(_isMinter(_msgSender()), "ERC20PresetMinterPauser: must have minter role to mint");
+        _mint(to, amount);
+
+        return true;
+    }
+
+        /**
+     * @dev Destroys `amount` tokens from the caller.
+     *
+     * See {ERC20-_burn}.
+     */
+    function burn(uint256 amount) public virtual returns (bool) {
+        _burn(_msgSender(), amount);
+        return true;
+    }
+
+    /**
+     * @dev Destroys `amount` tokens from `account`, deducting from the caller's
+     * allowance.
+     *
+     * See {ERC20-_burn} and {ERC20-allowance}.
+     *
+     * Requirements:
+     *
+     * - the caller must have allowance for ``accounts``'s tokens of at least
+     * `amount`.
+     */
+    function burnFrom(address account, uint256 amount) public virtual returns (bool) {
+        uint256 currentAllowance = allowance(account, _msgSender());
+        require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
+        unchecked {
+            _approve(account, _msgSender(), currentAllowance - amount);
+        }
+        _burn(account, amount);
+
+        return true;
     }
 }

@@ -5,7 +5,7 @@ import {IExtension} from "./IExtension.sol";
 import {ExtensionBase} from "./ExtensionBase.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
-contract ExtensionContext is ExtensionBase, Diamond {
+contract ExtensionStorage is ExtensionBase, Diamond {
     constructor(address token, address extension) Diamond(token) {
         //Setup context data
         ContextData storage ds;

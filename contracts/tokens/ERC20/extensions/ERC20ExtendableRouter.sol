@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
-import {ExtensionContext} from "../../../extensions/ExtensionContext.sol";
+import {ExtensionStorage} from "../../../extensions/ExtensionStorage.sol";
 import {ERC20ExtendableLib} from "./ERC20ExtendableLib.sol";
 import {IERC20Extension, TransferData} from "../../../extensions/ERC20/IERC20Extension.sol";
 import {Diamond} from "../../../tools/diamond/Diamond.sol";
@@ -49,7 +49,7 @@ abstract contract ERC20ExtendableRouter is Diamond, Context, ERC20ExtendableBase
     function _invokeExtensionFunction() internal {
         address facet = _lookupFacet(msg.sig);
         if (_isContextAddress(facet)) {
-            ExtensionContext context = ExtensionContext(payable(facet));
+            ExtensionStorage context = ExtensionStorage(payable(facet));
             context.prepareCall(_msgSender(), msg.sig);
         }
         _callFunction(msg.sig);

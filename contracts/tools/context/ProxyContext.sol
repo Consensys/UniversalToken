@@ -2,8 +2,9 @@ pragma solidity ^0.8.0;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
+import {IProxyContext} from "./IProxyContext.sol";
 
-abstract contract ProxyContext is Context {
+abstract contract ProxyContext is Context, IProxyContext {
     bytes32 constant PROXY_CONTEXT_DATA_SLOT = keccak256("proxy.context.data");
     bytes32 constant MSG_SENDER_SLOT = keccak256("proxy.context.data.msgsender");
     
@@ -34,11 +35,11 @@ abstract contract ProxyContext is Context {
         _;
     }
 
-    function prepareCall(address caller) external virtual onlyCallsite {
+    function prepareCall(address caller) external override virtual onlyCallsite {
         StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = caller;
     }
     
-    function _msgSender() internal view override returns (address) {
+    function _msgSender() internal virtual view override returns (address) {
         return StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value;
     }
 

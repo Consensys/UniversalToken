@@ -1,53 +1,26 @@
 pragma solidity ^0.8.0;
 
-interface IERC20Storage {
-    /**
-     * @dev Returns the name of the token.
-     */
-    function name() external view returns (string memory);
+import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IProxyContext} from "../../../tools/context/IProxyContext.sol";
 
-    /**
-     * @dev Returns the symbol of the token.
-     */
-    function symbol() external view returns (string memory);
+interface IERC20Storage is IERC20Metadata, IProxyContext {
+    function burn(uint256 amount) external returns (bool);
 
-    /**
-     * @dev Returns the decimals places of the token.
-     */
-    function decimals() external view returns (uint8);
+    function mint(address receipient, uint256 amoount) external returns (bool);
 
-    function changeCurrentWriter(address newWriter) external;
+    function burnFrom(address account, uint256 amount) external returns (bool);
 
-    /**
-     * @dev Returns the amount of tokens in existence.
-     */
-    function totalSupply() external view returns (uint256);
+    function decreaseAllowance(address spender, uint256 amount) external returns (bool);
 
-    /**
-     * @dev Returns the amount of tokens owned by `account`.
-     */
-    function balanceOf(address account) external view returns (uint256);
+    function increaseAllowance(address spender, uint256 amount) external returns (bool);
 
-        /**
-     * @dev Returns the remaining number of tokens that `spender` will be
-     * allowed to spend on behalf of `owner` through {transferFrom}. This is
-     * zero by default.
-     *
-     * This value changes when {approve} or {transferFrom} are called.
-     */
-    function allowance(address owner, address spender) external view returns (uint256);
+    function registerExtension(address extension) external returns (bool);
 
-    function setAllowance(address owner, address spender, uint256 amount) external returns (bool);
+    function removeExtension(address extension) external returns (bool);
 
-    function setBalance(address owner, uint256 amount) external returns (bool);
+    function disableExtension(address extension) external returns (bool);
 
-    function decreaseTotalSupply(uint256 amount) external returns (bool);
+    function enableExtension(address extension) external returns (bool);
 
-    function increaseTotalSupply(uint256 amount) external returns (bool);
-
-    function setTotalSupply(uint256 amount) external returns (bool);
-
-    function increaseBalance(address owner, uint256 amount) external returns (bool);
-
-    function allowWriteFrom(address source) external view returns (bool);
+    function allExtensions() external view returns (address[] memory);
 }

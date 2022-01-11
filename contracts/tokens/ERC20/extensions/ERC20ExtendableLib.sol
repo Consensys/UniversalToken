@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC20Extension} from "../../../extensions/ERC20/IERC20Extension.sol";
 import {TransferData} from "../../../extensions/ERC20/IERC20Extension.sol";
-import {ExtensionContext} from "../../../extensions/ExtensionContext.sol";
+import {ExtensionStorage} from "../../../extensions/ExtensionStorage.sol";
 import {Diamond, LibDiamond} from "../../../tools/diamond/Diamond.sol";
 
 
@@ -45,9 +45,9 @@ library ERC20ExtendableLib {
 
         //Interface has been validated, lets begin setup
 
-        //Next we need to deploy the ExtensionContext contract
+        //Next we need to deploy the ExtensionStorage contract
         //To sandbox our extension's storage
-        ExtensionContext context = new ExtensionContext(address(this), extension);
+        ExtensionStorage context = new ExtensionStorage(address(this), extension);
 
         //Next lets figure out what external functions to register in the Diamond
         bytes4[] memory externalFunctions = context.externalFunctions();
@@ -157,8 +157,8 @@ library ERC20ExtendableLib {
             }
 
             //Execute the validate function using the proper interface
-            //however, execute the call at the ExtensionContext contract address
-            //The ExtensionContext contract will delegatecall the extension logic
+            //however, execute the call at the ExtensionStorage contract address
+            //The ExtensionStorage contract will delegatecall the extension logic
             //and manage storage/api
             address context = extensionData.contextAddresses[extension];
             IERC20Extension ext = IERC20Extension(context);
@@ -186,8 +186,8 @@ library ERC20ExtendableLib {
             }
 
             //Execute the validate function using the proper interface
-            //however, execute the call at the ExtensionContext contract address
-            //The ExtensionContext contract will delegatecall the extension logic
+            //however, execute the call at the ExtensionStorage contract address
+            //The ExtensionStorage contract will delegatecall the extension logic
             //and manage storage/api
             address context = extensionData.contextAddresses[extension];
             IERC20Extension ext = IERC20Extension(context);
