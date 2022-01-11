@@ -2,16 +2,21 @@ pragma solidity ^0.8.0;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ERC20ExtendableHooks} from "../../extensions/ERC20ExtendableHooks.sol";
-import {ERC20Burnable} from "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ProxyContext} from "../../../../tools/context/ProxyContext.sol";
-import {IERC20Extension, TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
-import {Roles} from "../../../../roles/Roles.sol";
+import {TransferData} from "../../../../extensions/ERC20/IERC20Extension.sol";
 import {ERC20ProxyRoles} from "../../proxy/ERC20ProxyRoles.sol";
+import {ERC1820Client} from "../../../../tools/ERC1820Client.sol";
+import {ERC1820Implementer} from "../../../../interface/ERC1820Implementer.sol";
 
-contract ERC20Logic is ERC20, ERC20ExtendableHooks, ProxyContext {
-    constructor() ERC20("", "") { }
+contract ERC20Logic is ERC20, ERC1820Client, ERC1820Implementer, ERC20ExtendableHooks, ProxyContext {
+    string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
+    
+    constructor() ERC20("", "") {
+        ERC1820Client.setInterfaceImplementation(ERC20_LOGIC_INTERFACE_NAME, address(this));
+        ERC1820Implementer._setInterface(ERC20_LOGIC_INTERFACE_NAME); // For migration
+     }
 
     function _msgSender() internal view override(Context, ProxyContext) returns (address) {
         return ProxyContext._msgSender();

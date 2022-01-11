@@ -1,7 +1,6 @@
 pragma solidity ^0.8.0;
 
 import {IERC20Storage} from "../storage/IERC20Storage.sol";
-import {IERC20Logic} from "../implementation/logic/IERC20Logic.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
@@ -36,10 +35,8 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
         );
     }
 
-    function _getImplementationContract() internal view returns (IERC20Logic) {
-        return IERC20Logic(
-            ERC1820Client.interfaceAddr(address(this), ERC20_LOGIC_INTERFACE_NAME)
-        );
+    function _getImplementationContract() internal view returns (address) {
+        ERC1820Client.interfaceAddr(address(this), ERC20_LOGIC_INTERFACE_NAME);
     }
 
     function _setImplementation(address implementation) internal {

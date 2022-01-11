@@ -29,7 +29,8 @@ contract(
           true,
           true,
           deployer,
-          totalSupply
+          totalSupply,
+          ZERO_ADDRESS
         ));
       });
 /*       after(async () => {
