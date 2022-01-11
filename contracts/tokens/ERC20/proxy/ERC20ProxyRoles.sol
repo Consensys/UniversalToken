@@ -6,16 +6,13 @@ import {Roles} from "../../../roles/Roles.sol";
 import {RolesBase} from "../../../roles/RolesBase.sol";
 import {ERC20ExtendableLib} from "../extensions/ERC20ExtendableLib.sol";
 
-//TODO Rename/redo roles for new Sandbox environment
-abstract contract ERC20ProxyStorage is RolesBase, Context {
+abstract contract ERC20ProxyRoles is RolesBase, Context {
     using Roles for Roles.Role;
 
-    bytes32 constant ERC20_CORE_ADDRESS = keccak256("erc20.proxy.core.address");
     bytes32 constant ERC20_ALLOW_BURN = keccak256("erc20.proxy.core.burn");
     bytes32 constant ERC20_ALLOW_MINT = keccak256("erc20.proxy.core.mint");
     bytes32 constant ERC20_OWNER = keccak256("erc20.proxy.core.owner");
     bytes32 constant ERC20_MINTER_ROLE = keccak256("erc20.proxy.core.mint.role");
-    bytes32 constant ERC20_STORAGE_ADDRESS = keccak256("erc20.proxy.storage.address");
     bytes32 constant ERC20_MANAGER_ADDRESS = keccak256("erc20.proxy.manager.address");
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 

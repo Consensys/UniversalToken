@@ -6,12 +6,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {ERC20ProxyStorage} from "./ERC20ProxyStorage.sol";
+import {ERC20ProxyRoles} from "./ERC20ProxyRoles.sol";
 import {DomainAware} from "../../../tools/DomainAware.sol";
 import {ERC1820Client} from "../../../tools/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../interface/ERC1820Implementer.sol";
 
-abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, ERC1820Client, ERC1820Implementer {
+abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ERC1820Client, ERC1820Implementer {
     string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
     string constant internal ERC20_STORAGE_INTERFACE_NAME = "ERC20TokenStorage";
     string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
@@ -46,7 +46,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, 
         ERC1820Client.setInterfaceImplementation(ERC20_LOGIC_INTERFACE_NAME, implementation);
     }
 
-    function _setStore(address store) internal {
+    function _setStorage(address store) internal {
         ERC1820Client.setInterfaceImplementation(ERC20_STORAGE_INTERFACE_NAME, store);
     }
 
@@ -68,6 +68,9 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, 
      * @dev Returns the name of the token.
      */
     function name() public override view returns (string memory) {
+        if (address(_getStorageContract()) == address(0)) {
+            return "";
+        }
         return _getStorageContract().name();
     }
 
@@ -75,6 +78,9 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, 
      * @dev Returns the symbol of the token.
      */
     function symbol() public override view returns (string memory) {
+        if (address(_getStorageContract()) == address(0)) {
+            return "";
+        }
         return _getStorageContract().symbol();
     }
 
@@ -95,7 +101,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, 
      * - the caller must have the `MINTER_ROLE`.
      */
     function mint(address to, uint256 amount) public virtual onlyMinter mintingEnabled returns (bool) {
-        bool result = _executeMint(_msgSender(), to, amount);
+        bool result = _mint(_msgSender(), to, amount);
         if (result) {
             emit Transfer(address(0), to, amount);
         }
@@ -109,7 +115,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, 
      */
     function burn(uint256 amount) public virtual burningEnabled returns (bool) {
         address to = _msgSender();
-        bool result = _executeBurn(to, to, amount);
+        bool result = _burn(to, to, amount);
         if (result) {
             emit Transfer(to, address(0), amount);
         }
@@ -129,7 +135,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, 
      */
     function burnFrom(address account, uint256 amount) public virtual burningEnabled returns (bool) {
         address caller = _msgSender();
-        bool result = _executeBurn(caller, account, amount);
+        bool result = _burn(caller, account, amount);
         if (result) {
             emit Transfer(account, address(0), amount);
         }
@@ -144,7 +150,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, 
      * Emits a {Transfer} event.
      */
     function transfer(address recipient, uint256 amount) public override returns (bool) {
-        bool result = _executeTransfer(_msgSender(), recipient, amount);
+        bool result = _transfer(_msgSender(), recipient, amount);
         if (result) {
             emit Transfer(_msgSender(), recipient, amount);
         }
@@ -177,7 +183,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, 
      * Emits an {Approval} event.
      */
     function approve(address spender, uint256 amount) public override returns (bool) {
-        bool result = _executeApprove(_msgSender(), spender, amount);
+        bool result = _approve(_msgSender(), spender, amount);
         if (result) {
             emit Approval(_msgSender(), spender, amount);
         }
@@ -198,7 +204,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, 
         address recipient,
         uint256 amount
     ) public override returns (bool) {
-        bool result = _executeTransferFrom(_msgSender(), sender, recipient, amount);
+        bool result = _transferFrom(_msgSender(), sender, recipient, amount);
 
         if (result) {
             emit Transfer(sender, recipient, amount);
@@ -220,7 +226,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, 
      * - `spender` cannot be the zero address.
      */
     function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
-        bool result = _executeIncreaseAllowance(_msgSender(), spender, addedValue);
+        bool result = _increaseAllowance(_msgSender(), spender, addedValue);
 
         if (result) {
             uint256 allowanceAmount = _getStorageContract().allowance(_msgSender(), spender);
@@ -244,7 +250,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, 
      * `subtractedValue`.
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
-        bool result = _executeDecreaseAllowance(_msgSender(), spender, subtractedValue);
+        bool result = _decreaseAllowance(_msgSender(), spender, subtractedValue);
         if (result) {
             uint256 allowanceAmount = _getStorageContract().allowance(_msgSender(), spender);
             emit Approval(_msgSender(), spender, allowanceAmount);
@@ -252,35 +258,35 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, 
         return result;
     }
 
-/*     function _executeMint(address caller, address receipient, uint256 amount) internal virtual returns (bool) {
+/*     function _mint(address caller, address receipient, uint256 amount) internal virtual returns (bool) {
         return _getImplementationContract().mint(caller, receipient, amount);
     }
 
-    function _executeBurn(address caller, address receipient, uint256 amount) internal virtual returns (bool) {
+    function _burn(address caller, address receipient, uint256 amount) internal virtual returns (bool) {
         return _getImplementationContract().burn(caller, receipient, amount);
     }
 
-    function _executeBurnFrom(address caller, address receipient, uint256 amount) internal virtual returns (bool) {
+    function _burnFrom(address caller, address receipient, uint256 amount) internal virtual returns (bool) {
         return _getImplementationContract().burnFrom(caller, receipient, amount);
     }
 
-    function _executeDecreaseAllowance(address caller, address spender, uint256 subtractedValue) internal virtual returns (bool) {
+    function _decreaseAllowance(address caller, address spender, uint256 subtractedValue) internal virtual returns (bool) {
         return _getImplementationContract().decreaseAllowance(caller, spender, subtractedValue);
     }
 
-    function _executeIncreaseAllowance(address caller, address spender, uint256 addedValue) internal virtual returns (bool) {
+    function _increaseAllowance(address caller, address spender, uint256 addedValue) internal virtual returns (bool) {
         return _getImplementationContract().increaseAllowance(caller, spender, addedValue);
     }
 
-    function _executeTransferFrom(address caller, address sender, address recipient, uint256 amount) internal virtual returns (bool) {
+    function _transferFrom(address caller, address sender, address recipient, uint256 amount) internal virtual returns (bool) {
         return _getImplementationContract().transferFrom(caller, sender, recipient, amount);
     }
 
-    function _executeApprove(address caller, address spender, uint256 amount) internal virtual returns (bool) {
+    function _approve(address caller, address spender, uint256 amount) internal virtual returns (bool) {
         return _getImplementationContract().approve(caller, spender, amount);
     }
 
-    function _executeTransfer(address caller, address recipient, uint256 amount) internal virtual returns (bool) {
+    function _transfer(address caller, address recipient, uint256 amount) internal virtual returns (bool) {
         return _getImplementationContract().transfer(caller, recipient, amount);
     } */
 
@@ -299,43 +305,43 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyStorage, DomainAware, 
         return data;
     }
 
-    function _executeDecreaseAllowance(address caller, address spender, uint256 subtractedValue) internal virtual returns (bool) {
+    function _decreaseAllowance(address caller, address spender, uint256 subtractedValue) internal virtual returns (bool) {
         return _invokeCore(abi.encodeWithSelector(IERC20Logic.decreaseAllowance.selector, caller, spender, subtractedValue))[0] == 0x01;
     }
 
-    function _executeIncreaseAllowance(address caller, address spender, uint256 addedValue) internal virtual returns (bool) {
+    function _increaseAllowance(address caller, address spender, uint256 addedValue) internal virtual returns (bool) {
         return _invokeCore(abi.encodeWithSelector(IERC20Logic.increaseAllowance.selector, caller, spender, addedValue))[0] == 0x01;
     }
 
-    function _executeTransferFrom(address caller, address sender, address recipient, uint256 amount) internal virtual returns (bool) {
+    function _transferFrom(address caller, address sender, address recipient, uint256 amount) internal virtual returns (bool) {
         return _invokeCore(abi.encodeWithSelector(IERC20Logic.transferFrom.selector, caller, sender, recipient, amount))[0] == 0x01;
     }
 
-    function _executeApprove(address caller, address spender, uint256 amount) internal virtual returns (bool) {
+    function _approve(address caller, address spender, uint256 amount) internal virtual returns (bool) {
         return _invokeCore(abi.encodeWithSelector(IERC20Logic.approve.selector, caller, spender, amount))[0] == 0x01;
     }
 
-    function _executeTransfer(address caller, address recipient, uint256 amount) internal virtual returns (bool) {
+    function _transfer(address caller, address recipient, uint256 amount) internal virtual returns (bool) {
         return _invokeCore(abi.encodeWithSelector(IERC20Logic.transfer.selector, caller, recipient, amount))[0] == 0x01;
     }
 
-    function _executeMint(address caller, address recipient, uint256 amount) internal virtual returns (bool) {
+    function _mint(address caller, address recipient, uint256 amount) internal virtual returns (bool) {
         return _invokeCore(abi.encodeWithSelector(IERC20Logic.mint.selector, caller, recipient, amount))[0] == 0x01; 
     }
 
-    function _executeBurn(address caller, address receipient, uint256 amount) internal virtual returns (bool) {
+    function _burn(address caller, address receipient, uint256 amount) internal virtual returns (bool) {
         return _invokeCore(abi.encodeWithSelector(IERC20Logic.burn.selector, caller, receipient, amount))[0] == 0x01;
     }
 
-    function _executeBurnFrom(address caller, address receipient, uint256 amount) internal virtual returns (bool) {
+    function _burnFrom(address caller, address receipient, uint256 amount) internal virtual returns (bool) {
         return _invokeCore(abi.encodeWithSelector(IERC20Logic.burnFrom.selector, caller, receipient, amount))[0] == 0x01;
     }
 
-    function domainName() public virtual override view returns (string memory) {
-        return name();
+    function domainName() public virtual override view returns (bytes memory) {
+        return bytes(name());
     }
 
-    function domainVersion() public virtual override view returns (string memory) {
-        return "1.0.0";
+    function domainVersion() public virtual override view returns (bytes32) {
+        return bytes32(uint256(uint160(address(_getImplementationContract()))));
     }
 }

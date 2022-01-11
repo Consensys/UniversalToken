@@ -86,14 +86,18 @@ abstract contract ERC20ExtendableBase is Diamond, Context, ERC1820Client {
         require(ERC20ExtendableLib._executeAfterTransfer(data), "Extension failed execution of post-transfer");
     }
 
-    // Find facet for function that is called and execute the
-    // function if a facet is found and return any value.
-    fallback() external override payable {
+    function _invokeExtensionFunction() internal {
         address facet = _lookupFacet(msg.sig);
         if (_isContextAddress(facet)) {
             ExtensionContext context = ExtensionContext(payable(facet));
             context.prepareCall(_msgSender(), msg.sig);
         }
         _callFunction(msg.sig);
+    }
+
+    // Find facet for function that is called and execute the
+    // function if a facet is found and return any value.
+    fallback() external override payable {
+        _invokeExtensionFunction();
     }
 }

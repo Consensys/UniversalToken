@@ -13,6 +13,8 @@ import "../roles/MinterRole.sol";
 import "../tools/DomainAware.sol";
 
 contract ERC721Token is Ownable, ERC721, ERC721URIStorage, ERC721Enumerable, ERC721Burnable, ERC721Pausable,  MinterRole, ERC1820Implementer, AccessControlEnumerable, DomainAware {
+  bytes32 constant internal VERSION = 0x0000000000000000000000000000000000000000000000000000000000000001;
+  
   string constant internal ERC721_TOKEN = "ERC721Token";
   string internal _baseUri;
 
@@ -70,12 +72,12 @@ contract ERC721Token is Ownable, ERC721, ERC721URIStorage, ERC721Enumerable, ERC
   }
 
   /************************************* Domain Aware ******************************************/
-  function domainName() public override view returns (string memory) {
-    return name();
+  function domainName() public override view returns (bytes memory) {
+    return bytes(name());
   }
 
-  function domainVersion() public override view returns (string memory) {
-    return "1";
+  function domainVersion() public override view returns (bytes32) {
+    return VERSION;
   }
   /************************************************************************************************/
 }

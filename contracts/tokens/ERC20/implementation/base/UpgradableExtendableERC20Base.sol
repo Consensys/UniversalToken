@@ -20,15 +20,13 @@ contract UpgradableExtendableERC20Base is ERC20Proxy, ERC20ExtendableBase {
         _setImplementation(address(implementation));
         _setStore(address(store));
 
-        //Only we can modify the storage contract
-        //(and the ERC20DelegateCore contract given when we run delegatecall)
-        store.changeCurrentWriter(address(this));
+        //Update the doamin seperator now that 
+        //we've setup everything
+        _updateDomainSeparator();
     }
 
     function upgradeTo(address implementation) external onlyManager {
         _setImplementation(implementation);
-
-        _getStorageContract().changeCurrentWriter(implementation);
     }
 
     function registerExtension(address extension) external onlyManager returns (bool) {

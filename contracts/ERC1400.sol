@@ -30,6 +30,8 @@ import "./tools/DomainAware.sol";
 contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer, MinterRole, DomainAware {
   using SafeMath for uint256;
 
+  bytes32 constant internal VERSION = 0x0000000000000000000000000000000000000000000000000000000000000001;
+
   // Token
   string constant internal ERC1400_INTERFACE_NAME = "ERC1400Token";
   string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
@@ -1432,12 +1434,12 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   /************************************************************************************************/
 
   /************************************* Domain Aware ******************************************/
-  function domainName() public override view returns (string memory) {
-    return _name;
+  function domainName() public override view returns (bytes memory) {
+    return bytes(_name);
   }
 
-  function domainVersion() public override view returns (string memory) {
-    return "1";
+  function domainVersion() public override view returns (bytes32) {
+    return VERSION;
   }
   /************************************************************************************************/
 }

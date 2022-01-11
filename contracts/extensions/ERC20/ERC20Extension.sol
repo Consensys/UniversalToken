@@ -14,6 +14,17 @@ abstract contract ERC20Extension is IERC20Extension, ExtensionBase, RolesBase {
     bytes4[] private _exposedFuncSigs;
     mapping(bytes4 => bool) private _interfaceMap;
 
+    modifier onlyOwner {
+        require(_msgSender() == _tokenOwner(), "Only the token owner can invoke");
+        _;
+    }
+
+    modifier onlyTokenOrOwner {
+        address msgSender = _msgSender();
+        require(msgSender == _tokenOwner() || msgSender == _tokenAddress(), "Only the token or token owner can invoke");
+        _;
+    }
+
     function _supportInterface(bytes4 interfaceId) internal {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
         _interfaceMap[interfaceId] = true;
