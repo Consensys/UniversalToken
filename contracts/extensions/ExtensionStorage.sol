@@ -1,12 +1,12 @@
 pragma solidity ^0.8.0;
 
-import {Diamond, LibDiamond} from "../tools/diamond/Diamond.sol";
+import {Diamond, LibDiamond} from "../proxy/diamond/Diamond.sol";
 import {IExtension} from "./IExtension.sol";
 import {ExtensionBase} from "./ExtensionBase.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
 contract ExtensionStorage is ExtensionBase, Diamond {
-    constructor(address token, address extension) Diamond(token) {
+    constructor(address token, address extension) {
         //Setup context data
         ContextData storage ds;
         bytes32 position = CONTEXT_DATA_SLOT;

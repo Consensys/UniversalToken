@@ -23,6 +23,7 @@ module.exports = {
       port: 7545,
       network_id: '*', // eslint-disable-line camelcase
       gasPrice: 0x01,
+      gas: "10000000",
     },
     test: {
       host: "localhost",
@@ -56,10 +57,7 @@ module.exports = {
       network_id: parseInt(process.env.NETWORK_ID) || '*', // eslint-disable-line camelcase
     },
   },
-  plugins: [
-    "solidity-coverage",
-    "truffle-plugin-verify"
-  ],
+  plugins: ["solidity-coverage", "truffle-contract-size", "truffle-plugin-verify"],
   compilers: {
     solc: {
       version: '0.8.7',

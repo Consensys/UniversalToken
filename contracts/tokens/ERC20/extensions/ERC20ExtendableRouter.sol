@@ -4,7 +4,7 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ExtensionStorage} from "../../../extensions/ExtensionStorage.sol";
 import {ERC20ExtendableLib} from "./ERC20ExtendableLib.sol";
 import {IERC20Extension, TransferData} from "../../../extensions/ERC20/IERC20Extension.sol";
-import {Diamond} from "../../../tools/diamond/Diamond.sol";
+import {Diamond} from "../../../proxy/diamond/Diamond.sol";
 import {ERC20ExtendableBase} from "./ERC20ExtendableBase.sol";
 
 abstract contract ERC20ExtendableRouter is Diamond, Context, ERC20ExtendableBase {
@@ -57,7 +57,7 @@ abstract contract ERC20ExtendableRouter is Diamond, Context, ERC20ExtendableBase
 
     // Find facet for function that is called and execute the
     // function if a facet is found and return any value.
-    fallback() external override payable {
+    fallback() external virtual override payable {
         _invokeExtensionFunction();
     }
 }

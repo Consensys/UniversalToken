@@ -7,6 +7,8 @@ import {IProxyContext} from "./IProxyContext.sol";
 abstract contract ProxyContext is Context, IProxyContext {
     bytes32 constant PROXY_CONTEXT_DATA_SLOT = keccak256("proxy.context.data");
     bytes32 constant MSG_SENDER_SLOT = keccak256("proxy.context.data.msgsender");
+    bytes32 constant LOGIC_CALL_SLOT = keccak256("proxy.context.data.msgsender");
+    bytes32 constant EXT_CALL_SLOT = keccak256("proxy.context.data.msgsender");
     
     struct ProxyContextData {
         address callsite;
@@ -35,13 +37,44 @@ abstract contract ProxyContext is Context, IProxyContext {
         _;
     }
 
-    function prepareCall(address caller) external override virtual onlyCallsite {
+    function prepareLogicCall(address caller) external override virtual onlyCallsite {
         StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = caller;
+        StorageSlot.getBooleanSlot(EXT_CALL_SLOT).value = false;
+    }
+
+    function prepareExtCall(address caller) external override virtual onlyCallsite {
+        StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = caller;
+        StorageSlot.getBooleanSlot(EXT_CALL_SLOT).value = true;
+    }
+
+    function _isExtCall() internal view returns (bool) {
+        return StorageSlot.getBooleanSlot(EXT_CALL_SLOT).value;
     }
     
     function _msgSender() internal virtual view override returns (address) {
         return StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value;
     }
+
+/*     function _staticcall(address implementation) internal view {
+        assembly {
+            // Copy msg.data. We take full control of memory in this inline assembly
+            // block because it will not return to Solidity code. We overwrite the
+            // Solidity scratch pad at memory position 0.
+            calldatacopy(0, 0, calldatasize())
+
+            // Call the implementation.
+            // out and outsize are 0 because we don't know the size yet.
+            let result := staticcall(gas(), implementation, 0, calldatasize(), 0, 0)
+
+            // Copy the returned data.
+            returndatacopy(0, 0, returndatasize())
+
+            switch result
+            // delegatecall returns 0 on error.
+            case 0 { revert(0, returndatasize()) }
+            default { return(0, returndatasize()) }
+        }
+    } */
 
     /**
     * @dev Delegates execution to an implementation contract.

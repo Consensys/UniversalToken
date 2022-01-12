@@ -1,21 +1,33 @@
 pragma solidity ^0.8.0;
 
-import {IERC20Storage} from "../storage/IERC20Storage.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {ERC20ProxyRoles} from "./ERC20ProxyRoles.sol";
 import {DomainAware} from "../../../tools/DomainAware.sol";
-import {ERC1820Client} from "../../../tools/ERC1820Client.sol";
-import {ERC1820Implementer} from "../../../interface/ERC1820Implementer.sol";
+import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
+import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
+import {IERC20Logic} from "../logic/IERC20Logic.sol";
+import {ERC20Storage} from "../storage/ERC20Storage.sol";
+import {ERC20Logic} from "../logic/ERC20Logic.sol";
 
 abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ERC1820Client, ERC1820Implementer {
     string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
     string constant internal ERC20_STORAGE_INTERFACE_NAME = "ERC20TokenStorage";
     string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
+    bytes32 constant ERC20_TOKEN_META = keccak256("erc20.token.meta");
 
-    constructor(bool allowMint, bool allowBurn, address owner) {
+    struct TokenMeta {
+        string name;
+        string symbol;
+    }
+
+    constructor(
+        string memory name_, string memory symbol_, 
+        bool allowMint, bool allowBurn, address owner,
+        address logicAddress
+    ) { 
         StorageSlot.getAddressSlot(ERC20_MANAGER_ADDRESS).value = msg.sender;
 
         if (owner != _msgSender()) {
@@ -25,18 +37,51 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
         _toggleMinting(allowMint);
         _toggleBurning(allowBurn);
 
+        if (allowMint) {
+            _addRole(owner, ERC20_MINTER_ROLE);
+        }
+
+        TokenMeta storage m = _getTokenMeta();
+        m.name = name_;
+        m.symbol = symbol_;
+
         ERC1820Client.setInterfaceImplementation(ERC20_INTERFACE_NAME, address(this));
         ERC1820Implementer._setInterface(ERC20_INTERFACE_NAME); // For migration
+
+        ERC20Storage store = new ERC20Storage(address(this));
+        if (logicAddress == address(0)) {
+            ERC20Logic logic = new ERC20Logic();
+            logicAddress = address(logic);
+        }
+        require(logicAddress != address(0), "Logic address must be given");
+        require(logicAddress == ERC1820Client.interfaceAddr(logicAddress, ERC20_LOGIC_INTERFACE_NAME), "Not registered as a logic contract");
+
+        _setImplementation(logicAddress);
+        _setStorage(address(store));
+
+        //Update the doamin seperator now that 
+        //we've setup everything
+        _updateDomainSeparator();
     }
 
-    function _getStorageContract() internal view returns (IERC20Storage) {
-        return IERC20Storage(
+    /**
+     * @dev Returns an `AddressSlot` with member `value` located at `slot`.
+     */
+    function _getTokenMeta() internal pure returns (TokenMeta storage r) {
+        bytes32 slot = ERC20_TOKEN_META;
+        assembly {
+            r.slot := slot
+        }
+    }
+
+    function _getStorageContract() internal view returns (IERC20Logic) {
+        return IERC20Logic(
             ERC1820Client.interfaceAddr(address(this), ERC20_STORAGE_INTERFACE_NAME)
         );
     }
 
     function _getImplementationContract() internal view returns (address) {
-        ERC1820Client.interfaceAddr(address(this), ERC20_LOGIC_INTERFACE_NAME);
+        return ERC1820Client.interfaceAddr(address(this), ERC20_LOGIC_INTERFACE_NAME);
     }
 
     function _setImplementation(address implementation) internal {
@@ -65,20 +110,14 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
      * @dev Returns the name of the token.
      */
     function name() public override view returns (string memory) {
-        if (address(_getStorageContract()) == address(0)) {
-            return "";
-        }
-        return _getStorageContract().name();
+        return _getTokenMeta().name;
     }
 
     /**
      * @dev Returns the symbol of the token.
      */
     function symbol() public override view returns (string memory) {
-        if (address(_getStorageContract()) == address(0)) {
-            return "";
-        }
-        return _getStorageContract().symbol();
+        return _getTokenMeta().symbol;
     }
 
     /**
@@ -254,42 +293,43 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
     }
 
     function _mint(address receipient, uint256 amount) private returns (bool) {
-        _getStorageContract().prepareCall(_msgSender());
-        return _getStorageContract().mint(receipient, amount);
+        _getStorageContract().prepareLogicCall(_msgSender());
+        IERC20Logic st = _getStorageContract();
+        return st.mint(receipient, amount);
     }
 
     function _burn(uint256 amount) private returns (bool) {
-        _getStorageContract().prepareCall(_msgSender());
+        _getStorageContract().prepareLogicCall(_msgSender());
         return _getStorageContract().burn(amount);
     }
 
     function _burnFrom(address receipient, uint256 amount) private returns (bool) {
-        _getStorageContract().prepareCall(_msgSender());
+        _getStorageContract().prepareLogicCall(_msgSender());
         return _getStorageContract().burnFrom(receipient, amount);
     }
 
     function _decreaseAllowance(address spender, uint256 subtractedValue) private returns (bool) {
-        _getStorageContract().prepareCall(_msgSender());
+        _getStorageContract().prepareLogicCall(_msgSender());
         return _getStorageContract().decreaseAllowance(spender, subtractedValue);
     }
 
     function _increaseAllowance(address spender, uint256 addedValue) private returns (bool) {
-        _getStorageContract().prepareCall(_msgSender());
+        _getStorageContract().prepareLogicCall(_msgSender());
         return _getStorageContract().increaseAllowance(spender, addedValue);
     }
 
     function _transferFrom(address sender, address recipient, uint256 amount) private returns (bool) {
-        _getStorageContract().prepareCall(_msgSender());
+        _getStorageContract().prepareLogicCall(_msgSender());
         return _getStorageContract().transferFrom(sender, recipient, amount);
     }
 
     function _approve(address spender, uint256 amount) private returns (bool) {
-        _getStorageContract().prepareCall(_msgSender());
+        _getStorageContract().prepareLogicCall(_msgSender());
         return _getStorageContract().approve(spender, amount);
     }
 
     function _transfer(address recipient, uint256 amount) private returns (bool) {
-        _getStorageContract().prepareCall(_msgSender());
+        _getStorageContract().prepareLogicCall(_msgSender());
         return _getStorageContract().transfer(recipient, amount);
     }
 
@@ -300,4 +340,55 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
     function domainVersion() public virtual override view returns (bytes32) {
         return bytes32(uint256(uint160(address(_getImplementationContract()))));
     }
+
+    function upgradeTo(address implementation) external onlyManager {
+        _setImplementation(implementation);
+    }
+
+    function registerExtension(address extension) external onlyManager returns (bool) {
+        return _getStorageContract().registerExtension(extension);
+    }
+
+    function removeExtension(address extension) external onlyManager returns (bool) {
+       return _getStorageContract().removeExtension(extension);
+    }
+
+    function disableExtension(address extension) external onlyManager returns (bool) {
+        return _getStorageContract().disableExtension(extension);
+    }
+
+    function enableExtension(address extension) external onlyManager returns (bool) {
+        return _getStorageContract().enableExtension(extension);
+    }
+
+    function allExtensions() external view returns (address[] memory) {
+        return _getStorageContract().allExtensions();
+    }
+
+    // Find facet for function that is called and execute the
+    // function if a facet is found and return any value.
+    fallback() external virtual payable {
+        address store = address(_getStorageContract());
+        uint256 value = msg.value;
+
+        // Execute external function from facet using call and return any value.
+        assembly {
+            // copy function selector and any arguments
+            calldatacopy(0, 0, calldatasize())
+            // execute function call using the facet
+            let result := call(gas(), store, value, 0, calldatasize(), 0, 0)
+            // get any return value
+            returndatacopy(0, 0, returndatasize())
+            // return any return value or error back to the caller
+            switch result
+                case 0 {
+                    revert(0, returndatasize())
+                }
+                default {
+                    return(0, returndatasize())
+                }
+        }
+    }
+    
+    receive() external payable {}
 }

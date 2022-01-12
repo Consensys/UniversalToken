@@ -1,3 +1,5 @@
+hardhat.*
+cache/
 types/
 .idea/
 .env

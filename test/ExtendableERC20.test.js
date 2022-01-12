@@ -10,90 +10,99 @@ const { newSecretHashPair } = require("./utils/crypto");
 const { bytes32 } = require("./utils/regex");
 
 const ERC20Extendable = artifacts.require("ERC20Extendable");
+const ERC20Logic = artifacts.require("ERC20Logic");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const ZERO_BYTES32 =
   "0x0000000000000000000000000000000000000000000000000000000000000000";
 contract(
   "ERC20Extendable",
-  ([deployer, sender, holder, recipient, recipient2, notary]) => {
-    describe("ERC20 (mint: on, burn: on, with owner) with no extensions", () => {
+  function ([deployer, sender, holder, recipient, recipient2, notary]) {
+    describe("ERC20 (mint: on, burn: on, with owner) with no extensions", function () {
       const totalSupply = 1000;
       let snapshotId;
-      beforeEach(async function () {
+      let token;
+      before(async function () {
         //snapshot = await takeSnapshot();
         //snapshotId = snapshot["result"];
-        this.token = await debug(ERC20Extendable.new(
+        this.logic = await ERC20Logic.new();
+        token = await ERC20Extendable.new(
           "ERC20Extendable",
           "DAU",
           true,
           true,
           deployer,
           totalSupply,
-          ZERO_ADDRESS
-        ));
+          this.logic.address
+        );
+        console.log(await token.isMinter(deployer));
+        assert.equal(await token.isMinter(deployer), true);
+        assert.equal(await token.name(), "ERC20Extendable");
+        assert.equal(await token.symbol(), "DAU");
+        assert.equal(await token.totalSupply(), totalSupply);
+        assert.equal(await token.balanceOf(deployer), totalSupply);
       });
 /*       after(async () => {
         await revertToSnapshot(snapshotId);
       }); */
 
       it("Mint 1000 tokens to holder", async () => {
-        assert.equal(await this.token.totalSupply(), 0);
-        assert.equal(await this.token.balanceOf(holder), 0);
-        const result = await this.token.mint(holder, 1000, { from: deployer });
+        assert.equal(await token.totalSupply(), totalSupply);
+        assert.equal(await token.balanceOf(holder), 0);
+        const result = await token.mint(holder, 1000, { from: deployer });
         assert.equal(result.receipt.status, 1);
-        assert.equal(await this.token.balanceOf(deployer), 0);
-        assert.equal(await this.token.balanceOf(holder), 1000);
-        assert.equal(await this.token.balanceOf(sender), 0);
-        assert.equal(await this.token.balanceOf(recipient), 0);
-        assert.equal(await this.token.balanceOf(recipient2), 0);
-        assert.equal(await this.token.balanceOf(notary), 0);
-        assert.equal(await this.token.totalSupply(), 1000);
+        assert.equal(await token.balanceOf(deployer), 0);
+        assert.equal(await token.balanceOf(holder), 1000);
+        assert.equal(await token.balanceOf(sender), 0);
+        assert.equal(await token.balanceOf(recipient), 0);
+        assert.equal(await token.balanceOf(recipient2), 0);
+        assert.equal(await token.balanceOf(notary), 0);
+        assert.equal(await token.totalSupply(), totalSupply + 1000);
       });
 
       it("Burn 100 tokens", async () => {
-        assert.equal(await this.token.totalSupply(), 0);
-        assert.equal(await this.token.balanceOf(holder), 1000);
-        const result = await this.token.burn(100, { from: holder });
+        assert.equal(await token.totalSupply(), totalSupply + 1000);
+        assert.equal(await token.balanceOf(holder), 1000);
+        const result = await token.burn(100, { from: holder });
         assert.equal(result.receipt.status, 1);
-        assert.equal(await this.token.balanceOf(deployer), 0);
-        assert.equal(await this.token.balanceOf(holder), 1000 - 100);
-        assert.equal(await this.token.balanceOf(sender), 0);
-        assert.equal(await this.token.balanceOf(recipient), 0);
-        assert.equal(await this.token.balanceOf(recipient2), 0);
-        assert.equal(await this.token.balanceOf(notary), 0);
-        assert.equal(await this.token.totalSupply(), 1000);
+        assert.equal(await token.balanceOf(deployer), 0);
+        assert.equal(await token.balanceOf(holder), 1000 - 100);
+        assert.equal(await token.balanceOf(sender), 0);
+        assert.equal(await token.balanceOf(recipient), 0);
+        assert.equal(await token.balanceOf(recipient2), 0);
+        assert.equal(await token.balanceOf(notary), 0);
+        assert.equal(await token.totalSupply(),  totalSupply + 1000 - 100);
       });
 
       it("Transfer 100 tokens from holder to recipient", async () => {
-        assert.equal(await this.token.totalSupply(), 0);
-        assert.equal(await this.token.balanceOf(holder), 900);
-        const result = await this.token.transfer(recipient, 100, { from: holder });
+        assert.equal(await token.totalSupply(), totalSupply + 1000 - 100);
+        assert.equal(await token.balanceOf(holder), 900);
+        const result = await token.transfer(recipient, 100, { from: holder });
         assert.equal(result.receipt.status, 1);
-        assert.equal(await this.token.balanceOf(deployer), 0);
-        assert.equal(await this.token.balanceOf(holder), 800);
-        assert.equal(await this.token.balanceOf(sender), 0);
-        assert.equal(await this.token.balanceOf(recipient), 100);
-        assert.equal(await this.token.balanceOf(recipient2), 0);
-        assert.equal(await this.token.balanceOf(notary), 0);
-        assert.equal(await this.token.totalSupply(), 1000);
+        assert.equal(await token.balanceOf(deployer), 0);
+        assert.equal(await token.balanceOf(holder), 800);
+        assert.equal(await token.balanceOf(sender), 0);
+        assert.equal(await token.balanceOf(recipient), 100);
+        assert.equal(await token.balanceOf(recipient2), 0);
+        assert.equal(await token.balanceOf(notary), 0);
+        assert.equal(await token.totalSupply(), totalSupply + 1000 - 100);
       });
 
       it("Recipient cant transfer 200 tokens to recipient2", async () => {
         await expectRevert.unspecified(
-          this.token.transfer(recipient2, 200, { from: recipient })
+          token.transfer(recipient2, 200, { from: recipient })
         );
       });
 
       it("Recipient cant transferFrom 200 tokens from holder to recipient2", async () => {
         await expectRevert.unspecified(
-          this.token.transfer(recipient2, 200, { from: recipient })
+          token.transfer(recipient2, 200, { from: recipient })
         );
       });
 
       it("When holder approves recipient to transfer 200", async () => {
         await expectRevert.unspecified(
-          this.token.transfer(recipient2, 200, { from: recipient })
+          token.transfer(recipient2, 200, { from: recipient })
         );
       });
     });

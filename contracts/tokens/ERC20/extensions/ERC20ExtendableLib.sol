@@ -4,7 +4,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC20Extension} from "../../../extensions/ERC20/IERC20Extension.sol";
 import {TransferData} from "../../../extensions/ERC20/IERC20Extension.sol";
 import {ExtensionStorage} from "../../../extensions/ExtensionStorage.sol";
-import {Diamond, LibDiamond} from "../../../tools/diamond/Diamond.sol";
+import {Diamond, LibDiamond} from "../../../proxy/diamond/Diamond.sol";
 
 
 library ERC20ExtendableLib {

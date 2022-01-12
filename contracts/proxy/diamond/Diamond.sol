@@ -12,10 +12,6 @@ import { LibDiamond } from "./LibDiamond.sol";
 
 contract Diamond {    
 
-    constructor(address _contractOwner) payable {        
-        LibDiamond.setContractOwner(_contractOwner);  
-    }
-
     // Find facet for function that is called and execute the
     // function if a facet is found and return any value.
     fallback() external virtual payable {
