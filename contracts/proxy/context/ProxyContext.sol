@@ -7,8 +7,7 @@ import {IProxyContext} from "./IProxyContext.sol";
 abstract contract ProxyContext is Context, IProxyContext {
     bytes32 constant PROXY_CONTEXT_DATA_SLOT = keccak256("proxy.context.data");
     bytes32 constant MSG_SENDER_SLOT = keccak256("proxy.context.data.msgsender");
-    bytes32 constant LOGIC_CALL_SLOT = keccak256("proxy.context.data.msgsender");
-    bytes32 constant EXT_CALL_SLOT = keccak256("proxy.context.data.msgsender");
+    bytes32 constant EXT_CALL_SLOT = keccak256("proxy.context.data.extcall");
     
     struct ProxyContextData {
         address callsite;

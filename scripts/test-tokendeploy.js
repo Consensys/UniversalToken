@@ -22,6 +22,8 @@ async function main() {
   const ERC20Storage = await hre.ethers.getContractFactory("ERC20Storage");
   const ERC20Extendable = await hre.ethers.getContractFactory("ERC20Extendable");
 
+  const logic = await ERC20Logic.deploy();
+
   console.log("Deploy token test");
   const erc20 = await ERC20Extendable.deploy(
     "ERC20Extendable",
@@ -29,9 +31,17 @@ async function main() {
     true,
     true,
     deployer,
-    1000
+    1000,
+    logic.address
   );
   await erc20.deployed();
+
+  console.log("Deployer is " + deployer);
+  console.log("Is deployer minter? " + (await erc20.isMinter(deployer)));
+
+  console.log("Deployed to " + erc20.address);
+
+  await erc20.mint(accounts[1], "1000");
 
   console.log("ERC20Extendable token contract deployed to:", erc20.address);
 }
