@@ -14,6 +14,7 @@ import "../../roles/AllowlistedRole.sol";
 import "../../roles/BlocklistedRole.sol";
 
 import "../../erc1820/ERC1820Client.sol";
+import "../../interface/IHoldableERC1400TokenExtension.sol";
 import "../../tools/DomainAware.sol";
 import "../../erc1820/ERC1820Implementer.sol";
 
@@ -29,7 +30,7 @@ interface IMinterRole {
 }
 
 
-contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, CertificateSignerRole, AllowlistedRole, BlocklistedRole, ERC1820Client, ERC1820Implementer {
+contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, CertificateSignerRole, AllowlistedRole, BlocklistedRole, ERC1820Client, ERC1820Implementer, IHoldableERC1400TokenExtension {
   using SafeMath for uint256;
 
   string constant internal ERC1400_TOKENS_VALIDATOR = "ERC1400TokensValidator";
@@ -71,16 +72,6 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
 
   // Mapping from token to holds activation status.
   mapping(address => bool) internal _holdsActivated;
-
-  enum HoldStatusCode {
-    Nonexistent,
-    Ordered,
-    Executed,
-    ExecutedAndKeptOpen,
-    ReleasedByNotary,
-    ReleasedByPayee,
-    ReleasedOnExpiration
-  }
 
   struct Hold {
     bytes32 partition;
@@ -886,7 +877,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Execute hold.
    */
-  function executeHold(address token, bytes32 holdId, uint256 value, bytes32 secret) external returns (bool) {
+  function executeHold(address token, bytes32 holdId, uint256 value, bytes32 secret) external override returns (bool) {
     return _executeHold(
       token,
       holdId,
@@ -1147,7 +1138,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Retrieve hold data.
    */
-  function retrieveHoldData(address token, bytes32 holdId) external view returns (
+  function retrieveHoldData(address token, bytes32 holdId) external override view returns (
     bytes32 partition,
     address sender,
     address recipient,

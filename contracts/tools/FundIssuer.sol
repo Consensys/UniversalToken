@@ -161,7 +161,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
   }
 
   /**
-   * [DVP CONSTRUCTOR]
+   * [Swaps CONSTRUCTOR]
    * @dev Initialize Fund issuance contract + register
    * the contract implementation in ERC1820Registry.
    */
@@ -175,8 +175,8 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
    * [ERC1400TokensRecipient INTERFACE (1/2)]
    * @dev Indicate whether or not the fund issuance contract can receive the tokens or not. [USED FOR ERC1400 TOKENS ONLY]
    * @param data Information attached to the token transfer.
-   * @param operatorData Information attached to the DVP transfer, by the operator.
-   * @return 'true' if the DVP contract can receive the tokens, 'false' if not.
+   * @param operatorData Information attached to the Swaps transfer, by the operator.
+   * @return 'true' if the Swaps contract can receive the tokens, 'false' if not.
    */
   function canReceive(bytes calldata, bytes32, address, address, address, uint, bytes calldata  data, bytes calldata operatorData) external override view returns(bool) {
     return(_canReceive(data, operatorData));
@@ -190,7 +190,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
    * @param data Information attached to the token transfer.
-   * @param operatorData Information attached to the DVP transfer, by the operator.
+   * @param operatorData Information attached to the Swaps transfer, by the operator.
    */
   function tokensReceived(bytes calldata, bytes32 partition, address, address from, address to, uint value, bytes calldata data, bytes calldata operatorData) external override {
     require(interfaceAddr(msg.sender, "ERC1400Token") == msg.sender, "55"); // 0x55 funds locked (lockup period)

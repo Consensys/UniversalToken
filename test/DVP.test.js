@@ -1,8 +1,10 @@
 const { expectRevert } = require("@openzeppelin/test-helpers");
+const { web3 } = require("@openzeppelin/test-helpers/src/setup");
+const { assert } = require("chai");
 const { soliditySha3 } = require("web3-utils");
 const { advanceTimeAndBlock } = require("./utils/time");
 
-const DVPContract = artifacts.require("DVP");
+const DVPContract = artifacts.require("Swaps");
 const ERC1400 = artifacts.require("ERC1400");
 const ERC20 = artifacts.require("ERC20Token");
 const ERC721 = artifacts.require("ERC721Token");
@@ -31,9 +33,9 @@ const ERC1400STANDARD =
   "0x0000000000000000000000000000000000000000000000000000000000000004";
 
 const HEX_TYPE_ESCROW =
-  "0x0000000000000000000000000000000000000000000000000000000000000000";
+  "0x0000000000000000000000000000000000000000000000000000000000000002";
 const HEX_TYPE_SWAP =
-  "0x0000000000000000000000000000000000000000000000000000000000000001";
+  "0x0000000000000000000000000000000000000000000000000000000000000000";
 
 const CERTIFICATE_SIGNER = "0xe31C41f0f70C5ff39f73B4B94bcCD767b3071630";
 
@@ -75,8 +77,9 @@ const STATE_EXECUTED = 2;
 const STATE_FORCED = 3;
 const STATE_CANCELLED = 4;
 
-const TYPE_ESCROW = 0;
-const TYPE_SWAP = 1;
+const TYPE_ESCROW = 2;
+const TYPE_HOLD = 1;
+const TYPE_SWAP = 0;
 
 const ACCEPTED_TRUE = true;
 const ACCEPTED_FALSE = false;
@@ -164,7 +167,7 @@ const assertEtherBalance = async (_etherHolder, _balance, _balanceIsExact) => {
   }
 };
 
-const assertTrade = async (
+const assertTrade = (
   _contract,
   _tradeIndex,
   _holder1,
@@ -186,14 +189,62 @@ const assertTrade = async (
   _token2Accepted,
   _token2Approved
 ) => {
+  return fullAssertTrade(
+    _contract,
+    _tradeIndex,
+    _holder1,
+    _holder2,
+    _executer,
+    _expirationDate,
+    _tradeType,
+    _tradeType,
+    _tradeState,
+    _token1Address,
+    _token1Amount,
+    _token1Id,
+    _token1Standard,
+    _token1Accepted,
+    _token1Approved,
+    _token2Address,
+    _token2Amount,
+    _token2Id,
+    _token2Standard,
+    _token2Accepted,
+    _token2Approved
+  )
+};
+
+const fullAssertTrade = async (
+  _contract,
+  _tradeIndex,
+  _holder1,
+  _holder2,
+  _executer,
+  _expirationDate,
+  _tradeType1,
+  _tradeType2,
+  _tradeState,
+  _token1Address,
+  _token1Amount,
+  _token1Id,
+  _token1Standard,
+  _token1Accepted,
+  _token1Approved,
+  _token2Address,
+  _token2Amount,
+  _token2Id,
+  _token2Standard,
+  _token2Accepted,
+  _token2Approved
+) => {
   const trade = await _contract.getTrade(_tradeIndex);
 
-  assert.equal(trade[0], _holder1);
-  assert.equal(trade[1], _holder2);
-  assert.equal(trade[2], _executer);
-  assert.equal(parseInt(trade[3]) - _expirationDate <= 1, true);
+  assert.equal(trade.holder1, _holder1);
+  assert.equal(trade.holder2, _holder2);
+  assert.equal(trade.executer, _executer);
+  assert.equal(parseInt(trade.expirationDate) - _expirationDate <= 1, true);
 
-  const tokenData1 = trade[4];
+  const tokenData1 = trade.userTradeData1;
   const tokenAddress1 = extractTokenAddress(tokenData1);
   const tokenAmount1 = extractTokenAmount(tokenData1);
   const tokenId1 = extractTokenId(tokenData1);
@@ -205,18 +256,11 @@ const assertTrade = async (
   assert.equal(tokenAmount1, _token1Amount);
   assert.equal(tokenId1, _token1Id);
   assert.equal(tokenStandard1, _token1Standard);
-  if (_token1Accepted) {
-    assert.equal(tokenAccepted1, TRUE_BYTES32);
-  } else {
-    assert.equal(tokenAccepted1, FALSE_BYTES32);
-  }
-  if (_token1Approved) {
-    assert.equal(tokenApproved1, TRUE_BYTES32);
-  } else {
-    assert.equal(tokenApproved1, FALSE_BYTES32);
-  }
+  assert.equal(tokenAccepted1, _token1Accepted);
+  assert.equal(tokenApproved1, _token1Approved);
+  assert.equal(tokenData1.tradeType, _tradeType1);
 
-  const tokenData2 = trade[5];
+  const tokenData2 = trade.userTradeData2;
   const tokenAddress2 = extractTokenAddress(tokenData2);
   const tokenAmount2 = extractTokenAmount(tokenData2);
   const tokenId2 = extractTokenId(tokenData2);
@@ -227,24 +271,16 @@ const assertTrade = async (
   assert.equal(tokenAmount2, _token2Amount);
   assert.equal(tokenId2, _token2Id);
   assert.equal(tokenStandard2, _token2Standard);
-  if (_token2Accepted) {
-    assert.equal(tokenAccepted2, TRUE_BYTES32);
-  } else {
-    assert.equal(tokenAccepted2, FALSE_BYTES32);
-  }
-  if (_token2Approved) {
-    assert.equal(tokenApproved2, TRUE_BYTES32);
-  } else {
-    assert.equal(tokenApproved2, FALSE_BYTES32);
-  }
+  assert.equal(tokenAccepted2, _token2Accepted);
+  assert.equal(tokenApproved2, _token2Approved);
+  assert.equal(tokenData2.tradeType, _tradeType2);
 
-  assert.equal(trade[6].toNumber(), _tradeType);
-  assert.equal(trade[7].toNumber(), _tradeState);
+  assert.equal(Number(trade.state), _tradeState);
 };
 
 const assertTradeState = async (_contract, _tradeIndex, _tradeState) => {
   const trade = await _contract.getTrade(_tradeIndex);
-  assert.equal(trade[7].toNumber(), _tradeState);
+  assert.equal(Number(trade.state), _tradeState);
 };
 
 const assertTradeAccepted = async (
@@ -254,15 +290,15 @@ const assertTradeAccepted = async (
   _accepted
 ) => {
   const trade = await _contract.getTrade(_tradeIndex);
-  const holder1 = trade[0];
-  const holder2 = trade[1];
+  const holder1 = trade.holder1;
+  const holder2 = trade.holder2;
 
   if (_requester === holder1) {
-    assert.equal(extractTokenAccepted(trade[4]), _accepted);
+    assert.equal(extractTokenAccepted(trade.userTradeData1), _accepted);
   }
 
   if (_requester === holder2) {
-    assert.equal(extractTokenAccepted(trade[5]), _accepted);
+    assert.equal(extractTokenAccepted(trade.userTradeData2), _accepted);
   }
 };
 
@@ -303,38 +339,47 @@ const NumToNumBytes32 = (_num, _fillTo = 32) => {
 };
 
 const extractTokenAddress = (tokenData) => {
-  return web3.utils.toChecksumAddress(`0x${tokenData.substr(26, 40)}`);
+  return web3.utils.toChecksumAddress(tokenData.tokenAddress);
+  //return web3.utils.toChecksumAddress(`0x${tokenData.substr(26, 40)}`);
 };
 const extractTokenAmount = (tokenData) => {
-  return parseInt(tokenData.substr(66, 64), 16);
+  return parseInt(tokenData.tokenValue);
+  //return parseInt(tokenData.substr(66, 64), 16);
 };
 const extractTokenId = (tokenData) => {
-  return `0x${tokenData.substr(130, 64)}`;
+  return tokenData.tokenId;
+  //return `0x${tokenData.substr(130, 64)}`;
 };
 const extractTokenStandard = (tokenData) => {
-  return parseInt(`0x${tokenData.substr(194, 64)}`);
+  return parseInt(tokenData.tokenStandard);
+  //return parseInt(`0x${tokenData.substr(194, 64)}`);
 };
 const extractTokenAccepted = (tokenData) => {
-  return `0x${tokenData.substr(258, 64)}`;
+  return tokenData.accepted;
+  //return `0x${tokenData.substr(258, 64)}`;
 };
 const extractTokenApproved = (tokenData) => {
-  return `0x${tokenData.substr(322, 64)}`;
+  return tokenData.approved;
+  //return `0x${tokenData.substr(322, 64)}`;
 };
 
 const getTradeProposalData = (
   _tradeRecipient,
   _tradeExecuter,
   _expirationDate,
+  _settlementDate,
   _token2Address,
   _token2Amount,
   _token2Id,
   _token2Standard,
+  _tradeType2,
   isFake
 ) => {
   const flag = isFake ? partitionFlag : dvpTradeProposalFlag;
   const hexTradeRecipient = addressToBytes32(_tradeRecipient);
   const hexTradeExecuter = addressToBytes32(_tradeExecuter);
   const hexExpirationDate = NumToHexBytes32(_expirationDate);
+  const hexSettlementDate = NumToHexBytes32(_settlementDate);
 
   const hexTradeTokenAddress2 = addressToBytes32(_token2Address);
   const hexTradeTokenAmount2 = NumToHexBytes32(_token2Amount);
@@ -347,9 +392,10 @@ const getTradeProposalData = (
     throw new Error("getTradeProposalData: Invalid type for tokenId");
   }
   const hexTradeTokenStandard2 = _token2Standard.substring(2);
-  const tradeTokenData = `${hexTradeTokenAddress2}${hexTradeTokenAmount2}${hexTradeTokenId}${hexTradeTokenStandard2}`;
+  const hexTradeType = NumToHexBytes32(_tradeType2);
+  const tradeTokenData = `${hexTradeTokenAddress2}${hexTradeTokenAmount2}${hexTradeTokenId}${hexTradeTokenStandard2}${hexTradeType}`;
 
-  return `${flag}${hexTradeRecipient}${hexTradeExecuter}${hexExpirationDate}${tradeTokenData}`;
+  return `${flag}${hexTradeRecipient}${hexTradeExecuter}${hexExpirationDate}${hexSettlementDate}${tradeTokenData}`;
 };
 
 const getTradeAcceptanceData = (tradeIndex, isFake) => {
@@ -360,6 +406,44 @@ const getTradeAcceptanceData = (tradeIndex, isFake) => {
 };
 
 const assertTokenEscrowed = async (
+  dvp,
+  token,
+  holder,
+  tokenStandard,
+  tokenAmount,
+  partition
+) => {
+  if (tokenStandard === ERC20STANDARD) {
+    await assertBalanceOf(token, holder, issuanceAmount - tokenAmount, true);
+    await assertBalanceOf(token, dvp.address, tokenAmount, true);
+  }
+  if (tokenStandard === ERC721STANDARD) {
+    await assertTokenOf(
+      token,
+      tokenAmount === 1 ? dvp.address : holder,
+      issuanceTokenId
+    );
+  }
+  if (tokenStandard === ERC1400STANDARD) {
+    await assertBalanceOfByPartition(
+      token,
+      holder,
+      partition,
+      issuanceAmount - tokenAmount
+    );
+    await assertBalanceOfByPartition(
+      token,
+      dvp.address,
+      partition,
+      tokenAmount
+    );
+  }
+  if (tokenStandard === ETHSTANDARD) {
+    await assertEtherBalance(dvp.address, tokenAmount, true);
+  }
+};
+
+const assertBothTokenEscrowed = async (
   dvp,
   token1,
   token2,
@@ -562,84 +646,82 @@ const assertGlobalBalancesAreCorrect = async (
 ) => {
   const trade = await dvp.getTrade(tradeIndex);
 
-  const holder1 = trade[0];
-  const holder2 = trade[1] !== ZERO_ADDRESS ? trade[1] : requester;
-  const tradeType = trade[6].toNumber();
+  const holder1 = trade.holder1;
+  const holder2 = trade.holder2 !== ZERO_ADDRESS ? trade.holder2 : requester;
+  //const tradeType = trade[6].toNumber();
 
-  let tokenData1 = trade[4];
+  let tokenData1 = trade.userTradeData1;
   const tokenAddress1 = extractTokenAddress(tokenData1);
   const tokenAmount1 = extractTokenAmount(tokenData1);
   const tokenStandard1 = extractTokenStandard(tokenData1);
-  const tokenAccepted1 = extractTokenAccepted(tokenData1) === TRUE_BYTES32;
+  const tokenAccepted1 = extractTokenAccepted(tokenData1);
+  const tradeType1 = tokenData1.tradeType;
   assert.equal(tokenAddress1, token1 ? token1.address : ZERO_ADDRESS);
 
-  let tokenData2 = trade[5];
+  let tokenData2 = trade.userTradeData2;
   const tokenAddress2 = extractTokenAddress(tokenData2);
   const tokenAmount2 = extractTokenAmount(tokenData2);
   const tokenStandard2 = extractTokenStandard(tokenData2);
-  const tokenAccepted2 = extractTokenAccepted(tokenData2) === TRUE_BYTES32;
+  const tokenAccepted2 = extractTokenAccepted(tokenData2);
+  const tradeType2 = tokenData2.tradeType;
   assert.equal(tokenAddress2, token2 ? token2.address : ZERO_ADDRESS);
 
-  const tradeState = trade[7].toNumber();
+  const tradeState = Number(trade.state);
 
   if (tradeState === STATE_PENDING) {
-    if (tradeType === TYPE_ESCROW) {
-      if (tokenAccepted1 && tokenAccepted2) {
+    if (tradeType1 == TYPE_ESCROW) {
+      if (tokenAccepted1) {
         await assertTokenEscrowed(
           dvp,
           token1,
-          token2,
           holder1,
-          holder2,
           tokenStandard1,
-          tokenStandard2,
           tokenAmount1 || 1,
-          tokenAmount2 || 1
-        ); // 1 used in case of ERC721
-      } else if (tokenAccepted1) {
-        await assertTokenEscrowed(
-          dvp,
-          token1,
-          token2,
-          holder1,
-          holder2,
-          tokenStandard1,
-          tokenStandard2,
-          tokenAmount1 || 1,
-          0
-        ); // 1 used in case of ERC721
-      } else if (tokenAccepted2) {
-        await assertTokenEscrowed(
-          dvp,
-          token1,
-          token2,
-          holder1,
-          holder2,
-          tokenStandard1,
-          tokenStandard2,
-          0,
-          tokenAmount2 || 1
-        ); // 1 used in case of ERC721
+          partition1
+        );
       } else {
         await assertTokenEscrowed(
           dvp,
           token1,
-          token2,
           holder1,
-          holder2,
           tokenStandard1,
-          tokenStandard2,
           0,
-          0
+          partition1
         );
       }
-    } else if (tradeType === TYPE_SWAP) {
-      if (tokenAccepted1 && tokenAccepted2) {
+    } else if (tradeType1 == TYPE_SWAP) {
+      if (tokenAccepted1) {
         // await assertTokenAuthorized(dvp, token1, token2, holder1, holder2, tokenStandard1, tokenStandard2, 0, 0); // 1 used in case of ERC721
-      } else if (tokenAccepted1) {
-        // await assertTokenAuthorized(dvp, token1, token2, holder1, holder2, tokenStandard1, tokenStandard2, 0, tokenAmount2 || 1); // 1 used in case of ERC721
-      } else if (tokenAccepted2) {
-        // await assertTokenAuthorized(dvp, token1, token2, holder1, holder2, tokenStandard1, tokenStandard2, tokenAmount1 || 1, 0); // 1 used in case of ERC721
+      } else {
+        // await assertTokenAuthorized(dvp, token1, token2, holder1, holder2, tokenStandard1, tokenStandard2, 0, 0);
+      }
+    } else {
+      throw new Error("Invalid trade type");
+    }
+
+    if (tradeType2 == TYPE_ESCROW) {
+      if (tokenAccepted2) {
+        await assertTokenEscrowed(
+          dvp,
+          token2,
+          holder2,
+          tokenStandard2,
+          tokenAmount2 || 1,
+          partition2
+        );
+      } else {
+        await assertTokenEscrowed(
+          dvp,
+          token2,
+          holder2,
+          tokenStandard2,
+          0,
+          partition2
+        );
+      }
+    } else if (tradeType2 == TYPE_SWAP) {
+      if (tokenAccepted2) {
+        // await assertTokenAuthorized(dvp, token1, token2, holder1, holder2, tokenStandard1, tokenStandard2, 0, 0); // 1 used in case of ERC721
       } else {
         // await assertTokenAuthorized(dvp, token1, token2, holder1, holder2, tokenStandard1, tokenStandard2, 0, 0);
       }
@@ -722,6 +804,44 @@ const createTradeRequest = async (
   tokenAmount1,
   tokenAmount2
 ) => {
+  await fullCreateTradeRequest(
+    dvp,
+    token1,
+    token2,
+    tokenStandard1,
+    tokenStandard2,
+    holder1,
+    holder2,
+    executer,
+    requester,
+    realExpirationDate,
+    tradeType,
+    tradeType,
+    tokenAmount1,
+    tokenAmount2,
+    0,
+    ZERO_BYTES32
+  )
+}
+
+const fullCreateTradeRequest = async (
+  dvp,
+  token1,
+  token2,
+  tokenStandard1,
+  tokenStandard2,
+  holder1,
+  holder2,
+  executer,
+  requester,
+  realExpirationDate,
+  tradeType1,
+  tradeType2,
+  tokenAmount1,
+  tokenAmount2,
+  settlementDate,
+  preimage
+) => {
   const tokenAmount =
     requester === holder1
       ? tokenAmount1
@@ -766,7 +886,9 @@ const createTradeRequest = async (
     uint256 tokenValue2;
     bytes32 tokenId2;
     Standard tokenStandard2;
-    TradeType tradeType;
+    TradeType tradeType1;
+    TradeType tradeType2;
+    uint256 settlementDate;
   }
   */
   const tradeInputData = {
@@ -790,11 +912,14 @@ const createTradeRequest = async (
               ? partition1
               : ZERO_BYTES32,
     tokenStandard2: tokenStandard2,
-    tradeType: tradeType === TYPE_ESCROW ? HEX_TYPE_ESCROW : HEX_TYPE_SWAP
+    tradeType1: tradeType1,
+    tradeType2: tradeType2,
+    settlementDate: settlementDate
   }
 
   await dvp.requestTrade(
     tradeInputData,
+    preimage,
     { from: requester, value: tokenStandard === ETHSTANDARD ? tokenAmount : 0 }
   );
 
@@ -803,14 +928,15 @@ const createTradeRequest = async (
 
   await assertGlobalBalancesAreCorrect(dvp, token1, token2, tradeIndex);
 
-  await assertTrade(
+  await fullAssertTrade(
     dvp,
     tradeIndex,
     holder1,
     holder2,
     executer,
     realExpirationDate ? expirationDate : chainTime + 86400 * 30,
-    tradeType === TYPE_ESCROW ? TYPE_ESCROW : TYPE_SWAP,
+    tradeType1,
+    tradeType2,
     STATE_PENDING,
     token1 ? token1.address : ZERO_ADDRESS,
     tokenStandard1 === ERC721STANDARD ? 0 : tokenAmount1,
@@ -872,10 +998,12 @@ const createTradeRequestWithoutCallingDVP = async (
     recipient,
     executer,
     expirationDate,
+    0,
     token2.address,
     tokenAmount2,
     tokenId2,
-    tokenStandard2
+    tokenStandard2,
+    TYPE_ESCROW
   );
 
   await token1.operatorTransferByPartition(
@@ -934,15 +1062,37 @@ const acceptTradeRequest = async (
   newTradeState,
   acceptedTrade
 ) => {
-  const trade = await dvp.getTrade(tradeIndex);
-  const holder1 = trade[0];
-  const holder2 = trade[1];
+  await acceptTradeRequestWithPreimage(
+    dvp,
+    token1,
+    token2,
+    tradeIndex,
+    requester,
+    newTradeState,
+    acceptedTrade,
+    ZERO_BYTES32
+  ) 
+};
 
-  const tokenData1 = trade[4];
+const acceptTradeRequestWithPreimage = async (
+  dvp,
+  token1,
+  token2,
+  tradeIndex,
+  requester,
+  newTradeState,
+  acceptedTrade,
+  preimage
+) => {
+  const trade = await dvp.getTrade(tradeIndex);
+  const holder1 = trade.holder1;
+  const holder2 = trade.holder2;
+
+  const tokenData1 = trade.userTradeData1;
   const tokenStandard1 = extractTokenStandard(tokenData1);
   const tokenAmount1 = extractTokenAmount(tokenData1);
 
-  const tokenData2 = trade[5];
+  const tokenData2 = trade.userTradeData2;
   const tokenStandard2 = extractTokenStandard(tokenData2);
   const tokenAmount2 = extractTokenAmount(tokenData2);
 
@@ -963,7 +1113,7 @@ const acceptTradeRequest = async (
 
   await assertGlobalBalancesAreCorrect(dvp, token1, token2, tradeIndex);
 
-  await dvp.acceptTrade(tradeIndex, {
+  await dvp.acceptTrade(tradeIndex, preimage, {
     from: requester,
     value: tokenStandard === ETHSTANDARD ? tokenAmount : 0,
   });
@@ -986,13 +1136,13 @@ const acceptTradeRequestWithoutCallingDVP = async (
   acceptedTrade
 ) => {
   const trade = await dvp.getTrade(tradeIndex);
-  const holder1 = trade[0];
-  const holder2 = trade[1] !== ZERO_ADDRESS ? trade[1] : requester;
+  const holder1 = trade.holder1;
+  const holder2 = trade.holder2 !== ZERO_ADDRESS ? trade.holder2 : requester;
 
-  const tokenData1 = trade[4];
+  const tokenData1 = trade.userTradeData1;
   const tokenAmount1 = extractTokenAmount(tokenData1);
 
-  const tokenData2 = trade[5];
+  const tokenData2 = trade.userTradeData2;
   const tokenAmount2 = extractTokenAmount(tokenData2);
 
   const tokenAmount =
@@ -1032,9 +1182,9 @@ const acceptTradeRequestWithoutCallingDVP = async (
 
   assert.equal(await dvp.getTradeAcceptanceStatus(tradeIndex), acceptedTrade);
 
-  if (trade[1] === ZERO_ADDRESS) {
+  if (trade.holder2 === ZERO_ADDRESS) {
     const updatedtrade = await dvp.getTrade(tradeIndex);
-    assert.equal(updatedtrade[1], requester);
+    assert.equal(updatedtrade.holder2, requester);
   }
 };
 
@@ -1130,7 +1280,7 @@ contract("DVP", function ([
   describe("parameters", function () {
     describe("owner", function () {
       it("returns the owner of the contract", async function () {
-        this.dvp = await DVPContract.new(false, false);
+        this.dvp = await DVPContract.new(false);
 
         const contractOwner = await this.dvp.owner();
         assert.equal(contractOwner, owner);
@@ -1138,7 +1288,7 @@ contract("DVP", function ([
     });
     describe("tradeExecuters", function () {
       it("returns the list of trade executers", async function () {
-        this.dvp = await DVPContract.new(true, false);
+        this.dvp = await DVPContract.new(true);
 
         const tradeExecuters = await this.dvp.tradeExecuters();
 
@@ -1146,7 +1296,7 @@ contract("DVP", function ([
         assert.equal(tradeExecuters[0], owner);
       });
       it("returns empty list of trade executers", async function () {
-        this.dvp = await DVPContract.new(false, false);
+        this.dvp = await DVPContract.new(false);
 
         const tradeExecuters = await this.dvp.tradeExecuters();
 
@@ -1159,7 +1309,7 @@ contract("DVP", function ([
 
   describe("canImplementInterfaceForAddress", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
     });
     describe("when the interface label is ERC777TokensRecipient", function () {
       it("returns ERC1820_ACCEPT_MAGIC", async function () {
@@ -1185,7 +1335,7 @@ contract("DVP", function ([
 
   describe("canReceive", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
 
       this.emoney1400 = await ERC1400.new(
         "ERC1400Token",
@@ -1202,10 +1352,12 @@ contract("DVP", function ([
         recipient1,
         executer,
         expirationDate,
+        0,
         this.emoney1400.address,
         token2Amount,
         partition1,
-        ERC1400STANDARD
+        ERC1400STANDARD,
+        TYPE_ESCROW
       );
       this.tradeAcceptanceData = getTradeAcceptanceData(1);
 
@@ -1213,10 +1365,12 @@ contract("DVP", function ([
         recipient1,
         executer,
         expirationDate,
+        0,
         this.emoney1400.address,
         token2Amount,
         partition1,
         ERC1400STANDARD,
+        TYPE_ESCROW,
         true
       );
       this.fakeTradeAcceptanceData = getTradeAcceptanceData(1, true);
@@ -1324,7 +1478,7 @@ contract("DVP", function ([
 
   describe("tokensReceived", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
 
       this.security1400 = await ERC1400.new(
         "ERC1400Token",
@@ -1401,10 +1555,12 @@ contract("DVP", function ([
                 recipient1,
                 executer,
                 expirationDate,
+                0,
                 this.emoney1400.address,
                 token2Amount,
                 partition1,
-                ERC1400STANDARD
+                ERC1400STANDARD,
+                TYPE_ESCROW
               );
               await this.security1400.operatorTransferByPartition(
                 partition1,
@@ -1794,10 +1950,12 @@ contract("DVP", function ([
             recipient1,
             executer,
             expirationDate,
+            0,
             this.emoney1400.address,
             token2Amount,
             partition1,
-            ERC1400STANDARD
+            ERC1400STANDARD,
+            TYPE_ESCROW
           );
           await expectRevert.unspecified(
             this.fakeSecurity1400.operatorTransferByPartition(
@@ -1821,10 +1979,12 @@ contract("DVP", function ([
           recipient1,
           executer,
           expirationDate,
+          0,
           this.emoney1400.address,
           token2Amount,
           partition1,
-          ERC1400STANDARD
+          ERC1400STANDARD,
+          TYPE_ESCROW
         );
         await expectRevert.unspecified(
           this.dvp.tokensReceived(
@@ -1847,7 +2007,7 @@ contract("DVP", function ([
 
   describe("requestTrade", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
 
       this.security20 = await ERC20.new("ERC20Token", "DAU", 18);
       this.emoney20 = await ERC20.new("ERC20Token", "DAU", 18);
@@ -2161,6 +2321,7 @@ contract("DVP", function ([
                     holder2: recipient1,
                     executer: ZERO_ADDRESS,
                     expirationDate: expirationDate,
+                    settlementDate: 0,
                     tokenAddress1: this.security20.address,
                     tokenValue1: token1Amount,
                     tokenId1: ZERO_BYTES32,
@@ -2169,11 +2330,13 @@ contract("DVP", function ([
                     tokenValue2: token2Amount,
                     tokenId2: ZERO_BYTES32,
                     tokenStandard2: ERC20STANDARD,
-                    tradeType: HEX_TYPE_SWAP
+                    tradeType1: HEX_TYPE_SWAP,
+                    tradeType2: HEX_TYPE_SWAP,
                   }
                   await expectRevert.unspecified(
                     this.dvp.requestTrade(
                       tradeInputData,
+                      ZERO_BYTES32,
                       { from: unknown }
                     )
                   );
@@ -2204,61 +2367,10 @@ contract("DVP", function ([
             });
           });
         });
-        describe("when escrowable is forbidden", function () {
-          beforeEach(async function () {
-            this.dvp = await DVPContract.new(false, true);
-          });
-          describe("when escrow mode is not requested", function () {
-            it("creates the trade request", async function () {
-              await this.security20.approve(this.dvp.address, token1Amount, {
-                from: tokenHolder1,
-              });
-              await createTradeRequest(
-                this.dvp,
-                this.security20,
-                this.emoney20,
-                ERC20STANDARD,
-                ERC20STANDARD,
-                tokenHolder1,
-                recipient1,
-                ZERO_ADDRESS,
-                tokenHolder1,
-                true,
-                TYPE_SWAP,
-                token1Amount,
-                token2Amount
-              );
-            });
-          });
-          describe("when escrow mode is requested", function () {
-            it("reverts", async function () {
-              await this.security20.approve(this.dvp.address, token1Amount, {
-                from: tokenHolder1,
-              });
-              await expectRevert.unspecified(
-                createTradeRequest(
-                  this.dvp,
-                  this.security20,
-                  this.emoney20,
-                  ERC20STANDARD,
-                  ERC20STANDARD,
-                  tokenHolder1,
-                  recipient1,
-                  ZERO_ADDRESS,
-                  tokenHolder1,
-                  true,
-                  TYPE_ESCROW,
-                  token1Amount,
-                  token2Amount
-                )
-              );
-            });
-          });
-        });
       });
       describe("when the DVP contract is owned", function () {
         beforeEach(async function () {
-          this.dvp = await DVPContract.new(true, false);
+          this.dvp = await DVPContract.new(true);
         });
         describe("when a valid trade executer is defined", function () {
           it("creates the trade request", async function () {
@@ -2404,7 +2516,7 @@ contract("DVP", function ([
 
   describe("acceptTrade", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
 
       this.security20 = await ERC20.new("ERC20Token", "DAU", 18);
       this.emoney20 = await ERC20.new("ERC20Token", "DAU", 18);
@@ -2586,7 +2698,7 @@ contract("DVP", function ([
                 token2Amount
               );
               await expectRevert.unspecified(
-                this.dvp.acceptTrade(1, {
+                this.dvp.acceptTrade(1, ZERO_BYTES32, {
                   from: recipient1,
                   value: token2Amount - 1,
                 })
@@ -2673,7 +2785,7 @@ contract("DVP", function ([
                 { from: recipient1 }
               );
               await expectRevert.unspecified(
-                this.dvp.acceptTrade(1, { from: recipient1 })
+                this.dvp.acceptTrade(1, ZERO_BYTES32, { from: recipient1 })
               );
             });
           });
@@ -2976,7 +3088,7 @@ contract("DVP", function ([
             from: recipient1,
           });
           await expectRevert.unspecified(
-            this.dvp.acceptTrade(999, { from: recipient1 })
+            this.dvp.acceptTrade(999, ZERO_BYTES32, { from: recipient1 })
           );
         });
       });
@@ -3003,9 +3115,9 @@ contract("DVP", function ([
           await this.token2.approve(this.dvp.address, token2Amount, {
             from: recipient1,
           });
-          await this.dvp.acceptTrade(1, { from: recipient1 });
+          await this.dvp.acceptTrade(1, ZERO_BYTES32, { from: recipient1 });
           await expectRevert.unspecified(
-            this.dvp.acceptTrade(1, { from: recipient1 })
+            this.dvp.acceptTrade(1, ZERO_BYTES32, { from: recipient1 })
           );
         });
       });
@@ -3016,7 +3128,7 @@ contract("DVP", function ([
 
   describe("approveTrade", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
 
       this.security20 = await ERC20.new("ERC20Token", "DAU", 18);
       this.emoney20 = await ERC20.new("ERC20Token", "DAU", 18);
@@ -3423,7 +3535,7 @@ contract("DVP", function ([
 
   describe("executeTrade", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
 
       this.security20 = await ERC20.new("ERC20Token", "DAU", 18);
       this.emoney20 = await ERC20.new("ERC20Token", "DAU", 18);
@@ -3998,6 +4110,7 @@ contract("DVP", function ([
                   holder2: recipient1,
                   executer: ZERO_ADDRESS,
                   expirationDate: expirationDate,
+                  settlementDate: 0,
                   tokenAddress1: this.token1.address,
                   tokenValue1: token1Amount,
                   tokenId1: ZERO_BYTES32,
@@ -4006,17 +4119,19 @@ contract("DVP", function ([
                   tokenValue2: token2Amount,
                   tokenId2: ZERO_BYTES32,
                   tokenStandard2: ERC20STANDARD,
-                  tradeType: HEX_TYPE_SWAP
+                  tradeType1: HEX_TYPE_SWAP,
+                  tradeType2: HEX_TYPE_SWAP
                 }
                 await this.dvp.requestTrade(
                   tradeInputData,
+                  ZERO_BYTES32,
                   { from: tokenHolder1 }
                 );
 
                 await this.token2.approve(this.dvp.address, token2Amount, {
                   from: recipient1,
                 });
-                await this.dvp.acceptTrade(1, { from: recipient1 });
+                await this.dvp.acceptTrade(1, ZERO_BYTES32, { from: recipient1 });
               });
             });
           });
@@ -4158,7 +4273,7 @@ contract("DVP", function ([
 
   describe("forceTrade", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
 
       this.security20 = await ERC20.new("ERC20Token", "DAU", 18);
       this.emoney20 = await ERC20.new("ERC20Token", "DAU", 18);
@@ -4479,7 +4594,7 @@ contract("DVP", function ([
 
   describe("cancelTrade", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
 
       this.security20 = await ERC20.new("ERC20Token", "DAU", 18);
       this.emoney20 = await ERC20.new("ERC20Token", "DAU", 18);
@@ -5353,7 +5468,7 @@ contract("DVP", function ([
 
   describe("renounceOwnership", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(true, false);
+      this.dvp = await DVPContract.new(true);
     });
     describe("when the caller is the contract owner", function () {
       it("renounces to ownership", async function () {
@@ -5384,7 +5499,7 @@ contract("DVP", function ([
 
   describe("setTradeExecuters", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(true, false);
+      this.dvp = await DVPContract.new(true);
     });
     describe("when the caller is the contract owner", function () {
       describe("when the dvp contract is owned", function () {
@@ -5401,7 +5516,7 @@ contract("DVP", function ([
       });
       describe("when the dvp contract is not owned", function () {
         beforeEach(async function () {
-          this.dvp = await DVPContract.new(false, false);
+          this.dvp = await DVPContract.new(false);
         });
         it("reverts", async function () {
           await expectRevert.unspecified(
@@ -5423,7 +5538,7 @@ contract("DVP", function ([
 
   describe("setTokenControllers", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
 
       this.token1 = await ERC20.new("ERC20Token", "DAU", 18, { from: tokenHolder1 });
     });
@@ -5492,7 +5607,7 @@ contract("DVP", function ([
 
   describe("setPriceOracles", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
 
       this.token1 = await ERC20.new("ERC20Token", "DAU", 18, { from: tokenHolder1 });
     });
@@ -5548,7 +5663,7 @@ contract("DVP", function ([
   // SET PRICE OWNERSHIP
   describe("setPriceOwnership", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
 
       this.token1 = await ERC20.new("ERC20Token", "DAU", 18, { from: owner });
       await this.dvp.setPriceOracles(this.token1.address, [oracle], {
@@ -5618,7 +5733,7 @@ contract("DVP", function ([
     const newTokenPrice = 2;
 
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
 
       this.token1 = await ERC20.new("ERC20Token", "DAU", 18, { from: owner });
       await this.dvp.setPriceOracles(this.token1.address, [oracle], {
@@ -5849,7 +5964,7 @@ contract("DVP", function ([
   // SET VARIABLE PRICE START DATE
   describe("setVariablePriceStartDate", function () {
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
 
       this.token1 = await ERC20.new("ERC20Token", "DAU", 18, { from: owner });
       await this.dvp.setPriceOracles(this.token1.address, [oracle], {
@@ -5925,7 +6040,7 @@ contract("DVP", function ([
     const newTokenPrice = 2;
 
     beforeEach(async function () {
-      this.dvp = await DVPContract.new(false, false);
+      this.dvp = await DVPContract.new(false);
 
       this.token1 = await ERC1400.new(
         "ERC1400Token",
@@ -5972,10 +6087,12 @@ contract("DVP", function ([
         recipient1,
         executer,
         expirationDate,
+        0,
         this.token2.address,
         token2Amount,
         partition2,
-        ERC1400STANDARD
+        ERC1400STANDARD,
+        TYPE_ESCROW
       );
       await this.token1.operatorTransferByPartition(
         partition1,
@@ -6267,10 +6384,12 @@ contract("DVP", function ([
                 recipient1,
                 executer,
                 expirationDate,
+                0,
                 this.token4.address,
                 token4Amount,
                 partition2,
-                ERC1400STANDARD
+                ERC1400STANDARD,
+                TYPE_ESCROW
               );
               await this.token3.operatorTransferByPartition(
                 partition1,
