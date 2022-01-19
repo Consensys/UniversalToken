@@ -6,8 +6,8 @@ contract ERC20Extendable is ERC20Proxy {
     constructor(
         string memory name_, string memory symbol_, bool allowMint, 
         bool allowBurn, address owner, uint256 initalSupply,
-        address logicAddress
-    ) ERC20Proxy(name_, symbol_, allowMint, allowBurn, owner, logicAddress) {
+        uint256 maxSupply, address logicAddress
+    ) ERC20Proxy(name_, symbol_, allowMint, allowBurn, owner, maxSupply, logicAddress) {
         mint(msg.sender, initalSupply);
     }
 }

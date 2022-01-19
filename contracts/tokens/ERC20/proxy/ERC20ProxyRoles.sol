@@ -14,6 +14,7 @@ abstract contract ERC20ProxyRoles is RolesBase, Context {
     bytes32 constant ERC20_OWNER = keccak256("erc20.proxy.core.owner");
     bytes32 constant ERC20_MINTER_ROLE = keccak256("erc20.proxy.core.mint.role");
     bytes32 constant ERC20_MANAGER_ADDRESS = keccak256("erc20.proxy.manager.address");
+    bytes32 constant ERC20_CONTROLLER_ROLE = keccak256("erc20.proxy.controller.address");
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     /**
@@ -33,13 +34,8 @@ abstract contract ERC20ProxyRoles is RolesBase, Context {
         _;
     }
 
-    modifier mintingEnabled {
-        require(mintingAllowed(), "Minting is disabled");
-        _;
-    }
-
-    modifier burningEnabled {
-        require(burningAllowed(), "Burning is disabled");
+    modifier onlyControllers {
+        require(isController(_msgSender()), "This function can only be invoked by a controller");
         _;
     }
 
@@ -61,8 +57,20 @@ abstract contract ERC20ProxyRoles is RolesBase, Context {
         return StorageSlot.getAddressSlot(ERC20_MANAGER_ADDRESS).value;
     }
 
+    function isController(address caller) public view returns (bool) {
+        return hasRole(caller, ERC20_CONTROLLER_ROLE);
+    }
+
     function isMinter(address caller) public view returns (bool) {
         return hasRole(caller, ERC20_MINTER_ROLE);
+    }
+
+    function addController(address caller) public onlyControllers {
+        _addRole(caller, ERC20_CONTROLLER_ROLE);
+    }
+
+    function removeController(address caller) public onlyControllers {
+        _addRole(caller, ERC20_CONTROLLER_ROLE);
     }
 
     function addMinter(address caller) public onlyMinter {
@@ -71,22 +79,6 @@ abstract contract ERC20ProxyRoles is RolesBase, Context {
 
     function removeMinter(address caller) public onlyMinter {
         _removeRole(caller, ERC20_MINTER_ROLE);
-    }
-
-    function mintingAllowed() public view returns (bool) {
-        return StorageSlot.getBooleanSlot(ERC20_ALLOW_MINT).value;
-    }
-
-    function burningAllowed() public view returns (bool) {
-        return StorageSlot.getBooleanSlot(ERC20_ALLOW_BURN).value;
-    }
-
-    function _toggleMinting(bool allowMinting) internal {
-        StorageSlot.getBooleanSlot(ERC20_ALLOW_MINT).value = allowMinting;
-    }
-
-    function _toggleBurning(bool allowBurning) internal {
-        StorageSlot.getBooleanSlot(ERC20_ALLOW_BURN).value = allowBurning;
     }
 
     function changeManager(address newManager) external onlyManager {

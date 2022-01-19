@@ -20,7 +20,6 @@ contract(
   function ([deployer, sender, holder, recipient, recipient2, notary]) {
     describe("ERC20 (mint: on, burn: on, with owner) with no extensions", function () {
       const initialSupply = 1000;
-      let snapshotId;
       let token;
       before(async function () {
         //snapshot = await takeSnapshot();
@@ -41,9 +40,6 @@ contract(
         assert.equal(await token.totalSupply(), initialSupply);
         assert.equal(await token.balanceOf(deployer), initialSupply);
       });
-/*       after(async () => {
-        await revertToSnapshot(snapshotId);
-      }); */
 
       it("Mint 1000 tokens to holder", async () => {
         assert.equal(await token.totalSupply(), initialSupply);

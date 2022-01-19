@@ -12,11 +12,14 @@ import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
 
 contract ERC20Logic is ERC20, ERC1820Client, ERC1820Implementer, ERC20ExtendableHooks, ProxyContext {
     string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
-    
+
+    bytes private _currentData;
+    bytes private _currentOperatorData;
+
     constructor() ERC20("", "") {
         ERC1820Client.setInterfaceImplementation(ERC20_LOGIC_INTERFACE_NAME, address(this));
         ERC1820Implementer._setInterface(ERC20_LOGIC_INTERFACE_NAME); // For migration
-     }
+    }
 
     function _msgSender() internal view override(Context, ProxyContext) returns (address) {
         return ProxyContext._msgSender();
@@ -24,15 +27,15 @@ contract ERC20Logic is ERC20, ERC1820Client, ERC1820Implementer, ERC20Extendable
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override virtual {
         TransferData memory data = TransferData(
-            address(this),
+            _callsiteAddress(),
             msg.data,
             0x00000000000000000000000000000000,
             _msgSender(),
             from,
             to,
             amount,
-            "",
-            ""
+            _currentData,
+            _currentOperatorData
         );
 
         _triggerBeforeTokenTransfer(data);
@@ -40,16 +43,19 @@ contract ERC20Logic is ERC20, ERC1820Client, ERC1820Implementer, ERC20Extendable
 
     function _afterTokenTransfer(address from, address to, uint256 amount) internal override virtual {
         TransferData memory data = TransferData(
-            address(this),
+            _callsiteAddress(),
             msg.data,
             0x00000000000000000000000000000000,
             _msgSender(),
             from,
             to,
             amount,
-            "",
-            ""
+            _currentData,
+            _currentOperatorData
         );
+
+        _currentData = "";
+        _currentOperatorData = "";
 
         _triggerAfterTokenTransfer(data);
     }
@@ -106,6 +112,17 @@ contract ERC20Logic is ERC20, ERC1820Client, ERC1820Implementer, ERC20Extendable
             _approve(account, _msgSender(), currentAllowance - amount);
         }
         _burn(account, amount);
+
+        return true;
+    }
+
+    function transfer(TransferData calldata td) external returns (bool) {
+        require(td.partition == bytes32(0), "Invalid transfer data: partition");
+        require(td.token == _callsiteAddress(), "Invalid transfer data: token");
+
+        _currentData = td.data;
+        _currentOperatorData = td.operatorData;
+        _transfer(td.from, td.to, td.value);
 
         return true;
     }

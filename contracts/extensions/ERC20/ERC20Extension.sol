@@ -8,6 +8,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ExtensionBase} from "../ExtensionBase.sol";
 import {RolesBase} from "../../roles/RolesBase.sol";
+import {IToken} from "../../tokens/IToken.sol";
 
 abstract contract ERC20Extension is IERC20Extension, ExtensionBase, RolesBase {
     //Should only be modified inside the constructor
@@ -64,9 +65,8 @@ abstract contract ERC20Extension is IERC20Extension, ExtensionBase, RolesBase {
     }
 
     function _transfer(TransferData memory data) internal returns (bool) {
-        //TODO Implement custom transfers if token gives extension controllable permission
-        revert("Not Implemented");
-        return false;
+        IToken token = IToken(_tokenAddress());
+        return token.transfer(data);
     }
 
     function _transfer(address recipient, uint256 amount) internal returns (bool) {

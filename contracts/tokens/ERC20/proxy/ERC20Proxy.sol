@@ -11,8 +11,9 @@ import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
 import {IERC20Logic} from "../logic/IERC20Logic.sol";
 import {ERC20Storage} from "../storage/ERC20Storage.sol";
 import {ERC20Logic} from "../logic/ERC20Logic.sol";
+import {IToken, TransferData} from "../../IToken.sol";
 
-abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ERC1820Client, ERC1820Implementer {
+abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ERC1820Client, ERC1820Implementer, IToken {
     string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
     string constant internal ERC20_STORAGE_INTERFACE_NAME = "ERC20TokenStorage";
     string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
@@ -21,21 +22,22 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
     struct TokenMeta {
         string name;
         string symbol;
+        uint256 maxSupply;
+        bool allowMint;
+        bool allowBurn;
     }
 
     constructor(
         string memory name_, string memory symbol_, 
         bool allowMint, bool allowBurn, address owner,
-        address logicAddress
+        uint256 maxSupply_, address logicAddress
     ) { 
+        require(maxSupply_ > 0, "Max supply must be non-zero");
         StorageSlot.getAddressSlot(ERC20_MANAGER_ADDRESS).value = msg.sender;
 
         if (owner != _msgSender()) {
             transferOwnership(owner);
         }
-
-        _toggleMinting(allowMint);
-        _toggleBurning(allowBurn);
 
         if (allowMint) {
             _addRole(owner, ERC20_MINTER_ROLE);
@@ -44,6 +46,9 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
         TokenMeta storage m = _getTokenMeta();
         m.name = name_;
         m.symbol = symbol_;
+        m.maxSupply = maxSupply_;
+        m.allowMint = allowMint;
+        m.allowBurn = allowBurn;
 
         ERC1820Client.setInterfaceImplementation(ERC20_INTERFACE_NAME, address(this));
         ERC1820Implementer._setInterface(ERC20_INTERFACE_NAME); // For migration
@@ -62,6 +67,17 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
         //Update the doamin seperator now that 
         //we've setup everything
         _updateDomainSeparator();
+    }
+
+    
+    modifier mintingEnabled {
+        require(mintingAllowed(), "Minting is disabled");
+        _;
+    }
+
+    modifier burningEnabled {
+        require(burningAllowed(), "Burning is disabled");
+        _;
     }
 
     /**
@@ -99,6 +115,26 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
         return _getStorageContract().totalSupply();
     }
 
+    function mintingAllowed() public view returns (bool) {
+        TokenMeta storage m = _getTokenMeta();
+        return m.allowMint;
+    }
+
+    function burningAllowed() public view returns (bool) {
+        TokenMeta storage m = _getTokenMeta();
+        return m.allowBurn;
+    }
+
+    function _toggleMinting(bool allowMinting) internal {
+        TokenMeta storage m = _getTokenMeta();
+        m.allowMint = allowMinting;
+    }
+
+    function _toggleBurning(bool allowBurning) internal {
+        TokenMeta storage m = _getTokenMeta();
+        m.allowBurn = allowBurning;
+    }
+
     /**
      * @dev Returns the amount of tokens owned by `account`.
      */
@@ -127,6 +163,21 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
         return _getStorageContract().decimals();
     }
 
+    function transfer(TransferData calldata td) external onlyControllers returns (bool) {
+        require(td.token == address(this), "Invalid token");
+
+        if (td.partition != bytes32(0)) {
+            return false; //We cannot do partition transfers
+        }
+
+        bool result = _transfer(td);
+        if (result) {
+            emit Transfer(td.from, td.to, td.value);
+        }
+
+        return result;
+    }
+
     /**
      * @dev Creates `amount` new tokens for `to`.
      *
@@ -139,6 +190,11 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
     function mint(address to, uint256 amount) public virtual onlyMinter mintingEnabled returns (bool) {
         bool result = _mint(to, amount);
         if (result) {
+            TokenMeta storage m = _getTokenMeta();
+
+            //Lets do a final maxSupply check here
+            require(totalSupply() <= m.maxSupply, "ERC20: Max supply reached");
+
             emit Transfer(address(0), to, amount);
         }
         return result;
@@ -290,6 +346,12 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
             emit Approval(_msgSender(), spender, allowanceAmount);
         }
         return result;
+    }
+
+    function _transfer(TransferData memory td) private returns (bool) {
+        _getStorageContract().prepareLogicCall(_msgSender());
+        IERC20Logic st = _getStorageContract();
+        return st.transfer(td);
     }
 
     function _mint(address receipient, uint256 amount) private returns (bool) {

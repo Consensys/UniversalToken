@@ -37,7 +37,7 @@ contract ERC20Storage is IERC20Storage, ProxyContext, ERC1820Client, ERC1820Impl
 
     // Find facet for function that is called and execute the
     // function if a facet is found and return any value.
-    fallback() external override payable {
+    fallback() external override payable onlyToken {
         bool isExt = _isExtCall();
 
         address toInvoke = address(0);
