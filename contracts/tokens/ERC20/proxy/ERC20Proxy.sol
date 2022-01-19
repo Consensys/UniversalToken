@@ -1,5 +1,6 @@
 pragma solidity ^0.8.0;
 
+import {IERC20Proxy} from "./IERC20Proxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
@@ -11,9 +12,9 @@ import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
 import {IERC20Logic} from "../logic/IERC20Logic.sol";
 import {ERC20Storage} from "../storage/ERC20Storage.sol";
 import {ERC20Logic} from "../logic/ERC20Logic.sol";
-import {IToken, TransferData} from "../../IToken.sol";
+import {TransferData} from "../../IToken.sol";
 
-abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ERC1820Client, ERC1820Implementer, IToken {
+abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC1820Client, ERC1820Implementer {
     string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
     string constant internal ERC20_STORAGE_INTERFACE_NAME = "ERC20TokenStorage";
     string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
@@ -115,12 +116,12 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
         return _getStorageContract().totalSupply();
     }
 
-    function mintingAllowed() public view returns (bool) {
+    function mintingAllowed() public override view returns (bool) {
         TokenMeta storage m = _getTokenMeta();
         return m.allowMint;
     }
 
-    function burningAllowed() public view returns (bool) {
+    function burningAllowed() public override view returns (bool) {
         TokenMeta storage m = _getTokenMeta();
         return m.allowBurn;
     }
@@ -163,7 +164,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
         return _getStorageContract().decimals();
     }
 
-    function transfer(TransferData calldata td) external onlyControllers returns (bool) {
+    function transfer(TransferData calldata td) external override onlyControllers returns (bool) {
         require(td.token == address(this), "Invalid token");
 
         if (td.partition != bytes32(0)) {
@@ -187,7 +188,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
      *
      * - the caller must have the `MINTER_ROLE`.
      */
-    function mint(address to, uint256 amount) public virtual onlyMinter mintingEnabled returns (bool) {
+    function mint(address to, uint256 amount) public override virtual onlyMinter mintingEnabled returns (bool) {
         bool result = _mint(to, amount);
         if (result) {
             TokenMeta storage m = _getTokenMeta();
@@ -205,7 +206,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
      *
      * See {ERC20-_burn}.
      */
-    function burn(uint256 amount) public virtual burningEnabled returns (bool) {
+    function burn(uint256 amount) public override virtual burningEnabled returns (bool) {
         bool result = _burn(amount);
         if (result) {
             emit Transfer(_msgSender(), address(0), amount);
@@ -224,7 +225,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
      * - the caller must have allowance for ``accounts``'s tokens of at least
      * `amount`.
      */
-    function burnFrom(address account, uint256 amount) public virtual burningEnabled returns (bool) {
+    function burnFrom(address account, uint256 amount) public override virtual burningEnabled returns (bool) {
         bool result = _burnFrom(account, amount);
         if (result) {
             emit Transfer(account, address(0), amount);
@@ -315,7 +316,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
      *
      * - `spender` cannot be the zero address.
      */
-    function increaseAllowance(address spender, uint256 addedValue) public virtual returns (bool) {
+    function increaseAllowance(address spender, uint256 addedValue) public override virtual returns (bool) {
         bool result = _increaseAllowance(spender, addedValue);
 
         if (result) {
@@ -339,7 +340,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual returns (bool) {
+    function decreaseAllowance(address spender, uint256 subtractedValue) public override virtual returns (bool) {
         bool result = _decreaseAllowance(spender, subtractedValue);
         if (result) {
             uint256 allowanceAmount = _getStorageContract().allowance(_msgSender(), spender);
@@ -395,35 +396,35 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
         return _getStorageContract().transfer(recipient, amount);
     }
 
-    function domainName() public virtual override view returns (bytes memory) {
+    function domainName() public virtual override(DomainAware, IERC20Proxy) view returns (bytes memory) {
         return bytes(name());
     }
 
-    function domainVersion() public virtual override view returns (bytes32) {
+    function domainVersion() public virtual override(DomainAware, IERC20Proxy) view returns (bytes32) {
         return bytes32(uint256(uint160(address(_getImplementationContract()))));
     }
 
-    function upgradeTo(address implementation) external onlyManager {
+    function upgradeTo(address implementation) external override onlyManager {
         _setImplementation(implementation);
     }
 
-    function registerExtension(address extension) external onlyManager returns (bool) {
+    function registerExtension(address extension) external override onlyManager returns (bool) {
         return _getStorageContract().registerExtension(extension);
     }
 
-    function removeExtension(address extension) external onlyManager returns (bool) {
+    function removeExtension(address extension) external override onlyManager returns (bool) {
        return _getStorageContract().removeExtension(extension);
     }
 
-    function disableExtension(address extension) external onlyManager returns (bool) {
+    function disableExtension(address extension) external override onlyManager returns (bool) {
         return _getStorageContract().disableExtension(extension);
     }
 
-    function enableExtension(address extension) external onlyManager returns (bool) {
+    function enableExtension(address extension) external override onlyManager returns (bool) {
         return _getStorageContract().enableExtension(extension);
     }
 
-    function allExtensions() external view returns (address[] memory) {
+    function allExtensions() external override view returns (address[] memory) {
         return _getStorageContract().allExtensions();
     }
 
