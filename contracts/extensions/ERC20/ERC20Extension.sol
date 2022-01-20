@@ -14,6 +14,7 @@ abstract contract ERC20Extension is IERC20Extension, ExtensionBase, RolesBase {
     //Should only be modified inside the constructor
     bytes4[] private _exposedFuncSigs;
     mapping(bytes4 => bool) private _interfaceMap;
+    bytes32[] private _requiredRoles;
 
     modifier onlyOwner {
         require(_msgSender() == _tokenOwner(), "Only the token owner can invoke");
@@ -24,6 +25,11 @@ abstract contract ERC20Extension is IERC20Extension, ExtensionBase, RolesBase {
         address msgSender = _msgSender();
         require(msgSender == _tokenOwner() || msgSender == _tokenAddress(), "Only the token or token owner can invoke");
         _;
+    }
+
+    function _requireRole(bytes32 roleId) internal {
+        require(isInsideConstructorCall(), "Function must be called inside the constructor");
+        _requiredRoles.push(roleId);
     }
 
     function _supportInterface(bytes4 interfaceId) internal {
@@ -43,6 +49,10 @@ abstract contract ERC20Extension is IERC20Extension, ExtensionBase, RolesBase {
     
     function externalFunctions() external override view returns (bytes4[] memory) {
         return _exposedFuncSigs;
+    }
+
+    function requiredRoles() external override view returns (bytes32[] memory) {
+        return _requiredRoles;
     }
 
     function isInsideConstructorCall() internal view returns (bool) {

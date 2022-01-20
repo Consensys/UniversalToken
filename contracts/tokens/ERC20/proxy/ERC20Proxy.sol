@@ -163,7 +163,7 @@ abstract contract ERC20Proxy is IERC20Metadata, ERC20ProxyRoles, DomainAware, ER
         return _getStorageContract().decimals();
     }
 
-    function transfer(TransferData calldata td) external onlyControllers returns (bool) {
+    function transfer(TransferData calldata td) external override onlyControllers returns (bool) {
         require(td.token == address(this), "Invalid token");
 
         if (td.partition != bytes32(0)) {

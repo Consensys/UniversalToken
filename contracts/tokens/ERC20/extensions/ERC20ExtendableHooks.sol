@@ -1,10 +1,26 @@
 pragma solidity ^0.8.0;
 
-import {ERC20ExtendableLib} from "./ERC20ExtendableLib.sol";
-import {TransferData} from "../../../extensions/ERC20/IERC20Extension.sol";
+import {ExtensionLib} from "../../extension/ExtensionLib.sol";
+import {IERC20Extension, TransferData} from "../../../extensions/ERC20/IERC20Extension.sol";
 import {ERC20ExtendableBase} from "./ERC20ExtendableBase.sol";
 
 abstract contract ERC20ExtendableHooks is ERC20ExtendableBase {
+
+    function _validateTransferWithExtension(address extension, TransferData memory data) internal view returns (bool) {
+        IERC20Extension ext = IERC20Extension(extension);
+
+        if (!ext.validateTransfer(data)) {
+            return false;
+        }
+    }
+
+    function _executeAfterTransferWithExtension(address extension, TransferData memory data) internal returns (bool) {
+        IERC20Extension ext = IERC20Extension(extension);
+
+        if (!ext.onTransferExecuted(data)) {
+            return false;
+        }
+    }
 
     /**
      * @dev Hook that is called before any transfer of tokens. This includes
@@ -21,7 +37,7 @@ abstract contract ERC20ExtendableHooks is ERC20ExtendableBase {
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
     function _triggerBeforeTokenTransfer(TransferData memory data) internal virtual {
-        require(ERC20ExtendableLib._validateTransfer(data), "Extension failed validation of transfer");
+        require(ExtensionLib._erc20executeOnAllExtensions(_validateTransferWithExtension, data), "Extension failed validation of transfer");
     }
 
     /**
@@ -39,6 +55,6 @@ abstract contract ERC20ExtendableHooks is ERC20ExtendableBase {
      * To learn more about hooks, head to xref:ROOT:extending-contracts.adoc#using-hooks[Using Hooks].
      */
     function _triggerAfterTokenTransfer(TransferData memory data) internal virtual {
-        require(ERC20ExtendableLib._executeAfterTransfer(data), "Extension failed execution of post-transfer");
+        require(ExtensionLib._erc20executeOnAllExtensions(_executeAfterTransferWithExtension, data), "Extension failed execution of post-transfer");
     }
 }

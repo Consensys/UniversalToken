@@ -6,7 +6,7 @@ import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
 import {ProxyContext} from "../../../proxy/context/ProxyContext.sol";
 import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
 import {ERC20ExtendableRouter} from "../extensions/ERC20ExtendableRouter.sol";
-import {ERC20ExtendableLib} from "../extensions/ERC20ExtendableLib.sol";
+import {ExtensionLib} from "../../extension/ExtensionLib.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
@@ -85,7 +85,7 @@ contract ERC20Storage is IERC20Storage, ProxyContext, ERC1820Client, ERC1820Impl
     function allExtensions() external override view onlyToken returns (address[] memory) {
         //To return all the extensions, we'll read directly from the ERC20CoreExtendableBase's storage struct
         //since it's stored here at the proxy
-        //The ERC20ExtendableLib library offers functions to do this
-        return ERC20ExtendableLib._allExtensions();
+        //The ExtensionLib library offers functions to do this
+        return ExtensionLib._allExtensions();
     }
 }

@@ -4,7 +4,7 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {Roles} from "../../../roles/Roles.sol";
 import {RolesBase} from "../../../roles/RolesBase.sol";
-import {ERC20ExtendableLib} from "../extensions/ERC20ExtendableLib.sol";
+import {ExtensionLib} from "../../extension/ExtensionLib.sol";
 
 abstract contract ERC20ProxyRoles is RolesBase, Context {
     using Roles for Roles.Role;
@@ -41,7 +41,7 @@ abstract contract ERC20ProxyRoles is RolesBase, Context {
 
     modifier onlyExtensions {
         address extension = _msgSender();
-        require(ERC20ExtendableLib._isActiveExtension(extension), "Only extensions can call");
+        require(ExtensionLib._isActiveExtension(extension), "Only extensions can call");
         _;
     }
     
