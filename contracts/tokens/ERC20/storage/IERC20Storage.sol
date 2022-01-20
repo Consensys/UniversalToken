@@ -12,4 +12,6 @@ interface IERC20Storage is IProxyContext {
     function enableExtension(address extension) external returns (bool);
 
     function allExtensions() external view returns (address[] memory);
+
+    function contextAddressForExtension(address extension) external view returns (address);
 }

@@ -107,4 +107,16 @@ contract ExtensionStorage is ExtensionBase, Diamond {
 
         return ext.externalFunctions();
     }
+
+    function requiredRoles() external view returns (bytes32[] memory) {
+        ContextData storage ds;
+        bytes32 position = CONTEXT_DATA_SLOT;
+        assembly {
+            ds.slot := position
+        }
+        
+        IExtension ext = IExtension(ds.extension);
+
+        return ext.requiredRoles();
+    }
 }

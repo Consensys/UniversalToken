@@ -122,6 +122,15 @@ library ExtensionLib {
         return extLibStorage.registeredExtensions;
     }
 
+    function _contextAddressForExtension(address extension) internal view returns (address) {
+        MappedExtensions storage extLibStorage = extensionStorage();
+        ExtensionData storage extData = extLibStorage.extensions[extension];
+
+        require(extData.state != ExtensionState.EXTENSION_NOT_EXISTS, "The extension must exist (either enabled or disabled)");
+
+        return extData.context;
+    }
+
     function _removeExtension(address extension) internal {
         MappedExtensions storage extLibStorage = extensionStorage();
         ExtensionData storage extData = extLibStorage.extensions[extension];
@@ -154,7 +163,7 @@ library ExtensionLib {
     * @param data The current data that will be passed to the implemented function along with the enabled extension address
     * @return bool True if all extensions were executed successfully, false if any extension returned false
     */
-    function _erc20executeOnAllExtensions(function (address, TransferData memory) returns (bool) toInvoke, TransferData memory data) internal returns (bool) {
+    function _erc20executeOnAllExtensions(function (address, TransferData memory) internal returns (bool) toInvoke, TransferData memory data) internal returns (bool) {
         MappedExtensions storage extLibData = extensionStorage();
 
         for (uint i = 0; i < extLibData.registeredExtensions.length; i++) {

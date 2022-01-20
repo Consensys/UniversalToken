@@ -76,4 +76,6 @@ interface IERC20Proxy is IERC20Metadata, IToken, IERC20ProxyRoles {
      * `subtractedValue`.
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) external returns (bool);
+
+    function contextAddressForExtension(address extension) external view returns (address);
 }

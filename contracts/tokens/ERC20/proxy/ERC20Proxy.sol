@@ -13,6 +13,7 @@ import {IERC20Logic} from "../logic/IERC20Logic.sol";
 import {ERC20Storage} from "../storage/ERC20Storage.sol";
 import {ERC20Logic} from "../logic/ERC20Logic.sol";
 import {TransferData} from "../../IToken.sol";
+import {ExtensionStorage} from "../../../extensions/ExtensionStorage.sol";
 
 abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC1820Client, ERC1820Implementer {
     string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
@@ -409,11 +410,44 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
     }
 
     function registerExtension(address extension) external override onlyManager returns (bool) {
-        return _getStorageContract().registerExtension(extension);
+        bool result = _getStorageContract().registerExtension(extension);
+        if (result) {
+            address contextAddress = _getStorageContract().contextAddressForExtension(extension);
+            ExtensionStorage context = ExtensionStorage(payable(contextAddress));
+
+            bytes32[] memory requiredRoles = context.requiredRoles();
+            
+            //If we have roles we need to register, then lets register them
+            if (requiredRoles.length > 0) {
+                address ctxAddress = address(context);
+                for (uint i = 0; i < requiredRoles.length; i++) {
+                    _addRole(ctxAddress, requiredRoles[i]);
+                }
+            }
+        }
+
+        return result;
     }
 
     function removeExtension(address extension) external override onlyManager returns (bool) {
-       return _getStorageContract().removeExtension(extension);
+       bool result = _getStorageContract().removeExtension(extension);
+
+       if (result) {
+            address contextAddress = _getStorageContract().contextAddressForExtension(extension);
+            ExtensionStorage context = ExtensionStorage(payable(contextAddress));
+
+            bytes32[] memory requiredRoles = context.requiredRoles();
+            
+            //If we have roles we need to register, then lets register them
+            if (requiredRoles.length > 0) {
+                address ctxAddress = address(context);
+                for (uint i = 0; i < requiredRoles.length; i++) {
+                    _addRole(ctxAddress, requiredRoles[i]);
+                }
+            }
+        }
+
+        return result;
     }
 
     function disableExtension(address extension) external override onlyManager returns (bool) {
@@ -426,6 +460,10 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
 
     function allExtensions() external override view returns (address[] memory) {
         return _getStorageContract().allExtensions();
+    }
+
+    function contextAddressForExtension(address extension) external override view returns (address) {
+        return _getStorageContract().contextAddressForExtension(extension);
     }
 
     // Find facet for function that is called and execute the

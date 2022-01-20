@@ -88,4 +88,8 @@ contract ERC20Storage is IERC20Storage, ProxyContext, ERC1820Client, ERC1820Impl
         //The ExtensionLib library offers functions to do this
         return ExtensionLib._allExtensions();
     }
+
+    function contextAddressForExtension(address extension) external override view onlyToken returns (address) {
+        return ExtensionLib._contextAddressForExtension(extension);
+    }
 }
