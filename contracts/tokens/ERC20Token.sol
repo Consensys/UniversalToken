@@ -7,11 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Pausable.sol";
 
 import "../erc1820/ERC1820Implementer.sol";
 import "../roles/MinterRole.sol";
-import "../tools/DomainAware.sol";
 
-contract ERC20Token is Ownable, ERC20Burnable, ERC20Pausable, ERC1820Implementer, MinterRole, DomainAware {
-  bytes32 constant internal VERSION = 0x0000000000000000000000000000000000000000000000000000000000000001;
-  
+contract ERC20Token is Ownable, ERC20Burnable, ERC20Pausable, ERC1820Implementer, MinterRole {
   string constant internal ERC20_TOKEN = "ERC20Token";
   uint8 immutable internal _decimals;
 
@@ -57,12 +54,12 @@ contract ERC20Token is Ownable, ERC20Burnable, ERC20Pausable, ERC1820Implementer
   }
 
   /************************************* Domain Aware ******************************************/
-  function domainName() public override view returns (bytes memory) {
-    return bytes(name());
+/*  function domainName() public override view returns (string memory) {
+    return name();
   }
 
-  function domainVersion() public override view returns (bytes32) {
-    return VERSION;
-  }
+  function domainVersion() public override view returns (string memory) {
+    return "1";
+  }*/
   /************************************************************************************************/
 }

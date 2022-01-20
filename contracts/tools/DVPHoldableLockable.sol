@@ -7,7 +7,7 @@ pragma solidity ^0.8.0;
 import "../erc1820/ERC1820Client.sol";
 import "../erc1820/ERC1820Implementer.sol";
 
-import "../tokens/IERC20HoldableToken.sol";
+import "../interface/IERC20HoldableToken.sol";
 
 interface HoldableERC1400TokenExtension {
     enum HoldStatusCode {

@@ -4,7 +4,7 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {ERC20Extension} from "../ERC20Extension.sol";
 import {IERC20Extension, TransferData} from "../IERC20Extension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import "../../../tokens/IERC20HoldableToken.sol";
+import "../../../interface/IERC20HoldableToken.sol";
 
 contract HoldExtension is ERC20Extension {
     using SafeMath for uint256;

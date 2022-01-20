@@ -5,8 +5,9 @@ import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {Roles} from "../../../roles/Roles.sol";
 import {RolesBase} from "../../../roles/RolesBase.sol";
 import {ExtensionLib} from "../../extension/ExtensionLib.sol";
+import {IERC20ProxyRoles} from "./IERC20ProxyRoles.sol";
 
-abstract contract ERC20ProxyRoles is RolesBase, Context {
+abstract contract ERC20ProxyRoles is IERC20ProxyRoles, RolesBase, Context {
     using Roles for Roles.Role;
 
     bytes32 constant ERC20_ALLOW_BURN = keccak256("erc20.proxy.core.burn");
@@ -53,42 +54,42 @@ abstract contract ERC20ProxyRoles is RolesBase, Context {
         _;
     }
 
-    function manager() public view returns (address) {
+    function manager() public override view returns (address) {
         return StorageSlot.getAddressSlot(ERC20_MANAGER_ADDRESS).value;
     }
 
-    function isController(address caller) public view returns (bool) {
+    function isController(address caller) public override view returns (bool) {
         return hasRole(caller, ERC20_CONTROLLER_ROLE);
     }
 
-    function isMinter(address caller) public view returns (bool) {
+    function isMinter(address caller) public override view returns (bool) {
         return hasRole(caller, ERC20_MINTER_ROLE);
     }
 
-    function addController(address caller) public onlyControllers {
+    function addController(address caller) public override onlyControllers {
         _addRole(caller, ERC20_CONTROLLER_ROLE);
     }
 
-    function removeController(address caller) public onlyControllers {
+    function removeController(address caller) public override onlyControllers {
         _addRole(caller, ERC20_CONTROLLER_ROLE);
     }
 
-    function addMinter(address caller) public onlyMinter {
+    function addMinter(address caller) public override onlyMinter {
         _addRole(caller, ERC20_MINTER_ROLE);
     }
 
-    function removeMinter(address caller) public onlyMinter {
+    function removeMinter(address caller) public override onlyMinter {
         _removeRole(caller, ERC20_MINTER_ROLE);
     }
 
-    function changeManager(address newManager) external onlyManager {
+    function changeManager(address newManager) external override onlyManager {
         StorageSlot.getAddressSlot(ERC20_MANAGER_ADDRESS).value = newManager;
     }
 
     /**
      * @dev Returns the address of the current owner.
      */
-    function owner() public view virtual returns (address) {
+    function owner() public override view virtual returns (address) {
         return StorageSlot.getAddressSlot(ERC20_OWNER).value;
     }
 
@@ -99,7 +100,7 @@ abstract contract ERC20ProxyRoles is RolesBase, Context {
      * NOTE: Renouncing ownership will leave the contract without an owner,
      * thereby removing any functionality that is only available to the owner.
      */
-    function renounceOwnership() public virtual onlyOwner {
+    function renounceOwnership() public override virtual onlyOwner {
         _setOwner(address(0));
     }
 
@@ -107,7 +108,7 @@ abstract contract ERC20ProxyRoles is RolesBase, Context {
      * @dev Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
      */
-    function transferOwnership(address newOwner) public virtual onlyOwner {
+    function transferOwnership(address newOwner) public override virtual onlyOwner {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
         _setOwner(newOwner);
     }
