@@ -2,7 +2,7 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.8.0;
+pragma solidity ^0.5.0;
 
 /**
  * @title IERC1400TokensRecipient
@@ -11,7 +11,7 @@ pragma solidity ^0.8.0;
 interface IERC1400TokensRecipient {
 
   function canReceive(
-    bytes calldata payload,
+    bytes4 functionSig,
     bytes32 partition,
     address operator,
     address from,
@@ -22,7 +22,7 @@ interface IERC1400TokensRecipient {
   ) external view returns(bool);
 
   function tokensReceived(
-    bytes calldata payload,
+    bytes4 functionSig,
     bytes32 partition,
     address operator,
     address from,

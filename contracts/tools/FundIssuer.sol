@@ -2,13 +2,13 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.8.0;
+pragma solidity ^0.5.0;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/ERC20.sol";
+import "openzeppelin-solidity/contracts/token/ERC721/ERC721.sol";
 
-import "./ERC1820Client.sol";
+import "erc1820/contracts/ERC1820Client.sol";
 import "../interface/ERC1820Implementer.sol";
 
 import "../extensions/userExtensions/IERC1400TokensRecipient.sol";
@@ -44,6 +44,8 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
 
   string constant internal FUND_ISSUER = "FundIssuer";
   string constant internal ERC1400_TOKENS_RECIPIENT = "ERC1400TokensRecipient";
+
+  bytes32 constant internal ERC1820_ACCEPT_MAGIC = keccak256(abi.encodePacked("ERC1820_ACCEPT_MAGIC"));
 
   enum CycleState {Undefined, Subscription, Valuation, Payment, Settlement, Finalized}
 
@@ -127,7 +129,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
   // Mapping from (assetAddress, paymentAddress) to amount of escrowed ERC20.
   mapping(address => mapping (address => uint256)) internal _escrowedErc20;
 
-  // Mapping from (assetAddress, paymentAddress, paymentPartition) to amount of escrowed ERC1400.
+  // Mapping from (assetAddress, paymentAddress, peymentPartition) to amount of escrowed ERC1400.
   mapping(address => mapping (address => mapping (bytes32 => uint256))) internal _escrowedErc1400;
 
   // Mapping from token to token controllers.
@@ -161,7 +163,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
   }
 
   /**
-   * [Swaps CONSTRUCTOR]
+   * [DVP CONSTRUCTOR]
    * @dev Initialize Fund issuance contract + register
    * the contract implementation in ERC1820Registry.
    */
@@ -175,10 +177,10 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
    * [ERC1400TokensRecipient INTERFACE (1/2)]
    * @dev Indicate whether or not the fund issuance contract can receive the tokens or not. [USED FOR ERC1400 TOKENS ONLY]
    * @param data Information attached to the token transfer.
-   * @param operatorData Information attached to the Swaps transfer, by the operator.
-   * @return 'true' if the Swaps contract can receive the tokens, 'false' if not.
+   * @param operatorData Information attached to the DVP transfer, by the operator.
+   * @return 'true' if the DVP contract can receive the tokens, 'false' if not.
    */
-  function canReceive(bytes calldata, bytes32, address, address, address, uint, bytes calldata  data, bytes calldata operatorData) external override view returns(bool) {
+  function canReceive(bytes4, bytes32, address, address, address, uint, bytes calldata  data, bytes calldata operatorData) external view returns(bool) {
     return(_canReceive(data, operatorData));
   }
 
@@ -190,9 +192,9 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
    * @param to Token recipient.
    * @param value Number of tokens to transfer.
    * @param data Information attached to the token transfer.
-   * @param operatorData Information attached to the Swaps transfer, by the operator.
+   * @param operatorData Information attached to the DVP transfer, by the operator.
    */
-  function tokensReceived(bytes calldata, bytes32 partition, address, address from, address to, uint value, bytes calldata data, bytes calldata operatorData) external override {
+  function tokensReceived(bytes4, bytes32 partition, address, address from, address to, uint value, bytes calldata data, bytes calldata operatorData) external {
     require(interfaceAddr(msg.sender, "ERC1400Token") == msg.sender, "55"); // 0x55 funds locked (lockup period)
 
     require(to == address(this), "50"); // 0x50	transfer failure
@@ -723,7 +725,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
     Cycle storage cycle = _cycles[order.cycleIndex];
 
     if(cycle.paymentType == Payment.ETH) {
-      address payable refundAddress = payable(recipient);
+      address payable refundAddress = address(uint160(recipient));
       refundAddress.transfer(order.value);
       _escrowedEth[cycle.assetAddress] -= order.value;
     } else if(cycle.paymentType == Payment.ERC20) {
@@ -969,7 +971,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
    *  following flag: 0xdddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd
    *
    * @param data Concatenated information about the transfer.
-   * @return flag Transfer flag.
+   * @return Transfer flag.
    */
   function _getTransferFlag(bytes memory data) internal pure returns(bytes32 flag) {
     assembly {
@@ -1033,7 +1035,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
    * @dev Retrieve the order index from the 'data' field.
    *
    * @param data Concatenated information about the order payment.
-   * @return orderIndex Order index.
+   * @return Order index.
    */
   function _getOrderIndex(bytes memory data) internal pure returns(uint256 orderIndex) {
     assembly {

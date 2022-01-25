@@ -16,6 +16,10 @@ const ropstenProvider = process.env.SOLIDITY_COVERAGE
   ? undefined
   : infuraProvider('ropsten');
 
+const rinkebyProvider = process.env.SOLIDITY_COVERAGE
+  ? undefined
+  : infuraProvider('rinkeby');
+
 module.exports = {
   networks: {
     development: {
@@ -34,6 +38,12 @@ module.exports = {
       provider: ropstenProvider,
       network_id: 3, // eslint-disable-line camelcase
       gasPrice: 5000000000,
+    },
+    rinkeby: {
+      provider: rinkebyProvider,
+      network_id: 4, // eslint-disable-line camelcase
+      gasPrice: 5000000000,
+      gasLimit: 10000000
     },
     coverage: {
       host: 'localhost',
@@ -56,10 +66,10 @@ module.exports = {
       network_id: parseInt(process.env.NETWORK_ID) || '*', // eslint-disable-line camelcase
     },
   },
-  plugins: ["solidity-coverage", "truffle-contract-size", "truffle-plugin-verify"],
+  plugins: ["solidity-coverage", "truffle-plugin-verify"],
   compilers: {
     solc: {
-      version: '0.8.7',
+      version: '0.5.10',
       settings: {
         optimizer: {
           enabled: true, // Default: false

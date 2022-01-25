@@ -2,7 +2,7 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.8.0;
+pragma solidity ^0.5.0;
 
 /**
  * @title IERC1400TokensChecker
@@ -11,7 +11,7 @@ pragma solidity ^0.8.0;
 interface IERC1400TokensChecker {
 
   // function canTransfer(
-  //   bytes calldata payload,
+  //   bytes4 functionSig,
   //   address operator,
   //   address from,
   //   address to,
@@ -21,7 +21,7 @@ interface IERC1400TokensChecker {
   // ) external view returns (byte, bytes32);
 
   function canTransferByPartition(
-    bytes calldata payload,
+    bytes4 functionSig,
     bytes32 partition,
     address operator,
     address from,
@@ -29,6 +29,6 @@ interface IERC1400TokensChecker {
     uint256 value,
     bytes calldata data,
     bytes calldata operatorData
-    ) external view returns (bytes1, bytes32, bytes32);
+    ) external view returns (byte, bytes32, bytes32);
 
 }

@@ -2,17 +2,17 @@
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
  */
-pragma solidity ^0.8.0;
-
-import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-// ****************** Document Management *******************
-import "./interface/IERC1643.sol";
+pragma solidity ^0.5.0;
 
 /**
  * @title IERC1400 security token standard
  * @dev See https://github.com/SecurityTokenStandard/EIP-Spec/blob/master/eip/eip-1400.md
  */
-interface IERC1400 is IERC20, IERC1643 {
+interface IERC1400 /*is IERC20*/ { // Interfaces can currently not inherit interfaces, but IERC1400 shall include IERC20
+
+  // ****************** Document Management *******************
+  function getDocument(bytes32 name) external view returns (string memory, bytes32);
+  function setDocument(bytes32 name, string calldata uri, bytes32 documentHash) external;
 
   // ******************* Token Information ********************
   function balanceOfByPartition(bytes32 partition, address tokenHolder) external view returns (uint256);
@@ -25,7 +25,6 @@ interface IERC1400 is IERC20, IERC1643 {
   // *************** Partition Token Transfers ****************
   function transferByPartition(bytes32 partition, address to, uint256 value, bytes calldata data) external returns (bytes32);
   function operatorTransferByPartition(bytes32 partition, address from, address to, uint256 value, bytes calldata data, bytes calldata operatorData) external returns (bytes32);
-  function allowanceByPartition(bytes32 partition, address owner, address spender) external view returns (uint256);
 
   // ****************** Controller Operation ******************
   function isControllable() external view returns (bool);
@@ -80,6 +79,9 @@ interface IERC1400 is IERC20, IERC1643 {
   //       bytes data,
   //       bytes operatorData
   //   );
+
+  // ******************** Document Events *********************
+  event Document(bytes32 indexed name, string uri, bytes32 documentHash);
 
   // ******************** Transfer Events *********************
   event TransferByPartition(
