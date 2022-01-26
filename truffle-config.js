@@ -15,6 +15,10 @@ const infuraProvider = network => providerWithMnemonic(
 const ropstenProvider = process.env.SOLIDITY_COVERAGE
   ? undefined
   : infuraProvider('ropsten');
+  
+const rinkebyProvider = process.env.SOLIDITY_COVERAGE
+  ? undefined
+  : infuraProvider('ropsten');
 
 module.exports = {
   networks: {
@@ -35,6 +39,11 @@ module.exports = {
       provider: ropstenProvider,
       network_id: 3, // eslint-disable-line camelcase
       gasPrice: 5000000000,
+    },
+    rinkeby: {
+      provider: rinkebyProvider,
+      network_id: 4, // eslint-disable-line camelcase
+      gasPrice: 5000000000
     },
     coverage: {
       host: 'localhost',
