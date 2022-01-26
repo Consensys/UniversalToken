@@ -22,6 +22,7 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
     bytes32 constant ERC20_TOKEN_META = keccak256("erc20.token.meta");
 
     struct TokenMeta {
+        bool initialized;
         string name;
         string symbol;
         uint256 maxSupply;
@@ -55,7 +56,6 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
         ERC1820Client.setInterfaceImplementation(ERC20_INTERFACE_NAME, address(this));
         ERC1820Implementer._setInterface(ERC20_INTERFACE_NAME); // For migration
 
-        ERC20Storage store = new ERC20Storage(address(this));
         if (logicAddress == address(0)) {
             ERC20Logic logic = new ERC20Logic();
             logicAddress = address(logic);
@@ -64,11 +64,27 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
         require(logicAddress == ERC1820Client.interfaceAddr(logicAddress, ERC20_LOGIC_INTERFACE_NAME), "Not registered as a logic contract");
 
         _setImplementation(logicAddress);
+    }
+
+    function initialize() external onlyOwner {
+        TokenMeta storage m = _getTokenMeta();
+        require(!m.initialized, "This proxy has already been initialized");
+
+        ERC20Storage store = new ERC20Storage(address(this));
+
         _setStorage(address(store));
 
         //Update the doamin seperator now that 
         //we've setup everything
         _updateDomainSeparator();
+
+        m.initialized = true;
+    }
+
+    modifier isProxyReady {
+        TokenMeta storage m = _getTokenMeta();
+        require(m.initialized, "This proxy isnt initialized");
+        _;
     }
 
     
@@ -92,7 +108,7 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
         }
     }
 
-    function _getStorageContract() internal view returns (IERC20Logic) {
+    function _getStorageContract() internal view isProxyReady returns (IERC20Logic) {
         return IERC20Logic(
             ERC1820Client.interfaceAddr(address(this), ERC20_STORAGE_INTERFACE_NAME)
         );
@@ -113,16 +129,16 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
     /**
      * @dev Returns the amount of tokens in existence.
      */
-    function totalSupply() public override view returns (uint256) {
+    function totalSupply() public override view isProxyReady returns (uint256) {
         return _getStorageContract().totalSupply();
     }
 
-    function mintingAllowed() public override view returns (bool) {
+    function mintingAllowed() public override view isProxyReady returns (bool) {
         TokenMeta storage m = _getTokenMeta();
         return m.allowMint;
     }
 
-    function burningAllowed() public override view returns (bool) {
+    function burningAllowed() public override view isProxyReady returns (bool) {
         TokenMeta storage m = _getTokenMeta();
         return m.allowBurn;
     }
@@ -140,21 +156,21 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
     /**
      * @dev Returns the amount of tokens owned by `account`.
      */
-    function balanceOf(address account) public override view returns (uint256) {
+    function balanceOf(address account) public override view isProxyReady returns (uint256) {
         return _getStorageContract().balanceOf(account);
     }
 
     /**
      * @dev Returns the name of the token.
      */
-    function name() public override view returns (string memory) {
+    function name() public override view isProxyReady returns (string memory) {
         return _getTokenMeta().name;
     }
 
     /**
      * @dev Returns the symbol of the token.
      */
-    function symbol() public override view returns (string memory) {
+    function symbol() public override view isProxyReady returns (string memory) {
         return _getTokenMeta().symbol;
     }
 
@@ -165,7 +181,7 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
         return _getStorageContract().decimals();
     }
 
-    function transfer(TransferData calldata td) external override onlyControllers returns (bool) {
+    function transfer(TransferData calldata td) external override onlyControllers isProxyReady returns (bool) {
         require(td.token == address(this), "Invalid token");
 
         if (td.partition != bytes32(0)) {
@@ -189,7 +205,7 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
      *
      * - the caller must have the `MINTER_ROLE`.
      */
-    function mint(address to, uint256 amount) public override virtual onlyMinter mintingEnabled returns (bool) {
+    function mint(address to, uint256 amount) public override virtual onlyMinter mintingEnabled isProxyReady returns (bool) {
         bool result = _mint(to, amount);
         if (result) {
             TokenMeta storage m = _getTokenMeta();
@@ -207,7 +223,7 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
      *
      * See {ERC20-_burn}.
      */
-    function burn(uint256 amount) public override virtual burningEnabled returns (bool) {
+    function burn(uint256 amount) public override virtual burningEnabled isProxyReady returns (bool) {
         bool result = _burn(amount);
         if (result) {
             emit Transfer(_msgSender(), address(0), amount);
@@ -226,7 +242,7 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
      * - the caller must have allowance for ``accounts``'s tokens of at least
      * `amount`.
      */
-    function burnFrom(address account, uint256 amount) public override virtual burningEnabled returns (bool) {
+    function burnFrom(address account, uint256 amount) public override virtual burningEnabled isProxyReady returns (bool) {
         bool result = _burnFrom(account, amount);
         if (result) {
             emit Transfer(account, address(0), amount);
@@ -241,7 +257,7 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
      *
      * Emits a {Transfer} event.
      */
-    function transfer(address recipient, uint256 amount) public override returns (bool) {
+    function transfer(address recipient, uint256 amount) public override isProxyReady returns (bool) {
         bool result = _transfer(recipient, amount);
         if (result) {
             emit Transfer(_msgSender(), recipient, amount);
@@ -256,7 +272,7 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
      *
      * This value changes when {approve} or {transferFrom} are called.
      */
-    function allowance(address owner, address spender) public override view returns (uint256) {
+    function allowance(address owner, address spender) public override view isProxyReady returns (uint256) {
         return _getStorageContract().allowance(owner, spender);
     }
 
@@ -274,7 +290,7 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
      *
      * Emits an {Approval} event.
      */
-    function approve(address spender, uint256 amount) public override returns (bool) {
+    function approve(address spender, uint256 amount) public override isProxyReady returns (bool) {
         bool result = _approve(spender, amount);
         if (result) {
             emit Approval(_msgSender(), spender, amount);
@@ -295,7 +311,7 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
         address sender,
         address recipient,
         uint256 amount
-    ) public override returns (bool) {
+    ) public override isProxyReady returns (bool) {
         bool result = _transferFrom(sender, recipient, amount);
 
         if (result) {
@@ -317,7 +333,7 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
      *
      * - `spender` cannot be the zero address.
      */
-    function increaseAllowance(address spender, uint256 addedValue) public override virtual returns (bool) {
+    function increaseAllowance(address spender, uint256 addedValue) public override virtual isProxyReady returns (bool) {
         bool result = _increaseAllowance(spender, addedValue);
 
         if (result) {
@@ -341,7 +357,7 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
      * - `spender` must have allowance for the caller of at least
      * `subtractedValue`.
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue) public override virtual returns (bool) {
+    function decreaseAllowance(address spender, uint256 subtractedValue) public override virtual isProxyReady returns (bool) {
         bool result = _decreaseAllowance(spender, subtractedValue);
         if (result) {
             uint256 allowanceAmount = _getStorageContract().allowance(_msgSender(), spender);
@@ -409,7 +425,7 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
         _setImplementation(implementation);
     }
 
-    function registerExtension(address extension) external override onlyManager returns (bool) {
+    function registerExtension(address extension) external override onlyManager isProxyReady returns (bool) {
         bool result = _getStorageContract().registerExtension(extension);
         if (result) {
             address contextAddress = _getStorageContract().contextAddressForExtension(extension);
@@ -429,7 +445,7 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
         return result;
     }
 
-    function removeExtension(address extension) external override onlyManager returns (bool) {
+    function removeExtension(address extension) external override onlyManager isProxyReady returns (bool) {
        bool result = _getStorageContract().removeExtension(extension);
 
        if (result) {
@@ -450,25 +466,25 @@ abstract contract ERC20Proxy is IERC20Proxy, ERC20ProxyRoles, DomainAware, ERC18
         return result;
     }
 
-    function disableExtension(address extension) external override onlyManager returns (bool) {
+    function disableExtension(address extension) external override onlyManager isProxyReady returns (bool) {
         return _getStorageContract().disableExtension(extension);
     }
 
-    function enableExtension(address extension) external override onlyManager returns (bool) {
+    function enableExtension(address extension) external override onlyManager isProxyReady returns (bool) {
         return _getStorageContract().enableExtension(extension);
     }
 
-    function allExtensions() external override view returns (address[] memory) {
+    function allExtensions() external override view isProxyReady returns (address[] memory) {
         return _getStorageContract().allExtensions();
     }
 
-    function contextAddressForExtension(address extension) external override view returns (address) {
+    function contextAddressForExtension(address extension) external override view isProxyReady returns (address) {
         return _getStorageContract().contextAddressForExtension(extension);
     }
 
     // Find facet for function that is called and execute the
     // function if a facet is found and return any value.
-    fallback() external virtual payable {
+    fallback() external virtual payable isProxyReady {
         address store = address(_getStorageContract());
         uint256 value = msg.value;
 
