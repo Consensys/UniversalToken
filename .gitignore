@@ -1,3 +1,5 @@
+hardhat.config.js
+cache/
 types/
 .idea/
 .env
