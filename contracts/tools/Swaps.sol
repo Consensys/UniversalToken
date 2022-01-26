@@ -137,6 +137,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     bool accepted;
     bool approved;
     TradeType tradeType;
+    address receiver;
   }
   
   /**
@@ -164,10 +165,12 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     uint256 tokenValue1;
     bytes32 tokenId1;
     Standard tokenStandard1;
+    address receiver1;
     address tokenAddress2; // Set to address(0) if no token is expected in return (for example in case of an off-chain payment)
     uint256 tokenValue2;
     bytes32 tokenId2;
     Standard tokenStandard2;
+    address receiver2;
     TradeType tradeType1;
     TradeType tradeType2;
     uint256 settlementDate;
@@ -299,7 +302,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
         settlementDate:= mload(add(data, 160))
       }
       // Token data: < 1: address > < 2: amount > < 3: id/partition > < 4: standard > < 5: accepted > < 6: approved >
-      UserTradeData memory _tradeData1 = UserTradeData(msg.sender, value, partition, Standard.ERC1400, true, false, TradeType.Escrow);
+      UserTradeData memory _tradeData1 = UserTradeData(msg.sender, value, partition, Standard.ERC1400, true, false, TradeType.Escrow, address(0));
       UserTradeData memory _tokenData2 = _getTradeTokenData(data);
 
       _requestTrade(
@@ -352,8 +355,8 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
       inputData.executer,
       inputData.expirationDate,
       inputData.settlementDate,
-      UserTradeData(inputData.tokenAddress1, inputData.tokenValue1, inputData.tokenId1, inputData.tokenStandard1, false, false, inputData.tradeType1),
-      UserTradeData(inputData.tokenAddress2, inputData.tokenValue2, inputData.tokenId2, inputData.tokenStandard2, false, false, inputData.tradeType2)
+      UserTradeData(inputData.tokenAddress1, inputData.tokenValue1, inputData.tokenId1, inputData.tokenStandard1, false, false, inputData.tradeType1, inputData.receiver1),
+      UserTradeData(inputData.tokenAddress2, inputData.tokenValue2, inputData.tokenId2, inputData.tokenStandard2, false, false, inputData.tradeType2, inputData.receiver2)
     );
 
     if(msg.sender == inputData.holder1 || msg.sender == inputData.holder2) {
@@ -793,9 +796,13 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
   function _executeTransferOnUsersTokens(uint256 index, Holder holder, uint256 value, bool revertTransfer) internal {
     Trade storage trade = _trades[index];
 
-    address sender = (holder == Holder.Holder1) ? trade.holder1 : trade.holder2;
-    address recipient = (holder == Holder.Holder1) ? trade.holder2 : trade.holder1;
     UserTradeData storage senderUserTradeData = (holder == Holder.Holder1) ? trade.userTradeData1 : trade.userTradeData2;
+    UserTradeData storage recipientUserTradeData = (holder == Holder.Holder1) ? trade.userTradeData2 : trade.userTradeData1;
+    address sender = (holder == Holder.Holder1) ? trade.holder1 : trade.holder2;
+    address recipient = recipientUserTradeData.receiver;
+    if (recipient == address(0)) {
+      recipient = (holder == Holder.Holder1) ? trade.holder2 : trade.holder1;
+    }
 
     address tokenAddress = senderUserTradeData.tokenAddress;
     bytes32 tokenId = senderUserTradeData.tokenId;
@@ -1010,7 +1017,8 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
       tokenStandard,
       false,
       false,
-      tradeType
+      tradeType,
+      address(0) //TODO Should this be included in data?
     );
   }
 
