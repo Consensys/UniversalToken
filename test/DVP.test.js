@@ -904,6 +904,7 @@ const fullCreateTradeRequest = async (
               ? partition1
               : ZERO_BYTES32,
     tokenStandard1: tokenStandard1,
+    receiver1: ZERO_ADDRESS,
     tokenAddress2: token2 ? token2.address : ZERO_ADDRESS,
     tokenValue2: tokenStandard2 === ERC721STANDARD ? 0 : tokenAmount2,
     tokenId2: tokenStandard2 === ERC721STANDARD
@@ -912,6 +913,7 @@ const fullCreateTradeRequest = async (
               ? partition1
               : ZERO_BYTES32,
     tokenStandard2: tokenStandard2,
+    receiver2: ZERO_ADDRESS,
     tradeType1: tradeType1,
     tradeType2: tradeType2,
     settlementDate: settlementDate
@@ -2325,11 +2327,13 @@ contract("DVP", function ([
                     tokenAddress1: this.security20.address,
                     tokenValue1: token1Amount,
                     tokenId1: ZERO_BYTES32,
+                    receiver1: ZERO_ADDRESS,
                     tokenStandard1: ERC20STANDARD,
                     tokenAddress2: this.emoney20.address,
                     tokenValue2: token2Amount,
                     tokenId2: ZERO_BYTES32,
                     tokenStandard2: ERC20STANDARD,
+                    receiver2: ZERO_ADDRESS,
                     tradeType1: HEX_TYPE_SWAP,
                     tradeType2: HEX_TYPE_SWAP,
                   }
@@ -4115,10 +4119,12 @@ contract("DVP", function ([
                   tokenValue1: token1Amount,
                   tokenId1: ZERO_BYTES32,
                   tokenStandard1: ERC20STANDARD,
+                  receiver1: ZERO_ADDRESS,
                   tokenAddress2: this.token2.address,
                   tokenValue2: token2Amount,
                   tokenId2: ZERO_BYTES32,
                   tokenStandard2: ERC20STANDARD,
+                  receiver2: ZERO_ADDRESS,
                   tradeType1: HEX_TYPE_SWAP,
                   tradeType2: HEX_TYPE_SWAP
                 }
