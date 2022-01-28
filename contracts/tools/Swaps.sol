@@ -228,8 +228,8 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    */
   modifier onlyTokenController(address tokenAddress) {
     require(
-      msg.sender == Ownable(tokenAddress).owner() ||
-      _isTokenController[tokenAddress][msg.sender],
+      _msgSender() == Ownable(tokenAddress).owner() ||
+      _isTokenController[tokenAddress][_msgSender()],
       Errors.SW_SENDER_NOT_TOKEN_CONTROLLER
     );
     _;
@@ -239,7 +239,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    * @dev Modifier to verify if sender is a price oracle.
    */
   modifier onlyPriceOracle(address tokenAddress) {
-    require(_checkPriceOracle(tokenAddress, msg.sender), Errors.SW_SENDER_NOT_PRICE_ORACLE);
+    require(_checkPriceOracle(tokenAddress, _msgSender()), Errors.SW_SENDER_NOT_PRICE_ORACLE);
     _;
   }
 
@@ -257,7 +257,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
 
     if(_ownedContract) {
       address[] memory initialTradeExecuters = new address[] (1);
-      initialTradeExecuters[0] = msg.sender;
+      initialTradeExecuters[0] = _msgSender();
       _setTradeExecuters(initialTradeExecuters);
     }
   }
@@ -284,7 +284,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    * @param operatorData Information attached to the Swaps transfer, by the operator.
    */
   function tokensReceived(bytes calldata, bytes32 partition, address, address from, address to, uint value, bytes memory data, bytes calldata operatorData) external override {
-    require(interfaceAddr(msg.sender, "ERC1400Token") == msg.sender, Errors.TR_SENDER_NOT_ERC1400_TOKEN); // funds locked (lockup period)
+    require(interfaceAddr(_msgSender(), "ERC1400Token") == _msgSender(), Errors.TR_SENDER_NOT_ERC1400_TOKEN); // funds locked (lockup period)
 
     require(to == address(this), Errors.TR_TO_ADDRESS_NOT_ME); // 0x50	transfer failure
     require(_canReceive(data, operatorData), Errors.TR_INVALID_RECEIVER); // 0x57	invalid receiver
@@ -302,7 +302,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
         settlementDate:= mload(add(data, 160))
       }
       // Token data: < 1: address > < 2: amount > < 3: id/partition > < 4: standard > < 5: accepted > < 6: approved >
-      UserTradeData memory _tradeData1 = UserTradeData(msg.sender, value, partition, Standard.ERC1400, true, false, TradeType.Escrow, address(0));
+      UserTradeData memory _tradeData1 = UserTradeData(_msgSender(), value, partition, Standard.ERC1400, true, false, TradeType.Escrow, address(0));
       UserTradeData memory _tokenData2 = _getTradeTokenData(data);
 
       _requestTrade(
@@ -333,7 +333,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
       Trade storage trade = _trades[index];
 
       UserTradeData memory selectedUserTradeData = (from == trade.holder1) ? trade.userTradeData1 : trade.userTradeData2;
-      require(msg.sender == selectedUserTradeData.tokenAddress, Errors.SW_WRONG_TOKEN_SENT);
+      require(_msgSender() == selectedUserTradeData.tokenAddress, Errors.SW_WRONG_TOKEN_SENT);
       require(partition == selectedUserTradeData.tokenId, Errors.SW_TOKENS_IN_WRONG_PARTITION);
       require(Standard.ERC1400 == selectedUserTradeData.tokenStandard, Errors.SW_TOKEN_INCORRECT_STANDARD);
 
@@ -359,8 +359,8 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
       UserTradeData(inputData.tokenAddress2, inputData.tokenValue2, inputData.tokenId2, inputData.tokenStandard2, false, false, inputData.tradeType2, inputData.receiver2)
     );
 
-    if(msg.sender == inputData.holder1 || msg.sender == inputData.holder2) {
-      _acceptTrade(_index, msg.sender, msg.value, 0, preimage);
+    if(_msgSender() == inputData.holder1 || _msgSender() == inputData.holder2) {
+      _acceptTrade(_index, _msgSender(), msg.value, 0, preimage);
     }
   }
 
@@ -429,7 +429,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
    * @param index Index of the trade to be accepted.
    */
   function acceptTrade(uint256 index, bytes32 preimage) external payable {
-    _acceptTrade(index, msg.sender, msg.value, 0, preimage);
+    _acceptTrade(index, _msgSender(), msg.value, 0, preimage);
   }
 
   /**
@@ -574,13 +574,13 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     Trade storage trade = _trades[index];
     require(trade.state == State.Pending, Errors.SW_TRADE_ALREADY_ACCEPTED);
 
-    require(_isTokenController[trade.userTradeData1.tokenAddress][msg.sender] || _isTokenController[trade.userTradeData2.tokenAddress][msg.sender], Errors.SW_SENDER_NOT_TOKEN_CONTROLLER);
+    require(_isTokenController[trade.userTradeData1.tokenAddress][_msgSender()] || _isTokenController[trade.userTradeData2.tokenAddress][_msgSender()], Errors.SW_SENDER_NOT_TOKEN_CONTROLLER);
 
-    if(_isTokenController[trade.userTradeData1.tokenAddress][msg.sender]) {
+    if(_isTokenController[trade.userTradeData1.tokenAddress][_msgSender()]) {
       trade.userTradeData1.approved = approved;
     }
     
-    if(_isTokenController[trade.userTradeData2.tokenAddress][msg.sender]) {
+    if(_isTokenController[trade.userTradeData2.tokenAddress][_msgSender()]) {
       trade.userTradeData2.approved = approved;
     }
 
@@ -627,7 +627,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     require(trade.state == State.Pending, Errors.SW_TRADE_NOT_PENDING);
 
     if(trade.executer != address(0)) {
-      require(msg.sender == trade.executer, Errors.SW_SENDER_NOT_EXECUTER);
+      require(_msgSender() == trade.executer, Errors.SW_SENDER_NOT_EXECUTER);
     }
 
     require(block.timestamp >= trade.settlementDate, Errors.SW_BEFORE_SETTLEMENT_DATE);
@@ -693,11 +693,11 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     require(_tokenControllers[tokenAddress1].length == 0 && _tokenControllers[tokenAddress2].length == 0, "Trade can not be forced if tokens have controllers");
 
     if(trade.executer != address(0)) {
-      require(msg.sender == trade.executer, Errors.SW_ONLY_EXECUTER_CAN_FORCE_TRADE);
+      require(_msgSender() == trade.executer, Errors.SW_ONLY_EXECUTER_CAN_FORCE_TRADE);
     } else if(accepted1) {
-      require(msg.sender == trade.holder1, Errors.SW_SENDER_CANT_FORCE_TRADE);
+      require(_msgSender() == trade.holder1, Errors.SW_SENDER_CANT_FORCE_TRADE);
     } else if(accepted2) {
-      require(msg.sender == trade.holder2, Errors.SW_SENDER_CANT_FORCE_TRADE);
+      require(_msgSender() == trade.holder2, Errors.SW_SENDER_CANT_FORCE_TRADE);
     } else {
       revert(Errors.SW_FORCE_TRADE_NOT_POSSIBLE_NO_TOKENS);
     }
@@ -728,7 +728,7 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     bool accepted2 = trade.userTradeData2.accepted;
 
     if(accepted1 && accepted2) {
-      require(msg.sender == trade.executer || (block.timestamp >= trade.expirationDate && (msg.sender == trade.holder1 || msg.sender == trade.holder2) ), Errors.SW_SENDER_CANT_CANCEL_TRADE_0);
+      require(_msgSender() == trade.executer || (block.timestamp >= trade.expirationDate && (_msgSender() == trade.holder1 || _msgSender() == trade.holder2) ), Errors.SW_SENDER_CANT_CANCEL_TRADE_0);
       if(trade.userTradeData1.tradeType == TradeType.Escrow) {
         _transferUsersTokens(index, Holder.Holder1, tokenValue1, true, bytes32(0));
       }
@@ -736,17 +736,17 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
         _transferUsersTokens(index, Holder.Holder2, tokenValue2, true, bytes32(0));
       }
     } else if(accepted1) {
-      require(msg.sender == trade.executer || (block.timestamp >= trade.expirationDate && msg.sender == trade.holder1), Errors.SW_SENDER_CANT_CANCEL_TRADE_1);
+      require(_msgSender() == trade.executer || (block.timestamp >= trade.expirationDate && _msgSender() == trade.holder1), Errors.SW_SENDER_CANT_CANCEL_TRADE_1);
       if(trade.userTradeData1.tradeType == TradeType.Escrow) {
         _transferUsersTokens(index, Holder.Holder1, tokenValue1, true, bytes32(0));
       }
     } else if(accepted2) {
-      require(msg.sender == trade.executer || (block.timestamp >= trade.expirationDate && msg.sender == trade.holder2), Errors.SW_SENDER_CANT_CANCEL_TRADE_2);
+      require(_msgSender() == trade.executer || (block.timestamp >= trade.expirationDate && _msgSender() == trade.holder2), Errors.SW_SENDER_CANT_CANCEL_TRADE_2);
       if(trade.userTradeData2.tradeType == TradeType.Escrow) {
         _transferUsersTokens(index, Holder.Holder2, tokenValue2, true, bytes32(0));
       }
     } else {
-      require(msg.sender == trade.executer || msg.sender == trade.holder1 || msg.sender == trade.holder2, Errors.SW_SENDER_CANT_CANCEL_TRADE_3);
+      require(_msgSender() == trade.executer || _msgSender() == trade.holder1 || _msgSender() == trade.holder2, Errors.SW_SENDER_CANT_CANCEL_TRADE_3);
     }
 
     trade.state = State.Cancelled;
@@ -1204,9 +1204,9 @@ contract Swaps is Ownable, ERC1820Client, IERC1400TokensRecipient, ERC1820Implem
     require(!(_priceOwnership[tokenAddress1][tokenAddress2] && _priceOwnership[tokenAddress2][tokenAddress1]), Errors.SW_COMPETITION_ON_PRICE_OWNERSHIP);
 
     if(_priceOwnership[tokenAddress1][tokenAddress2]) {
-      require(_checkPriceOracle(tokenAddress1, msg.sender), Errors.SW_PRICE_SETTER_NOT_TOKEN_ORACLE_1);
+      require(_checkPriceOracle(tokenAddress1, _msgSender()), Errors.SW_PRICE_SETTER_NOT_TOKEN_ORACLE_1);
     } else if(_priceOwnership[tokenAddress2][tokenAddress1]) {
-      require(_checkPriceOracle(tokenAddress2, msg.sender), Errors.SW_PRICE_SETTER_NOT_TOKEN_ORACLE_2);
+      require(_checkPriceOracle(tokenAddress2, _msgSender()), Errors.SW_PRICE_SETTER_NOT_TOKEN_ORACLE_2);
     } else {
       revert(Errors.SW_NO_PRICE_OWNERSHIP);
     }
