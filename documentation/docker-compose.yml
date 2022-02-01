@@ -1,0 +1,13 @@
+version: "3.6"
+
+services:
+  developer-docs:
+      image: "universal-token-docs"
+      ports:
+      - "0.0.0.0:8000:8000"
+      container_name: "mkdocs-serve-universal-token"
+      working_dir: /workspace/
+      volumes:
+        - type: bind
+          source: .
+          target: /workspace

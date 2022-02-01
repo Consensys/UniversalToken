@@ -1,0 +1,46 @@
+[data-md-color-scheme="consensys"] {
+  --md-primary-fg-color: black;
+  --md-default-bg-color: white;
+  --md-footer-bg-color: black;
+}
+
+.md-footer__inner {
+  background-color: black;
+}
+
+.md-nav__item .md-nav__link--active {
+  color: black;
+}
+
+.md-typeset a {
+  color: #404040;
+  font-weight: bold;
+}
+
+
+/* ############ */
+/* ADMONITIONS  */
+/* ############ */
+/* Critical */
+.md-typeset .admonition.critical,
+.md-typeset details.critical {
+  border-color: rgb(222, 0, 0);
+  background-color: #ffaaaa;
+}
+
+.md-typeset .admonition.critical strong{
+  font-size: large;
+}
+
+.md-typeset .critical > .admonition-title,
+.md-typeset .critical > summary {
+  color: white;
+  background-color: rgb(222, 0, 0);
+  border-color: rgb(222, 0, 0);
+}
+.md-typeset .critical > .admonition-title::before,
+.md-typeset .critical > summary::before {
+  background-color: transparent;
+  -webkit-mask-image: var(--md-admonition-icon--critical);
+  mask-image: var(--md-admonition-icon--critical);
+}

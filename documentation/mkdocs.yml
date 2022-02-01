@@ -1,0 +1,218 @@
+# Copyright 2022 ConsenSys Software Inc.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except in compliance with
+# the License. You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software distributed under the License is distributed on
+# an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied. See the License for the
+# specific language governing permissions and limitations under the License.
+
+# Project information
+site_name: ConsenSys Universal Token
+site_description: Technical documentation for the ConsenSys Universal Token
+
+# Project information
+site_url: http://127.0.0.1:8000/
+site_author: ConsenSys
+copyright: <a href="https://consensys.net">ConsenSys</a> © 2022
+
+
+nav:
+  - Home: index.md
+  - Overview: 
+      - Welcome: overview/welcome.md
+      - Releases: overview/releases.md
+      - Stability: overview/stability.md
+  - Use cases: use-cases.md
+  - Tokens: 
+      - Token standards: tokens/token-standards.md
+      - ConsenSys UniversalToken: 
+          - Overview: tokens/universal-token.md
+          - ERC1400 definition: tokens/erc1400-definition.md
+      - Token extensions: tokens/token-extensions.md
+  - Contracts: 
+      - Overview: contracts/overview.md
+      - Extending contracts: contracts/extending-contracts.md
+      - Upgrading: contracts/upgrading.md
+      - Access control: contracts/access-control.md    
+  - Utilities: 
+      - Overview: utilities/overview.md
+      - Hold status code: utilities/HoldStatusCode.md
+  - API:
+      - ERC1400:  API/ERC1400.md
+      - IERC1400:  API/IERC1400.md
+      - Migrations:  API/Migrations.md
+      - Certificate:
+          - ERC1400HoldableCertificateToken:  API/certificate/ERC1400HoldableCertificateToken.md
+          - Extension:  API/certificate/Extension.md
+          - IExtensionTypes:  API/certificate/IExtensionTypes.md
+      - Extensions:
+          - Token extensions:
+              - ERC1400TokensChecker:  API/extensions/token extensions/ERC1400TokensChecker.md
+              - ERC1400TokensValidator:  API/extensions/token extensions/ERC1400TokensValidator.md
+              - IERC1400Extended:  API/extensions/token extensions/IERC1400Extended.md
+              - IERC1400TokensChecker:  API/extensions/token extensions/IERC1400TokensChecker.md
+              - IERC1400TokensValidator:  API/extensions/token extensions/IERC1400TokensValidator.md
+              - IMinterRole:  API/extensions/token extensions/IMinterRole.md
+          - User extensions:
+              - IERC1400TokensRecipient:  API/extensions/user extensions/IERC1400TokensRecipient.md
+              - IERC1400TokensSender:  API/extensions/user extensions/IERC1400TokensSender.md
+      - Interface:
+          - ERC1820Implementer:  API/interface/ERC1820Implementer.md
+          - IERC1643:  API/interface/IERC1643.md
+          - IERC20HoldableToken:  API/interface/IERC20HoldableToken.md
+          - IHoldableERC1400TokenExtension:  API/interface/IHoldableERC1400TokenExtension.md
+      - Mocks:
+          - AllowlistMock:  API/mocks/AllowlistMock.md
+          - BlocklistMock:  API/mocks/BlocklistMock.md
+          - CertificateSignerMock:  API/mocks/CertificateSignerMock.md
+          - ClockMock:  API/mocks/ClockMock.md
+          - ERC1400TokensRecipientMock:  API/mocks/ERC1400TokensRecipientMock.md
+          - ERC1400TokensSenderMock:  API/mocks/ERC1400TokensSenderMock.md
+          - ERC1400TokensValidatorMock:  API/mocks/ERC1400TokensValidatorMock.md
+          - ExtensionMock:  API/mocks/ExtensionMock.md
+          - FakeERC1400Mock:  API/mocks/FakeERC1400Mock.md
+          - IMinterMock:  API/mocks/IMinterMock.md
+          - MinterMock:  API/mocks/MinterMock.md
+          - PauserMock:  API/mocks/PauserMock.md
+      - Roles:
+          - AllowlistAdminRole:  API/roles/AllowlistAdminRole.md
+          - AllowlistedRole:  API/roles/AllowlistedRole.md
+          - BlocklistAdminRole:  API/roles/BlocklistAdminRole.md
+          - BlocklistedRole:  API/roles/BlocklistedRole.md
+          - CertificateSignerRole:  API/roles/CertificateSignerRole.md
+          - MinterRole:  API/roles/MinterRole.md
+          - PauserRole:  API/roles/PauserRole.md
+          - Roles:  API/roles/Roles.md
+      - Tokens:
+          - ERC1400HoldableToken:  API/tokens/ERC1400HoldableToken.md
+          - ERC20HoldableToken:  API/tokens/ERC20HoldableToken.md
+          - ERC20Token:  API/tokens/ERC20Token.md
+          - ERC721Token:  API/tokens/ERC721Token.md
+          - Extension:  API/tokens/Extension.md
+          - IExtensionTypes:  API/tokens/IExtensionTypes.md
+      - Tools:
+          - BatchBalanceReader:  API/tools/BatchBalanceReader.md
+          - BatchReader:  API/tools/BatchReader.md
+          - BatchTokenIssuer:  API/tools/BatchTokenIssuer.md
+          - DomainAware:  API/tools/DomainAware.md
+          - ERC1820Client:  API/tools/ERC1820Client.md
+          - FundIssuer:  API/tools/FundIssuer.md
+          - IERC1400Extended:  API/tools/IERC1400Extended.md
+          - IERC1400TokensValidatorExtended:  API/tools/IERC1400TokensValidatorExtended.md
+          - IExtensionTypes:  API/tools/IExtensionTypes.md
+          - IMinterRole:  API/tools/IMinterRole.md
+          - Pausable:  API/tools/Pausable.md
+          - Swaps:  API/tools/Swaps.md
+
+
+theme:
+  name: material
+  custom_dir: overrides
+  language: en
+  palette:
+    primary: black
+    scheme: consensys
+  logo: 'cdn/images/logo.svg'
+  favicon: 'cdn/images/favicon.png'
+  features:
+    - search.suggest
+    - search.highlight
+    - search.share
+    #- navigation.instant
+    - navigation.tabs
+    - navigation.tabs.sticky
+    - navigation.top
+    - navigation.indexes
+
+extra:
+  languages:
+    en: English (en)
+  debug: false
+  #version:
+  #  number: latest
+  #  switch: false
+  #analytics:
+  #  provider: 
+  #  property: 
+  social:
+    - icon: fontawesome/solid/envelope
+      link: https://consensys.net/codefi/contact/
+    - icon: material/web
+      link: https://consensys.net/codefi/assets/universal-token/
+    - icon: fontawesome/brands/github-square
+      link: https://github.com/ConsenSys/UniversalToken
+
+
+
+extra_css:
+  - styles/custom.css
+  - https://fonts.googleapis.com/icon?family=Material+Icons
+
+extra_javascript:
+#  - assets/javascripts/version.js
+#  - https://cdnjs.cloudflare.com/ajax/libs/mathjax/2.7.0/MathJax.js?config=TeX-MML-AM_CHTML
+#  - assets/javascripts/accessiBe.js
+
+
+
+markdown_extensions:
+  - toc:
+      permalink: true
+      permalink_title: Link to this section
+      toc_depth: 4
+  - codehilite
+  - pymdownx.tabbed
+  - pymdownx.superfences
+  - markdown_include.include:
+      base_path: docs
+  - admonition
+  - footnotes
+  - def_list
+  - attr_list
+  - abbr
+  - pymdownx.arithmatex
+  - pymdownx.betterem:
+      smart_enable: all
+  - pymdownx.keys
+  - pymdownx.details
+  - pymdownx.emoji:
+      emoji_index: !!python/name:materialx.emoji.twemoji
+      emoji_generator: !!python/name:materialx.emoji.to_svg
+      options:
+        custom_icons:
+          - overrides/.icons
+  - pymdownx.magiclink
+  - pymdownx.mark
+  - pymdownx.smartsymbols
+  - pymdownx.tasklist:
+      custom_checkbox: true
+  - pymdownx.tilde
+  - meta
+  - smarty
+
+plugins:
+  render_swagger: {}
+  search:
+    lang: en
+    separator: '[\s\-\.\_]+'
+    prebuild_index: true
+#  git-revision-date-localized:
+#    locale: en
+  markdownextradata: {}
+#  minify:
+#    minify_html: true
+#    minify_js: true
+#    htmlmin_opts:
+#      remove_comments: true
+# uncomment to exclude a folder in /docs from final render.
+# useful for include files
+#  - exclude:
+#      glob:
+#        - cmd/*
+#  mkdocs-video:
+#    css_style:
+#      weight: "50%"
+
