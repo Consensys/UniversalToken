@@ -4,38 +4,38 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
 import {ProxyContext} from "../../../proxy/context/ProxyContext.sol";
 import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
-import {ERC20ExtendableRouter} from "../extensions/ERC20ExtendableRouter.sol";
+import {ERC721ExtendableRouter} from "../extensions/ERC721ExtendableRouter.sol";
 import {TokenStorage} from "../../storage/TokenStorage.sol";
 
-contract ERC20Storage is TokenStorage, ERC20ExtendableRouter {
-    string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
-    string constant internal ERC20_STORAGE_INTERFACE_NAME = "ERC20TokenStorage";
+contract ERC721Storage is TokenStorage, ERC721ExtendableRouter {
+    string constant internal ERC721_LOGIC_INTERFACE_NAME = "ERC721TokenLogic";
+    string constant internal ERC721_STORAGE_INTERFACE_NAME = "ERC721TokenStorage";
     
     constructor(address token) TokenStorage(token) {
-        ERC1820Client.setInterfaceImplementation(ERC20_STORAGE_INTERFACE_NAME, address(this));
-        ERC1820Implementer._setInterface(ERC20_STORAGE_INTERFACE_NAME); // For migration
+        ERC1820Client.setInterfaceImplementation(ERC721_STORAGE_INTERFACE_NAME, address(this));
+        ERC1820Implementer._setInterface(ERC721_STORAGE_INTERFACE_NAME); // For migration
     }
-    
+
     function _getCurrentImplementationAddress() internal override view returns (address) {
         address token = _callsiteAddress();
-        return ERC1820Client.interfaceAddr(token, ERC20_LOGIC_INTERFACE_NAME);
+        return ERC1820Client.interfaceAddr(token, ERC721_LOGIC_INTERFACE_NAME);
     }
 
     function _msgSender() internal view override(Context, ProxyContext) returns (address) {
         return ProxyContext._msgSender();
     }
 
-    function _isExtensionFunction(bytes4 funcSig) internal override(TokenStorage, ERC20ExtendableRouter) view returns (bool) {
-        ERC20ExtendableRouter._isExtensionFunction(funcSig);
+    function _isExtensionFunction(bytes4 funcSig) internal override(TokenStorage, ERC721ExtendableRouter) view returns (bool) {
+        ERC721ExtendableRouter._isExtensionFunction(funcSig);
     }
 
-    function _invokeExtensionFunction() internal override(TokenStorage, ERC20ExtendableRouter) {
-        ERC20ExtendableRouter._invokeExtensionFunction();
+    function _invokeExtensionFunction() internal override(TokenStorage, ERC721ExtendableRouter) {
+        ERC721ExtendableRouter._invokeExtensionFunction();
     }
 
     // Find facet for function that is called and execute the
     // function if a facet is found and return any value.
-    fallback() external override(TokenStorage, ERC20ExtendableRouter) payable onlyToken {
+    fallback() external override(TokenStorage, ERC721ExtendableRouter) payable onlyToken {
         _fallback();
     }
 

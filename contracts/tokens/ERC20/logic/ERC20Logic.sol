@@ -1,28 +1,43 @@
 pragma solidity ^0.8.0;
 
+import {IToken} from "../../IToken.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ERC20ExtendableHooks} from "../extensions/ERC20ExtendableHooks.sol";
-import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {ProxyContext} from "../../../proxy/context/ProxyContext.sol";
 import {TransferData} from "../../../extensions/ERC20/IERC20Extension.sol";
-import {ERC20ProxyRoles} from "../proxy/ERC20ProxyRoles.sol";
+import {TokenRoles} from "../../roles/TokenRoles.sol";
 import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
+import {ITokenLogic} from "../../ITokenLogic.sol";
 
-contract ERC20Logic is ERC20, ERC1820Client, ERC1820Implementer, ERC20ExtendableHooks, ProxyContext {
+contract ERC20Logic is ERC20Upgradeable, ERC1820Client, ERC1820Implementer, ERC20ExtendableHooks, ProxyContext, IToken, ITokenLogic {
     string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
 
     bytes private _currentData;
     bytes private _currentOperatorData;
 
-    constructor() ERC20("", "") {
+    constructor() {
         ERC1820Client.setInterfaceImplementation(ERC20_LOGIC_INTERFACE_NAME, address(this));
         ERC1820Implementer._setInterface(ERC20_LOGIC_INTERFACE_NAME); // For migration
     }
 
-    function _msgSender() internal view override(Context, ProxyContext) returns (address) {
+    function initialize(bytes memory data) external override {
+        require(msg.sender == _callsiteAddress(), "Unauthorized");
+        require(_onInitialize(data), "Initialize failed");
+    }
+
+    function _onInitialize(bytes memory data) internal virtual returns (bool) {
+        return true;
+    }
+
+    function _msgSender() internal view override(ContextUpgradeable, ProxyContext) returns (address) {
         return ProxyContext._msgSender();
+    }
+
+    function _msgData() internal view override(ContextUpgradeable, Context) returns (bytes memory) {
+        return ContextUpgradeable._msgData();
     }
 
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override virtual {
@@ -34,6 +49,7 @@ contract ERC20Logic is ERC20, ERC1820Client, ERC1820Implementer, ERC20Extendable
             from,
             to,
             amount,
+            0,
             _currentData,
             _currentOperatorData
         );
@@ -50,6 +66,7 @@ contract ERC20Logic is ERC20, ERC1820Client, ERC1820Implementer, ERC20Extendable
             from,
             to,
             amount,
+            0,
             _currentData,
             _currentOperatorData
         );
@@ -71,7 +88,7 @@ contract ERC20Logic is ERC20, ERC1820Client, ERC1820Implementer, ERC20Extendable
             return true;
         }
 
-        ERC20ProxyRoles proxy = ERC20ProxyRoles(tokenProxy);
+        TokenRoles proxy = TokenRoles(tokenProxy);
         bool minter = proxy.isMinter(caller);
         return minter;
     }
@@ -116,9 +133,10 @@ contract ERC20Logic is ERC20, ERC1820Client, ERC1820Implementer, ERC20Extendable
         return true;
     }
 
-    function transfer(TransferData calldata td) external returns (bool) {
+    function tokenTransfer(TransferData calldata td) external override returns (bool) {
         require(td.partition == bytes32(0), "Invalid transfer data: partition");
         require(td.token == _callsiteAddress(), "Invalid transfer data: token");
+        require(td.tokenId == 0, "Invalid transfer data: tokenId");
 
         _currentData = td.data;
         _currentOperatorData = td.operatorData;
@@ -126,4 +144,11 @@ contract ERC20Logic is ERC20, ERC1820Client, ERC1820Implementer, ERC20Extendable
 
         return true;
     }
+
+    /**
+    * This empty reserved space is put in place to allow future versions to add new
+    * variables without shifting down storage in the inheritance chain.
+    * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
+    */
+    uint256[48] private __gap;
 }

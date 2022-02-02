@@ -3,10 +3,9 @@ pragma solidity ^0.8.0;
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ExtensionStorage} from "../../../extensions/ExtensionStorage.sol";
 import {ExtensionLib} from "../../extension/ExtensionLib.sol";
-import {IERC20Extension, TransferData} from "../../../extensions/ERC20/IERC20Extension.sol";
-import {ERC20ExtendableBase} from "./ERC20ExtendableBase.sol";
+import {ERC721ExtendableBase} from "./ERC721ExtendableBase.sol";
 
-contract ERC20ExtendableRouter is Context, ERC20ExtendableBase {
+abstract contract ERC721ExtendableRouter is Context, ERC721ExtendableBase {
 
     function _lookupFacet(bytes4 funcSig) internal view returns (address) {
         return ExtensionLib._functionToExtensionContextAddress(funcSig);

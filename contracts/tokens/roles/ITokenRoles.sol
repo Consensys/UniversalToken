@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-interface IERC20ProxyRoles {
+interface ITokenRoles {
     function manager() external view returns (address);
 
     function isController(address caller) external view returns (bool);

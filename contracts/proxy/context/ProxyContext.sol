@@ -2,12 +2,10 @@ pragma solidity ^0.8.0;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
-import {IProxyContext} from "./IProxyContext.sol";
 
-abstract contract ProxyContext is Context, IProxyContext {
+abstract contract ProxyContext is Context {
     bytes32 constant PROXY_CONTEXT_DATA_SLOT = keccak256("proxy.context.data");
     bytes32 constant MSG_SENDER_SLOT = keccak256("proxy.context.data.msgsender");
-    bytes32 constant EXT_CALL_SLOT = keccak256("proxy.context.data.extcall");
     
     struct ProxyContextData {
         address callsite;
@@ -35,23 +33,18 @@ abstract contract ProxyContext is Context, IProxyContext {
         require(msg.sender == _callsiteAddress(), "Unauthorized");
         _;
     }
-
-    function prepareLogicCall(address caller) external override virtual onlyCallsite {
-        StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = caller;
-        StorageSlot.getBooleanSlot(EXT_CALL_SLOT).value = false;
-    }
-
-    function prepareExtCall(address caller) external override virtual onlyCallsite {
-        StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = caller;
-        StorageSlot.getBooleanSlot(EXT_CALL_SLOT).value = true;
-    }
-
-    function _isExtCall() internal view returns (bool) {
-        return StorageSlot.getBooleanSlot(EXT_CALL_SLOT).value;
-    }
     
-    function _msgSender() internal virtual view override returns (address) {
-        return StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value;
+    function _msgSender() internal virtual view override returns (address ret) {
+        if (msg.data.length >= 24 && msg.sender == _callsiteAddress()) {
+            // At this point we know that the sender is a token proxy,
+            // so we trust that the last bytes of msg.data are the verified sender address.
+            // extract sender address from the end of msg.data
+            assembly {
+                ret := shr(96,calldataload(sub(calldatasize(),20)))
+            }
+        } else {  
+            return super._msgSender();
+        }
     }
 
 /*     function _staticcall(address implementation) internal view {

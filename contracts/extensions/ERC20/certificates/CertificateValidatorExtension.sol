@@ -63,6 +63,7 @@ contract CertificateValidatorExtension is ERC20Extension, ICertificateValidator 
             from,
             to,
             amount,
+            0,
             certificate,
             ""
         );
@@ -80,6 +81,7 @@ contract CertificateValidatorExtension is ERC20Extension, ICertificateValidator 
             from,
             to,
             amount,
+            0,
             certificate,
             ""
         );

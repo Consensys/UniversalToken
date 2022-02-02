@@ -1,11 +1,10 @@
 pragma solidity ^0.8.0;
 
-import {Diamond, LibDiamond} from "../proxy/diamond/Diamond.sol";
 import {IExtension} from "./IExtension.sol";
 import {ExtensionBase} from "./ExtensionBase.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
-contract ExtensionStorage is ExtensionBase, Diamond {
+contract ExtensionStorage is ExtensionBase {
     constructor(address token, address extension) {
         //Setup context data
         ContextData storage ds;
@@ -19,13 +18,9 @@ contract ExtensionStorage is ExtensionBase, Diamond {
         bytes4[] memory allExternalFunctions = ext.externalFunctions();
 
         if (allExternalFunctions.length > 0) {
-            LibDiamond.FacetCut[] memory cut = new LibDiamond.FacetCut[](1);
-            cut[0] = LibDiamond.FacetCut({
-                facetAddress: extension, 
-                action: LibDiamond.FacetCutAction.Add, 
-                functionSelectors: allExternalFunctions
-            });
-            LibDiamond.diamondCut(cut, extension, abi.encodeWithSelector(IExtension.initalize.selector));
+            for (uint i = 0; i < allExternalFunctions.length; i++) {
+                ds.diamondFunctions[allExternalFunctions[i]] = true;
+            }
         }
 
         ds.token = token;
@@ -40,11 +35,9 @@ contract ExtensionStorage is ExtensionBase, Diamond {
         assembly {
             ds.slot := position
         }
-
-        ds.diamondFunctions[func] = true;
     }
 
-    fallback() external override payable onlyToken {
+    fallback() external payable onlyToken {
         ContextData storage ds;
         bytes32 position = CONTEXT_DATA_SLOT;
         assembly {
@@ -53,7 +46,6 @@ contract ExtensionStorage is ExtensionBase, Diamond {
 
         if (ds.diamondFunctions[msg.sig]) {
             _delegateCallFunction(msg.sig);
-            ds.diamondFunctions[msg.sig] = false;
         } else {
             _delegate(ds.extension);
         }

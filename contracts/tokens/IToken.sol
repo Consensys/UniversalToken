@@ -19,7 +19,8 @@ struct TransferData {
     address operator;
     address from;
     address to;
-    uint value;
+    uint256 value;
+    uint256 tokenId;
     bytes data;
     bytes operatorData;
 }
@@ -35,5 +36,5 @@ interface IToken {
     * If the contract does support the transfer but the transfer is impossible, it should revert. 
     * If the contract does support the transfer and successfully performs the transfer, it should return true
     */
-    function transfer(TransferData calldata transfer) external returns (bool);
+    function tokenTransfer(TransferData calldata transfer) external returns (bool);
 }

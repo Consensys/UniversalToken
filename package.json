@@ -75,7 +75,6 @@
     "ethereumjs-testrpc-sc": "6.1.6",
     "ethereumjs-util": "^5.1.2",
     "fs-extra": "^7.0.1",
-    "hardhat": "^2.8.2",
     "husky": "^4.3.0",
     "lint-staged": "^10.4.0",
     "remix-ide": "^0.10.3",
@@ -89,6 +88,7 @@
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.2.0",
+    "@openzeppelin/contracts-upgradeable": "^4.4.2",
     "crypto": "^1.0.1",
     "ethereumjs-wallet": "^0.6.3",
     "ethers": "^5.5.3",

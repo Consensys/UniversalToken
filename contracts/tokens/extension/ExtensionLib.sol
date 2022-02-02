@@ -4,7 +4,6 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IERC20Extension} from "../../extensions/ERC20/IERC20Extension.sol";
 import {TransferData} from "../../extensions/ERC20/IERC20Extension.sol";
 import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
-import {Diamond, LibDiamond} from "../../proxy/diamond/Diamond.sol";
 
 
 library ExtensionLib {
@@ -35,6 +34,7 @@ library ExtensionLib {
 
     struct MappedExtensions {
         address[] registeredExtensions;
+        mapping(bytes4 => address) funcToExtension;
         mapping(address => ExtensionData) extensions;
         mapping(address => bool) contextCache;
     }
@@ -67,14 +67,12 @@ library ExtensionLib {
 
         //If we have external functions to register, then lets register them
         if (externalFunctions.length > 0) {
-            LibDiamond.FacetCut[] memory cut = new LibDiamond.FacetCut[](1);
-            cut[0] = LibDiamond.FacetCut({
-                facetAddress: address(context), //Use the context address as the facet address
-                action: LibDiamond.FacetCutAction.Add, 
-                functionSelectors: externalFunctions
-            });
-            //We dont need to initalize anything
-            LibDiamond.diamondCut(cut, address(0), "");
+            for (uint i = 0; i < externalFunctions.length; i++) {
+                bytes4 func = externalFunctions[i];
+                require(extLibStorage.funcToExtension[func] == address(0), "Function signature conflict");
+
+                extLibStorage.funcToExtension[func] = extension;
+            }
         }
 
         //Initalize the new extension context
@@ -89,6 +87,20 @@ library ExtensionLib {
 
         extLibStorage.registeredExtensions.push(extension);
         extLibStorage.contextCache[address(context)] = true;
+    }
+
+    function _functionToExtensionContextAddress(bytes4 funcSig) internal view returns (address) {
+        MappedExtensions storage extLibStorage = extensionStorage();
+
+        return extLibStorage.extensions[extLibStorage.funcToExtension[funcSig]].context;
+    }
+
+    function _functionToExtensionData(bytes4 funcSig) internal view returns (ExtensionData storage) {
+        MappedExtensions storage extLibStorage = extensionStorage();
+
+        require(extLibStorage.funcToExtension[funcSig] != address(0), "Unknown function");
+
+        return extLibStorage.extensions[extLibStorage.funcToExtension[funcSig]];
     }
 
     function _disableExtension(address extension) internal {

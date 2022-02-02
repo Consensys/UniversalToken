@@ -75,7 +75,7 @@ abstract contract ERC20Extension is IERC20Extension, ExtensionBase, RolesBase {
 
     function _transfer(TransferData memory data) internal returns (bool) {
         IERC20Proxy token = IERC20Proxy(_tokenAddress());
-        return token.transfer(data);
+        return token.tokenTransfer(data);
     }
 
     function _transfer(address recipient, uint256 amount) internal returns (bool) {

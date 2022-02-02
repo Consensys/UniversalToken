@@ -2,20 +2,20 @@ pragma solidity ^0.8.0;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
-import {Roles} from "../../../roles/Roles.sol";
-import {RolesBase} from "../../../roles/RolesBase.sol";
-import {ExtensionLib} from "../../extension/ExtensionLib.sol";
-import {IERC20ProxyRoles} from "./IERC20ProxyRoles.sol";
+import {Roles} from "../../roles/Roles.sol";
+import {RolesBase} from "../../roles/RolesBase.sol";
+import {ExtensionLib} from "../extension/ExtensionLib.sol";
+import {ITokenRoles} from "./ITokenRoles.sol";
 
-abstract contract ERC20ProxyRoles is IERC20ProxyRoles, RolesBase, Context {
+abstract contract TokenRoles is ITokenRoles, RolesBase, Context {
     using Roles for Roles.Role;
 
-    bytes32 constant ERC20_ALLOW_BURN = keccak256("erc20.proxy.core.burn");
-    bytes32 constant ERC20_ALLOW_MINT = keccak256("erc20.proxy.core.mint");
-    bytes32 constant ERC20_OWNER = keccak256("erc20.proxy.core.owner");
-    bytes32 constant ERC20_MINTER_ROLE = keccak256("erc20.proxy.core.mint.role");
-    bytes32 constant ERC20_MANAGER_ADDRESS = keccak256("erc20.proxy.manager.address");
-    bytes32 constant ERC20_CONTROLLER_ROLE = keccak256("erc20.proxy.controller.address");
+    bytes32 constant TOKEN_ALLOW_BURN = keccak256("token.proxy.core.burn");
+    bytes32 constant TOKEN_ALLOW_MINT = keccak256("token.proxy.core.mint");
+    bytes32 constant TOKEN_OWNER = keccak256("token.proxy.core.owner");
+    bytes32 constant TOKEN_MINTER_ROLE = keccak256("token.proxy.core.mint.role");
+    bytes32 constant TOKEN_MANAGER_ADDRESS = keccak256("token.proxy.manager.address");
+    bytes32 constant TOKEN_CONTROLLER_ROLE = keccak256("token.proxy.controller.address");
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
 
     /**
@@ -55,42 +55,42 @@ abstract contract ERC20ProxyRoles is IERC20ProxyRoles, RolesBase, Context {
     }
 
     function manager() public override view returns (address) {
-        return StorageSlot.getAddressSlot(ERC20_MANAGER_ADDRESS).value;
+        return StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value;
     }
 
     function isController(address caller) public override view returns (bool) {
-        return hasRole(caller, ERC20_CONTROLLER_ROLE);
+        return hasRole(caller, TOKEN_CONTROLLER_ROLE);
     }
 
     function isMinter(address caller) public override view returns (bool) {
-        return hasRole(caller, ERC20_MINTER_ROLE);
+        return hasRole(caller, TOKEN_MINTER_ROLE);
     }
 
     function addController(address caller) public override onlyControllers {
-        _addRole(caller, ERC20_CONTROLLER_ROLE);
+        _addRole(caller, TOKEN_CONTROLLER_ROLE);
     }
 
     function removeController(address caller) public override onlyControllers {
-        _addRole(caller, ERC20_CONTROLLER_ROLE);
+        _addRole(caller, TOKEN_CONTROLLER_ROLE);
     }
 
     function addMinter(address caller) public override onlyMinter {
-        _addRole(caller, ERC20_MINTER_ROLE);
+        _addRole(caller, TOKEN_MINTER_ROLE);
     }
 
     function removeMinter(address caller) public override onlyMinter {
-        _removeRole(caller, ERC20_MINTER_ROLE);
+        _removeRole(caller, TOKEN_MINTER_ROLE);
     }
 
     function changeManager(address newManager) external override onlyManager {
-        StorageSlot.getAddressSlot(ERC20_MANAGER_ADDRESS).value = newManager;
+        StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = newManager;
     }
 
     /**
      * @dev Returns the address of the current owner.
      */
     function owner() public override view virtual returns (address) {
-        return StorageSlot.getAddressSlot(ERC20_OWNER).value;
+        return StorageSlot.getAddressSlot(TOKEN_OWNER).value;
     }
 
     /**
@@ -115,7 +115,7 @@ abstract contract ERC20ProxyRoles is IERC20ProxyRoles, RolesBase, Context {
 
     function _setOwner(address newOwner) private {
         address oldOwner = owner();
-        StorageSlot.getAddressSlot(ERC20_OWNER).value = newOwner;
+        StorageSlot.getAddressSlot(TOKEN_OWNER).value = newOwner;
         emit OwnershipTransferred(oldOwner, newOwner);
     }
 }
