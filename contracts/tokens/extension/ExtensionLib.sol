@@ -1,8 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {IERC20Extension} from "../../extensions/ERC20/IERC20Extension.sol";
-import {TransferData} from "../../extensions/ERC20/IERC20Extension.sol";
+import {TransferData} from "../IToken.sol";
 import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
 
 
@@ -175,7 +174,7 @@ library ExtensionLib {
     * @param data The current data that will be passed to the implemented function along with the enabled extension address
     * @return bool True if all extensions were executed successfully, false if any extension returned false
     */
-    function _erc20executeOnAllExtensions(function (address, TransferData memory) internal returns (bool) toInvoke, TransferData memory data) internal returns (bool) {
+    function _executeOnAllExtensions(function (address, TransferData memory) internal returns (bool) toInvoke, TransferData memory data) internal returns (bool) {
         MappedExtensions storage extLibData = extensionStorage();
 
         for (uint i = 0; i < extLibData.registeredExtensions.length; i++) {
@@ -200,62 +199,4 @@ library ExtensionLib {
 
         return true;
     }
-
-    /* function _validateTransfer(TransferData memory data) internal returns (bool) {
-        //Go through each extension, if it's enabled execute the validate function
-        //If any extension returns false, halt and return false
-        //If they all return true (or there are no extensions), then return true
-
-        ERC20ExtendableData storage extensionData = extensionStorage();
-
-        for (uint i = 0; i < extensionData.registeredExtensions.length; i++) {
-            address extension = extensionData.registeredExtensions[i];
-
-            if (extensionData.extensionStateCache[extension] == EXTENSION_DISABLED) {
-                continue; //Skip if the extension is disabled
-            }
-
-            //Execute the validate function using the proper interface
-            //however, execute the call at the ExtensionStorage contract address
-            //The ExtensionStorage contract will delegatecall the extension logic
-            //and manage storage/api
-            address context = extensionData.contextAddresses[extension];
-            IERC20Extension ext = IERC20Extension(context);
-
-            if (!ext.validateTransfer(data)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    function _executeAfterTransfer(TransferData memory data) internal returns (bool) {
-        //Go through each extension, if it's enabled execute the onTransferExecuted function
-        //If any extension returns false, halt and return false
-        //If they all return true (or there are no extensions), then return true
-
-        ERC20ExtendableData storage extensionData = extensionStorage();
-
-        for (uint i = 0; i < extensionData.registeredExtensions.length; i++) {
-            address extension = extensionData.registeredExtensions[i];
-
-            if (extensionData.extensionStateCache[extension] == EXTENSION_DISABLED) {
-                continue; //Skip if the extension is disabled
-            }
-
-            //Execute the validate function using the proper interface
-            //however, execute the call at the ExtensionStorage contract address
-            //The ExtensionStorage contract will delegatecall the extension logic
-            //and manage storage/api
-            address context = extensionData.contextAddresses[extension];
-            IERC20Extension ext = IERC20Extension(context);
-
-            if (!ext.onTransferExecuted(data)) {
-                return false;
-            }
-        }
-
-        return true;
-    } */
 }

@@ -4,7 +4,7 @@ import {IBlocklistedRole} from "./IBlocklistedRole.sol";
 import {IBlocklistedAdminRole} from "./IBlocklistedAdminRole.sol";
 import {AllowBlockLib} from "../AllowBlockLib.sol";
 import {ERC20Extension} from "../../ERC20Extension.sol";
-import {IERC20Extension, TransferData} from "../../IERC20Extension.sol";
+import {TransferData} from "../../../IExtension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract BlockExtension is ERC20Extension, IBlocklistedRole, IBlocklistedAdminRole {
@@ -48,18 +48,6 @@ contract BlockExtension is ERC20Extension, IBlocklistedRole, IBlocklistedAdminRo
 
     function removeBlocklistedAdmin(address account) external override onlyBlocklistedAdmin {
         AllowBlockLib.removeBlocklistedAdmin(account);
-    }
-
-    function validateTransfer(TransferData memory data) external override view returns (bool) {
-        if (data.from != address(0)) {
-            require(!AllowBlockLib.isBlocklisted(data.from), "from address is blocklisted");
-        }
-
-        if (data.to != address(0)) {
-            require(!AllowBlockLib.isBlocklisted(data.to), "to address is blocklisted");
-        }
-
-        return true;
     }
 
     function onTransferExecuted(TransferData memory data) external override returns (bool) {

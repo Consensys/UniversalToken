@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 import {IPausable} from "./IPausable.sol";
 import {ERC20Extension} from "../ERC20Extension.sol";
-import {IERC20Extension, TransferData} from "../IERC20Extension.sol";
+import {TransferData} from "../../IExtension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract PauseExtension is ERC20Extension, IPausable {
@@ -96,14 +96,6 @@ contract PauseExtension is ERC20Extension, IPausable {
     function _removePauser(address account) internal {
         _removeRole(account, PAUSER_ROLE);
         emit PauserRemoved(account);
-    }
-
-    function validateTransfer(TransferData memory data) external override view returns (bool) {
-        bool isPaused = isPausedFor(data.from);
-
-        require(!isPaused, "Transfers are paused");
-
-        return true;
     }
 
     function onTransferExecuted(TransferData memory data) external override returns (bool) {

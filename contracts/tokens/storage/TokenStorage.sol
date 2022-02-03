@@ -3,21 +3,26 @@ pragma solidity ^0.8.0;
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {IExtensionStorage} from "../extension/IExtensionStorage.sol";
 import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
-import {ProxyContext} from "../../proxy/context/ProxyContext.sol";
 import {ERC1820Implementer} from "../../erc1820/ERC1820Implementer.sol";
 import {ExtensionLib} from "../extension/ExtensionLib.sol";
 import {ITokenLogic} from "../ITokenLogic.sol";
+import {ExtendableRouter} from "../extension/ExtendableRouter.sol";
 
-abstract contract TokenStorage is IExtensionStorage, ProxyContext, ERC1820Client, ERC1820Implementer {
+abstract contract TokenStorage is IExtensionStorage, ExtendableRouter, ERC1820Implementer {
 
     constructor(address token) {
         _setCallSite(token);
     }
 
     modifier onlyToken {
+        //Check the real msg sender 
+        //to make sure only the token proxy is invoke
+        //these functions
         require(msg.sender == _callsiteAddress(), "Unauthorized");
         _;
     }
+
+    function _getCurrentImplementationAddress() internal virtual view returns (address);
 
     function onUpgrade(bytes memory data) external override onlyToken returns (bool) {
         address toInvoke = _getCurrentImplementationAddress();
@@ -29,12 +34,6 @@ abstract contract TokenStorage is IExtensionStorage, ProxyContext, ERC1820Client
 
         return success;
     }
-
-    function _getCurrentImplementationAddress() internal virtual view returns (address);
-
-    function _isExtensionFunction(bytes4 funcSig) internal virtual view returns (bool);
-
-    function _invokeExtensionFunction() internal virtual;
 
     function _fallback() internal {
         bool isExt = _isExtensionFunction(msg.sig);
@@ -63,12 +62,12 @@ abstract contract TokenStorage is IExtensionStorage, ProxyContext, ERC1820Client
             }
         }
     }
-
-    // Find facet for function that is called and execute the
-    // function if a facet is found and return any value.
+    
     fallback() external payable virtual onlyToken {
         _fallback();
     }
+
+    receive() external payable {}
 
     function allExtensions() external override view onlyToken returns (address[] memory) {
         //To return all the extensions, we'll read directly from the ERC20CoreExtendableBase's storage struct
@@ -79,5 +78,22 @@ abstract contract TokenStorage is IExtensionStorage, ProxyContext, ERC1820Client
 
     function contextAddressForExtension(address extension) external override view onlyToken returns (address) {
         return ExtensionLib._contextAddressForExtension(extension);
+    }
+
+    
+    function registerExtension(address extension) external override onlyToken returns (bool) {
+        return _registerExtension(extension);
+    }
+
+    function removeExtension(address extension) external override onlyToken returns (bool) {
+        return _removeExtension(extension);
+    }
+
+    function disableExtension(address extension) external override onlyToken returns (bool) {
+        return _disableExtension(extension);
+    }
+
+    function enableExtension(address extension) external override onlyToken returns (bool) {
+        return _enableExtension(extension);
     }
 }

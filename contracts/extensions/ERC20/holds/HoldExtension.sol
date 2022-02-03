@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {ERC20Extension} from "../ERC20Extension.sol";
-import {IERC20Extension, TransferData} from "../IERC20Extension.sol";
+import {TransferData} from "../../IExtension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../../../interface/IERC20HoldableToken.sol";
 
@@ -273,12 +273,6 @@ contract HoldExtension is ERC20Extension {
     function holdStatus(bytes32 holdId) public view returns (HoldStatusCode) {
         HoldExtensionData storage data = holdData();
         return data.holds[holdId].status;
-    }
-
-
-    function validateTransfer(TransferData memory data) external override view returns (bool) {
-
-        return true;
     }
 
     function onTransferExecuted(TransferData memory data) external override returns (bool) {

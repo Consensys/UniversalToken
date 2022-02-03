@@ -1,21 +1,21 @@
 pragma solidity ^0.8.0;
 
-import {Context} from "@openzeppelin/contracts/utils/Context.sol";
-import {ExtensionStorage} from "../../../extensions/ExtensionStorage.sol";
-import {ExtensionLib} from "../../extension/ExtensionLib.sol";
-import {IERC20Extension, TransferData} from "../../../extensions/ERC20/IERC20Extension.sol";
-import {ERC20ExtendableBase} from "./ERC20ExtendableBase.sol";
+import {ProxyContext} from "../../proxy/context/ProxyContext.sol";
+import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
+import {ExtensionLib} from "./ExtensionLib.sol";
+import {IExtension, TransferData} from "../../extensions/IExtension.sol";
+import {ExtendableBase} from "./ExtendableBase.sol";
 
-contract ERC20ExtendableRouter is Context, ERC20ExtendableBase {
+contract ExtendableRouter is ProxyContext, ExtendableBase {
 
-    function _lookupFacet(bytes4 funcSig) internal view returns (address) {
+    function _lookupExtension(bytes4 funcSig) internal view returns (address) {
         return ExtensionLib._functionToExtensionContextAddress(funcSig);
     }
 
-    function _callFunction(bytes4 funcSig) internal {
-        // get facet from function selector
-        address facet = _lookupFacet(funcSig);
-        require(facet != address(0), "Diamond: Function does not exist");
+    function _callFunction(bytes4 funcSig) private {
+        // get extension context address from function selector
+        address toCall = _lookupExtension(funcSig);
+        require(toCall != address(0), "EXTROUTER: Function does not exist");
 
         uint256 value = msg.value;
 
@@ -24,31 +24,7 @@ contract ERC20ExtendableRouter is Context, ERC20ExtendableBase {
             // copy function selector and any arguments
             calldatacopy(0, 0, calldatasize())
             // execute function call using the facet
-            let result := call(gas(), facet, value, 0, calldatasize(), 0, 0)
-            // get any return value
-            returndatacopy(0, 0, returndatasize())
-            // return any return value or error back to the caller
-            switch result
-                case 0 {
-                    revert(0, returndatasize())
-                }
-                default {
-                    return(0, returndatasize())
-                }
-        }
-    }
-
-    function _delegateCallFunction(bytes4 funcSig) internal {
-        // get facet from function selector
-        address facet = _lookupFacet(funcSig);
-        require(facet != address(0), "Diamond: Function does not exist");
-
-        // Execute external function from facet using delegatecall and return any value.
-        assembly {
-            // copy function selector and any arguments
-            calldatacopy(0, 0, calldatasize())
-            // execute function call using the facet
-            let result := delegatecall(gas(), facet, 0, calldatasize(), 0, 0)
+            let result := call(gas(), toCall, value, 0, calldatasize(), 0, 0)
             // get any return value
             returndatacopy(0, 0, returndatasize())
             // return any return value or error back to the caller
@@ -99,24 +75,16 @@ contract ERC20ExtendableRouter is Context, ERC20ExtendableBase {
     }
 
     function _isExtensionFunction(bytes4 funcSig) internal virtual view returns (bool) {
-        address facet = _lookupFacet(funcSig);
+        address facet = _lookupExtension(funcSig);
         return _isContextAddress(facet);
     }
 
     function _invokeExtensionFunction() internal virtual {
-        address facet = _lookupFacet(msg.sig);
+        address facet = _lookupExtension(msg.sig);
         if (_isContextAddress(facet)) {
             ExtensionStorage context = ExtensionStorage(payable(facet));
             context.prepareCall(_msgSender(), msg.sig);
         }
         _callFunction(msg.sig);
     }
-
-    // Find facet for function that is called and execute the
-    // function if a facet is found and return any value.
-    fallback() external virtual payable {
-        _invokeExtensionFunction();
-    }
-    
-    receive() external payable {}
 }

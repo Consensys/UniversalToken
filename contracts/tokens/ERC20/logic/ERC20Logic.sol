@@ -3,16 +3,16 @@ pragma solidity ^0.8.0;
 import {IToken} from "../../IToken.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
-import {ERC20ExtendableHooks} from "../extensions/ERC20ExtendableHooks.sol";
+import {ExtendableHooks} from "../../extension/ExtendableHooks.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {ProxyContext} from "../../../proxy/context/ProxyContext.sol";
-import {TransferData} from "../../../extensions/ERC20/IERC20Extension.sol";
+import {TransferData} from "../../../extensions/IExtension.sol";
 import {TokenRoles} from "../../roles/TokenRoles.sol";
 import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
 import {ITokenLogic} from "../../ITokenLogic.sol";
 
-contract ERC20Logic is ERC20Upgradeable, ERC1820Client, ERC1820Implementer, ERC20ExtendableHooks, ProxyContext, IToken, ITokenLogic {
+contract ERC20Logic is ERC20Upgradeable, ERC1820Client, ERC1820Implementer, ExtendableHooks, ProxyContext, IToken, ITokenLogic {
     string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
 
     bytes private _currentData;
@@ -53,28 +53,11 @@ contract ERC20Logic is ERC20Upgradeable, ERC1820Client, ERC1820Implementer, ERC2
             _currentData,
             _currentOperatorData
         );
-
-        _triggerBeforeTokenTransfer(data);
-    }
-
-    function _afterTokenTransfer(address from, address to, uint256 amount) internal override virtual {
-        TransferData memory data = TransferData(
-            _callsiteAddress(),
-            msg.data,
-            0x00000000000000000000000000000000,
-            _msgSender(),
-            from,
-            to,
-            amount,
-            0,
-            _currentData,
-            _currentOperatorData
-        );
-
+        
         _currentData = "";
         _currentOperatorData = "";
 
-        _triggerAfterTokenTransfer(data);
+        _triggerTokenTransfer(data);
     }
 
     function _isMinter(address caller) internal view returns (bool) {

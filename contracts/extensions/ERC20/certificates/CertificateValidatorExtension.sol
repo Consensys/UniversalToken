@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 import {ICertificateValidator} from "./ICertificateValidator.sol";
 import {ERC20Extension} from "../ERC20Extension.sol";
-import {IERC20Extension, TransferData} from "../IERC20Extension.sol";
+import {TransferData} from "../../IExtension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {CertificateLib, CertificateValidationType} from "./CertificateLib.sol";
 
@@ -87,26 +87,6 @@ contract CertificateValidatorExtension is ERC20Extension, ICertificateValidator 
         );
 
         require(_transfer(data), "CERTEXT: Transfer failed");
-    }
-
-    function validateTransfer(TransferData memory data) external override view returns (bool) {
-        require(data.data.length > 0, "Data cannot be empty");
-
-        CertificateValidationType validationType = CertificateLib.certificateData()._certificateType;
-
-        require(validationType > CertificateValidationType.None, "Validation mode not set");
-
-        bool valid = false;
-        if (validationType == CertificateValidationType.NonceBased) {
-            valid = CertificateLib._checkNonceBasedCertificate(address(this), data.operator, data.payload, data.data);
-        } else if (validationType == CertificateValidationType.SaltBased) {
-            bytes32 salt;
-            (valid, salt) = CertificateLib._checkSaltBasedCertificate(address(this), data.operator, data.payload, data.data);
-        }
-
-        require(valid, "Certificate not valid");
-
-        return true;
     }
 
     function onTransferExecuted(TransferData memory data) external override returns (bool) {
