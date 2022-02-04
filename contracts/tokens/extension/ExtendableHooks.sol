@@ -1,5 +1,6 @@
 pragma solidity ^0.8.0;
 
+import {IExtensionStorage} from "../../extensions/IExtensionStorage.sol";
 import {ExtensionLib} from "./ExtensionLib.sol";
 import {IExtension, TransferData} from "../../extensions/IExtension.sol";
 import {ExtendableBase} from "./ExtendableBase.sol";
@@ -9,9 +10,12 @@ abstract contract ExtendableHooks is ExtendableBase {
     function _validateTransferWithExtension(address extension, TransferData memory data) internal returns (bool) {
         IExtension ext = IExtension(extension);
 
-        if (!ext.onTransferExecuted(data)) {
-            return false;
+        if (ExtensionLib._isContextAddress(extension)) {
+            IExtensionStorage context = IExtensionStorage(extension);
+            context.prepareCall(_msgSender());
         }
+
+        return ext.onTransferExecuted(data);
     }
 
     /**

@@ -9,9 +9,8 @@ import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
 import {IERC20Logic} from "../logic/IERC20Logic.sol";
 import {ERC20Storage} from "../storage/ERC20Storage.sol";
-import {TransferData} from "../../IToken.sol";
 import {ExtensionStorage} from "../../../extensions/ExtensionStorage.sol";
-import {IToken} from "../../IToken.sol";
+import {IToken, TransferData, TokenStandard} from "../../IToken.sol";
 
 contract ERC20Proxy is IERC20Proxy, TokenRoles, DomainAware, ERC1820Client, ERC1820Implementer {
     string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
@@ -525,4 +524,8 @@ contract ERC20Proxy is IERC20Proxy, TokenRoles, DomainAware, ERC1820Client, ERC1
     }
     
     receive() external payable {}
+
+    function tokenStandard() external pure override returns (TokenStandard) {
+        return TokenStandard.ERC20;
+    }
 }

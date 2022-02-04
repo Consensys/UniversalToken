@@ -9,27 +9,23 @@ abstract contract ExtensionBase {
     struct ContextData {
         address token;
         address extension;
-        mapping(bytes4 => bool) diamondFunctions;
         bool initalized;
     }
 
-    function _extensionAddress() internal view returns (address) {
-        ContextData storage ds;
+    function _contextData() internal pure returns (ContextData storage ds) {
         bytes32 position = CONTEXT_DATA_SLOT;
         assembly {
             ds.slot := position
         }
+    }
 
+    function _extensionAddress() internal view returns (address) {
+        ContextData storage ds = _contextData();
         return ds.extension;
     }
 
     function _tokenAddress() internal view returns (address) {
-        ContextData storage ds;
-        bytes32 position = CONTEXT_DATA_SLOT;
-        assembly {
-            ds.slot := position
-        }
-
+        ContextData storage ds = _contextData();
         return ds.token;
     }
 
@@ -40,29 +36,6 @@ abstract contract ExtensionBase {
 
     function _msgSender() internal view returns (address) {
         return StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value;
-    }
-
-    function _delegateCallFunction(bytes4 funcSig) internal {
-        address facet = _extensionAddress();
-        require(facet != address(0), "Diamond: Function does not exist");
-
-        // Execute external function from facet using delegatecall and return any value.
-        assembly {
-            // copy function selector and any arguments
-            calldatacopy(0, 0, calldatasize())
-            // execute function call using the facet
-            let result := delegatecall(gas(), facet, 0, calldatasize(), 0, 0)
-            // get any return value
-            returndatacopy(0, 0, returndatasize())
-            // return any return value or error back to the caller
-            switch result
-                case 0 {
-                    revert(0, returndatasize())
-                }
-                default {
-                    return(0, returndatasize())
-                }
-        }
     }
 
     receive() external payable {}

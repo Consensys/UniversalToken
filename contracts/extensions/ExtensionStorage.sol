@@ -1,64 +1,43 @@
 pragma solidity ^0.8.0;
 
+import {IToken} from "../tokens/IToken.sol";
+import {IExtensionStorage} from "./IExtensionStorage.sol";
 import {IExtension} from "./IExtension.sol";
+import {IExtensionMetadata, TokenStandard} from "./IExtensionMetadata.sol";
 import {ExtensionBase} from "./ExtensionBase.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
-contract ExtensionStorage is ExtensionBase {
+contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBase {
     constructor(address token, address extension) {
         //Setup context data
-        ContextData storage ds;
-        bytes32 position = CONTEXT_DATA_SLOT;
-        assembly {
-            ds.slot := position
-        }
-        
-        //First grab and register functions in diamond
-        IExtension ext = IExtension(extension);
-        bytes4[] memory allExternalFunctions = ext.externalFunctions();
-
-        if (allExternalFunctions.length > 0) {
-            for (uint i = 0; i < allExternalFunctions.length; i++) {
-                ds.diamondFunctions[allExternalFunctions[i]] = true;
-            }
-        }
+        ContextData storage ds = _contextData();
 
         ds.token = token;
         ds.extension = extension;
+        
+        //Ensure we support this token standard
+        TokenStandard standard = IToken(token).tokenStandard();
+
+        require(isTokenStandardSupported(standard), "Extension does not support token standard");
     }
 
-    function prepareCall(address caller, bytes4 func) external onlyToken {
+    function prepareCall(address caller) external override onlyToken {
         StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = caller;
-
-        ContextData storage ds;
-        bytes32 position = CONTEXT_DATA_SLOT;
-        assembly {
-            ds.slot := position
-        }
     }
 
     fallback() external payable onlyToken {
-        ContextData storage ds;
-        bytes32 position = CONTEXT_DATA_SLOT;
-        assembly {
-            ds.slot := position
-        }
+        ContextData storage ds = _contextData();
 
-        if (ds.diamondFunctions[msg.sig]) {
-            _delegateCallFunction(msg.sig);
-        } else {
-            _delegate(ds.extension);
-        }
+        _delegate(ds.extension);
     }
 
     function initalize() external onlyToken {
-        ContextData storage ds;
-        bytes32 position = CONTEXT_DATA_SLOT;
-        assembly {
-            ds.slot := position
-        }
+        ContextData storage ds = _contextData();
 
         ds.initalized = true;
+
+        //now forward initalization to the extension
+        _delegate(ds.extension);
     }
 
     /**
@@ -88,27 +67,27 @@ contract ExtensionStorage is ExtensionBase {
         }
     }
 
-    function externalFunctions() external view returns (bytes4[] memory) {
-        ContextData storage ds;
-        bytes32 position = CONTEXT_DATA_SLOT;
-        assembly {
-            ds.slot := position
-        }
+    function externalFunctions() external override view returns (bytes4[] memory) {
+        ContextData storage ds = _contextData();
         
         IExtension ext = IExtension(ds.extension);
 
         return ext.externalFunctions();
     }
 
-    function requiredRoles() external view returns (bytes32[] memory) {
-        ContextData storage ds;
-        bytes32 position = CONTEXT_DATA_SLOT;
-        assembly {
-            ds.slot := position
-        }
+    function requiredRoles() external override view returns (bytes32[] memory) {
+        ContextData storage ds = _contextData();
         
         IExtension ext = IExtension(ds.extension);
 
         return ext.requiredRoles();
+    }
+
+    function isTokenStandardSupported(TokenStandard standard) public override view returns (bool) {
+        ContextData storage ds = _contextData();
+        
+        IExtension ext = IExtension(ds.extension);
+
+        return ext.isTokenStandardSupported(standard);
     }
 }

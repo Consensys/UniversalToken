@@ -10,9 +10,8 @@ import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
 import {IERC721Logic} from "../logic/IERC721Logic.sol";
 import {ERC721Storage} from "../storage/ERC721Storage.sol";
 import {ERC721Logic} from "../logic/ERC721Logic.sol";
-import {TransferData} from "../../IToken.sol";
 import {ExtensionStorage} from "../../../extensions/ExtensionStorage.sol";
-import {IToken} from "../../IToken.sol";
+import {IToken, TokenStandard, TransferData} from "../../IToken.sol";
 
 abstract contract ERC721Proxy is IERC721Proxy, TokenRoles, DomainAware, ERC1820Client, ERC1820Implementer {
     string constant internal ERC721_INTERFACE_NAME = "ERC721Token";
@@ -454,4 +453,8 @@ abstract contract ERC721Proxy is IERC721Proxy, TokenRoles, DomainAware, ERC1820C
     }
     
     receive() external payable {}
+    
+    function tokenStandard() external pure override returns (TokenStandard) {
+        return TokenStandard.ERC721;
+    }
 }

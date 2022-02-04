@@ -1,11 +1,10 @@
 pragma solidity ^0.8.0;
 
 import {IPausable} from "./IPausable.sol";
-import {ERC20Extension} from "../ERC20Extension.sol";
-import {TransferData} from "../../IExtension.sol";
+import {TokenExtension, TransferData} from "../TokenExtension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-contract PauseExtension is ERC20Extension, IPausable {
+contract PauseExtension is TokenExtension, IPausable {
 
     bytes32 constant PAUSER_ROLE = keccak256("pausable.roles.pausers");
 
@@ -20,9 +19,13 @@ contract PauseExtension is ERC20Extension, IPausable {
         _registerFunction(PauseExtension.unpause.selector);
         _registerFunction(PauseExtension.pauseFor.selector);
         _registerFunction(PauseExtension.unpauseFor.selector);
+        
         _registerFunctionName('isPaused()');
         _registerFunctionName('isPausedFor(address)');
+
         _supportInterface(type(IPausable).interfaceId);
+
+        _supportsAllTokenStandards();
     }
     
     /**

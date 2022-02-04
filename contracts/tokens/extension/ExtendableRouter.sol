@@ -1,12 +1,11 @@
 pragma solidity ^0.8.0;
 
-import {ProxyContext} from "../../proxy/context/ProxyContext.sol";
-import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
+import {IExtensionStorage} from "../../extensions/IExtensionStorage.sol";
 import {ExtensionLib} from "./ExtensionLib.sol";
 import {IExtension, TransferData} from "../../extensions/IExtension.sol";
 import {ExtendableBase} from "./ExtendableBase.sol";
 
-contract ExtendableRouter is ProxyContext, ExtendableBase {
+contract ExtendableRouter is ExtendableBase {
 
     function _lookupExtension(bytes4 funcSig) internal view returns (address) {
         return ExtensionLib._functionToExtensionContextAddress(funcSig);
@@ -82,8 +81,8 @@ contract ExtendableRouter is ProxyContext, ExtendableBase {
     function _invokeExtensionFunction() internal virtual {
         address facet = _lookupExtension(msg.sig);
         if (_isContextAddress(facet)) {
-            ExtensionStorage context = ExtensionStorage(payable(facet));
-            context.prepareCall(_msgSender(), msg.sig);
+            IExtensionStorage context = IExtensionStorage(payable(facet));
+            context.prepareCall(_msgSender());
         }
         _callFunction(msg.sig);
     }

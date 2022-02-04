@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {IToken} from "../../IToken.sol";
+import {IToken, TokenStandard} from "../../IToken.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ExtendableHooks} from "../../extension/ExtendableHooks.sol";
@@ -12,7 +12,7 @@ import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
 import {ITokenLogic} from "../../ITokenLogic.sol";
 
-contract ERC20Logic is ERC20Upgradeable, ERC1820Client, ERC1820Implementer, ExtendableHooks, ProxyContext, IToken, ITokenLogic {
+contract ERC20Logic is ERC20Upgradeable, ERC1820Client, ERC1820Implementer, ExtendableHooks, IToken, ITokenLogic {
     string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
 
     bytes private _currentData;
@@ -126,6 +126,10 @@ contract ERC20Logic is ERC20Upgradeable, ERC1820Client, ERC1820Implementer, Exte
         _transfer(td.from, td.to, td.value);
 
         return true;
+    }
+
+    function tokenStandard() external pure override returns (TokenStandard) {
+        return TokenStandard.ERC20;
     }
 
     /**

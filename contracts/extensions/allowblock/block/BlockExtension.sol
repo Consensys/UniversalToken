@@ -2,12 +2,13 @@ pragma solidity ^0.8.0;
 
 import {IBlocklistedRole} from "./IBlocklistedRole.sol";
 import {IBlocklistedAdminRole} from "./IBlocklistedAdminRole.sol";
-import {AllowBlockLib} from "../AllowBlockLib.sol";
-import {ERC20Extension} from "../../ERC20Extension.sol";
-import {TransferData} from "../../../IExtension.sol";
+import {TokenExtension, TransferData} from "../../TokenExtension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
-contract BlockExtension is ERC20Extension, IBlocklistedRole, IBlocklistedAdminRole {
+contract BlockExtension is TokenExtension, IBlocklistedRole, IBlocklistedAdminRole {
+
+    bytes32 constant BLOCKLIST_ROLE = keccak256("allowblock.roles.blocklisted");
+    bytes32 constant BLOCKLIST_ADMIN_ROLE = keccak256("allowblock.roles.blocklisted.admin");
 
     constructor() {
         _registerFunction(BlockExtension.addBlocklisted.selector);
@@ -20,43 +21,45 @@ contract BlockExtension is ERC20Extension, IBlocklistedRole, IBlocklistedAdminRo
 
         _supportInterface(type(IBlocklistedRole).interfaceId);
         _supportInterface(type(IBlocklistedAdminRole).interfaceId);
+
+        _supportsAllTokenStandards();
     }
 
     function initalize() external override {
-        AllowBlockLib.addBlocklistedAdmin(msg.sender);
+        _addRole(_msgSender(), BLOCKLIST_ADMIN_ROLE);
     }
 
     function isBlocklisted(address account) external override view returns (bool) {
-        return AllowBlockLib.isBlocklisted(account);
+        return hasRole(account, BLOCKLIST_ROLE);
     }
 
     function addBlocklisted(address account) external override onlyBlocklistedAdmin {
-        AllowBlockLib.addBlocklisted(account);
+        _addRole(account, BLOCKLIST_ROLE);
     }
 
     function removeBlocklisted(address account) external override onlyBlocklistedAdmin {
-        AllowBlockLib.removeBlocklisted(account);
+        _removeRole(account, BLOCKLIST_ROLE);
     }
 
     function isBlocklistedAdmin(address account) external override view returns (bool) {
-        return AllowBlockLib.isBlocklistedAdmin(account);
+        return hasRole(account, BLOCKLIST_ADMIN_ROLE);
     }
 
     function addBlocklistedAdmin(address account) external override onlyBlocklistedAdmin {
-        AllowBlockLib.addBlocklistedAdmin(account);
+        _addRole(account, BLOCKLIST_ADMIN_ROLE);
     }
 
     function removeBlocklistedAdmin(address account) external override onlyBlocklistedAdmin {
-        AllowBlockLib.removeBlocklistedAdmin(account);
+        _removeRole(account, BLOCKLIST_ADMIN_ROLE);
     }
 
     function onTransferExecuted(TransferData memory data) external override returns (bool) {
         if (data.from != address(0)) {
-            require(!AllowBlockLib.isBlocklisted(data.from), "from address is blocklisted");
+            require(!hasRole(data.from, BLOCKLIST_ROLE), "from address is blocklisted");
         }
 
         if (data.to != address(0)) {
-            require(!AllowBlockLib.isBlocklisted(data.to), "to address is blocklisted");
+            require(!hasRole(data.to, BLOCKLIST_ROLE), "to address is blocklisted");
         }
         
         return true;

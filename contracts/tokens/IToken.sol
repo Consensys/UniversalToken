@@ -25,6 +25,12 @@ struct TransferData {
     bytes operatorData;
 }
 
+enum TokenStandard {
+    ERC20,
+    ERC721,
+    ERC1400
+}
+
 /**
 * @dev A standard interface all token standards must inherit from. Provides token standard agnostic 
 * functions
@@ -37,4 +43,6 @@ interface IToken {
     * If the contract does support the transfer and successfully performs the transfer, it should return true
     */
     function tokenTransfer(TransferData calldata transfer) external returns (bool);
+
+    function tokenStandard() external pure returns (TokenStandard);
 }
