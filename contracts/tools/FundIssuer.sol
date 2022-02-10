@@ -8,8 +8,8 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
 
-import "./ERC1820Client.sol";
-import "../interface/ERC1820Implementer.sol";
+import "../erc1820/ERC1820Client.sol";
+import "../erc1820/ERC1820Implementer.sol";
 
 import "../extensions/userExtensions/IERC1400TokensRecipient.sol";
 import "../ERC1400.sol";

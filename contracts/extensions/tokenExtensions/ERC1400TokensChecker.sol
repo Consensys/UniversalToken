@@ -7,8 +7,8 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "../../tools/ERC1820Client.sol";
-import "../../interface/ERC1820Implementer.sol";
+import "../../erc1820/ERC1820Client.sol";
+import "../../erc1820/ERC1820Implementer.sol";
 
 import "../../IERC1400.sol";
 
