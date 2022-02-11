@@ -124,7 +124,7 @@ h1 {
       <img src="cdn/images/index-icons/5.png" alt=""></a>
   </div>
   
-  <div class="grid-item"><a href="/token-standards"><h2>Token API</h2>  
+  <div class="grid-item"><a href="/tokens/index"><h2>Token API</h2>  
         <img src="cdn/images/index-icons/10.png" alt=""></a>
   </div>
   

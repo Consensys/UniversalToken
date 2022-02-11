@@ -46,19 +46,19 @@ Currently both [ERC20](https://github.com/ConsenSys/UniversalToken/blob/develop/
 
 ## Table of Contents
 
-1. [Token API](../tokens/token-standards.md)
-    1. Token roles
-    2. Upgrading
-    3. Registering extensions
-    4. Enable/Disable extensions
-    5. Removing extensions
+1. [Token API](../tokens/index.md)
+    1. [Token roles](../tokens/index.md#token-roles)
+    2. [Upgrading](../tokens/index.md#upgrading)
+    3. [Registering extensions](../tokens/index.md#registering-extensions)
+    4. [Enable/Disable extensions](../tokens/index.md#enabledisable-extensions)
+    5. [Removing extensions](../tokens/index.md#removing-extensions)
 2. [Extensions](../extensions.md)
-    1. Getting Started
-    2. Register external functions
-    3. Extension Roles
-    4. Token Roles
-    5. Transfer Events
-    6. API 
+    1. [Getting Started](../extensions.md#getting-started)
+    2. [Register external functions](../extensions.md#register-functions)
+    3. [Extension Roles](../extensions.md#extension-roles)
+    4. [Token Roles](../extensions.md#token-roles)
+    5. [Transfer Events](../extensions.md#transfer-events)
+    6. [API](../extensions.md#api)
 3. [Smart Contract Architecture](../contracts/overview.md)
     1. Proxies 
         1. Proxy, Storage, Logic Pattern
@@ -72,7 +72,7 @@ Currently both [ERC20](https://github.com/ConsenSys/UniversalToken/blob/develop/
         1. ERC20Logic
         2. ERC721Logic
         3. Extending logic contracts
-        3. Building a custom logic contracts
+        3. Building custom logic contracts
     4. Extension Support
         1. ExtendableRouter Contract
         2. ExtendableHooks Contract

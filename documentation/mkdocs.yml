@@ -26,6 +26,7 @@ nav:
       - Releases: overview/releases.md
       - Stability: overview/stability.md
   - Token API: 
+      - Overview: tokens/index.md
       - Token standards: tokens/token-standards.md
       - ConsenSys UniversalToken: 
           - Overview: tokens/universal-token.md
