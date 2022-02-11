@@ -124,12 +124,12 @@ h1 {
       <img src="cdn/images/index-icons/5.png" alt=""></a>
   </div>
   
-  <div class="grid-item"><a href="/use-cases"><h2>Use cases</h2>
-        <img src="cdn/images/index-icons/12.png" alt=""></a>
-  </div>
-
-  <div class="grid-item"><a href="/token-standards"><h2>Tokens</h2>  
+  <div class="grid-item"><a href="/token-standards"><h2>Token API</h2>  
         <img src="cdn/images/index-icons/10.png" alt=""></a>
+  </div>
+  
+  <div class="grid-item"><a href="/extensions"><h2>Extensions</h2>
+        <img src="cdn/images/index-icons/12.png" alt=""></a>
   </div>
 
   <div class="grid-item"><a href="/contracts/overview"><h2>Contracts</h2>     

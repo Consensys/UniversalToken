@@ -25,13 +25,13 @@ nav:
       - Welcome: overview/welcome.md
       - Releases: overview/releases.md
       - Stability: overview/stability.md
-  - Use cases: use-cases.md
-  - Tokens: 
+  - Token API: 
       - Token standards: tokens/token-standards.md
       - ConsenSys UniversalToken: 
           - Overview: tokens/universal-token.md
           - ERC1400 definition: tokens/erc1400-definition.md
       - Token extensions: tokens/token-extensions.md
+  - Extensions: extensions.md
   - Contracts: 
       - Overview: contracts/overview.md
       - Extending contracts: contracts/extending-contracts.md
