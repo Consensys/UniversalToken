@@ -9,6 +9,8 @@ const {
 const { newSecretHashPair } = require("./utils/crypto");
 const { bytes32 } = require("./utils/regex");
 
+
+const BlockExtension = artifacts.require("BlockExtension");
 const ERC20Extendable = artifacts.require("ERC20Extendable");
 const ERC20Logic = artifacts.require("ERC20Logic");
 const ERC20LogicMock = artifacts.require("ERC20LogicMock");
@@ -19,10 +21,11 @@ const ZERO_BYTES32 =
 contract(
   "ERC20Extendable",
   function ([deployer, sender, holder, recipient, recipient2, notary]) {
-    describe("ERC20 (mint: on, burn: on, with owner) with no extensions", function () {
+    describe("ERC20Extendable with Blocklist Extension", function () {
       const initialSupply = 1000;
       const maxSupply = 5000;
       let token;
+      let blockExt;
       before(async function () {
         //snapshot = await takeSnapshot();
         //snapshotId = snapshot["result"];
@@ -37,11 +40,23 @@ contract(
           maxSupply,
           this.logic.address
         );
+
+        blockExt = await BlockExtension.new();
+
         assert.equal(await token.isMinter(deployer), true);
         assert.equal(await token.name(), "ERC20Extendable");
         assert.equal(await token.symbol(), "DAU");
         assert.equal(await token.totalSupply(), initialSupply);
         assert.equal(await token.balanceOf(deployer), initialSupply);
+      });
+
+      it("Registers extension", async () => {
+        assert.equal((await token.allExtensions()).length, 0);
+
+        const result = await token.registerExtension(blockExt);
+        assert.equal(result.receipt.status, 1);
+
+        assert.equal((await token.allExtensions()).length, 1);
       });
 
       it("Mint 1000 tokens to holder", async () => {
