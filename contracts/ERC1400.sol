@@ -8,8 +8,8 @@ import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "./tools/ERC1820Client.sol";
-import "./interface/ERC1820Implementer.sol";
+import "./erc1820/ERC1820Client.sol";
+import "./erc1820/ERC1820Implementer.sol";
 
 import "./roles/MinterRole.sol";
 
@@ -29,6 +29,8 @@ import "./tools/DomainAware.sol";
  */
 contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer, MinterRole, DomainAware {
   using SafeMath for uint256;
+
+  bytes32 constant internal VERSION = 0x0000000000000000000000000000000000000000000000000000000000000001;
 
   // Token
   string constant internal ERC1400_INTERFACE_NAME = "ERC1400Token";
@@ -1432,12 +1434,12 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   /************************************************************************************************/
 
   /************************************* Domain Aware ******************************************/
-  function domainName() public override view returns (string memory) {
-    return _name;
+  function domainName() public override view returns (bytes memory) {
+    return bytes(_name);
   }
 
-  function domainVersion() public override view returns (string memory) {
-    return "1";
+  function domainVersion() public override view returns (bytes32) {
+    return VERSION;
   }
   /************************************************************************************************/
 }

@@ -13,6 +13,13 @@ library Roles {
         mapping (address => bool) bearer;
     }
 
+    function roleStorage(bytes32 _rolePosition) internal pure returns (Role storage ds) {
+        bytes32 position = _rolePosition;
+        assembly {
+            ds.slot := position
+        }
+    }
+
     /**
      * @dev Give an account access to this role.
      */
