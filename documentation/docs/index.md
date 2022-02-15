@@ -124,15 +124,15 @@ h1 {
       <img src="cdn/images/index-icons/5.png" alt=""></a>
   </div>
   
-  <div class="grid-item"><a href="/tokens/index"><h2>Token API</h2>  
+  <div class="grid-item"><a href="/tokens/token-roles"><h2>Token API</h2>  
         <img src="cdn/images/index-icons/10.png" alt=""></a>
   </div>
   
-  <div class="grid-item"><a href="/extensions"><h2>Extensions</h2>
+  <div class="grid-item"><a href="/extensions/getting-started"><h2>Extensions</h2>
         <img src="cdn/images/index-icons/12.png" alt=""></a>
   </div>
 
-  <div class="grid-item"><a href="/contracts/overview"><h2>Contracts</h2>     
+  <div class="grid-item"><a href="/contracts/architecture"><h2>Contracts</h2>     
         <img src="cdn/images/index-icons/7.png" alt=""></a>
   </div> 
 
@@ -140,7 +140,7 @@ h1 {
         <img src="cdn/images/index-icons/3.png" alt=""></a>
   </div>
 
-  <div class="grid-item"><a href="/api/migrations"><h2>API</h2>       
+  <div class="grid-item"><a href="/api/migrations"><h2>Solidity API</h2>       
         <img src="cdn/images/index-icons/4.png" alt=""></a>
   </div>
   

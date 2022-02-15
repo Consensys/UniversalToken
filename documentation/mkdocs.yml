@@ -26,22 +26,29 @@ nav:
       - Releases: overview/releases.md
       - Stability: overview/stability.md
   - Token API: 
-      - Overview: tokens/index.md
-      - Token standards: tokens/token-standards.md
-      - ConsenSys UniversalToken: 
-          - Overview: tokens/universal-token.md
-          - ERC1400 definition: tokens/erc1400-definition.md
-      - Token extensions: tokens/token-extensions.md
-  - Extensions: extensions.md
+      - Token roles: tokens/token-roles.md
+      - Upgrading: tokens/upgrading.md
+      - Register extensions: tokens/register-extensions.md
+      - Enable/disable extensions: tokens/enable-disable-extensions.md
+      - Remove extensions: tokens/remove-extensions.md
+  - Extensions: 
+      - Getting started: extensions/getting-started.md
+      - Register functions: extensions/register-functions.md
+      - Extension roles: extensions/extension-roles.md
+      - Token roles: extensions/token-roles.md
+      - Transfer events: extensions/transfer-events.md
+      - Interoperability: extensions/interoperability.md
+      - API: extensions/api.md
   - Contracts: 
-      - Overview: contracts/overview.md
-      - Extending contracts: contracts/extending-contracts.md
-      - Upgrading: contracts/upgrading.md
-      - Access control: contracts/access-control.md    
+      - Overview: contracts/architecture.md
+      - Proxies: contracts/proxies.md
+      - Storage contracts: contracts/storage-contracts.md
+      - Logic for token standards: contracts/logic-token-standard-contracts.md
+      - Extension support: contracts/extension-support.md    
   - Utilities: 
       - Overview: utilities/overview.md
       - Hold status code: utilities/HoldStatusCode.md
-  - API:
+  - Solidity API:
       - ERC1400:  API/ERC1400.md
       - IERC1400:  API/IERC1400.md
       - Migrations:  API/Migrations.md
