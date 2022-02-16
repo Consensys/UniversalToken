@@ -40,9 +40,6 @@ This extension is deployed [on rinkeby](#) and can be registered by any new Univ
 Currently both [ERC20](https://github.com/ConsenSys/UniversalToken/blob/develop/contracts/ERC20Extendable.sol) and [ERC721](https://github.com/ConsenSys/UniversalToken/blob/develop/contracts/tokens/ERC721/proxy/ERC721Proxy.sol) have implementations that support extensions. There are plans to add support for [ERC1400](https://github.com/ethereum/eips/issues/1411) and [ERC1155](https://eips.ethereum.org/EIPS/eip-1155). 
 
 
-
-4. [Utilities](../utilities/overview.md)
-5. [Solidity Docs](../API/index.md)
     
 
 
