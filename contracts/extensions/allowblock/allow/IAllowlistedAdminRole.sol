@@ -8,10 +8,5 @@ interface IAllowlistedAdminRole {
     
     function addAllowlistedAdmin(address account) external;
 
-    function removeAllowlisitedAdmin(address account) external;
-
-    modifier onlyAllowlistedAdmin {
-        require(this.isAllowlistedAdmin(msg.sender), "Not an allow list admin");
-        _;
-    }
+    function removeAllowlistedAdmin(address account) external;
 }

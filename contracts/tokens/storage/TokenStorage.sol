@@ -35,7 +35,7 @@ abstract contract TokenStorage is IExtensionStorage, ExtendableRouter, ERC1820Im
         return success;
     }
 
-    function _fallback() internal {
+    function _fallback() internal onlyToken {
         bool isExt = _isExtensionFunction(msg.sig);
 
         if (isExt) {
@@ -82,7 +82,7 @@ abstract contract TokenStorage is IExtensionStorage, ExtendableRouter, ERC1820Im
 
     
     function registerExtension(address extension) external override onlyToken returns (bool) {
-        return _registerExtension(extension);
+        return _registerExtension(extension, _callsiteAddress());
     }
 
     function removeExtension(address extension) external override onlyToken returns (bool) {

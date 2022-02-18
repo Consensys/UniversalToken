@@ -22,6 +22,7 @@ async function main() {
   const ERC20Logic = await hre.ethers.getContractFactory("ERC20Logic");
   const ERC20Storage = await hre.ethers.getContractFactory("ERC20Storage");
   const ERC20Extendable = await hre.ethers.getContractFactory("ERC20Extendable");
+  const PauseExtension = await hre.ethers.getContractFactory("PauseExtension");
 
   const logic = await ERC20Logic.deploy();
   await logic.deployed();
@@ -48,7 +49,7 @@ async function main() {
 
   console.log("ERC20Extendable token contract deployed to:", erc20.address);
 
-  console.log("Deploying mock logic");
+  /* console.log("Deploying mock logic");
   const logic2 = await ERC20LogicMock.deploy();
   await logic2.deployed();
 
@@ -64,7 +65,18 @@ async function main() {
   console.log("Running isMock()");
   const tttt = await test.isMock();
 
-  console.log(tttt);
+  console.log(tttt); */
+
+  console.log("Deploying PauseableExtension");
+  const pauseExtContract = await PauseExtension.deploy();
+  await pauseExtContract.deployed();
+
+  console.log("Registering PauseExtension on token");
+  await erc20.registerExtension(pauseExtContract.address);
+
+  const pauseToken = await PauseExtension.attach(erc20.address);
+
+  await pauseToken.pause();
 }
 
 // We recommend this pattern to be able to use async/await everywhere

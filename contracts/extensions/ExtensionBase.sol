@@ -9,7 +9,8 @@ abstract contract ExtensionBase {
     struct ContextData {
         address token;
         address extension;
-        bool initalized;
+        address callsite;
+        bool initialized;
     }
 
     function _contextData() internal pure returns (ContextData storage ds) {
@@ -29,8 +30,28 @@ abstract contract ExtensionBase {
         return ds.token;
     }
 
+    function _authorizedCaller() internal view returns (address) {
+        ContextData storage ds = _contextData();
+        return ds.callsite;
+    }
+
     modifier onlyToken {
-        require(msg.sender == _tokenAddress(), "Unauthorized");
+        require(msg.sender == _tokenAddress(), "Token: Unauthorized");
+        _;
+    }
+
+    modifier onlyCallsite {
+        require(msg.sender == _authorizedCaller(), "Caller: Unauthorized");
+        _;
+    }
+
+    modifier onlyCallsiteOrExtension {
+        require(msg.sender == _authorizedCaller() || msg.sender == _extensionAddress(), "Caller: Unauthorized");
+        _;
+    }
+
+    modifier onlyCallsiteOrSelf {
+        require(msg.sender == _authorizedCaller() || msg.sender == address(this), "Caller: Unauthorized");
         _;
     }
 

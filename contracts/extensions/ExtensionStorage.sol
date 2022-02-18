@@ -8,12 +8,13 @@ import {ExtensionBase} from "./ExtensionBase.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
 contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBase {
-    constructor(address token, address extension) {
+    constructor(address token, address extension, address callsite) {
         //Setup context data
         ContextData storage ds = _contextData();
 
         ds.token = token;
         ds.extension = extension;
+        ds.callsite = callsite;
         
         //Ensure we support this token standard
         TokenStandard standard = IToken(token).tokenStandard();
@@ -21,20 +22,20 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
         require(isTokenStandardSupported(standard), "Extension does not support token standard");
     }
 
-    function prepareCall(address caller) external override onlyToken {
+    function prepareCall(address caller) external override onlyCallsite {
         StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = caller;
     }
 
-    fallback() external payable onlyToken {
+    fallback() external payable onlyCallsiteOrSelf {
         ContextData storage ds = _contextData();
 
         _delegate(ds.extension);
     }
 
-    function initalize() external onlyToken {
+    function initialize() external onlyCallsite {
         ContextData storage ds = _contextData();
 
-        ds.initalized = true;
+        ds.initialized = true;
 
         //now forward initalization to the extension
         _delegate(ds.extension);

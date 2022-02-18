@@ -19,7 +19,7 @@ abstract contract ExtendableHooks is ExtendableBase {
     }
 
     /**
-     * @dev Hook that is called after any transfer of tokens. This includes
+     * @dev Hook that is called before any transfer of tokens. This includes
      * minting and burning.
      *
      * Calling conditions:

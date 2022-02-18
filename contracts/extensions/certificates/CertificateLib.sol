@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import {Roles} from "../../../roles/Roles.sol";
-import {DomainAware} from "../../../tools/DomainAware.sol";
+import {Roles} from "../../roles/Roles.sol";
+import {DomainAware} from "../../tools/DomainAware.sol";
 
 enum CertificateValidationType {
     None,

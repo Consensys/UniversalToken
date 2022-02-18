@@ -11,6 +11,7 @@ import {IERC20Logic} from "../logic/IERC20Logic.sol";
 import {ERC20Storage} from "../storage/ERC20Storage.sol";
 import {ExtensionStorage} from "../../../extensions/ExtensionStorage.sol";
 import {IToken, TransferData, TokenStandard} from "../../IToken.sol";
+import {IExtensionStorage} from "../../extension/IExtensionStorage.sol";
 
 contract ERC20Proxy is IERC20Proxy, TokenRoles, DomainAware, ERC1820Client, ERC1820Implementer {
     string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
@@ -33,10 +34,12 @@ contract ERC20Proxy is IERC20Proxy, TokenRoles, DomainAware, ERC1820Client, ERC1
         uint256 maxSupply_, address logicAddress
     ) { 
         require(maxSupply_ > 0, "Max supply must be non-zero");
-        StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = _msgSender();
 
-        if (owner != _msgSender()) {
+        if (owner != address(0) && owner != _msgSender()) {
             transferOwnership(owner);
+            StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = owner;
+        } else {
+            StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = _msgSender();
         }
 
         if (allowMint) {
@@ -231,6 +234,33 @@ contract ERC20Proxy is IERC20Proxy, TokenRoles, DomainAware, ERC1820Client, ERC1
         return result;
     }
 
+    function transferWithData(address recipient, uint256 amount, bytes calldata data) public returns (bool) {
+        bytes memory cdata = abi.encodeWithSelector(IERC20.transfer.selector, recipient, amount, data);
+
+        (bool result,) = _forwardCall(cdata);
+        if (result) {
+            emit Transfer(_msgSender(), recipient, amount);
+        }
+
+        return result;
+    }
+    
+    function transferFromWithData(address sender, address recipient, uint256 amount, bytes calldata data) public returns (bool) {
+        bytes memory cdata = abi.encodeWithSelector(IERC20.transferFrom.selector, sender, recipient, amount, data);
+
+        (bool result,) = _forwardCall(cdata);
+        if (result) {
+            emit Transfer(_msgSender(), recipient, amount);
+        }
+
+        return result;
+    }
+
+    // has same function selector as transfer(address,uint256)
+/*  function transferWithData_729714112(address recipient, uint256 amount, bytes calldata data) public returns (bool) {
+
+    } */
+
     /**
      * @dev Moves `amount` tokens from the caller's account to `recipient`.
      *
@@ -405,12 +435,18 @@ contract ERC20Proxy is IERC20Proxy, TokenRoles, DomainAware, ERC1820Client, ERC1
     function upgradeTo(address implementation, bytes memory data) external override onlyManager {
         _setImplementation(implementation);
 
-        //Invoke initalize
+        //Invoke initialize
         require(_getStorageContract().onUpgrade(data), "Logic initializing failed");
     }
 
     function registerExtension(address extension) external override onlyManager returns (bool) {
-        bool result = _getStorageContract().registerExtension(extension);
+        // Lets cann regiterExtension, but ensure we pass along _msgSender
+        // We do this by encoding the call and using _forwardCall
+        // Forward call to storage contract, appending the current _msgSender to the
+        // end of the current calldata
+        bytes memory cdata = abi.encodeWithSelector(IExtensionStorage.registerExtension.selector, extension);
+        (bool result, ) = _forwardCall(cdata);
+
         if (result) {
             address contextAddress = _getStorageContract().contextAddressForExtension(extension);
             ExtensionStorage context = ExtensionStorage(payable(contextAddress));

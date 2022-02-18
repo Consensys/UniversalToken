@@ -9,9 +9,4 @@ interface IBlocklistedAdminRole {
     function addBlocklistedAdmin(address account) external;
 
     function removeBlocklistedAdmin(address account) external;
-
-    modifier onlyBlocklistedAdmin {
-        require(this.isBlocklistedAdmin(msg.sender), "Not on block list admin");
-        _;
-    }
 }

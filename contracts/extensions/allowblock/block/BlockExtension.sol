@@ -10,6 +10,22 @@ contract BlockExtension is TokenExtension, IBlocklistedRole, IBlocklistedAdminRo
     bytes32 constant BLOCKLIST_ROLE = keccak256("allowblock.roles.blocklisted");
     bytes32 constant BLOCKLIST_ADMIN_ROLE = keccak256("allowblock.roles.blocklisted.admin");
 
+    modifier onlyBlocklistedAdmin {
+        require(this.isBlocklistedAdmin(_msgSender()), "Not on block list admin");
+        _;
+    }
+
+    
+    modifier onlyNotBlocklisted {
+        require(!this.isBlocklisted(_msgSender()), "Already on block list");
+        _;
+    }
+
+    modifier onlyBlocklisted {
+        require(this.isBlocklisted(_msgSender()), "Not on block list");
+        _;
+    }
+
     constructor() {
         _registerFunction(BlockExtension.addBlocklisted.selector);
         _registerFunction(BlockExtension.removeBlocklisted.selector);
@@ -25,7 +41,7 @@ contract BlockExtension is TokenExtension, IBlocklistedRole, IBlocklistedAdminRo
         _supportsAllTokenStandards();
     }
 
-    function initalize() external override {
+    function initialize() external override {
         _addRole(_msgSender(), BLOCKLIST_ADMIN_ROLE);
     }
 

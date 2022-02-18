@@ -43,7 +43,7 @@ contract HoldExtension is ERC20Extension {
         }
     }
 
-    function initalize() external override {
+    function initialize() external override {
 
     }
 

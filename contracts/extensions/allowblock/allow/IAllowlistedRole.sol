@@ -8,15 +8,5 @@ interface IAllowlistedRole {
     
     function addAllowlisted(address account) external;
 
-    function removeAllowlisited(address account) external;
-    
-    modifier onlyNotAllowlisted {
-        require(!this.isAllowlisted(msg.sender), "Already on allow list");
-        _;
-    }
-
-    modifier onlyAllowlisted {
-        require(this.isAllowlisted(msg.sender), "Not on allow list");
-        _;
-    }
+    function removeAllowlisted(address account) external;
 }

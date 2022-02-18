@@ -53,18 +53,18 @@ contract PauseExtension is TokenExtension, IPausable {
         return _isPaused;
     }
 
-    function initalize() external override {
+    function initialize() external override {
         _addRole(_msgSender(), PAUSER_ROLE);
     }
 
     function pause() external override onlyPauser whenNotPaused {
         _isPaused = true;
-        emit Paused(msg.sender);
+        emit Paused(_msgSender());
     }
 
     function unpause() external override onlyPauser whenPaused {
         _isPaused = false;
-        emit Unpaused(msg.sender);
+        emit Unpaused(_msgSender());
     }
 
     function isPausedFor(address caller) public override view returns (bool) {

@@ -4,7 +4,6 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {TransferData} from "../IToken.sol";
 import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
 
-
 library ExtensionLib {
     bytes32 constant ERC20_EXTENSION_LIST_LOCATION = keccak256("erc20.core.storage.address");
 
@@ -50,7 +49,7 @@ library ExtensionLib {
         return extLibStorage.extensions[extension].state == ExtensionState.EXTENSION_ENABLED;
     }
 
-    function _registerExtension(address extension) internal {
+    function _registerExtension(address extension, address token, address caller) internal {
         MappedExtensions storage extLibStorage = extensionStorage();
         require(extLibStorage.extensions[extension].state == ExtensionState.EXTENSION_NOT_EXISTS, "The extension must not already exist");
 
@@ -59,7 +58,7 @@ library ExtensionLib {
 
         //Next we need to deploy the ExtensionStorage contract
         //To sandbox our extension's storage
-        ExtensionStorage context = new ExtensionStorage(address(this), extension);
+        ExtensionStorage context = new ExtensionStorage(token, extension, address(this));
 
         //Next lets figure out what external functions to register in the Diamond
         bytes4[] memory externalFunctions = context.externalFunctions();
@@ -74,8 +73,9 @@ library ExtensionLib {
             }
         }
 
-        //Initalize the new extension context
-        context.initalize();
+        //Initialize the new extension context
+        context.prepareCall(caller);
+        context.initialize();
 
         //Finally, add it to storage
         extLibStorage.extensions[extension] = ExtensionData(
@@ -91,7 +91,14 @@ library ExtensionLib {
     function _functionToExtensionContextAddress(bytes4 funcSig) internal view returns (address) {
         MappedExtensions storage extLibStorage = extensionStorage();
 
-        return extLibStorage.extensions[extLibStorage.funcToExtension[funcSig]].context;
+        ExtensionData storage extData = extLibStorage.extensions[extLibStorage.funcToExtension[funcSig]];
+
+        //Only return an address for an extension that is enabled
+        if (extData.state == ExtensionState.EXTENSION_ENABLED) {
+            return extData.context;
+        }
+
+        return address(0);
     }
 
     function _functionToExtensionData(bytes4 funcSig) internal view returns (ExtensionData storage) {

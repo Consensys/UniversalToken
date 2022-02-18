@@ -37,8 +37,8 @@ contract ExtendableRouter is ExtendableBase {
         }
     }
 
-    function _registerExtension(address extension) internal virtual returns (bool) {
-        ExtensionLib._registerExtension(extension);
+    function _registerExtension(address extension, address token) internal virtual returns (bool) {
+        ExtensionLib._registerExtension(extension, token, _msgSender());
 
         return true;
     }
@@ -80,6 +80,9 @@ contract ExtendableRouter is ExtendableBase {
 
     function _invokeExtensionFunction() internal virtual {
         address facet = _lookupExtension(msg.sig);
+
+        require(facet != address(0), "No extension found with function signature");
+
         if (_isContextAddress(facet)) {
             IExtensionStorage context = IExtensionStorage(payable(facet));
             context.prepareCall(_msgSender());

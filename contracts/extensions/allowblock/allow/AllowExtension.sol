@@ -1,5 +1,6 @@
 pragma solidity ^0.8.0;
 
+import {TokenExtension, TransferData} from "../../TokenExtension.sol";
 import {IAllowlistedRole} from "./IAllowlistedRole.sol";
 import {IAllowlistedAdminRole} from "./IAllowlistedAdminRole.sol";
 import {TokenExtension, TransferData} from "../../TokenExtension.sol";
@@ -10,12 +11,28 @@ contract AllowExtension is TokenExtension, IAllowlistedRole, IAllowlistedAdminRo
     bytes32 constant ALLOWLIST_ROLE = keccak256("allowblock.roles.allowlisted");
     bytes32 constant ALLOWLIST_ADMIN_ROLE = keccak256("allowblock.roles.allowlisted.admin");
 
+    modifier onlyAllowlistedAdmin {
+        require(hasRole(_msgSender(), ALLOWLIST_ADMIN_ROLE), "Not an allow list admin");
+        _;
+    }
+
+    modifier onlyAllowlisted {
+        require(hasRole(_msgSender(), ALLOWLIST_ROLE), "Not on allow list");
+        _;
+    }
+
+    modifier onlyNotAllowlisted {
+        require(!hasRole(_msgSender(), ALLOWLIST_ROLE), "Already on allow list");
+        _;
+    }
+
     constructor() {
         //Register all external functions
+        _registerFunctionName('isAllowlisted(address)');
         _registerFunction(AllowExtension.addAllowlisted.selector);
-        _registerFunction(AllowExtension.removeAllowlisited.selector);
+        _registerFunction(AllowExtension.removeAllowlisted.selector);
         _registerFunction(AllowExtension.addAllowlistedAdmin.selector);
-        _registerFunction(AllowExtension.removeAllowlisitedAdmin.selector);
+        _registerFunction(AllowExtension.removeAllowlistedAdmin.selector);
 
         //Register all view functions
         _registerFunctionName('isAllowlisted(address)');
@@ -29,7 +46,7 @@ contract AllowExtension is TokenExtension, IAllowlistedRole, IAllowlistedAdminRo
         _supportsAllTokenStandards();
     }
 
-    function initalize() external override {
+    function initialize() external override {
         _addRole(_msgSender(), ALLOWLIST_ADMIN_ROLE);
     }
 
@@ -41,7 +58,7 @@ contract AllowExtension is TokenExtension, IAllowlistedRole, IAllowlistedAdminRo
         _addRole(account, ALLOWLIST_ROLE);
     }
 
-    function removeAllowlisited(address account) external override onlyAllowlistedAdmin {
+    function removeAllowlisted(address account) external override onlyAllowlistedAdmin {
         _removeRole(account, ALLOWLIST_ROLE);
     }
 
@@ -53,19 +70,21 @@ contract AllowExtension is TokenExtension, IAllowlistedRole, IAllowlistedAdminRo
         _addRole(account, ALLOWLIST_ADMIN_ROLE);
     }
 
-    function removeAllowlisitedAdmin(address account) external override onlyAllowlistedAdmin {
+    function removeAllowlistedAdmin(address account) external override onlyAllowlistedAdmin {
         _removeRole(account, ALLOWLIST_ADMIN_ROLE);
     }
 
     function onTransferExecuted(TransferData memory data) external override returns (bool) {
+        bool fromAllowed = hasRole(data.from, ALLOWLIST_ROLE);
+        bool toAllowed = hasRole(data.to, ALLOWLIST_ROLE);
         if (data.from != address(0)) {
-            require(hasRole(data.from, ALLOWLIST_ROLE), "from address is not allowlisted");
+            require(fromAllowed, "from address is not allowlisted");
         }
 
         if (data.to != address(0)) {
-            require(hasRole(data.to, ALLOWLIST_ROLE), "to address is not allowlisted");
+            require(toAllowed, "to address is not allowlisted");
         }
 
-        return true;
+        return fromAllowed && toAllowed;
     }
 }

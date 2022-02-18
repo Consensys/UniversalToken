@@ -26,6 +26,7 @@ contract(
       const maxSupply = 5000;
       let token;
       let blockExt;
+      let blockExtContract;
       before(async function () {
         //snapshot = await takeSnapshot();
         //snapshotId = snapshot["result"];
@@ -41,7 +42,8 @@ contract(
           this.logic.address
         );
 
-        blockExt = await BlockExtension.new();
+        blockExtContract = await BlockExtension.new();
+        blockExt = blockExtContract.address;
 
         assert.equal(await token.isMinter(deployer), true);
         assert.equal(await token.name(), "ERC20Extendable");
@@ -50,13 +52,199 @@ contract(
         assert.equal(await token.balanceOf(deployer), initialSupply);
       });
 
-      it("Registers extension", async () => {
+      it("Deployer can registers extension", async () => {
         assert.equal((await token.allExtensions()).length, 0);
 
-        const result = await token.registerExtension(blockExt);
+        const result = await token.registerExtension(blockExt, { from: deployer });
         assert.equal(result.receipt.status, 1);
 
         assert.equal((await token.allExtensions()).length, 1);
+      });
+
+      it("Transfers work if not on block list (100 tokens from deployer to recipient)", async () => {
+        assert.equal(await token.totalSupply(), initialSupply);
+        assert.equal(await token.balanceOf(deployer), initialSupply);
+        const result = await token.transfer(recipient, 100, { from: deployer });
+        assert.equal(result.receipt.status, 1);
+        assert.equal(await token.balanceOf(deployer), initialSupply - 100);
+        assert.equal(await token.balanceOf(holder), 0);
+        assert.equal(await token.balanceOf(sender), 0);
+        assert.equal(await token.balanceOf(recipient), 100);
+        assert.equal(await token.balanceOf(recipient2), 0);
+        assert.equal(await token.balanceOf(notary), 0);
+        assert.equal(await token.totalSupply(), initialSupply);
+      });
+
+      it("Block list admins can add addresses to block list", async () => {
+        const blocklistToken = await BlockExtension.at(token.address);
+
+        assert.equal(await blocklistToken.isBlocklisted(recipient), false);
+
+        const result = await blocklistToken.addBlocklisted(recipient, { from: deployer });
+        assert.equal(result.receipt.status, 1);
+
+        assert.equal(await blocklistToken.isBlocklisted(recipient), true);
+      });
+
+      it("Transfers fail if to address is on block list", async () => {
+        assert.equal(await token.balanceOf(deployer), initialSupply - 100);
+        await expectRevert.unspecified(
+          token.transfer(recipient, 200, { from: deployer })
+        );
+      });
+
+      it("Transfers fail if from address is on block list", async () => {
+        assert.equal(await token.balanceOf(recipient), 100);
+        await expectRevert.unspecified(
+          token.transfer(deployer, 100, { from: recipient })
+        );
+      });
+
+      it("Holder can't remove addresses from block list", async () => {
+        const blocklistToken = await BlockExtension.at(token.address);
+
+        assert.equal(await blocklistToken.isBlocklisted(recipient), true);
+
+        await expectRevert.unspecified(
+          blocklistToken.removeBlocklisted(recipient, { from: holder })
+        );
+        
+        assert.equal(await blocklistToken.isBlocklisted(recipient), true);
+      });
+
+      it("Block list admins can make other addresses block list admins", async () => {
+        const blocklistToken = await BlockExtension.at(token.address);
+
+        assert.equal(await blocklistToken.isBlocklistedAdmin(holder), false);
+
+        const result = await blocklistToken.addBlocklistedAdmin(holder, { from: deployer });
+        assert.equal(result.receipt.status, 1);
+
+        assert.equal(await blocklistToken.isBlocklistedAdmin(holder), true);
+      });
+
+      it("Holder can now remove addresses from block list", async () => {
+        const blocklistToken = await BlockExtension.at(token.address);
+
+        assert.equal(await blocklistToken.isBlocklisted(recipient), true);
+
+        const result = await blocklistToken.removeBlocklisted(recipient, { from: holder });
+        assert.equal(result.receipt.status, 1);
+
+        assert.equal(await blocklistToken.isBlocklisted(recipient), false);
+      });
+
+      
+      it("Transfers work if not on block list (100 tokens from recipient to deployer)", async () => {
+        assert.equal(await token.totalSupply(), initialSupply);
+        assert.equal(await token.balanceOf(deployer), initialSupply - 100);
+        assert.equal(await token.balanceOf(recipient), 100);
+        const result = await token.transfer(deployer, 100, { from: recipient });
+        assert.equal(result.receipt.status, 1);
+        assert.equal(await token.balanceOf(deployer), initialSupply);
+        assert.equal(await token.balanceOf(holder), 0);
+        assert.equal(await token.balanceOf(sender), 0);
+        assert.equal(await token.balanceOf(recipient), 0);
+        assert.equal(await token.balanceOf(recipient2), 0);
+        assert.equal(await token.balanceOf(notary), 0);
+        assert.equal(await token.totalSupply(), initialSupply);
+      });
+
+
+      it("Block list admins can remove block list admins", async () => {
+        const blocklistToken = await BlockExtension.at(token.address);
+
+        assert.equal(await blocklistToken.isBlocklistedAdmin(holder), true);
+
+        const result = await blocklistToken.removeBlocklistedAdmin(holder, { from: deployer });
+        assert.equal(result.receipt.status, 1);
+
+        assert.equal(await blocklistToken.isBlocklistedAdmin(holder), false);
+      });
+
+      it("Holder can't add addresses to block list", async () => {
+        const blocklistToken = await BlockExtension.at(token.address);
+
+        assert.equal(await blocklistToken.isBlocklisted(holder), false);
+
+        await expectRevert.unspecified(
+          blocklistToken.addBlocklisted(holder, { from: holder })
+        );
+        
+        assert.equal(await blocklistToken.isBlocklisted(holder), false);
+      });
+
+      it("Deployer can disable extensions", async () => {
+        const result2 = await token.disableExtension(blockExt, { from: deployer });
+
+        assert.equal(result2.receipt.status, 1);
+      });
+
+      it("Transfer 100 tokens from deployer to recipient", async () => {
+        assert.equal(await token.totalSupply(), initialSupply);
+        assert.equal(await token.balanceOf(deployer), initialSupply);
+        const result = await token.transfer(recipient, 100, { from: deployer });
+        assert.equal(result.receipt.status, 1);
+        assert.equal(await token.balanceOf(deployer), initialSupply - 100);
+        assert.equal(await token.balanceOf(holder), 0);
+        assert.equal(await token.balanceOf(sender), 0);
+        assert.equal(await token.balanceOf(recipient), 100);
+        assert.equal(await token.balanceOf(recipient2), 0);
+        assert.equal(await token.balanceOf(notary), 0);
+        assert.equal(await token.totalSupply(), initialSupply);
+      });
+
+      it("Transfer 100 tokens from recipient to deployer", async () => {
+        assert.equal(await token.totalSupply(), initialSupply);
+        assert.equal(await token.balanceOf(deployer), initialSupply - 100);
+        assert.equal(await token.balanceOf(recipient), 100);
+        const result = await token.transfer(deployer, 100, { from: recipient });
+        assert.equal(result.receipt.status, 1);
+        assert.equal(await token.balanceOf(deployer), initialSupply);
+        assert.equal(await token.balanceOf(holder), 0);
+        assert.equal(await token.balanceOf(sender), 0);
+        assert.equal(await token.balanceOf(recipient), 0);
+        assert.equal(await token.balanceOf(recipient2), 0);
+        assert.equal(await token.balanceOf(notary), 0);
+        assert.equal(await token.totalSupply(), initialSupply);
+      });
+
+      it("addBlocklisted fails when extension is disabled", async () => {
+        const blocklistToken = await BlockExtension.at(token.address);
+        await expectRevert.unspecified(
+          blocklistToken.addBlocklistedAdmin(holder, { from: deployer })
+        );
+      });
+
+      it("isBlocklistedAdmin fails when extension is disabled", async () => {
+        const blocklistToken = await BlockExtension.at(token.address);
+        await expectRevert.unspecified(
+          blocklistToken.isBlocklistedAdmin(holder)
+        );
+      });
+
+      it("No one else can enable extensions", async () => {
+        await expectRevert.unspecified(
+          token.enableExtension(blockExt, { from: holder })
+        );
+      });
+
+      it("No one else can register extensions", async () => {
+        await expectRevert.unspecified(
+          token.registerExtension(blockExt, { from: holder })
+        );
+      });
+
+      it("Only deployer can enable extensions", async () => {
+        const result2 = await token.enableExtension(blockExt, { from: deployer });
+
+        assert.equal(result2.receipt.status, 1);
+      });
+
+      it("No one else can disable extensions", async () => {
+        await expectRevert.unspecified(
+          token.registerExtension(blockExt, { from: holder })
+        );
       });
 
       it("Mint 1000 tokens to holder", async () => {

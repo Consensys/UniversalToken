@@ -1,26 +1,26 @@
 pragma solidity ^0.8.0;
 
 import {ICertificateValidator} from "./ICertificateValidator.sol";
-import {ERC20Extension} from "../ERC20Extension.sol";
-import {TransferData} from "../../IExtension.sol";
+import {TokenExtension, TransferData} from "../TokenExtension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {CertificateLib, CertificateValidationType} from "./CertificateLib.sol";
 
-contract CertificateValidatorExtension is ERC20Extension, ICertificateValidator {
+contract CertificateValidatorExtension is TokenExtension, ICertificateValidator {
     
     bytes32 constant CERTIFICATE_SIGNER_ROLE = keccak256("certificates.roles.certificatesigner");
 
     constructor() {
         _registerFunction(CertificateValidatorExtension.addCertificateSigner.selector);
         _registerFunction(CertificateValidatorExtension.removeCertificateSigner.selector);
-        _registerFunction(CertificateValidatorExtension.transferWithCertificate.selector);
-        _registerFunction(CertificateValidatorExtension.transferFromWithCertificate.selector);
 
         _registerFunctionName('isCertificateSigner(address)');
         _registerFunctionName('usedCertificateNonce(address)');
         _registerFunctionName('usedCertificateSalt(bytes32)');
 
         _supportInterface(type(ICertificateValidator).interfaceId);
+
+        //Register token standards supported
+        _supportsAllTokenStandards();
     }
 
     modifier onlyCertificateSigner {
@@ -28,7 +28,7 @@ contract CertificateValidatorExtension is ERC20Extension, ICertificateValidator 
         _;
     }
 
-    function initalize() external override {
+    function initialize() external override {
         _addRole(_msgSender(), CERTIFICATE_SIGNER_ROLE);
     }
 
@@ -50,43 +50,6 @@ contract CertificateValidatorExtension is ERC20Extension, ICertificateValidator 
 
     function usedCertificateSalt(bytes32 salt) external override view returns (bool) {
         return CertificateLib.usedCertificateSalt(salt);
-    }
-
-    function transferWithCertificate(address to, uint256 amount, bytes memory certificate) external override {
-        address from = _msgSender();
-        address token = _tokenAddress();
-        TransferData memory data = TransferData(
-            token,
-            msg.data,
-            0x00000000000000000000000000000000,
-            from, //TODO who is the operator?
-            from,
-            to,
-            amount,
-            0,
-            certificate,
-            ""
-        );
-
-        require(_transfer(data), "CERTEXT: Transfer failed");
-    }
-
-    function transferFromWithCertificate(address from, address to, uint256 amount, bytes memory certificate) external override {
-        address token = _tokenAddress();
-        TransferData memory data = TransferData(
-            token,
-            msg.data,
-            0x00000000000000000000000000000000,
-            _msgSender(),
-            from,
-            to,
-            amount,
-            0,
-            certificate,
-            ""
-        );
-
-        require(_transfer(data), "CERTEXT: Transfer failed");
     }
 
     function onTransferExecuted(TransferData memory data) external override returns (bool) {

@@ -13,8 +13,4 @@ interface ICertificateValidator {
     function usedCertificateNonce(address sender) external view returns (uint256);
 
     function usedCertificateSalt(bytes32 salt) external view returns (bool);
-
-    function transferWithCertificate(address to, uint256 amount, bytes memory certificate) external;
-
-    function transferFromWithCertificate(address from, address to, uint256 amount, bytes memory certificate) external;
 }

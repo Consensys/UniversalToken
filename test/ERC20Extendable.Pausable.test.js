@@ -9,6 +9,7 @@ const {
 const { newSecretHashPair } = require("./utils/crypto");
 const { bytes32 } = require("./utils/regex");
 
+const PauseExtension = artifacts.require("PauseExtension");
 const ERC20Extendable = artifacts.require("ERC20Extendable");
 const ERC20Logic = artifacts.require("ERC20Logic");
 const ERC20LogicMock = artifacts.require("ERC20LogicMock");
@@ -24,6 +25,7 @@ contract(
       const maxSupply = 5000;
       let token;
       let pauseExt;
+      let pauseExtContract;
       before(async function () {
         //snapshot = await takeSnapshot();
         //snapshotId = snapshot["result"];
@@ -39,7 +41,9 @@ contract(
           this.logic.address
         );
 
-        pauseExt = await PauseExtension.new();
+        pauseExtContract = await PauseExtension.new();
+
+        pauseExt = pauseExtContract.address;
 
         assert.equal(await token.isMinter(deployer), true);
         assert.equal(await token.name(), "ERC20Extendable");
@@ -98,6 +102,52 @@ contract(
         assert.equal(result.receipt.status, 1);
 
         assert.equal(await pauseToken.isPaused(), false);
+      });
+
+
+
+      it("Deployer can disable extensions", async () => {
+        const result2 = await token.disableExtension(pauseExt, { from: deployer });
+
+        assert.equal(result2.receipt.status, 1);
+      });
+
+      it("pause fails when extension is disabled", async () => {
+        const pauseToken = await PauseExtension.at(token.address);
+        await expectRevert.unspecified(
+          pauseToken.pause({ from: deployer })
+        );
+      });
+
+      it("isPaused fails when extension is disabled", async () => {
+        const pauseToken = await PauseExtension.at(token.address);
+        await expectRevert.unspecified(
+          pauseToken.isPaused()
+        );
+      });
+
+      it("No one else can enable extensions", async () => {
+        await expectRevert.unspecified(
+          token.enableExtension(pauseExt, { from: holder })
+        );
+      });
+
+      it("No one else can register extensions", async () => {
+        await expectRevert.unspecified(
+          token.registerExtension(pauseExt, { from: holder })
+        );
+      });
+
+      it("Only deployer can enable extensions", async () => {
+        const result2 = await token.enableExtension(pauseExt, { from: deployer });
+
+        assert.equal(result2.receipt.status, 1);
+      });
+
+      it("No one else can disable extensions", async () => {
+        await expectRevert.unspecified(
+          token.registerExtension(pauseExt, { from: holder })
+        );
       });
 
       it("Mint 1000 tokens to holder", async () => {
