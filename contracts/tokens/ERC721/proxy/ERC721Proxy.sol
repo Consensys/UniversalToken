@@ -3,22 +3,13 @@ pragma solidity ^0.8.0;
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Proxy} from "./IERC721Proxy.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
-import {TokenRoles} from "../../roles/TokenRoles.sol";
-import {DomainAware} from "../../../tools/DomainAware.sol";
-import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
-import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
 import {IERC721Logic} from "../logic/IERC721Logic.sol";
 import {ERC721Storage} from "../storage/ERC721Storage.sol";
-import {ExtensionStorage} from "../../../extensions/ExtensionStorage.sol";
 import {IToken, TokenStandard, TransferData} from "../../IToken.sol";
 import {TokenProxy} from "../../proxy/TokenProxy.sol";
+import {ERC721TokenInterface} from "../ERC721TokenInterface.sol";
 
-contract ERC721Proxy is IERC721Proxy, TokenProxy {
-    string constant internal ERC721_INTERFACE_NAME = "ERC721Token";
-    string constant internal ERC721_STORAGE_INTERFACE_NAME = "ERC721TokenStorage";
-    string constant internal ERC721_LOGIC_INTERFACE_NAME = "ERC721TokenLogic";
+contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
     bytes32 constant ERC721_TOKEN_META = keccak256("erc721.token.meta");
 
     struct TokenMeta {
@@ -34,13 +25,8 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy {
         string memory name_, string memory symbol_, 
         bool allowMint, bool allowBurn, address owner,
         uint256 maxSupply_, address logicAddress
-    ) { 
+    ) TokenProxy(logicAddress, owner) { 
         require(maxSupply_ > 0, "Max supply must be non-zero");
-        StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = _msgSender();
-
-        if (owner != _msgSender()) {
-            transferOwnership(owner);
-        }
 
         if (allowMint) {
             _addRole(owner, TOKEN_MANAGER_ADDRESS);
@@ -52,14 +38,6 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy {
         m.maxSupply = maxSupply_;
         m.allowMint = allowMint;
         m.allowBurn = allowBurn;
-
-        ERC1820Client.setInterfaceImplementation(ERC721_INTERFACE_NAME, address(this));
-        ERC1820Implementer._setInterface(ERC721_INTERFACE_NAME); // For migration
-
-        require(logicAddress != address(0), "Logic address must be given");
-        require(logicAddress == ERC1820Client.interfaceAddr(logicAddress, ERC721_LOGIC_INTERFACE_NAME), "Not registered as a logic contract");
-
-        _setImplementation(logicAddress);
         
         ERC721Storage store = new ERC721Storage(address(this));
         _setStorage(address(store));
@@ -69,14 +47,6 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy {
         _updateDomainSeparator();
 
         m.initialized = true;
-    }
-
-    function __tokenStorageInterfaceName() internal virtual override pure returns (string memory) {
-        return ERC721_STORAGE_INTERFACE_NAME;
-    }
-
-    function __tokenLogicInterfaceName() internal virtual override pure returns (string memory) {
-        return ERC721_LOGIC_INTERFACE_NAME;
     }
 
     function supportsInterface(bytes4 interfaceId) external override view returns (bool) {

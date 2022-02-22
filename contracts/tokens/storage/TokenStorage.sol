@@ -4,14 +4,18 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {IExtensionStorage} from "../extension/IExtensionStorage.sol";
 import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../erc1820/ERC1820Implementer.sol";
+import {DynamicTokenInterface} from "../DynamicTokenInterface.sol";
 import {ExtensionLib} from "../extension/ExtensionLib.sol";
 import {ITokenLogic} from "../ITokenLogic.sol";
 import {ExtendableRouter} from "../extension/ExtendableRouter.sol";
 
-abstract contract TokenStorage is IExtensionStorage, ExtendableRouter, ERC1820Implementer {
+abstract contract TokenStorage is DynamicTokenInterface, IExtensionStorage, ExtendableRouter {
 
     constructor(address token) {
         _setCallSite(token);
+
+        ERC1820Client.setInterfaceImplementation(__tokenStorageInterfaceName(), address(this));
+        ERC1820Implementer._setInterface(__tokenStorageInterfaceName()); // For migration
     }
 
     modifier onlyToken {
@@ -22,7 +26,10 @@ abstract contract TokenStorage is IExtensionStorage, ExtendableRouter, ERC1820Im
         _;
     }
 
-    function _getCurrentImplementationAddress() internal virtual view returns (address);
+    function _getCurrentImplementationAddress() internal view returns (address) {
+        address token = _callsiteAddress();
+        return ERC1820Client.interfaceAddr(token, __tokenLogicInterfaceName());
+    }
 
     function onUpgrade(bytes memory data) external override onlyToken returns (bool) {
         address toInvoke = _getCurrentImplementationAddress();

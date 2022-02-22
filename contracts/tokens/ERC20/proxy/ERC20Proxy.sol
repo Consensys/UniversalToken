@@ -2,22 +2,13 @@ pragma solidity ^0.8.0;
 
 import {IERC20Proxy} from "./IERC20Proxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
-import {TokenRoles} from "../../roles/TokenRoles.sol";
-import {DomainAware} from "../../../tools/DomainAware.sol";
-import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
-import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
 import {IERC20Logic} from "../logic/IERC20Logic.sol";
 import {ERC20Storage} from "../storage/ERC20Storage.sol";
-import {ExtensionStorage} from "../../../extensions/ExtensionStorage.sol";
 import {IToken, TransferData, TokenStandard} from "../../IToken.sol";
-import {IExtensionStorage} from "../../extension/IExtensionStorage.sol";
-import {ITokenProxy, TokenProxy} from "../../proxy/TokenProxy.sol";
+import {TokenProxy} from "../../proxy/TokenProxy.sol";
+import {ERC20TokenInterface} from "../ERC20TokenInterface.sol";
 
-contract ERC20Proxy is TokenProxy, IERC20Proxy {
-    string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
-    string constant internal ERC20_STORAGE_INTERFACE_NAME = "ERC20TokenStorage";
-    string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
+contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
     bytes32 constant ERC20_TOKEN_META = keccak256("erc20.token.meta");
 
     struct TokenMeta {
@@ -33,15 +24,8 @@ contract ERC20Proxy is TokenProxy, IERC20Proxy {
         string memory name_, string memory symbol_, 
         bool allowMint, bool allowBurn, address owner,
         uint256 maxSupply_, address logicAddress
-    ) { 
+    ) TokenProxy(logicAddress, owner) { 
         require(maxSupply_ > 0, "Max supply must be non-zero");
-
-        if (owner != address(0) && owner != _msgSender()) {
-            transferOwnership(owner);
-            StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = owner;
-        } else {
-            StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = _msgSender();
-        }
 
         if (allowMint) {
             _addRole(owner, TOKEN_MINTER_ROLE);
@@ -53,14 +37,6 @@ contract ERC20Proxy is TokenProxy, IERC20Proxy {
         m.maxSupply = maxSupply_;
         m.allowMint = allowMint;
         m.allowBurn = allowBurn;
-
-        ERC1820Client.setInterfaceImplementation(ERC20_INTERFACE_NAME, address(this));
-        ERC1820Implementer._setInterface(ERC20_INTERFACE_NAME); // For migration
-
-        require(logicAddress != address(0), "Logic address must be given");
-        require(logicAddress == ERC1820Client.interfaceAddr(logicAddress, ERC20_LOGIC_INTERFACE_NAME), "Not registered as a logic contract");
-
-        _setImplementation(logicAddress);
 
         ERC20Storage store = new ERC20Storage(address(this));
 
@@ -81,14 +57,6 @@ contract ERC20Proxy is TokenProxy, IERC20Proxy {
     modifier burningEnabled {
         require(burningAllowed(), "Burning is disabled");
         _;
-    }
-
-    function __tokenStorageInterfaceName() internal virtual override pure returns (string memory) {
-        return ERC20_STORAGE_INTERFACE_NAME;
-    }
-
-    function __tokenLogicInterfaceName() internal virtual override pure returns (string memory) {
-        return ERC20_LOGIC_INTERFACE_NAME;
     }
 
     /**

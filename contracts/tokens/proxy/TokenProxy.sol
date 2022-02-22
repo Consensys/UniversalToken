@@ -7,11 +7,27 @@ import {DomainAware} from "../../tools/DomainAware.sol";
 import {ITokenStorage, IExtensionStorage} from "../ITokenStorage.sol";
 import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
 import {ITokenProxy} from "../ITokenProxy.sol";
+import {DynamicTokenInterface} from "../DynamicTokenInterface.sol";
+import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
-abstract contract TokenProxy is TokenRoles, DomainAware, ERC1820Client, ERC1820Implementer, ITokenProxy {
-    function __tokenStorageInterfaceName() internal virtual pure returns (string memory);
-    function __tokenLogicInterfaceName() internal virtual pure returns (string memory);
+abstract contract TokenProxy is DynamicTokenInterface, TokenRoles, DomainAware, ITokenProxy {
+    constructor(address logicAddress, address owner) {
+        if (owner != address(0) && owner != _msgSender()) {
+            transferOwnership(owner);
+            StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = owner;
+        } else {
+            StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = _msgSender();
+        }
 
+        ERC1820Client.setInterfaceImplementation(__tokenInterfaceName(), address(this));
+        ERC1820Implementer._setInterface(__tokenInterfaceName()); // For migration
+
+        require(logicAddress != address(0), "Logic address must be given");
+        require(logicAddress == ERC1820Client.interfaceAddr(logicAddress, __tokenLogicInterfaceName()), "Not registered as a logic contract");
+
+        _setImplementation(logicAddress);
+    }
+    
     function _getTokenStorage() internal view returns (ITokenStorage) {
         return ITokenStorage(_getStorageContractAddress());
     }
