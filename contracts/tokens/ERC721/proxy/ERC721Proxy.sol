@@ -1,5 +1,7 @@
 pragma solidity ^0.8.0;
 
+import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
+import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Proxy} from "./IERC721Proxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
@@ -9,11 +11,11 @@ import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
 import {IERC721Logic} from "../logic/IERC721Logic.sol";
 import {ERC721Storage} from "../storage/ERC721Storage.sol";
-import {ERC721Logic} from "../logic/ERC721Logic.sol";
 import {ExtensionStorage} from "../../../extensions/ExtensionStorage.sol";
 import {IToken, TokenStandard, TransferData} from "../../IToken.sol";
+import {TokenProxy} from "../../proxy/TokenProxy.sol";
 
-abstract contract ERC721Proxy is IERC721Proxy, TokenRoles, DomainAware, ERC1820Client, ERC1820Implementer {
+contract ERC721Proxy is IERC721Proxy, TokenProxy {
     string constant internal ERC721_INTERFACE_NAME = "ERC721Token";
     string constant internal ERC721_STORAGE_INTERFACE_NAME = "ERC721TokenStorage";
     string constant internal ERC721_LOGIC_INTERFACE_NAME = "ERC721TokenLogic";
@@ -54,22 +56,12 @@ abstract contract ERC721Proxy is IERC721Proxy, TokenRoles, DomainAware, ERC1820C
         ERC1820Client.setInterfaceImplementation(ERC721_INTERFACE_NAME, address(this));
         ERC1820Implementer._setInterface(ERC721_INTERFACE_NAME); // For migration
 
-        if (logicAddress == address(0)) {
-            ERC721Logic logic = new ERC721Logic();
-            logicAddress = address(logic);
-        }
         require(logicAddress != address(0), "Logic address must be given");
         require(logicAddress == ERC1820Client.interfaceAddr(logicAddress, ERC721_LOGIC_INTERFACE_NAME), "Not registered as a logic contract");
 
         _setImplementation(logicAddress);
-    }
-
-    function initialize() external onlyOwner {
-        TokenMeta storage m = _getTokenMeta();
-        require(!m.initialized, "This proxy has already been initialized");
-
+        
         ERC721Storage store = new ERC721Storage(address(this));
-
         _setStorage(address(store));
 
         //Update the doamin seperator now that 
@@ -77,18 +69,21 @@ abstract contract ERC721Proxy is IERC721Proxy, TokenRoles, DomainAware, ERC1820C
         _updateDomainSeparator();
 
         m.initialized = true;
-
-        _onProxyReady();
     }
 
-    function _onProxyReady() internal virtual { }
-
-    modifier isProxyReady {
-        TokenMeta storage m = _getTokenMeta();
-        require(m.initialized, "This proxy isnt initialized");
-        _;
+    function __tokenStorageInterfaceName() internal virtual override pure returns (string memory) {
+        return ERC721_STORAGE_INTERFACE_NAME;
     }
 
+    function __tokenLogicInterfaceName() internal virtual override pure returns (string memory) {
+        return ERC721_LOGIC_INTERFACE_NAME;
+    }
+
+    function supportsInterface(bytes4 interfaceId) external override view returns (bool) {
+        return
+            interfaceId == type(IERC721).interfaceId ||
+            interfaceId == type(IERC721Metadata).interfaceId;
+    }
     
     modifier mintingEnabled {
         require(mintingAllowed(), "Minting is disabled");
@@ -110,30 +105,16 @@ abstract contract ERC721Proxy is IERC721Proxy, TokenRoles, DomainAware, ERC1820C
         }
     }
 
-    function _getStorageContract() internal view isProxyReady returns (IERC721Logic) {
-        return IERC721Logic(
-            ERC1820Client.interfaceAddr(address(this), ERC721_STORAGE_INTERFACE_NAME)
-        );
+    function _getStorageContract() internal view returns (IERC721Logic) {
+        return IERC721Logic(_getStorageContractAddress());
     }
 
-    function _getImplementationContract() internal view returns (address) {
-        return ERC1820Client.interfaceAddr(address(this), ERC721_LOGIC_INTERFACE_NAME);
-    }
-
-    function _setImplementation(address implementation) internal {
-        ERC1820Client.setInterfaceImplementation(ERC721_LOGIC_INTERFACE_NAME, implementation);
-    }
-
-    function _setStorage(address store) internal {
-        ERC1820Client.setInterfaceImplementation(ERC721_STORAGE_INTERFACE_NAME, store);
-    }
-
-    function mintingAllowed() public override view isProxyReady returns (bool) {
+    function mintingAllowed() public override view returns (bool) {
         TokenMeta storage m = _getTokenMeta();
         return m.allowMint;
     }
 
-    function burningAllowed() public override view isProxyReady returns (bool) {
+    function burningAllowed() public override view returns (bool) {
         TokenMeta storage m = _getTokenMeta();
         return m.allowBurn;
     }
@@ -151,7 +132,7 @@ abstract contract ERC721Proxy is IERC721Proxy, TokenRoles, DomainAware, ERC1820C
     /**
      * @dev Returns the amount of tokens owned by `account`.
      */
-    function balanceOf(address account) public override view isProxyReady returns (uint256) {
+    function balanceOf(address account) public override view returns (uint256) {
         return _getStorageContract().balanceOf(account);
     }
 
@@ -200,14 +181,14 @@ abstract contract ERC721Proxy is IERC721Proxy, TokenRoles, DomainAware, ERC1820C
      *
      * Emits a {Transfer} event.
      */
-    function tokenTransfer(TransferData calldata td) external override onlyControllers isProxyReady returns (bool) {
+    function tokenTransfer(TransferData calldata td) external override onlyControllers returns (bool) {
         require(td.token == address(this), "Invalid token");
 
         if (td.partition != bytes32(0)) {
             return false; //We cannot do partition transfers
         }
 
-        bool result = _forwardCurrentCall();
+        (bool result,) = _forwardCurrentCall();
         if (result) {
             emit Transfer(td.from, td.to, td.tokenId);
         }
@@ -224,8 +205,8 @@ abstract contract ERC721Proxy is IERC721Proxy, TokenRoles, DomainAware, ERC1820C
      *
      * - The caller must own `tokenId` or be an approved operator.
      */
-    function burn(uint256 tokenId) public override virtual burningEnabled isProxyReady returns (bool) {
-        bool result = _forwardCurrentCall();
+    function burn(uint256 tokenId) public override virtual burningEnabled returns (bool) {
+        (bool result,) = _forwardCurrentCall();
         if (result) {
             emit Transfer(_msgSender(), address(0), tokenId);
         }
@@ -246,8 +227,8 @@ abstract contract ERC721Proxy is IERC721Proxy, TokenRoles, DomainAware, ERC1820C
      *
      * Emits a {Transfer} event.
      */
-    function safeTransferFrom(address from, address to, uint256 tokenId) public override isProxyReady {
-        bool result = _forwardCurrentCall();
+    function safeTransferFrom(address from, address to, uint256 tokenId) public override {
+        (bool result,) = _forwardCurrentCall();
         if (result) {
             emit Transfer(from, to, tokenId);
         }
@@ -268,7 +249,7 @@ abstract contract ERC721Proxy is IERC721Proxy, TokenRoles, DomainAware, ERC1820C
      * Emits a {Transfer} event.
      */
     function transferFrom(address from, address to, uint256 tokenId) public override {
-        bool result = _forwardCurrentCall();
+        (bool result,) = _forwardCurrentCall();
         if (result) {
             emit Transfer(from, to, tokenId);
         }
@@ -298,8 +279,8 @@ abstract contract ERC721Proxy is IERC721Proxy, TokenRoles, DomainAware, ERC1820C
      *
      * Emits an {Approval} event.
      */
-    function approve(address to, uint256 tokenId) public override isProxyReady {
-        bool result = _forwardCurrentCall();
+    function approve(address to, uint256 tokenId) public override {
+        (bool result,) = _forwardCurrentCall();
         if (result) {
             emit Approval(_msgSender(), to, tokenId);
         }
@@ -316,7 +297,7 @@ abstract contract ERC721Proxy is IERC721Proxy, TokenRoles, DomainAware, ERC1820C
      * Emits an {ApprovalForAll} event.
      */
     function setApprovalForAll(address operator, bool _approved) external override {
-        bool result = _forwardCurrentCall();
+        (bool result,) = _forwardCurrentCall();
         if (result) {
             emit ApprovalForAll(_msgSender(), operator, _approved);
         }
@@ -345,114 +326,25 @@ abstract contract ERC721Proxy is IERC721Proxy, TokenRoles, DomainAware, ERC1820C
      * Emits a {Transfer} event.
      */
     function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) external override {
-        bool result = _forwardCurrentCall();
+        (bool result,) = _forwardCurrentCall();
         if (result) {
             emit Transfer(from, to, tokenId);
         }
     }
 
     function _transfer(TransferData memory td) private returns (bool) {
-        return _forwardCall(abi.encodeWithSelector(IToken.tokenTransfer.selector, td));
+        (bool result,) = _forwardCall(abi.encodeWithSelector(IToken.tokenTransfer.selector, td));
+        return result;
     }
 
     function _burn(uint256 amount) private returns (bool) {
-        return _forwardCall(abi.encodeWithSelector(IERC721Proxy.burn.selector, amount));
+        (bool result,) = _forwardCall(abi.encodeWithSelector(IERC721Proxy.burn.selector, amount));
+        return result;
     }
 
-    function domainName() public virtual override(DomainAware, IERC721Proxy) view returns (bytes memory) {
+    function _domainName() internal virtual override view returns (bytes memory) {
         return bytes(name());
     }
-
-    function domainVersion() public virtual override(DomainAware, IERC721Proxy) view returns (bytes32) {
-        return bytes32(uint256(uint160(address(_getImplementationContract()))));
-    }
-
-    function upgradeTo(address implementation) external override onlyManager {
-        _setImplementation(implementation);
-    }
-
-    function registerExtension(address extension) external override onlyManager isProxyReady returns (bool) {
-        bool result = _getStorageContract().registerExtension(extension);
-        if (result) {
-            address contextAddress = _getStorageContract().contextAddressForExtension(extension);
-            ExtensionStorage context = ExtensionStorage(payable(contextAddress));
-
-            bytes32[] memory requiredRoles = context.requiredRoles();
-            
-            //If we have roles we need to register, then lets register them
-            if (requiredRoles.length > 0) {
-                address ctxAddress = address(context);
-                for (uint i = 0; i < requiredRoles.length; i++) {
-                    _addRole(ctxAddress, requiredRoles[i]);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    function removeExtension(address extension) external override onlyManager isProxyReady returns (bool) {
-       bool result = _getStorageContract().removeExtension(extension);
-
-       if (result) {
-            address contextAddress = _getStorageContract().contextAddressForExtension(extension);
-            ExtensionStorage context = ExtensionStorage(payable(contextAddress));
-
-            bytes32[] memory requiredRoles = context.requiredRoles();
-            
-            //If we have roles we need to register, then lets register them
-            if (requiredRoles.length > 0) {
-                address ctxAddress = address(context);
-                for (uint i = 0; i < requiredRoles.length; i++) {
-                    _addRole(ctxAddress, requiredRoles[i]);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    function disableExtension(address extension) external override onlyManager isProxyReady returns (bool) {
-        return _getStorageContract().disableExtension(extension);
-    }
-
-    function enableExtension(address extension) external override onlyManager isProxyReady returns (bool) {
-        return _getStorageContract().enableExtension(extension);
-    }
-
-    function allExtensions() external override view isProxyReady returns (address[] memory) {
-        return _getStorageContract().allExtensions();
-    }
-
-    function contextAddressForExtension(address extension) external override view isProxyReady returns (address) {
-        return _getStorageContract().contextAddressForExtension(extension);
-    }
-
-    // Find facet for function that is called and execute the
-    // function if a facet is found and return any value.
-    fallback() external virtual payable isProxyReady {
-        _forwardCurrentCall();
-    }
-
-    function _forwardCurrentCall() private returns (bool) {
-        _forwardCall(_msgData());
-    }
-
-    function _forwardCall(bytes memory _calldata) private returns (bool) {
-        address store = address(_getStorageContract());
-
-        // Forward call to storage contract, appending the current _msgSender to the
-        // end of the current calldata
-        (bool success, bytes memory result) = store.call{gas: gasleft(), value: msg.value}(abi.encodePacked(_calldata, _msgSender()));
-
-        if (!success) {
-            revert(string(result));
-        }
-
-        return success;
-    }
-    
-    receive() external payable {}
     
     function tokenStandard() external pure override returns (TokenStandard) {
         return TokenStandard.ERC721;

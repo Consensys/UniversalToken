@@ -13,7 +13,7 @@ import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
 import {ITokenLogic} from "../../ITokenLogic.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
-contract ERC20Logic is ERC20Upgradeable, ERC1820Client, ERC1820Implementer, ExtendableHooks, IToken, ITokenLogic {
+contract ERC20Logic is ERC20Upgradeable, ERC1820Client, ERC1820Implementer, ExtendableHooks, ITokenLogic {
     using BytesLib for bytes;
 
     string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";

@@ -1,29 +1,12 @@
 pragma solidity ^0.8.0;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {IToken} from "../../IToken.sol";
-import {ITokenRoles} from "../../roles/ITokenRoles.sol";
+import {ITokenProxy} from "../../ITokenProxy.sol";
 
-interface IERC20Proxy is IERC20Metadata, IToken, ITokenRoles {
+interface IERC20Proxy is IERC20Metadata, ITokenProxy {
     function mintingAllowed() external view returns (bool);
 
     function burningAllowed() external view returns (bool);
-
-    function domainName() external view returns (bytes memory);
-
-    function domainVersion() external view returns (bytes32);
-
-    function upgradeTo(address implementation, bytes memory data) external;
-
-    function registerExtension(address extension) external returns (bool);
-
-    function removeExtension(address extension) external returns (bool);
-
-    function disableExtension(address extension) external returns (bool);
-
-    function enableExtension(address extension) external returns (bool);
-
-    function allExtensions() external view returns (address[] memory);
 
     function mint(address to, uint256 amount) external returns (bool);
 
@@ -76,6 +59,4 @@ interface IERC20Proxy is IERC20Metadata, IToken, ITokenRoles {
      * `subtractedValue`.
      */
     function decreaseAllowance(address spender, uint256 subtractedValue) external returns (bool);
-
-    function contextAddressForExtension(address extension) external view returns (address);
 }

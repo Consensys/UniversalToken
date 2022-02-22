@@ -12,8 +12,9 @@ import {ERC20Storage} from "../storage/ERC20Storage.sol";
 import {ExtensionStorage} from "../../../extensions/ExtensionStorage.sol";
 import {IToken, TransferData, TokenStandard} from "../../IToken.sol";
 import {IExtensionStorage} from "../../extension/IExtensionStorage.sol";
+import {ITokenProxy, TokenProxy} from "../../proxy/TokenProxy.sol";
 
-contract ERC20Proxy is IERC20Proxy, TokenRoles, DomainAware, ERC1820Client, ERC1820Implementer {
+contract ERC20Proxy is TokenProxy, IERC20Proxy {
     string constant internal ERC20_INTERFACE_NAME = "ERC20Token";
     string constant internal ERC20_STORAGE_INTERFACE_NAME = "ERC20TokenStorage";
     string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
@@ -82,6 +83,14 @@ contract ERC20Proxy is IERC20Proxy, TokenRoles, DomainAware, ERC1820Client, ERC1
         _;
     }
 
+    function __tokenStorageInterfaceName() internal virtual override pure returns (string memory) {
+        return ERC20_STORAGE_INTERFACE_NAME;
+    }
+
+    function __tokenLogicInterfaceName() internal virtual override pure returns (string memory) {
+        return ERC20_LOGIC_INTERFACE_NAME;
+    }
+
     /**
      * @dev Returns an `AddressSlot` with member `value` located at `slot`.
      */
@@ -93,21 +102,7 @@ contract ERC20Proxy is IERC20Proxy, TokenRoles, DomainAware, ERC1820Client, ERC1
     }
 
     function _getStorageContract() internal view returns (IERC20Logic) {
-        return IERC20Logic(
-            ERC1820Client.interfaceAddr(address(this), ERC20_STORAGE_INTERFACE_NAME)
-        );
-    }
-
-    function _getImplementationContract() internal view returns (address) {
-        return ERC1820Client.interfaceAddr(address(this), ERC20_LOGIC_INTERFACE_NAME);
-    }
-
-    function _setImplementation(address implementation) internal {
-        ERC1820Client.setInterfaceImplementation(ERC20_LOGIC_INTERFACE_NAME, implementation);
-    }
-
-    function _setStorage(address store) internal {
-        ERC1820Client.setInterfaceImplementation(ERC20_STORAGE_INTERFACE_NAME, store);
+        return IERC20Logic(_getStorageContractAddress());
     }
 
     /**
@@ -202,7 +197,7 @@ contract ERC20Proxy is IERC20Proxy, TokenRoles, DomainAware, ERC1820Client, ERC1
         return result;
     }
 
-        /**
+    /**
      * @dev Destroys `amount` tokens from the caller.
      *
      * See {ERC20-_burn}.
@@ -424,142 +419,9 @@ contract ERC20Proxy is IERC20Proxy, TokenRoles, DomainAware, ERC1820Client, ERC1
         return result;
     }
 
-    function domainName() public virtual override(DomainAware, IERC20Proxy) view returns (bytes memory) {
+    function _domainName() internal virtual override view returns (bytes memory) {
         return bytes(name());
     }
-
-    function domainVersion() public virtual override(DomainAware, IERC20Proxy) view returns (bytes32) {
-        return bytes32(uint256(uint160(address(_getImplementationContract()))));
-    }
-
-    function upgradeTo(address implementation, bytes memory data) external override onlyManager {
-        _setImplementation(implementation);
-
-        //Invoke initialize
-        require(_getStorageContract().onUpgrade(data), "Logic initializing failed");
-    }
-
-    function registerExtension(address extension) external override onlyManager returns (bool) {
-        // Lets cann regiterExtension, but ensure we pass along _msgSender
-        // We do this by encoding the call and using _forwardCall
-        // Forward call to storage contract, appending the current _msgSender to the
-        // end of the current calldata
-        bytes memory cdata = abi.encodeWithSelector(IExtensionStorage.registerExtension.selector, extension);
-        (bool result, ) = _forwardCall(cdata);
-
-        if (result) {
-            address contextAddress = _getStorageContract().contextAddressForExtension(extension);
-            ExtensionStorage context = ExtensionStorage(payable(contextAddress));
-
-            bytes32[] memory requiredRoles = context.requiredRoles();
-            
-            //If we have roles we need to register, then lets register them
-            if (requiredRoles.length > 0) {
-                address ctxAddress = address(context);
-                for (uint i = 0; i < requiredRoles.length; i++) {
-                    _addRole(ctxAddress, requiredRoles[i]);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    function removeExtension(address extension) external override onlyManager returns (bool) {
-       bool result = _getStorageContract().removeExtension(extension);
-
-       if (result) {
-            address contextAddress = _getStorageContract().contextAddressForExtension(extension);
-            ExtensionStorage context = ExtensionStorage(payable(contextAddress));
-
-            bytes32[] memory requiredRoles = context.requiredRoles();
-            
-            //If we have roles we need to register, then lets register them
-            if (requiredRoles.length > 0) {
-                address ctxAddress = address(context);
-                for (uint i = 0; i < requiredRoles.length; i++) {
-                    _removeRole(ctxAddress, requiredRoles[i]);
-                }
-            }
-        }
-
-        return result;
-    }
-
-    function disableExtension(address extension) external override onlyManager returns (bool) {
-        return _getStorageContract().disableExtension(extension);
-    }
-
-    function enableExtension(address extension) external override onlyManager returns (bool) {
-        return _getStorageContract().enableExtension(extension);
-    }
-
-    function allExtensions() external override view returns (address[] memory) {
-        return _getStorageContract().allExtensions();
-    }
-
-    function contextAddressForExtension(address extension) external override view returns (address) {
-        return _getStorageContract().contextAddressForExtension(extension);
-    }
-
-    function bytesToHex(bytes memory x) internal pure returns (string memory) {
-        bytes memory f = new bytes(x.length * 2);
-        bytes memory hexChars = bytes("0123456789ABCDEF");
-        for (uint j = 0; j < x.length; j++) {
-            uint v = uint(uint8(x[j] & 0xFF));
-            f[j * 2] = hexChars[v >> uint256(4)];
-            f[j * 2 + 1] = hexChars[v & 0x0F];
-        }
-
-        return string(f);
-    }
-
-    // Forward any function not found here to the storage
-    // contract, appending _msgSender() to the end of the 
-    // calldata provided and return any values
-    fallback() external virtual payable {
-        //we cant define a return value for fallback
-        //therefore, we must do the call in in-line assembly
-        //so we can use the return() opcode to return
-        //dynamic data from the storage contract
-        address store = address(_getStorageContract());
-        bytes memory cdata = abi.encodePacked(_msgData(), _msgSender());
-        uint256 value = msg.value;
-
-        // Execute external function from storage using call and return any value.
-        assembly {
-            // execute function call
-            let result := call(gas(), store, value, add(cdata, 0x20), mload(cdata), 0, 0)
-            // get any return value
-            returndatacopy(0, 0, returndatasize())
-            // return any return value or error back to the caller
-            switch result
-                case 0 {
-                    revert(0, returndatasize())
-                }
-                default {
-                    return(0, returndatasize())
-                }
-        }
-    }
-
-    function _forwardCurrentCall() private returns (bool, bytes memory) {
-        return _forwardCall(_msgData());
-    }
-
-    function _forwardCall(bytes memory _calldata) private returns (bool success, bytes memory result) {
-        address store = address(_getStorageContract());
-
-        // Forward call to storage contract, appending the current _msgSender to the
-        // end of the current calldata
-        (success, result) = store.call{gas: gasleft(), value: msg.value}(abi.encodePacked(_calldata, _msgSender()));
-
-        if (!success) {
-            revert(string(result));
-        }
-    }
-    
-    receive() external payable {}
 
     function tokenStandard() external pure override returns (TokenStandard) {
         return TokenStandard.ERC20;

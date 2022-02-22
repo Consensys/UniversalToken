@@ -4,7 +4,17 @@
  */
 pragma solidity ^0.8.0;
 
-abstract contract DomainAware {
+interface IDomainAware {
+    function domainName() external view returns (bytes memory);
+
+    function domainVersion() external view returns (bytes32);
+
+    function generateDomainSeparator() external view returns (bytes32);
+
+    function domainSeparator() external returns (bytes32);
+}
+
+abstract contract DomainAware is IDomainAware {
 
     bytes32 constant DOMAIN_AWARE_SLOT = keccak256("domainaware.data");
 
@@ -21,9 +31,21 @@ abstract contract DomainAware {
     }
 
     constructor() {
-        if (domainName().length > 0) {
+        if (_domainName().length > 0) {
             _updateDomainSeparator();
         }
+    }
+
+    function _domainName() internal virtual view returns (bytes memory);
+
+    function _domainVersion() internal virtual view returns (bytes32);
+
+    function domainName() external override view returns (bytes memory) {
+        return _domainName();
+    }
+
+    function domainVersion() external override view returns (bytes32) {
+        return _domainVersion();
     }
 
     function domainAwareData() private pure returns (DomainAwareData storage ds) {
@@ -33,14 +55,10 @@ abstract contract DomainAware {
         }
     }
 
-    function domainName() public virtual view returns (bytes memory);
-
-    function domainVersion() public virtual view returns (bytes32);
-
-    function generateDomainSeparator() public view returns (bytes32) {
+    function generateDomainSeparator() public override view returns (bytes32) {
         uint256 chainID = _chainID();
-        bytes memory dn = domainName();
-        bytes memory dv = abi.encodePacked(domainVersion());
+        bytes memory dn = _domainName();
+        bytes memory dv = abi.encodePacked(_domainVersion());
 
         require(dn.length > 0, "Domain name is empty");
         require(dv.length > 0, "Domain version is empty");
@@ -61,7 +79,7 @@ abstract contract DomainAware {
         return domainSeparatorHash;
     }
 
-    function domainSeparator() public returns (bytes32) {
+    function domainSeparator() public override returns (bytes32) {
         return _domainSeparator();
     }
 
@@ -74,7 +92,7 @@ abstract contract DomainAware {
 
         domainAwareData().chainToDomainData[chainID] = DomainData(
             newDomainSeparator,
-            domainVersion()
+            _domainVersion()
         );
 
         return newDomainSeparator;
@@ -83,7 +101,7 @@ abstract contract DomainAware {
     // Returns the domain separator, updating it if chainID changes
     function _domainSeparator() private returns (bytes32) {
         uint256 chainID = _chainID();
-        bytes32 reportedVersion = domainVersion();
+        bytes32 reportedVersion = _domainVersion();
 
         DomainData memory currentDomainData = domainAwareData().chainToDomainData[chainID];
 

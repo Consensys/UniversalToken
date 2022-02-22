@@ -25,9 +25,9 @@ abstract contract ExtensionBase {
         return ds.extension;
     }
 
-    function _tokenAddress() internal view returns (address) {
+    function _tokenAddress() internal view returns (address payable) {
         ContextData storage ds = _contextData();
-        return ds.token;
+        return payable(ds.token);
     }
 
     function _authorizedCaller() internal view returns (address) {
