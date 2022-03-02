@@ -2047,7 +2047,7 @@ contract("DVP", function ([
                 });
                 describe("when token standard is ERC721", function () {
                   it("creates and accepts the trade request", async function () {
-                    this.security721 = await ERC721.new("ERC721Token", "DAU721", "");
+                    this.security721 = await ERC721.new("ERC721Token", "DAU721", "", "");
                     await this.security721.mint(tokenHolder1, issuanceTokenId, {
                       from: owner,
                     });
@@ -2163,7 +2163,7 @@ contract("DVP", function ([
                 });
                 describe("when token standard is ERC721", function () {
                   it("creates and accepts the trade request", async function () {
-                    this.security721 = await ERC721.new("ERC721Token", "DAU721", "");
+                    this.security721 = await ERC721.new("ERC721Token", "DAU721", "", "");
                     await this.security721.mint(tokenHolder1, issuanceTokenId, {
                       from: owner,
                     });
@@ -2864,7 +2864,7 @@ contract("DVP", function ([
         });
         describe("when token standard is ERC721", function () {
           beforeEach(async function () {
-            this.security721 = await ERC721.new("ERC721Token", "DAU721", "");
+            this.security721 = await ERC721.new("ERC721Token", "DAU721", "", "");
             this.token2 = this.security721;
             await this.token2.mint(recipient1, issuanceTokenId, {
               from: owner,
@@ -3878,7 +3878,7 @@ contract("DVP", function ([
                 });
                 describe("when token standard is ERC721 vs ERC20", function () {
                   beforeEach(async function () {
-                    this.security721 = await ERC721.new("ERC721Token", "DAU721", "");
+                    this.security721 = await ERC721.new("ERC721Token", "DAU721", "", "");
                     await this.security721.mint(tokenHolder1, issuanceTokenId, {
                       from: owner,
                     });
