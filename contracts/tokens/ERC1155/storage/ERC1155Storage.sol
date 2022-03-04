@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
 import {TokenStorage} from "../../storage/TokenStorage.sol";
-import {ERC20TokenInterface} from "../ERC20TokenInterface.sol";
+import {ERC1155TokenInterface} from "../ERC1155TokenInterface.sol";
 
-contract ERC20Storage is ERC20TokenInterface, TokenStorage {
+contract ERC721Storage is ERC1155TokenInterface, TokenStorage {
     constructor(address token) TokenStorage(token) { }
 }

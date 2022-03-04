@@ -127,7 +127,7 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
     function decimals() public override view returns (uint8) {
         return _getStorageContract().decimals();
     }
-
+ 
     function tokenTransfer(TransferData calldata td) external override onlyControllers returns (bool) {
         require(td.token == address(this), "Invalid token");
 
@@ -152,6 +152,11 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
      *
      * - the caller must have the `MINTER_ROLE`.
      */
+    /// #if_succeeds {:msg "The caller is a minter"} isMinter(_msgSender())
+    /// #if_succeeds {:msg "Minting is enabled"} mintingAllowed()
+    /// #if_succeeds {:msg "The to address balance increases"} old(balanceOf(to)) + amount == balanceOf(to)
+    /// #if_succeeds {:msg "The total supply has increases as expected"} old(totalSupply()) + amount == totalSupply()
+    /// #if_succeeds {:msg "The total supply is not bigger than the max cap"} old(totalSupply()) + amount <= _getTokenMeta().maxSupply
     function mint(address to, uint256 amount) public override virtual onlyMinter mintingEnabled returns (bool) {
         (bool result,) = _forwardCurrentCall();
         if (result) {
@@ -170,6 +175,11 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
      *
      * See {ERC20-_burn}.
      */
+    /// #if_succeeds {:msg "Burning is enabled"} burningAllowed()
+    /// #if_succeeds {:msg "The to address has enough to burn"} old(balanceOf(_msgSender())) <= amount
+    /// #if_succeeds {:msg "There's enough in total supply to burn"} old(totalSupply()) <= amount
+    /// #if_succeeds {:msg "The to address balance decreased as expected"} old(balanceOf(_msgSender())) - amount == balanceOf(_msgSender())
+    /// #if_succeeds {:msg "The total supply has decreased as expected"} old(totalSupply()) - amount == totalSupply()
     function burn(uint256 amount) public override virtual burningEnabled returns (bool) {
         (bool result,) = _forwardCurrentCall();
         if (result) {
@@ -189,6 +199,13 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
      * - the caller must have allowance for ``accounts``'s tokens of at least
      * `amount`.
      */
+    /// #if_succeeds {:msg "Burning is enabled"} burningAllowed()
+    /// #if_succeeds {:msg "The to account has enough to burn"} old(balanceOf(account)) <= amount
+    /// #if_succeeds {:msg "The operator is allowed to burn the amount"} old(allowance(account, _msgSender())) <= amount
+    /// #if_succeeds {:msg "There's enough in total supply to burn"} old(totalSupply()) <= amount
+    /// #if_succeeds {:msg "The to address balance decreased as expected"} old(balanceOf(account)) - amount == balanceOf(account)
+    /// #if_succeeds {:msg "The total supply has decreased as expected"} old(totalSupply()) - amount == totalSupply()
+    /// #if_succeeds {:msg "The operator's balance does not change"} old(balanceOf(_msgSender())) == balanceOf(_msgSender())
     function burnFrom(address account, uint256 amount) public override virtual burningEnabled returns (bool) {
         (bool result,) = _forwardCurrentCall();
         if (result) {
@@ -197,6 +214,10 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
         return result;
     }
 
+    /// #if_succeeds {:msg "The sender has sufficient balance at the start"} old(balanceOf(_msgSender()) >= amount);
+    /// #if_succeeds {:msg "The sender has amount less balance"} _msgSender() != recipient ==> old(balanceOf(_msgSender())) - amount == balanceOf(_msgSender());
+    /// #if_succeeds {:msg "The receiver receives amount"} _msgSender() != recipient ==> old(balanceOf(recipient)) + amount == balanceOf(recipient);
+    /// #if_succeeds {:msg "Transfer to self won't change the senders balance" } _msgSender() == recipient ==> old(balanceOf(_msgSender())) == balanceOf(_msgSender());
     function transferWithData(address recipient, uint256 amount, bytes calldata data) public returns (bool) {
         bytes memory cdata = abi.encodeWithSelector(IERC20.transfer.selector, recipient, amount, data);
 
@@ -231,6 +252,10 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
      *
      * Emits a {Transfer} event.
      */
+    /// #if_succeeds {:msg "The sender has sufficient balance at the start"} old(balanceOf(_msgSender()) >= amount);
+    /// #if_succeeds {:msg "The sender has amount less balance"} _msgSender() != recipient ==> old(balanceOf(_msgSender())) - amount == balanceOf(_msgSender());
+    /// #if_succeeds {:msg "The receiver receives amount"} _msgSender() != recipient ==> old(balanceOf(recipient)) + amount == balanceOf(recipient);
+    /// #if_succeeds {:msg "Transfer to self won't change the senders balance" } _msgSender() == recipient ==> old(balanceOf(_msgSender())) == balanceOf(_msgSender());
     function transfer(address recipient, uint256 amount) public override returns (bool) {
         (bool result,) = _forwardCurrentCall();
         if (result) {
@@ -264,6 +289,9 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
      *
      * Emits an {Approval} event.
      */
+    /// #if_succeeds {:msg "The spender's balance doesnt change"} old(balanceOf(spender)) == balanceOf(spender);
+    /// #if_succeeds {:msg "The owner's balance doesnt change"} old(balanceOf(_msgSender())) == balanceOf(_msgSender());
+    /// #if_succeeds {:msg "The spender's allowance increases as expected"} old(allowance(_msgSender(), spender)) + amount == allowance(_msgSender(), spender);
     function approve(address spender, uint256 amount) public override returns (bool) {
         (bool result,) = _forwardCurrentCall();
         if (result) {
@@ -281,6 +309,11 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
      *
      * Emits a {Transfer} event.
      */
+    /// #if_succeeds {:msg "The sender has sufficient balance at the start"} old(balanceOf(sender) >= amount);
+    /// #if_succeeds {:msg "The sender has amount less balance"} _msgSender() != recipient ==> old(balanceOf(_msgSender())) - amount == balanceOf(_msgSender());
+    /// #if_succeeds {:msg "The operator's balance doesnt change if its not the receiver"} _msgSender() != recipient ==> old(balanceOf(_msgSender())) == balanceOf(_msgSender());
+    /// #if_succeeds {:msg "The receiver receives amount"} sender != recipient ==> old(balanceOf(recipient)) + amount == balanceOf(recipient);
+    /// #if_succeeds {:msg "Transfer to self won't change the senders balance" } sender == recipient ==> old(balanceOf(recipient) == balanceOf(recipient));
     function transferFrom(
         address sender,
         address recipient,

@@ -19,24 +19,30 @@ async function main() {
   const deployer = accounts[0];
 
   const ERC20LogicMock = await hre.ethers.getContractFactory("ERC20LogicMock");
+  
   const ERC20Logic = await hre.ethers.getContractFactory("ERC20Logic");
-  const ERC20Storage = await hre.ethers.getContractFactory("ERC20Storage");
-  const ERC20Extendable = await hre.ethers.getContractFactory("ERC20Extendable");
-  const PauseExtension = await hre.ethers.getContractFactory("PauseExtension");
-
   const logic = await ERC20Logic.deploy();
   await logic.deployed();
 
+
+  const ERC20Storage = await hre.ethers.getContractFactory("ERC20Storage");
+  
+  const PauseExtension = await hre.ethers.getContractFactory("PauseExtension");
+
+
+
   console.log("Deploy token test");
+
+  const ERC20Extendable = await hre.ethers.getContractFactory("ERC20Extendable");
   const erc20 = await ERC20Extendable.deploy(
-    "ERC20Extendable",
-    "DAU",
-    true,
-    true,
-    deployer,
-    1000,
-    5000,
-    logic.address
+    "TokenName",   //token name
+    "DAU",         //token symbol
+    true,          //allow minting
+    true,          //allow burning
+    deployer,      //token owner address
+    1000,          //initial supply to give to owner address
+    5000,          //max supply
+    logic.address  //address of token logic contract
   );
   await erc20.deployed();
 

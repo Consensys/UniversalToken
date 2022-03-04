@@ -11,6 +11,6 @@ contract ERC20Extendable is ERC20Proxy {
         uint256 maxSupply, address logicAddress
     ) ERC20Proxy(name_, symbol_, allowMint, allowBurn, owner, maxSupply, logicAddress) {
         initalSupply = _initalSupply;
-        _mint(_msgSender(), initalSupply);
+        _mint(owner, initalSupply);
     }
 }

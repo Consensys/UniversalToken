@@ -8,6 +8,8 @@ import {ExtensionBase} from "./ExtensionBase.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
 contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBase {
+    event ExtensionUpgraded(address indexed extension, address indexed newExtension);
+
     constructor(address token, address extension, address callsite) {
         //Setup context data
         ContextData storage ds = _contextData();
@@ -20,6 +22,38 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
         TokenStandard standard = IToken(token).tokenStandard();
 
         require(isTokenStandardSupported(standard), "Extension does not support token standard");
+    }
+
+    function upgradeTo(address extensionImplementation) external onlyCallsite {
+        IExtension ext = IExtension(extensionImplementation);
+
+        address currentDeployer = extensionDeployer();
+        address newDeployer = ext.extensionDeployer();
+
+        require(currentDeployer == newDeployer, "Deployer address for new extension is different than current");
+
+        bytes32 currentPackageHash = packageHash();
+        bytes32 newPackageHash = ext.packageHash();
+
+        require(currentPackageHash == newPackageHash, "Package for new extension is different than current");
+
+        uint256 currentVersion = version();
+        uint256 newVersion = ext.version();
+
+        require(currentVersion != newVersion, "Versions should not match");
+
+        //TODO Check interfaces?
+
+        //Ensure we support this token standard
+        ContextData storage ds = _contextData();
+        TokenStandard standard = IToken(ds.token).tokenStandard();
+
+        require(ext.isTokenStandardSupported(standard), "Token standard is not supported in new extension");
+
+        address old = ds.extension;
+        ds.extension = extensionImplementation;
+
+        emit ExtensionUpgraded(old, extensionImplementation);
     }
 
     function prepareCall(address caller) external override onlyCallsite {
@@ -90,5 +124,29 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
         IExtension ext = IExtension(ds.extension);
 
         return ext.isTokenStandardSupported(standard);
+    }
+
+    function extensionDeployer() public view returns (address) {
+        ContextData storage ds = _contextData();
+        
+        IExtension ext = IExtension(ds.extension);
+
+        return ext.extensionDeployer();
+    }
+
+    function packageHash() public view returns (bytes32) {
+        ContextData storage ds = _contextData();
+        
+        IExtension ext = IExtension(ds.extension);
+
+        return ext.packageHash();
+    }
+
+    function version() public view returns (uint256) {
+        ContextData storage ds = _contextData();
+        
+        IExtension ext = IExtension(ds.extension);
+
+        return ext.version();
     }
 }

@@ -11,7 +11,32 @@ abstract contract TokenExtension is IExtension, ExtensionBase, RolesBase {
     bytes4[] private _exposedFuncSigs;
     mapping(bytes4 => bool) private _interfaceMap;
     bytes32[] private _requiredRoles;
+    address private _deployer;
+    uint256 private _version;
+    string private _package;
+    bytes32 private _packageHash;
 
+    constructor() {
+        _deployer = msg.sender;
+    }
+
+    function __update_package_hash() private {
+        _packageHash = keccak256(abi.encodePacked(_deployer, _package));
+    }
+
+    function _setVersion(uint256 __version) internal {
+        require(isInsideConstructorCall(), "Function must be called inside the constructor");
+
+        _version = __version;
+    }
+
+    function _setPackageName(string memory package) internal {
+        require(isInsideConstructorCall(), "Function must be called inside the constructor");
+
+        _package = package;
+
+        __update_package_hash();
+    }
     
     function _supportsTokenStandard(TokenStandard tokenStandard) internal {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
@@ -22,6 +47,19 @@ abstract contract TokenExtension is IExtension, ExtensionBase, RolesBase {
         _supportsTokenStandard(TokenStandard.ERC20);
         _supportsTokenStandard(TokenStandard.ERC721);
         _supportsTokenStandard(TokenStandard.ERC1400);
+        _supportsTokenStandard(TokenStandard.ERC1155);
+    }
+
+    function extensionDeployer() external view returns (address) {
+        return _deployer;
+    }
+
+    function packageHash() external view returns (bytes32) {
+        return _packageHash;
+    }
+
+    function version() external view returns (uint256) {
+        return _version;
     }
 
     function isTokenStandardSupported(TokenStandard standard) external override view returns (bool) {

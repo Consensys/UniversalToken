@@ -28,7 +28,8 @@ struct TransferData {
 enum TokenStandard {
     ERC20,
     ERC721,
-    ERC1400
+    ERC1400,
+    ERC1155
 }
 
 /**

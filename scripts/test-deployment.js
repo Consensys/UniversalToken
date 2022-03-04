@@ -1,10 +1,17 @@
 module.exports = async function(callback) {
-  const ERC20Core = artifacts.require('ERC20DelegateCoreExtendable');
-  const coreLogic = await ERC20Core.new();
+  const ERC20Logic = artifacts.require('ERC20Logic');
+  const logic = await ERC20Logic.new();
 
   const ERC20Extendable = artifacts.require('ERC20Extendable');
   const token1 = await ERC20Extendable.new(
-    'TestToken', 'TEST', coreLogic.address
+    "TokenName",   //token name
+    "DAU",         //token symbol
+    true,          //allow minting
+    true,          //allow burning
+    deployer,      //token owner address
+    1000,          //initial supply to give to owner address
+    5000,          //max supply
+    logic.address  //address of token logic contract
   );
   const token2 = await ERC20Extendable.new(
     'TestToken2', 'TEST2', coreLogic.address

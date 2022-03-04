@@ -2,28 +2,42 @@ pragma solidity ^0.8.0;
 
 import {IToken, TokenStandard} from "../../IToken.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ExtendableHooks} from "../../extension/ExtendableHooks.sol";
-import {ERC721} from "@openzeppelin/contracts/token/ERC721/ERC721.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {ProxyContext} from "../../../proxy/context/ProxyContext.sol";
 import {TransferData} from "../../../extensions/IExtension.sol";
 import {TokenRoles} from "../../roles/TokenRoles.sol";
 import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
+import {ITokenLogic} from "../../ITokenLogic.sol";
 
-contract ERC721Logic is ERC721, ERC1820Client, ERC1820Implementer, ExtendableHooks, IToken {
+contract ERC721Logic is ERC721Upgradeable, ERC1820Client, ERC1820Implementer, ExtendableHooks, ITokenLogic {
     string constant internal ERC721_LOGIC_INTERFACE_NAME = "ERC721TokenLogic";
 
     bytes private _currentData;
     bytes private _currentOperatorData;
 
-    constructor() ERC721("", "") {
+    constructor() {
         ERC1820Client.setInterfaceImplementation(ERC721_LOGIC_INTERFACE_NAME, address(this));
         ERC1820Implementer._setInterface(ERC721_LOGIC_INTERFACE_NAME); // For migration
     }
 
-    function _msgSender() internal view override(Context, ProxyContext) returns (address) {
+    function initialize(bytes memory data) external override {
+        require(msg.sender == _callsiteAddress(), "Unauthorized");
+        require(_onInitialize(data), "Initialize failed");
+    }
+
+    function _onInitialize(bytes memory data) internal virtual returns (bool) {
+        return true;
+    }
+
+    function _msgSender() internal view override(ContextUpgradeable, ProxyContext) returns (address) {
         return ProxyContext._msgSender();
+    }
+
+    function _msgData() internal view override(ContextUpgradeable, Context) returns (bytes memory) {
+        return ContextUpgradeable._msgData();
     }
 
     /**

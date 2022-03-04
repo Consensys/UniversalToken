@@ -92,6 +92,7 @@
     "crypto": "^1.0.1",
     "ethereumjs-wallet": "^0.6.3",
     "ethers": "^5.5.3",
+    "hardhat": "^2.9.0",
     "solidity-bytes-utils": "^0.8.0",
     "truffle": "5.4.5",
     "truffle-contract-size": "^2.0.1",
