@@ -33,7 +33,7 @@ contract ERC721Token is Ownable, ERC721, ERC721URIStorage, ERC721Enumerable, ERC
       return true;
   }
   
-  function mint(address to, uint256 tokenId, string memory uri) public onlyMinter returns (bool) {
+  function mintAndSetTokenURI(address to, uint256 tokenId, string memory uri) public onlyMinter returns (bool) {
       _mint(to, tokenId);
       _setTokenURI(tokenId, uri);
       return true;
