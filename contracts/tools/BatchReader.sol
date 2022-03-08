@@ -10,7 +10,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./ERC1820Client.sol";
 
-import "@openzeppelin/contracts/token/ERC721/IERC721Enumerable.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/IERC721Enumerable.sol";
 
 
 import "../interface/ERC1820Implementer.sol";
@@ -288,22 +288,22 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
 
         for (uint256 j = 0; j < tokens.length; j++) {
             IERC721Enumerable token = IERC721Enumerable(tokens[j]);
-            uint256[][] batchBalance = new uint256[][](tokenHolders.length);
+            uint256[][] memory batchBalance = new uint256[][](tokenHolders.length);
             
             for (uint256 i = 0; i < tokenHolders.length; i++) {
                 address holder = tokenHolders[i];
                 uint256 tokenCount = token.balanceOf(holder);
 
-                uint256[] balance = new uint256[](tokenCount);
+                uint256[] memory balance = new uint256[](tokenCount);
 
                 for (uint256 k = 0; k < tokenCount; k++) {
-                    balance.push(token.tokenOfOwnerByIndex(holder, k));
+                    balance[k] = token.tokenOfOwnerByIndex(holder, k);
                 }
 
-                batchBalance.push(balance);
+                batchBalance[i] = balance;
             }
 
-            batchBalanceOfResponse.push(batchBalance);
+            batchBalanceOfResponse[j] = batchBalance;
         }
 
         uint256[] memory batchEthBalances = batchEthBalance(tokenHolders);
