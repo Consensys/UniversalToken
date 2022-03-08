@@ -4,10 +4,10 @@ import {IERC20Proxy} from "./IERC20Proxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Logic} from "../../logic/ERC20/IERC20Logic.sol";
 import {IToken, TransferData, TokenStandard} from "../../../interface/IToken.sol";
-import {TokenProxy} from "../../../proxy/TokenProxy.sol";
+import {ExtendableTokenProxy} from "../../../proxy/TokenProxy.sol";
 import {ERC20TokenInterface} from "../../registry/ERC20TokenInterface.sol";
 
-contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
+contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     bytes32 constant ERC20_TOKEN_META = keccak256("erc20.token.meta");
 
     struct TokenMeta {

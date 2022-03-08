@@ -12,6 +12,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtenda
         return ExtensionLib._allExtensions();
     }
 
+    // TODO storageAddressForExtension
     function contextAddressForExtension(address extension) external override view returns (address) {
         return ExtensionLib._contextAddressForExtension(extension);
     }

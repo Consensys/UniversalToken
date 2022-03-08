@@ -60,7 +60,7 @@ library ExtensionLib {
         //To sandbox our extension's storage
         ExtensionStorage context = new ExtensionStorage(token, extension, address(this));
 
-        //Next lets figure out what external functions to register in the Diamond
+        //Next lets figure out what external functions to register in the Extension
         bytes4[] memory externalFunctions = context.externalFunctions();
 
         //If we have external functions to register, then lets register them
