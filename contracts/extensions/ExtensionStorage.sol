@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {IToken} from "../tokens/IToken.sol";
+import {IToken} from "../interface/IToken.sol";
 import {IExtensionStorage} from "./IExtensionStorage.sol";
 import {IExtension} from "./IExtension.sol";
 import {IExtensionMetadata, TokenStandard} from "./IExtensionMetadata.sol";

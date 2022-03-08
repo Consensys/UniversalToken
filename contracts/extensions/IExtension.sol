@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {TransferData} from "../tokens/IToken.sol";
+import {TransferData} from "../interface/IToken.sol";
 import {IExtensionMetadata, TokenStandard} from "./IExtensionMetadata.sol";
 
 interface IExtension is IExtensionMetadata {

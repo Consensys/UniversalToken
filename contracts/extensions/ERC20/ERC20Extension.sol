@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {IERC20Proxy} from "../../tokens/ERC20/proxy/IERC20Proxy.sol";
+import {IERC20Proxy} from "../../tokens/proxy/ERC20/IERC20Proxy.sol";
 import {TokenExtension, TransferData} from "../TokenExtension.sol";
 
 abstract contract ERC20Extension is TokenExtension {

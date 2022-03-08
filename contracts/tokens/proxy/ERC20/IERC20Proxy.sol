@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
-import {ITokenProxy} from "../../ITokenProxy.sol";
+import {ITokenProxy} from "../../../interface/ITokenProxy.sol";
 
 interface IERC20Proxy is IERC20Metadata, ITokenProxy {
     function mintingAllowed() external view returns (bool);

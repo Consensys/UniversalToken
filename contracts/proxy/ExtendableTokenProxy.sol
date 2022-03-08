@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
 import {TokenProxy} from "./TokenProxy.sol";
-import {ExtendableRouter} from "../extension/ExtendableRouter.sol";
-import {IExtendable} from "../extension/IExtendable.sol";
+import {ExtendableRouter} from "../tokens/extension/ExtendableRouter.sol";
+import {IExtendable} from "../tokens/extension/IExtendable.sol";
 
 abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtendable {
     function allExtensions() external override view returns (address[] memory) {
@@ -65,5 +65,17 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtenda
 
     function enableExtension(address extension) external override onlyManager returns (bool) {
         return _enableExtension(extension);
+    }
+
+    // Forward any function not found here to the logic
+    // or to a registered extension
+    fallback() external override payable {
+        bool isExt = _isExtensionFunction(msg.sig);
+
+        if (isExt) {
+            _invokeExtensionFunction();
+        } else {
+            _delegateCurrentCall();
+        }
     }
 }

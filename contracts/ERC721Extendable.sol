@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {ERC721Proxy} from "./tokens/ERC721/proxy/ERC721Proxy.sol";
+import {ERC721Proxy} from "./tokens/proxy/ERC721/ERC721Proxy.sol";
 
 contract ERC721Extendable is ERC721Proxy {
     

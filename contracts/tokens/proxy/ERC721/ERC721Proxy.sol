@@ -3,11 +3,10 @@ pragma solidity ^0.8.0;
 import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/IERC721Metadata.sol";
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Proxy} from "./IERC721Proxy.sol";
-import {IERC721Logic} from "../logic/IERC721Logic.sol";
-import {ERC721Storage} from "../storage/ERC721Storage.sol";
-import {IToken, TokenStandard, TransferData} from "../../IToken.sol";
-import {TokenProxy} from "../../proxy/TokenProxy.sol";
-import {ERC721TokenInterface} from "../ERC721TokenInterface.sol";
+import {IERC721Logic} from "../../logic/ERC721/IERC721Logic.sol";
+import {IToken, TokenStandard, TransferData} from "../../../interface/IToken.sol";
+import {TokenProxy} from "../../../proxy/TokenProxy.sol";
+import {ERC721TokenInterface} from "../../registry/ERC721TokenInterface.sol";
 
 contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
     bytes32 constant ERC721_TOKEN_META = keccak256("erc721.token.meta");
@@ -38,9 +37,6 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
         m.maxSupply = maxSupply_;
         m.allowMint = allowMint;
         m.allowBurn = allowBurn;
-        
-        ERC721Storage store = new ERC721Storage(address(this));
-        _setStorage(address(store));
 
         //Update the doamin seperator now that 
         //we've setup everything

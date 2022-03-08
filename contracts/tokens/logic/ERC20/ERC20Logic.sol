@@ -1,16 +1,16 @@
 pragma solidity ^0.8.0;
 
-import {IToken, TokenStandard} from "../../IToken.sol";
+import {IToken, TokenStandard} from "../../../interface/IToken.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ExtendableHooks} from "../../extension/ExtendableHooks.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {ProxyContext} from "../../../proxy/context/ProxyContext.sol";
 import {TransferData} from "../../../extensions/IExtension.sol";
-import {TokenRoles} from "../../roles/TokenRoles.sol";
+import {TokenRoles} from "../../../roles/TokenRoles.sol";
 import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
-import {ITokenLogic} from "../../ITokenLogic.sol";
+import {ITokenLogic} from "../../../interface/ITokenLogic.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 contract ERC20Logic is ERC20Upgradeable, ERC1820Client, ERC1820Implementer, ExtendableHooks, ITokenLogic {

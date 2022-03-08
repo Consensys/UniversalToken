@@ -2,10 +2,10 @@ pragma solidity ^0.8.0;
 
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
-import {Roles} from "../../roles/Roles.sol";
-import {RolesBase} from "../../roles/RolesBase.sol";
-import {ExtensionLib} from "../extension/ExtensionLib.sol";
-import {ITokenRoles} from "./ITokenRoles.sol";
+import {Roles} from "./Roles.sol";
+import {RolesBase} from "./RolesBase.sol";
+import {ExtensionLib} from "../tokens/extension/ExtensionLib.sol";
+import {ITokenRoles} from "../interface/ITokenRoles.sol";
 
 abstract contract TokenRoles is ITokenRoles, RolesBase, Context {
     using Roles for Roles.Role;

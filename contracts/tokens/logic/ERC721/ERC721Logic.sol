@@ -1,16 +1,16 @@
 pragma solidity ^0.8.0;
 
-import {IToken, TokenStandard} from "../../IToken.sol";
+import {IToken, TokenStandard} from "../../../interface/IToken.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ExtendableHooks} from "../../extension/ExtendableHooks.sol";
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
 import {ProxyContext} from "../../../proxy/context/ProxyContext.sol";
 import {TransferData} from "../../../extensions/IExtension.sol";
-import {TokenRoles} from "../../roles/TokenRoles.sol";
+import {TokenRoles} from "../../../roles/TokenRoles.sol";
 import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
-import {ITokenLogic} from "../../ITokenLogic.sol";
+import {ITokenLogic} from "../../../interface/ITokenLogic.sol";
 
 contract ERC721Logic is ERC721Upgradeable, ERC1820Client, ERC1820Implementer, ExtendableHooks, ITokenLogic {
     string constant internal ERC721_LOGIC_INTERFACE_NAME = "ERC721TokenLogic";

@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
-import {DynamicTokenInterface} from "../DynamicTokenInterface.sol";
+import {TokenERC1820Provider} from "../TokenERC1820Provider.sol";
 
-abstract contract ERC721TokenInterface is DynamicTokenInterface {
+abstract contract ERC721TokenInterface is TokenERC1820Provider {
     string constant internal ERC721_INTERFACE_NAME = "ERC721Token";
     string constant internal ERC721_STORAGE_INTERFACE_NAME = "ERC721TokenStorage";
     string constant internal ERC721_LOGIC_INTERFACE_NAME = "ERC721TokenLogic";

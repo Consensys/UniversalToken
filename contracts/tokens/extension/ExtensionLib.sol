@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {TransferData} from "../IToken.sol";
+import {TransferData} from "../../interface/IToken.sol";
 import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
 
 library ExtensionLib {

@@ -1,17 +1,17 @@
 pragma solidity ^0.8.0;
 
-import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
-import {ERC1820Implementer} from "../../erc1820/ERC1820Implementer.sol";
+import {ERC1820Client} from "../erc1820/ERC1820Client.sol";
+import {ERC1820Implementer} from "../erc1820/ERC1820Implementer.sol";
 import {TokenRoles} from "../roles/TokenRoles.sol";
-import {DomainAware} from "../../tools/DomainAware.sol";
-import {ITokenLogic} from "../ITokenLogic.sol";
-import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
-import {ITokenProxy} from "../ITokenProxy.sol";
-import {DynamicTokenInterface} from "../DynamicTokenInterface.sol";
+import {DomainAware} from "../tools/DomainAware.sol";
+import {ITokenLogic} from "../interface/ITokenLogic.sol";
+import {ExtensionStorage} from "../extensions/ExtensionStorage.sol";
+import {ITokenProxy} from "../interface/ITokenProxy.sol";
+import {TokenERC1820Provider} from "../tokens/TokenERC1820Provider.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
-import {TransferData} from "../IToken.sol";
+import {TransferData} from "../interface/IToken.sol";
 
-abstract contract TokenProxy is DynamicTokenInterface, TokenRoles, DomainAware, ITokenProxy {
+abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, ITokenProxy {
     constructor(address logicAddress, address owner) {
         if (owner != address(0) && owner != _msgSender()) {
             transferOwnership(owner);
@@ -50,39 +50,9 @@ abstract contract TokenProxy is DynamicTokenInterface, TokenRoles, DomainAware, 
         require(success, "Logic initializing failed");
     }
 
-    // Forward any function not found here to the storage
-    // contract, appending _msgSender() to the end of the 
-    // calldata provided and return any values
+    // Forward any function not found here to the logic
     fallback() external override payable {
-        //we cant define a return value for fallback in solidity
-        //therefore, we must do the call in in-line assembly
-        //so we can use the return() opcode to return
-        //dynamic data from the storage contract
-
-        //This is because the storage contract may return
-        //anything, since both the logic contract or
-        //the registered & enabled extensions can return
-        //something
-        address logic = _getLogicContractAddress();
-        bytes memory cdata = abi.encodePacked(_msgData(), _msgSender());
-        uint256 value = msg.value;
-
-        // Forward the external call using call and return any value
-        // and reverting if the call failed
-        assembly {
-            // execute function call
-            let result := call(gas(), logic, value, add(cdata, 0x20), mload(cdata), 0, 0)
-            // get any return value
-            returndatacopy(0, 0, returndatasize())
-            // return any return value or error back to the caller
-            switch result
-                case 0 {
-                    revert(0, returndatasize())
-                }
-                default {
-                    return(0, returndatasize())
-                }
-        }
+        _delegateCurrentCall();
     }
 
     function _delegateCurrentCall() internal {

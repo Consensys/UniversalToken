@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {ERC20Logic} from "../tokens/ERC20/logic/ERC20Logic.sol";
+import {ERC20Logic} from "../tokens/logic/ERC20/ERC20Logic.sol";
 
 contract ERC20LogicMock is ERC20Logic {
     string private test;
