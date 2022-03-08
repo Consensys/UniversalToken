@@ -10,6 +10,9 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 import "./ERC1820Client.sol";
 
+import "@openzeppelin/contracts/token/ERC721/IERC721Enumerable.sol";
+
+
 import "../interface/ERC1820Implementer.sol";
 
 import "../IERC1400.sol";
@@ -274,6 +277,38 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
         }
 
         return batchEthBalanceResponse;
+    }
+
+    /**
+     * @dev Get batch of ERC721 balances.
+     * @return Batch of ERC721 balances.
+     */
+    function batchERC721Balances(address[] calldata tokens, address[] calldata tokenHolders) external view returns (uint256[] memory, uint256[][][] memory) {
+        uint256[][][] memory batchBalanceOfResponse = new uint256[][][](tokens.length);
+
+        for (uint256 j = 0; j < tokens.length; j++) {
+            IERC721Enumerable token = IERC721Enumerable(tokens[j]);
+            uint256[][] batchBalance = new uint256[][](tokenHolders.length);
+            
+            for (uint256 i = 0; i < tokenHolders.length; i++) {
+                address holder = tokenHolders[i];
+                uint256 tokenCount = token.balanceOf(holder);
+
+                uint256[] balance = new uint256[](tokenCount);
+
+                for (uint256 k = 0; k < tokenCount; k++) {
+                    balance.push(token.tokenOfOwnerByIndex(holder, k));
+                }
+
+                batchBalance.push(balance);
+            }
+
+            batchBalanceOfResponse.push(batchBalance);
+        }
+
+        uint256[] memory batchEthBalances = batchEthBalance(tokenHolders);
+
+        return (batchEthBalances, batchBalanceOfResponse);
     }
 
     /**
