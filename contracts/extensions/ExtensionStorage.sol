@@ -126,7 +126,7 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
         return ext.isTokenStandardSupported(standard);
     }
 
-    function extensionDeployer() public view returns (address) {
+    function extensionDeployer() public view override returns (address) {
         ContextData storage ds = _contextData();
         
         IExtension ext = IExtension(ds.extension);
@@ -134,7 +134,7 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
         return ext.extensionDeployer();
     }
 
-    function packageHash() public view returns (bytes32) {
+    function packageHash() public view override returns (bytes32) {
         ContextData storage ds = _contextData();
         
         IExtension ext = IExtension(ds.extension);
@@ -142,7 +142,7 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
         return ext.packageHash();
     }
 
-    function version() public view returns (uint256) {
+    function version() public view override returns (uint256) {
         ContextData storage ds = _contextData();
         
         IExtension ext = IExtension(ds.extension);

@@ -1,13 +1,13 @@
 pragma solidity ^0.8.0;
 
-import {Context} from "@openzeppelin/contracts/utils/Context.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {Roles} from "./Roles.sol";
 import {RolesBase} from "./RolesBase.sol";
 import {ExtensionLib} from "../tokens/extension/ExtensionLib.sol";
 import {ITokenRoles} from "../interface/ITokenRoles.sol";
 
-abstract contract TokenRoles is ITokenRoles, RolesBase, Context {
+abstract contract TokenRoles is ITokenRoles, RolesBase, ContextUpgradeable {
     using Roles for Roles.Role;
 
     bytes32 constant TOKEN_ALLOW_BURN = keccak256("token.proxy.core.burn");

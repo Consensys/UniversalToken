@@ -4,10 +4,13 @@ import {IERC20Proxy} from "./IERC20Proxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Logic} from "../../logic/ERC20/IERC20Logic.sol";
 import {IToken, TransferData, TokenStandard} from "../../../interface/IToken.sol";
-import {ExtendableTokenProxy} from "../../../proxy/TokenProxy.sol";
+import {ExtendableTokenProxy} from "../ExtendableTokenProxy.sol";
 import {ERC20TokenInterface} from "../../registry/ERC20TokenInterface.sol";
+import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
+    using BytesLib for bytes;
+    
     bytes32 constant ERC20_TOKEN_META = keccak256("erc20.token.meta");
 
     struct TokenMeta {
@@ -23,7 +26,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
         string memory name_, string memory symbol_, 
         bool allowMint, bool allowBurn, address owner,
         uint256 maxSupply_, address logicAddress
-    ) TokenProxy(logicAddress, owner) { 
+    ) ExtendableTokenProxy(logicAddress, owner) { 
         require(maxSupply_ > 0, "Max supply must be non-zero");
 
         if (allowMint) {
@@ -67,7 +70,11 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     /**
      * @dev Returns the amount of tokens in existence.
      */
-    function totalSupply() public override view delegated returns (uint256) { }
+    function totalSupply() public override view returns (uint256) {
+        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.totalSupply.selector));
+
+        return result.toUint256(0);
+     }
 
     function mintingAllowed() public override view returns (bool) {
         TokenMeta storage m = _getTokenMeta();
@@ -92,7 +99,11 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     /**
      * @dev Returns the amount of tokens owned by `account`.
      */
-    function balanceOf(address account) public override view delegated returns (uint256) {}
+    function balanceOf(address account) public override view returns (uint256) {
+        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.balanceOf.selector, account));
+
+        return result.toUint256(0);
+    }
 
     /**
      * @dev Returns the name of the token.
@@ -111,7 +122,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     /**
      * @dev Returns the decimals places of the token.
      */
-    function decimals() public override view delegated returns (uint8) {}
+    function decimals() public override view staticdelegated returns (uint8) { }
  
     function tokenTransfer(TransferData calldata td) external override onlyControllers returns (bool) {
         require(td.token == address(this), "Invalid token");
@@ -155,7 +166,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     /// #if_succeeds {:msg "The to address balance decreased as expected"} old(balanceOf(_msgSender())) - amount == balanceOf(_msgSender())
     /// #if_succeeds {:msg "The total supply has decreased as expected"} old(totalSupply()) - amount == totalSupply()
     function burn(uint256 amount) public override virtual burningEnabled delegated returns (bool) { }
-
+    
     /**
      * @dev Destroys `amount` tokens from `account`, deducting from the caller's
      * allowance.
@@ -232,6 +243,12 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     /// #if_succeeds {:msg "The owner's balance doesnt change"} old(balanceOf(_msgSender())) == balanceOf(_msgSender());
     /// #if_succeeds {:msg "The spender's allowance increases as expected"} old(allowance(_msgSender(), spender)) + amount == allowance(_msgSender(), spender);
     function approve(address spender, uint256 amount) public override delegated returns (bool) { }
+
+    function allowance(address owner, address spender) public override view returns (uint256) {
+        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.allowance.selector, owner, spender));
+
+        return result.toUint256(0);
+     }
 
     /**
      * @dev Moves `amount` tokens from `sender` to `recipient` using the

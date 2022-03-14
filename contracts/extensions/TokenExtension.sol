@@ -50,15 +50,15 @@ abstract contract TokenExtension is IExtension, ExtensionBase, RolesBase {
         _supportsTokenStandard(TokenStandard.ERC1155);
     }
 
-    function extensionDeployer() external view returns (address) {
+    function extensionDeployer() external override view returns (address) {
         return _deployer;
     }
 
-    function packageHash() external view returns (bytes32) {
+    function packageHash() external override view returns (bytes32) {
         return _packageHash;
     }
 
-    function version() external view returns (uint256) {
+    function version() external override view returns (uint256) {
         return _version;
     }
 

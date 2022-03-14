@@ -1,30 +1,31 @@
 pragma solidity ^0.8.0;
 
+import {TokenLogic} from "../TokenLogic.sol";
 import {IToken, TokenStandard} from "../../../interface/IToken.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
-import {ExtendableHooks} from "../../extension/ExtendableHooks.sol";
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
+import {ERC721BurnableUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721BurnableUpgradeable.sol";
+import {ERC721EnumerableUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721EnumerableUpgradeable.sol";
+import {ERC721URIStorageUpgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/extensions/ERC721URIStorageUpgradeable.sol";
 import {ProxyContext} from "../../../proxy/context/ProxyContext.sol";
 import {TransferData} from "../../../extensions/IExtension.sol";
 import {TokenRoles} from "../../../roles/TokenRoles.sol";
 import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
 import {ITokenLogic} from "../../../interface/ITokenLogic.sol";
+import {ERC721TokenInterface} from "../../registry/ERC721TokenInterface.sol";
 
-contract ERC721Logic is ERC721Upgradeable, ERC1820Client, ERC1820Implementer, ExtendableHooks, ITokenLogic {
-    string constant internal ERC721_LOGIC_INTERFACE_NAME = "ERC721TokenLogic";
-
+contract ERC721Logic is ERC721TokenInterface, TokenLogic, ERC721Upgradeable, ERC721URIStorageUpgradeable, ERC721EnumerableUpgradeable, ERC721BurnableUpgradeable {
     bytes private _currentData;
     bytes private _currentOperatorData;
 
-    constructor() {
-        ERC1820Client.setInterfaceImplementation(ERC721_LOGIC_INTERFACE_NAME, address(this));
-        ERC1820Implementer._setInterface(ERC721_LOGIC_INTERFACE_NAME); // For migration
-    }
+    string internal _contractUri;
 
+
+    //TODO Add upgrade check
     function initialize(bytes memory data) external override {
-        require(msg.sender == _callsiteAddress(), "Unauthorized");
+        //require(msg.sender == address(this), "Unauthorized");
         require(_onInitialize(data), "Initialize failed");
     }
 
@@ -32,12 +33,25 @@ contract ERC721Logic is ERC721Upgradeable, ERC1820Client, ERC1820Implementer, Ex
         return true;
     }
 
-    function _msgSender() internal view override(ContextUpgradeable, ProxyContext) returns (address) {
-        return ProxyContext._msgSender();
+    /**
+    * @dev Function to mint tokens
+    * @param to The address that will receive the minted tokens.
+    * @param tokenId The token id to mint.
+    * @return A boolean that indicates if the operation was successful.
+    */
+    function mint(address to, uint256 tokenId) public onlyMinter returns (bool) {
+        _mint(to, tokenId);
+        return true;
+    }
+    
+    function mintAndSetTokenURI(address to, uint256 tokenId, string memory uri) public onlyMinter returns (bool) {
+        _mint(to, tokenId);
+        _setTokenURI(tokenId, uri);
+        return true;
     }
 
-    function _msgData() internal view override(ContextUpgradeable, Context) returns (bytes memory) {
-        return ContextUpgradeable._msgData();
+    function setTokenURI(uint256 tokenId, string memory uri) public virtual onlyMinter {
+        _setTokenURI(tokenId, uri);
     }
 
     /**
@@ -47,6 +61,26 @@ contract ERC721Logic is ERC721Upgradeable, ERC1820Client, ERC1820Implementer, Ex
     function _safeTransfer(address from, address to, uint256 tokenId, bytes memory _data) internal override {
         _currentData = _data;
         super._safeTransfer(from, to, tokenId, _data);
+    }
+
+    function _burn(uint256 tokenId) internal override(ERC721Upgradeable, ERC721URIStorageUpgradeable) {
+        super._burn(tokenId);
+    }
+
+    function supportsInterface(bytes4 interfaceId) public view virtual override(ERC721Upgradeable, ERC721EnumerableUpgradeable) returns (bool) {
+        return super.supportsInterface(interfaceId);
+    }
+
+    function tokenURI(uint256 tokenId) public view virtual override(ERC721Upgradeable, ERC721URIStorageUpgradeable) returns (string memory) {
+        return super.tokenURI(tokenId);
+    }
+
+    function setContractURI(string memory uri) public virtual onlyOwner {
+        _contractUri = uri;
+    }
+
+    function contractURI() public view returns (string memory) {
+        return _contractUri;
     }
 
     /**
@@ -67,9 +101,11 @@ contract ERC721Logic is ERC721Upgradeable, ERC1820Client, ERC1820Implementer, Ex
         address from,
         address to,
         uint256 tokenId
-    ) internal override {
+    ) internal override(ERC721Upgradeable, ERC721EnumerableUpgradeable) {
+        ERC721EnumerableUpgradeable._beforeTokenTransfer(from, to, tokenId);
+
         TransferData memory data = TransferData(
-            _callsiteAddress(),
+            address(this),
             msg.data,
             0x00000000000000000000000000000000,
             _msgSender(),
@@ -87,40 +123,9 @@ contract ERC721Logic is ERC721Upgradeable, ERC1820Client, ERC1820Implementer, Ex
         _triggerTokenTransfer(data);
     }
 
-    function _isMinter(address caller) internal view returns (bool) {
-        address tokenProxy = _callsiteAddress();
-
-        uint size;
-        assembly { size := extcodesize(tokenProxy) }
-        bool isTokenBeingConstructed = size == 0;
-
-        if (isTokenBeingConstructed) {
-            return true;
-        }
-
-        TokenRoles proxy = TokenRoles(tokenProxy);
-        bool minter = proxy.isMinter(caller);
-        return minter;
-    }
-
-    //TODO Add mint
-
-    /**
-     * @dev Burns `tokenId`. See {ERC721-_burn}.
-     *
-     * Requirements:
-     *
-     * - The caller must own `tokenId` or be an approved operator.
-     */
-    function burn(uint256 tokenId) public virtual {
-        //solhint-disable-next-line max-line-length
-        require(_isApprovedOrOwner(_msgSender(), tokenId), "ERC721Burnable: caller is not owner nor approved");
-        _burn(tokenId);
-    }
-
     function tokenTransfer(TransferData calldata td) external override returns (bool) {
         require(td.partition == bytes32(0), "Invalid transfer data: partition");
-        require(td.token == _callsiteAddress(), "Invalid transfer data: token");
+        require(td.token == address(this), "Invalid transfer data: token");
         require(td.value == 0, "Invalid transfer data: value");
 
         _currentData = td.data;

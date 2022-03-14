@@ -1,10 +1,21 @@
 pragma solidity ^0.8.0;
 
 import {TokenProxy} from "./TokenProxy.sol";
-import {ExtendableRouter} from "../tokens/extension/ExtendableRouter.sol";
-import {IExtendable} from "../tokens/extension/IExtendable.sol";
+import {IExtendableTokenProxy} from "../../interface/IExtendableTokenProxy.sol";
+import {ExtendableRouter} from "../extension/ExtendableRouter.sol";
+import {IExtendableTokenProxy} from "../../interface/IExtendableTokenProxy.sol";
+import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
+import {ExtensionLib} from "../extension/ExtensionLib.sol";
+import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
+import {ITokenProxy} from "../../interface/ITokenProxy.sol";
 
-abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtendable {
+abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtendableTokenProxy {
+    string constant internal EXTENDABLE_INTERFACE_NAME = "ExtendableToken";
+
+    constructor(address logicAddress, address owner) TokenProxy(logicAddress, owner) {
+        ERC1820Client.setInterfaceImplementation(EXTENDABLE_INTERFACE_NAME, address(this));
+    }
+
     function allExtensions() external override view returns (address[] memory) {
         //To return all the extensions, we'll read directly from the ERC20CoreExtendableBase's storage struct
         //since it's stored here at the proxy
@@ -19,7 +30,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtenda
 
     
     function registerExtension(address extension) external override onlyManager returns (bool) {
-        bool result = _registerExtension(extension, _callsiteAddress());
+        bool result = _registerExtension(extension, address(this));
 
         if (result) {
             address contextAddress = ExtensionLib._contextAddressForExtension(extension);
@@ -70,7 +81,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtenda
 
     // Forward any function not found here to the logic
     // or to a registered extension
-    fallback() external override payable {
+    fallback() external override(ITokenProxy, TokenProxy) virtual payable {
         bool isExt = _isExtensionFunction(msg.sig);
 
         if (isExt) {

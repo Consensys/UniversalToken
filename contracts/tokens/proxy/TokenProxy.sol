@@ -1,15 +1,15 @@
 pragma solidity ^0.8.0;
 
-import {ERC1820Client} from "../erc1820/ERC1820Client.sol";
-import {ERC1820Implementer} from "../erc1820/ERC1820Implementer.sol";
-import {TokenRoles} from "../roles/TokenRoles.sol";
-import {DomainAware} from "../tools/DomainAware.sol";
-import {ITokenLogic} from "../interface/ITokenLogic.sol";
-import {ExtensionStorage} from "../extensions/ExtensionStorage.sol";
-import {ITokenProxy} from "../interface/ITokenProxy.sol";
-import {TokenERC1820Provider} from "../tokens/TokenERC1820Provider.sol";
+import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
+import {ERC1820Implementer} from "../../erc1820/ERC1820Implementer.sol";
+import {TokenRoles} from "../../roles/TokenRoles.sol";
+import {DomainAware} from "../../tools/DomainAware.sol";
+import {ITokenLogic} from "../../interface/ITokenLogic.sol";
+import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
+import {ITokenProxy} from "../../interface/ITokenProxy.sol";
+import {TokenERC1820Provider} from "../TokenERC1820Provider.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
-import {TransferData} from "../interface/IToken.sol";
+import {TransferData} from "../../interface/IToken.sol";
 
 abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, ITokenProxy {
     constructor(address logicAddress, address owner) {
@@ -51,7 +51,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
     }
 
     // Forward any function not found here to the logic
-    fallback() external override payable {
+    fallback() external override virtual payable {
         _delegateCurrentCall();
     }
 
@@ -59,8 +59,17 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         _delegatecallAndReturn(_msgData());
     }
 
+    function _staticcallCurrentCall() internal view {
+        _staticcallAndReturn(_msgData());
+    }
+
     modifier delegated {
         _delegateCurrentCall();
+        _;
+    }
+
+    modifier staticdelegated {
+        _staticcallCurrentCall();
         _;
     }
 
@@ -94,6 +103,39 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
                 default {
                     return(0, returndatasize())
                 }
+        }
+    }
+
+    function _staticcallAndReturn(bytes memory _calldata) internal view {
+        address logic = _getLogicContractAddress();
+
+        // Forward the external call using call and return any value
+        // and reverting if the call failed
+        assembly {
+            // execute function call
+            let result := staticcall(gas(), logic, add(_calldata, 0x20), mload(_calldata), 0, 0)
+            // get any return value
+            returndatacopy(0, 0, returndatasize())
+            // return any return value or error back to the caller
+            switch result
+                case 0 {
+                    revert(0, returndatasize())
+                }
+                default {
+                    return(0, returndatasize())
+                }
+        }
+    }
+
+    function _staticcall(bytes memory _calldata) internal view returns (bool success, bytes memory result) {
+        address logic = _getLogicContractAddress();
+
+        // Forward the external call using call and return any value
+        // and reverting if the call failed
+        (success, result) = logic.staticcall{gas: gasleft()}(_calldata);
+
+        if (!success) {
+            revert(string(result));
         }
     }
     

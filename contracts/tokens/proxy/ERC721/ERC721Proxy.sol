@@ -5,10 +5,13 @@ import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Proxy} from "./IERC721Proxy.sol";
 import {IERC721Logic} from "../../logic/ERC721/IERC721Logic.sol";
 import {IToken, TokenStandard, TransferData} from "../../../interface/IToken.sol";
-import {TokenProxy} from "../../../proxy/TokenProxy.sol";
+import {ExtendableTokenProxy} from "../ExtendableTokenProxy.sol";
 import {ERC721TokenInterface} from "../../registry/ERC721TokenInterface.sol";
+import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
-contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
+contract ERC721Proxy is IERC721Proxy, ExtendableTokenProxy, ERC721TokenInterface {
+    using BytesLib for bytes;
+    
     bytes32 constant ERC721_TOKEN_META = keccak256("erc721.token.meta");
 
     struct TokenMeta {
@@ -24,7 +27,7 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
         string memory name_, string memory symbol_, 
         bool allowMint, bool allowBurn, address owner,
         uint256 maxSupply_, address logicAddress
-    ) TokenProxy(logicAddress, owner) { 
+    ) ExtendableTokenProxy(logicAddress, owner) { 
         require(maxSupply_ > 0, "Max supply must be non-zero");
 
         if (allowMint) {
@@ -71,10 +74,6 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
         }
     }
 
-    function _getStorageContract() internal view returns (IERC721Logic) {
-        return IERC721Logic(_getStorageContractAddress());
-    }
-
     function mintingAllowed() public override view returns (bool) {
         TokenMeta storage m = _getTokenMeta();
         return m.allowMint;
@@ -99,8 +98,10 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
      * @dev Returns the amount of tokens owned by `account`.
      */
     function balanceOf(address account) public override view returns (uint256) {
-        return _getStorageContract().balanceOf(account);
-    }
+        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.balanceOf.selector, account));
+
+        return result.toUint256(0);
+     }
 
     /**
      * @dev Returns the owner of the `tokenId` token.
@@ -109,8 +110,10 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
      *
      * - `tokenId` must exist.
      */
-    function ownerOf(uint256 tokenId) external override view returns (address owner) {
-        return _getStorageContract().ownerOf(tokenId);
+    function ownerOf(uint256 tokenId) external override view returns (address) { 
+        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.ownerOf.selector, tokenId));
+
+        return result.toAddress(0);
     }
 
     /**
@@ -128,7 +131,60 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
     }
 
     function tokenURI(uint256 tokenId) external override view returns (string memory) {
-        return _getStorageContract().tokenURI(tokenId);
+        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.tokenURI.selector, tokenId));
+
+        return string(result);
+    }
+
+    /**
+     * @dev See {IERC721Enumerable-tokenOfOwnerByIndex}.
+     */
+    function tokenOfOwnerByIndex(address owner, uint256 index) public view virtual override returns (uint256) {
+        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.tokenOfOwnerByIndex.selector, owner, index));
+
+        return result.toUint256(0);
+    }
+
+    /**
+     * @dev See {IERC721Enumerable-totalSupply}.
+     */
+    function totalSupply() public view virtual override returns (uint256) {
+        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.totalSupply.selector));
+
+        return result.toUint256(0);
+    }
+
+    /**
+     * @dev See {IERC721Enumerable-tokenByIndex}.
+     */
+    function tokenByIndex(uint256 index) public view virtual override returns (uint256) {
+        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.tokenByIndex.selector, index));
+
+        return result.toUint256(0);
+    }
+
+    function mint(address to, uint256 tokenId) public virtual override onlyMinter mintingEnabled returns (bool) {
+        (bool result, ) = _delegatecall(_msgData());
+        TokenMeta storage m = _getTokenMeta();
+        require(totalSupply() <= m.maxSupply, "ERC721: Max supply reached");
+        return result;
+    }
+    
+    function mintAndSetTokenURI(address to, uint256 tokenId, string memory uri) public virtual override onlyMinter mintingEnabled returns (bool) {
+        (bool result, ) = _delegatecall(_msgData());
+        TokenMeta storage m = _getTokenMeta();
+        require(totalSupply() <= m.maxSupply, "ERC721: Max supply reached");
+        return result;
+    }
+
+    function setTokenURI(uint256 tokenId, string memory uri) external override onlyMinter mintingEnabled delegated { }
+
+    function setContractURI(string memory uri) external override onlyOwner delegated { }
+
+    function contractURI() external view override returns (string memory) { 
+        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.contractURI.selector));
+
+        return string(result);
     }
 
     /**
@@ -154,15 +210,8 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
             return false; //We cannot do partition transfers
         }
 
-        (bool result,) = _forwardCurrentCall();
-        if (result) {
-            emit Transfer(td.from, td.to, td.tokenId);
-        }
-
-        return result;
+        _delegateCurrentCall();
     }
-
-    //TODO Add mint
 
     /**
      * @dev Burns `tokenId`. See {ERC721-_burn}.
@@ -171,13 +220,7 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
      *
      * - The caller must own `tokenId` or be an approved operator.
      */
-    function burn(uint256 tokenId) public override virtual burningEnabled returns (bool) {
-        (bool result,) = _forwardCurrentCall();
-        if (result) {
-            emit Transfer(_msgSender(), address(0), tokenId);
-        }
-        return result;
-    }
+    function burn(uint256 tokenId) public override virtual burningEnabled delegated returns (bool) { }
 
     /**
      * @dev Safely transfers `tokenId` token from `from` to `to`, checking first that contract recipients
@@ -193,12 +236,7 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
      *
      * Emits a {Transfer} event.
      */
-    function safeTransferFrom(address from, address to, uint256 tokenId) public override {
-        (bool result,) = _forwardCurrentCall();
-        if (result) {
-            emit Transfer(from, to, tokenId);
-        }
-    }
+    function safeTransferFrom(address from, address to, uint256 tokenId) public override delegated { }
 
     /**
      * @dev Transfers `tokenId` token from `from` to `to`.
@@ -214,12 +252,7 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
      *
      * Emits a {Transfer} event.
      */
-    function transferFrom(address from, address to, uint256 tokenId) public override {
-        (bool result,) = _forwardCurrentCall();
-        if (result) {
-            emit Transfer(from, to, tokenId);
-        }
-    }
+    function transferFrom(address from, address to, uint256 tokenId) public override delegated { }
 
     /**
      * @dev Returns the account approved for `tokenId` token.
@@ -228,8 +261,10 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
      *
      * - `tokenId` must exist.
      */
-    function getApproved(uint256 tokenId) external override view returns (address operator) {
-        return _getStorageContract().getApproved(tokenId);
+    function getApproved(uint256 tokenId) public override view returns (address) {
+        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.getApproved.selector, tokenId));
+
+        return result.toAddress(0);
     }
 
     /**
@@ -245,12 +280,7 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
      *
      * Emits an {Approval} event.
      */
-    function approve(address to, uint256 tokenId) public override {
-        (bool result,) = _forwardCurrentCall();
-        if (result) {
-            emit Approval(_msgSender(), to, tokenId);
-        }
-    }
+    function approve(address to, uint256 tokenId) public override delegated { }
 
     /**
      * @dev Approve or remove `operator` as an operator for the caller.
@@ -262,20 +292,17 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
      *
      * Emits an {ApprovalForAll} event.
      */
-    function setApprovalForAll(address operator, bool _approved) external override {
-        (bool result,) = _forwardCurrentCall();
-        if (result) {
-            emit ApprovalForAll(_msgSender(), operator, _approved);
-        }
-    }
+    function setApprovalForAll(address operator, bool _approved) external override delegated { }
 
     /**
      * @dev Returns if the `operator` is allowed to manage all of the assets of `owner`.
      *
      * See {setApprovalForAll}
      */
-    function isApprovedForAll(address owner, address operator) external override view returns (bool) {
-        return _getStorageContract().isApprovedForAll(owner, operator);
+    function isApprovedForAll(address owner, address operator) external override view returns (bool) { 
+        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.isApprovedForAll.selector, owner, operator));
+
+        return result[0] == bytes1(uint8(1));
     }
 
     /**
@@ -291,20 +318,15 @@ contract ERC721Proxy is IERC721Proxy, TokenProxy, ERC721TokenInterface {
      *
      * Emits a {Transfer} event.
      */
-    function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) external override {
-        (bool result,) = _forwardCurrentCall();
-        if (result) {
-            emit Transfer(from, to, tokenId);
-        }
-    }
+    function safeTransferFrom(address from, address to, uint256 tokenId, bytes calldata data) external override delegated { }
 
     function _transfer(TransferData memory td) private returns (bool) {
-        (bool result,) = _forwardCall(abi.encodeWithSelector(IToken.tokenTransfer.selector, td));
+        (bool result,) = _delegatecall(abi.encodeWithSelector(IToken.tokenTransfer.selector, td));
         return result;
     }
 
     function _burn(uint256 amount) private returns (bool) {
-        (bool result,) = _forwardCall(abi.encodeWithSelector(IERC721Proxy.burn.selector, amount));
+        (bool result,) = _delegatecall(abi.encodeWithSelector(IERC721Proxy.burn.selector, amount));
         return result;
     }
 

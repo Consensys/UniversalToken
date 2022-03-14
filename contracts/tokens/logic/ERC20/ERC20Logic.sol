@@ -1,5 +1,6 @@
 pragma solidity ^0.8.0;
 
+import {TokenLogic} from "../TokenLogic.sol";
 import {IToken, TokenStandard} from "../../../interface/IToken.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
@@ -12,22 +13,17 @@ import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
 import {ITokenLogic} from "../../../interface/ITokenLogic.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
+import {ERC20TokenInterface} from "../../registry/ERC20TokenInterface.sol";
 
-contract ERC20Logic is ERC20Upgradeable, ERC1820Client, ERC1820Implementer, ExtendableHooks, ITokenLogic {
+contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     using BytesLib for bytes;
-
-    string constant internal ERC20_LOGIC_INTERFACE_NAME = "ERC20TokenLogic";
 
     bytes private _currentData;
     bytes private _currentOperatorData;
 
-    constructor() {
-        ERC1820Client.setInterfaceImplementation(ERC20_LOGIC_INTERFACE_NAME, address(this));
-        ERC1820Implementer._setInterface(ERC20_LOGIC_INTERFACE_NAME); // For migration
-    }
-
+    //TODO Add upgrade check
     function initialize(bytes memory data) external override {
-        require(msg.sender == _callsiteAddress(), "Unauthorized");
+        //require(msg.sender == _callsiteAddress(), "Unauthorized");
         require(_onInitialize(data), "Initialize failed");
     }
 
@@ -35,17 +31,9 @@ contract ERC20Logic is ERC20Upgradeable, ERC1820Client, ERC1820Implementer, Exte
         return true;
     }
 
-    function _msgSender() internal view override(ContextUpgradeable, ProxyContext) returns (address) {
-        return ProxyContext._msgSender();
-    }
-
-    function _msgData() internal view override(ContextUpgradeable, Context) returns (bytes memory) {
-        return ContextUpgradeable._msgData();
-    }
-
     function _beforeTokenTransfer(address from, address to, uint256 amount) internal override virtual {
         TransferData memory data = TransferData(
-            _callsiteAddress(),
+            address(this),
             _msgData(),
             0x00000000000000000000000000000000,
             _msgSender(),
@@ -63,25 +51,7 @@ contract ERC20Logic is ERC20Upgradeable, ERC1820Client, ERC1820Implementer, Exte
         _triggerTokenTransfer(data);
     }
 
-    function _isMinter(address caller) internal view returns (bool) {
-        address tokenProxy = _callsiteAddress();
-
-        uint size;
-        assembly { size := extcodesize(tokenProxy) }
-        bool isTokenBeingConstructed = size == 0;
-
-        if (isTokenBeingConstructed) {
-            return true;
-        }
-
-        TokenRoles proxy = TokenRoles(tokenProxy);
-        bool minter = proxy.isMinter(caller);
-        return minter;
-    }
-
-    function mint(address to, uint256 amount) external returns (bool) {
-        require(_isMinter(_msgSender()), "ERC20PresetMinterPauser: must have minter role to mint");
-
+    function mint(address to, uint256 amount) external onlyMinter returns (bool) {
         _mint(to, amount);
 
         return true;
@@ -121,7 +91,7 @@ contract ERC20Logic is ERC20Upgradeable, ERC1820Client, ERC1820Implementer, Exte
 
     function tokenTransfer(TransferData calldata td) external override returns (bool) {
         require(td.partition == bytes32(0), "Invalid transfer data: partition");
-        require(td.token == _callsiteAddress(), "Invalid transfer data: token");
+        require(td.token == address(this), "Invalid transfer data: token");
         require(td.tokenId == 0, "Invalid transfer data: tokenId");
 
         _currentData = td.data;
