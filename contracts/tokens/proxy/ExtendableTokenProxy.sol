@@ -81,13 +81,13 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtenda
 
     // Forward any function not found here to the logic
     // or to a registered extension
-    fallback() external override(ITokenProxy, TokenProxy) virtual payable {
+    function _fallback() internal override virtual {
         bool isExt = _isExtensionFunction(msg.sig);
 
         if (isExt) {
             _invokeExtensionFunction();
         } else {
-            _delegateCurrentCall();
+            super._fallback();
         }
     }
 }

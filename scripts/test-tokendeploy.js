@@ -23,9 +23,6 @@ async function main() {
   const ERC20Logic = await hre.ethers.getContractFactory("ERC20Logic");
   const logic = await ERC20Logic.deploy();
   await logic.deployed();
-
-
-  const ERC20Storage = await hre.ethers.getContractFactory("ERC20Storage");
   
   const PauseExtension = await hre.ethers.getContractFactory("PauseExtension");
 
@@ -47,6 +44,7 @@ async function main() {
   await erc20.deployed();
 
   console.log("Deployer is " + deployer);
+  console.log("Total supply is " + (await erc20.totalSupply()));
   console.log("Is deployer minter? " + (await erc20.isMinter(deployer)));
 
   console.log("Deployed to " + erc20.address);
