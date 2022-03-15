@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
-import {IExtensionStorage} from "../../extensions/IExtensionStorage.sol";
+import {IExtensionStorage} from "../../interface/IExtensionStorage.sol";
 import {ExtensionLib} from "./ExtensionLib.sol";
-import {IExtension, TransferData} from "../../extensions/IExtension.sol";
+import {IExtension, TransferData} from "../../interface/IExtension.sol";
 import {ExtendableBase} from "./ExtendableBase.sol";
 
 contract ExtendableRouter is ExtendableBase {

@@ -4406,7 +4406,7 @@ contract("DVP", function ([
                     token1Amount,
                     token2Amount
                   );
-                  await expectRevert.unspecified(
+                  return expectRevert.unspecified(
                     forceTradeRequest(
                       this.dvp,
                       this.token1,

@@ -11,7 +11,7 @@ contract EventManager {
         listeners[eventId].push(SavedCallbackFunction(callback));
     }
 
-    function trigger(bytes32 eventId) public {
+    function _trigger(bytes32 eventId) internal {
         SavedCallbackFunction[] storage callbacks = listeners[eventId];
 
         for (uint i = 0; i < callbacks.length; i++) {
@@ -26,7 +26,7 @@ contract A is EventManager {
     bytes32 constant internal TRANFER_EVENT = keccak256("A.transfer");
 
     function transfer() external {
-        trigger(TRANFER_EVENT);
+        _trigger(TRANFER_EVENT);
     }
 }
 
@@ -38,10 +38,8 @@ contract B {
     }
 
     function callback() public returns (bool) {
+        console.log("Transfer event callback triggered");
 
+        return true;
     }
-}
-
-contract C {
-
 }

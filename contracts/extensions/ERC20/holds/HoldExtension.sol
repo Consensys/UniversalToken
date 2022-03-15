@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {ERC20Extension} from "../ERC20Extension.sol";
-import {TransferData} from "../../IExtension.sol";
+import {TransferData} from "../../../interface/IExtension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import "../../../interface/IERC20HoldableToken.sol";
 

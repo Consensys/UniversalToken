@@ -48,7 +48,8 @@ async function main() {
   console.log("Is deployer minter? " + (await erc20.isMinter(deployer)));
 
   console.log("Deployed to " + erc20.address);
-
+  
+  console.log("Doing pre-extension mint");
   await erc20.mint(accounts[1], "1000");
 
   console.log("ERC20Extendable token contract deployed to:", erc20.address);
@@ -81,6 +82,12 @@ async function main() {
   const pauseToken = await PauseExtension.attach(erc20.address);
 
   await pauseToken.pause();
+  console.log(await pauseToken.isPaused());
+  await pauseToken.unpause();
+  console.log(await pauseToken.isPaused());
+  
+  console.log("Doing post extension mint");
+  await erc20.mint(accounts[1], "1000");
 }
 
 // We recommend this pattern to be able to use async/await everywhere

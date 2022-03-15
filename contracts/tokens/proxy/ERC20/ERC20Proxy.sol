@@ -71,7 +71,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
      * @dev Returns the amount of tokens in existence.
      */
     function totalSupply() public override view returns (uint256) {
-        bytes memory result = _staticDelegateCurrentCall();
+        (,bytes memory result) = _staticDelegateCall(abi.encodeWithSelector(this.totalSupply.selector));
 
         return result.toUint256(0);
      }
@@ -100,7 +100,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
      * @dev Returns the amount of tokens owned by `account`.
      */
     function balanceOf(address account) public override view returns (uint256) {
-        bytes memory result = _staticDelegateCurrentCall();
+        (,bytes memory result) = _staticDelegateCall(abi.encodeWithSelector(this.balanceOf.selector, account));
 
         return result.toUint256(0);
     }
@@ -122,7 +122,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     /**
      * @dev Returns the decimals places of the token.
      */
-    function decimals() public override view staticdelegated returns (uint8) { }
+    function decimals() public override view delegated returns (uint8) { }
  
     function tokenTransfer(TransferData calldata td) external override onlyControllers returns (bool) {
         require(td.token == address(this), "Invalid token");
@@ -150,6 +150,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     /// #if_succeeds {:msg "The total supply is not bigger than the max cap"} old(totalSupply()) + amount <= _getTokenMeta().maxSupply
     function mint(address to, uint256 amount) public override virtual onlyMinter mintingEnabled returns (bool) {
         (bool result, ) = _delegatecall(_msgData());
+
         TokenMeta storage m = _getTokenMeta();
         require(totalSupply() <= m.maxSupply, "ERC20: Max supply reached");
         return result;
@@ -245,7 +246,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     function approve(address spender, uint256 amount) public override delegated returns (bool) { }
 
     function allowance(address owner, address spender) public override view returns (uint256) {
-        bytes memory result = _staticDelegateCurrentCall();
+        (,bytes memory result) = _staticDelegateCall(abi.encodeWithSelector(this.allowance.selector, owner, spender));
 
         return result.toUint256(0);
      }

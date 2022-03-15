@@ -105,7 +105,6 @@ contract(
       });
 
 
-
       it("Deployer can disable extensions", async () => {
         const result2 = await token.disableExtension(pauseExt, { from: deployer });
 
@@ -153,6 +152,7 @@ contract(
       it("Mint 1000 tokens to holder", async () => {
         assert.equal(await token.totalSupply(), initialSupply);
         assert.equal(await token.balanceOf(holder), 0);
+        assert.equal(await token.isMinter(deployer), true);
         const result = await token.mint(holder, 1000, { from: deployer });
         assert.equal(result.receipt.status, 1);
         assert.equal(await token.balanceOf(deployer), initialSupply);

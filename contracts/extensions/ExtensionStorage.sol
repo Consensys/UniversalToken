@@ -1,9 +1,9 @@
 pragma solidity ^0.8.0;
 
 import {IToken} from "../interface/IToken.sol";
-import {IExtensionStorage} from "./IExtensionStorage.sol";
-import {IExtension} from "./IExtension.sol";
-import {IExtensionMetadata, TokenStandard} from "./IExtensionMetadata.sol";
+import {IExtensionStorage} from "../interface/IExtensionStorage.sol";
+import {IExtension} from "../interface/IExtension.sol";
+import {IExtensionMetadata, TokenStandard} from "../interface/IExtensionMetadata.sol";
 import {ExtensionBase} from "./ExtensionBase.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 

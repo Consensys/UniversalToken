@@ -15,6 +15,8 @@ import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, ITokenProxy {
     using BytesLib for bytes;
 
+    event Upgraded(address indexed implementation);
+
     constructor(address logicAddress, address owner) {
         if (owner != address(0) && owner != _msgSender()) {
             transferOwnership(owner);
@@ -37,7 +39,13 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
     }
 
     function _setLogic(address logic) internal {
+        bytes32 EIP1967_LOCATION = bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1);
+
+        //Update registry
         ERC1820Client.setInterfaceImplementation(__tokenLogicInterfaceName(), logic);
+        
+        //Update EIP1967 Storage Slot
+        StorageSlot.getAddressSlot(EIP1967_LOCATION).value = logic;
     }
 
     

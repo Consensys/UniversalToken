@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {ExtensionBase} from "./ExtensionBase.sol";
-import {IExtension, TransferData, TokenStandard} from "./IExtension.sol";
+import {IExtension, TransferData, TokenStandard} from "../interface/IExtension.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {RolesBase} from "../roles/RolesBase.sol";
 

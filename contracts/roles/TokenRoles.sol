@@ -14,9 +14,10 @@ abstract contract TokenRoles is ITokenRoles, RolesBase, ContextUpgradeable {
     bytes32 constant TOKEN_ALLOW_MINT = keccak256("token.proxy.core.mint");
     bytes32 constant TOKEN_OWNER = keccak256("token.proxy.core.owner");
     bytes32 constant TOKEN_MINTER_ROLE = keccak256("token.proxy.core.mint.role");
-    bytes32 constant TOKEN_MANAGER_ADDRESS = keccak256("token.proxy.manager.address");
+    bytes32 constant TOKEN_MANAGER_ADDRESS = bytes32(uint256(keccak256('eip1967.proxy.admin')) - 1);
     bytes32 constant TOKEN_CONTROLLER_ROLE = keccak256("token.proxy.controller.address");
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    event AdminChanged(address previousAdmin, address newAdmin);
 
     /**
      * @dev Initializes the contract setting the deployer as the initial owner.
