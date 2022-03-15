@@ -71,7 +71,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
      * @dev Returns the amount of tokens in existence.
      */
     function totalSupply() public override view returns (uint256) {
-        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.totalSupply.selector));
+        bytes memory result = _staticDelegateCurrentCall();
 
         return result.toUint256(0);
      }
@@ -100,7 +100,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
      * @dev Returns the amount of tokens owned by `account`.
      */
     function balanceOf(address account) public override view returns (uint256) {
-        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.balanceOf.selector, account));
+        bytes memory result = _staticDelegateCurrentCall();
 
         return result.toUint256(0);
     }
@@ -245,7 +245,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     function approve(address spender, uint256 amount) public override delegated returns (bool) { }
 
     function allowance(address owner, address spender) public override view returns (uint256) {
-        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.allowance.selector, owner, spender));
+        bytes memory result = _staticDelegateCurrentCall();
 
         return result.toUint256(0);
      }

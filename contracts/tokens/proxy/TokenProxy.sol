@@ -45,7 +45,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         _setLogic(logic);
 
         //invoke the initialize function whenever we upgrade
-        (bool success, bytes memory data) = _delegatecall(
+        (bool success,) = _delegatecall(
             abi.encodeWithSelector(ITokenLogic.initialize.selector, data)
         );
 
@@ -57,8 +57,8 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         _delegatecallAndReturn(_msgData());
     }
 
-    function _staticcallCurrentCall() internal view {
-        _staticcallAndReturn(_msgData());
+    function _staticDelegateCurrentCall() internal view returns (bytes memory results) {
+        (, results) = _staticDelegateCall(_msgData());
     }
 
     modifier delegated {
@@ -67,7 +67,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
     }
 
     modifier staticdelegated {
-        _staticcallCurrentCall();
+        _staticDelegateCallAndReturn(_msgData());
         _;
     }
 
@@ -125,7 +125,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
     * just return the data returned by STATICCALL without ending the current call, use _staticcall
     * @param _calldata The calldata to send with the STATICCALL
     */
-    function _staticcallAndReturn(bytes memory _calldata) internal view {
+    function _staticDelegateCallAndReturn(bytes memory _calldata) internal view {
         bytes memory finalData = abi.encodePacked(STATICCALLMAGIC, _calldata);
         address self = address(this);
 
@@ -161,7 +161,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
     * a revert is thrown with the data returned by the STATICCALL
     * @return result The result of the STATICCALL
     */
-    function _staticcall(bytes memory _calldata) internal view returns (bool success, bytes memory result) {
+    function _staticDelegateCall(bytes memory _calldata) internal view returns (bool success, bytes memory result) {
         bytes memory finalData = abi.encodePacked(STATICCALLMAGIC, _calldata);
 
         // Forward the external call using call and return any value

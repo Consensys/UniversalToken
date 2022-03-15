@@ -98,7 +98,7 @@ contract ERC721Proxy is IERC721Proxy, ExtendableTokenProxy, ERC721TokenInterface
      * @dev Returns the amount of tokens owned by `account`.
      */
     function balanceOf(address account) public override view returns (uint256) {
-        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.balanceOf.selector, account));
+        bytes memory result = _staticDelegateCurrentCall();
 
         return result.toUint256(0);
      }
@@ -111,7 +111,7 @@ contract ERC721Proxy is IERC721Proxy, ExtendableTokenProxy, ERC721TokenInterface
      * - `tokenId` must exist.
      */
     function ownerOf(uint256 tokenId) external override view returns (address) { 
-        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.ownerOf.selector, tokenId));
+        bytes memory result = _staticDelegateCurrentCall();
 
         return result.toAddress(0);
     }
@@ -131,7 +131,7 @@ contract ERC721Proxy is IERC721Proxy, ExtendableTokenProxy, ERC721TokenInterface
     }
 
     function tokenURI(uint256 tokenId) external override view returns (string memory) {
-        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.tokenURI.selector, tokenId));
+        bytes memory result = _staticDelegateCurrentCall();
 
         return string(result);
     }
@@ -140,7 +140,7 @@ contract ERC721Proxy is IERC721Proxy, ExtendableTokenProxy, ERC721TokenInterface
      * @dev See {IERC721Enumerable-tokenOfOwnerByIndex}.
      */
     function tokenOfOwnerByIndex(address owner, uint256 index) public view virtual override returns (uint256) {
-        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.tokenOfOwnerByIndex.selector, owner, index));
+        bytes memory result = _staticDelegateCurrentCall();
 
         return result.toUint256(0);
     }
@@ -149,7 +149,7 @@ contract ERC721Proxy is IERC721Proxy, ExtendableTokenProxy, ERC721TokenInterface
      * @dev See {IERC721Enumerable-totalSupply}.
      */
     function totalSupply() public view virtual override returns (uint256) {
-        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.totalSupply.selector));
+        bytes memory result = _staticDelegateCurrentCall();
 
         return result.toUint256(0);
     }
@@ -158,7 +158,7 @@ contract ERC721Proxy is IERC721Proxy, ExtendableTokenProxy, ERC721TokenInterface
      * @dev See {IERC721Enumerable-tokenByIndex}.
      */
     function tokenByIndex(uint256 index) public view virtual override returns (uint256) {
-        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.tokenByIndex.selector, index));
+        bytes memory result = _staticDelegateCurrentCall();
 
         return result.toUint256(0);
     }
@@ -182,7 +182,7 @@ contract ERC721Proxy is IERC721Proxy, ExtendableTokenProxy, ERC721TokenInterface
     function setContractURI(string memory uri) external override onlyOwner delegated { }
 
     function contractURI() external view override returns (string memory) { 
-        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.contractURI.selector));
+        bytes memory result = _staticDelegateCurrentCall();
 
         return string(result);
     }
@@ -262,7 +262,7 @@ contract ERC721Proxy is IERC721Proxy, ExtendableTokenProxy, ERC721TokenInterface
      * - `tokenId` must exist.
      */
     function getApproved(uint256 tokenId) public override view returns (address) {
-        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.getApproved.selector, tokenId));
+        bytes memory result = _staticDelegateCurrentCall();
 
         return result.toAddress(0);
     }
@@ -300,7 +300,7 @@ contract ERC721Proxy is IERC721Proxy, ExtendableTokenProxy, ERC721TokenInterface
      * See {setApprovalForAll}
      */
     function isApprovedForAll(address owner, address operator) external override view returns (bool) { 
-        (, bytes memory result) = _staticcall(abi.encodeWithSelector(this.isApprovedForAll.selector, owner, operator));
+        bytes memory result = _staticDelegateCurrentCall();
 
         return result[0] == bytes1(uint8(1));
     }
