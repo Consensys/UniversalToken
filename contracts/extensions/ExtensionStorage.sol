@@ -11,8 +11,8 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
     event ExtensionUpgraded(address indexed extension, address indexed newExtension);
 
     constructor(address token, address extension, address callsite) {
-        //Setup context data
-        ContextData storage ds = _contextData();
+        //Setup proxy data
+        ProxyData storage ds = _proxyData();
 
         ds.token = token;
         ds.extension = extension;
@@ -24,7 +24,12 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
         require(isTokenStandardSupported(standard), "Extension does not support token standard");
     }
 
-    function upgradeTo(address extensionImplementation) external onlyCallsite {
+    function _extension() internal view returns (IExtension) {
+        ProxyData storage ds = _proxyData();
+        return IExtension(ds.extension);
+    }
+
+    function upgradeTo(address extensionImplementation) external onlyAuthorizedCaller {
         IExtension ext = IExtension(extensionImplementation);
 
         address currentDeployer = extensionDeployer();
@@ -45,7 +50,7 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
         //TODO Check interfaces?
 
         //Ensure we support this token standard
-        ContextData storage ds = _contextData();
+        ProxyData storage ds = _proxyData();
         TokenStandard standard = IToken(ds.token).tokenStandard();
 
         require(ext.isTokenStandardSupported(standard), "Token standard is not supported in new extension");
@@ -56,18 +61,24 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
         emit ExtensionUpgraded(old, extensionImplementation);
     }
 
-    function prepareCall(address caller) external override onlyCallsite {
+    function prepareCall(address caller) external override onlyAuthorizedCaller {
         StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = caller;
     }
 
-    fallback() external payable onlyCallsiteOrSelf {
-        ContextData storage ds = _contextData();
-
+    fallback() external payable {
+        if (msg.sender != _authorizedCaller() && msg.sender != address(this)) {
+            //They are calling the proxy directly
+            //allow this, but just make sure we update the msg sender slot ourselves
+            StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = msg.sender;
+        }
+        
+        ProxyData storage ds = _proxyData();
+        
         _delegate(ds.extension);
     }
 
-    function initialize() external onlyCallsite {
-        ContextData storage ds = _contextData();
+    function initialize() external onlyAuthorizedCaller {
+        ProxyData storage ds = _proxyData();
 
         ds.initialized = true;
 
@@ -82,6 +93,7 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
     * @param implementation Address to delegate.
     */
     function _delegate(address implementation) internal {
+        bytes memory result;
         assembly {
             // Copy msg.data. We take full control of memory in this inline assembly
             // block because it will not return to Solidity code. We overwrite the
@@ -90,8 +102,14 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
 
             // Call the implementation.
             // out and outsize are 0 because we don't know the size yet.
-            let result := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0)
+            result := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0)
+        }
 
+        //Clear _msgSender slot
+        StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = address(0);
+
+        // Continue to return
+        assembly {
             // Copy the returned data.
             returndatacopy(0, 0, returndatasize())
 
@@ -103,50 +121,26 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
     }
 
     function externalFunctions() external override view returns (bytes4[] memory) {
-        ContextData storage ds = _contextData();
-        
-        IExtension ext = IExtension(ds.extension);
-
-        return ext.externalFunctions();
+        return _extension().externalFunctions();
     }
 
     function requiredRoles() external override view returns (bytes32[] memory) {
-        ContextData storage ds = _contextData();
-        
-        IExtension ext = IExtension(ds.extension);
-
-        return ext.requiredRoles();
+        return _extension().requiredRoles();
     }
 
     function isTokenStandardSupported(TokenStandard standard) public override view returns (bool) {
-        ContextData storage ds = _contextData();
-        
-        IExtension ext = IExtension(ds.extension);
-
-        return ext.isTokenStandardSupported(standard);
+        return _extension().isTokenStandardSupported(standard);
     }
 
     function extensionDeployer() public view override returns (address) {
-        ContextData storage ds = _contextData();
-        
-        IExtension ext = IExtension(ds.extension);
-
-        return ext.extensionDeployer();
+        return _extension().extensionDeployer();
     }
 
     function packageHash() public view override returns (bytes32) {
-        ContextData storage ds = _contextData();
-        
-        IExtension ext = IExtension(ds.extension);
-
-        return ext.packageHash();
+        return _extension().packageHash();
     }
 
     function version() public view override returns (uint256) {
-        ContextData storage ds = _contextData();
-        
-        IExtension ext = IExtension(ds.extension);
-
-        return ext.version();
+        return _extension().version();
     }
 }

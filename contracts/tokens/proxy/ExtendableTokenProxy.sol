@@ -24,25 +24,24 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtenda
     }
 
     // TODO storageAddressForExtension
-    function contextAddressForExtension(address extension) external override view returns (address) {
-        return ExtensionLib._contextAddressForExtension(extension);
+    function proxyAddressForExtension(address extension) external override view returns (address) {
+        return ExtensionLib._proxyAddressForExtension(extension);
     }
 
     
     function registerExtension(address extension) external override onlyManager returns (bool) {
-        bool result = _registerExtension(extension, address(this));
+        bool result = _registerExtension(extension);
 
         if (result) {
-            address contextAddress = ExtensionLib._contextAddressForExtension(extension);
-            ExtensionStorage context = ExtensionStorage(payable(contextAddress));
+            address proxyAddress = ExtensionLib._proxyAddressForExtension(extension);
+            ExtensionStorage proxy = ExtensionStorage(payable(proxyAddress));
 
-            bytes32[] memory requiredRoles = context.requiredRoles();
+            bytes32[] memory requiredRoles = proxy.requiredRoles();
             
             //If we have roles we need to register, then lets register them
             if (requiredRoles.length > 0) {
-                address ctxAddress = address(context);
                 for (uint i = 0; i < requiredRoles.length; i++) {
-                    _addRole(ctxAddress, requiredRoles[i]);
+                    _addRole(proxyAddress, requiredRoles[i]);
                 }
             }
         }
@@ -54,16 +53,15 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtenda
         bool result = _removeExtension(extension);
 
         if (result) {
-            address contextAddress = ExtensionLib._contextAddressForExtension(extension);
-            ExtensionStorage context = ExtensionStorage(payable(contextAddress));
+            address proxyAddress = ExtensionLib._proxyAddressForExtension(extension);
+            ExtensionStorage proxy = ExtensionStorage(payable(proxyAddress));
 
-            bytes32[] memory requiredRoles = context.requiredRoles();
+            bytes32[] memory requiredRoles = proxy.requiredRoles();
             
             //If we have roles we need to register, then lets register them
             if (requiredRoles.length > 0) {
-                address ctxAddress = address(context);
                 for (uint i = 0; i < requiredRoles.length; i++) {
-                    _removeRole(ctxAddress, requiredRoles[i]);
+                    _removeRole(proxyAddress, requiredRoles[i]);
                 }
             }
         }

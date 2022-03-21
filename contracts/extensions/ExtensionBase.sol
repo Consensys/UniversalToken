@@ -3,35 +3,35 @@ pragma solidity ^0.8.0;
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
 abstract contract ExtensionBase {
-    bytes32 constant CONTEXT_DATA_SLOT = keccak256("ext.context.data");
-    bytes32 constant MSG_SENDER_SLOT = keccak256("ext.context.data.msgsender");
+    bytes32 constant PROXY_DATA_SLOT = keccak256("ext.proxy.data");
+    bytes32 constant MSG_SENDER_SLOT = keccak256("ext.proxy.data.msgsender");
 
-    struct ContextData {
+    struct ProxyData {
         address token;
         address extension;
         address callsite;
         bool initialized;
     }
 
-    function _contextData() internal pure returns (ContextData storage ds) {
-        bytes32 position = CONTEXT_DATA_SLOT;
+    function _proxyData() internal pure returns (ProxyData storage ds) {
+        bytes32 position = PROXY_DATA_SLOT;
         assembly {
             ds.slot := position
         }
     }
 
     function _extensionAddress() internal view returns (address) {
-        ContextData storage ds = _contextData();
+        ProxyData storage ds = _proxyData();
         return ds.extension;
     }
 
     function _tokenAddress() internal view returns (address payable) {
-        ContextData storage ds = _contextData();
+        ProxyData storage ds = _proxyData();
         return payable(ds.token);
     }
 
     function _authorizedCaller() internal view returns (address) {
-        ContextData storage ds = _contextData();
+        ProxyData storage ds = _proxyData();
         return ds.callsite;
     }
 
@@ -40,17 +40,17 @@ abstract contract ExtensionBase {
         _;
     }
 
-    modifier onlyCallsite {
+    modifier onlyAuthorizedCaller {
         require(msg.sender == _authorizedCaller(), "Caller: Unauthorized");
         _;
     }
 
-    modifier onlyCallsiteOrExtension {
+    modifier onlyAuthorizedCallerOrExtension {
         require(msg.sender == _authorizedCaller() || msg.sender == _extensionAddress(), "Caller: Unauthorized");
         _;
     }
 
-    modifier onlyCallsiteOrSelf {
+    modifier onlyAuthorizedCallerOrSelf {
         require(msg.sender == _authorizedCaller() || msg.sender == address(this), "Caller: Unauthorized");
         _;
     }

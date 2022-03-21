@@ -4,8 +4,15 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {TransferData} from "../../interface/IToken.sol";
 import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
 
+/**
+* @dev A library to provide several functions for managing extensions.
+* Should not be used directly, it's recommended to use one of the Extendable contracts
+*/
 library ExtensionLib {
-    bytes32 constant ERC20_EXTENSION_LIST_LOCATION = keccak256("erc20.core.storage.address");
+    /**
+    * @dev The storage slot that will hold the MappedExtensions struct
+    */
+    bytes32 constant MAPPED_EXTENSION_STORAGE_SLOT = keccak256("erc20.core.storage.address");
 
     /**
     * @dev A state of all possible registered extension states
@@ -21,34 +28,62 @@ library ExtensionLib {
     * @dev Registered extension data
     * @param state The current state of this registered extension
     * @param index The current index of this registered extension in registeredExtensions array
-    * @param context The current context address this extension should be executed in
-    * @param ignoreReverts Whether reverts when executing this extension should be ignored
+    * @param extProxy The current extProxy address this extension should be executed in
     */
     struct ExtensionData {
         ExtensionState state;
         uint256 index;
-        address context;
+        address extProxy;
     }
 
+    /**
+    * @dev All Registered extensions + additional mappings for easy lookup
+    * @param registeredExtensions An array of all registered extensions, both enabled and disabled extensions
+    * @param funcToExtension A mapping of function selector to global extension address
+    * @param extensions A mapping of global extension address to ExtensionData
+    * @param proxyCache A mapping of deployed extension proxy addresses to global extension addresses
+    */
     struct MappedExtensions {
         address[] registeredExtensions;
         mapping(bytes4 => address) funcToExtension;
         mapping(address => ExtensionData) extensions;
-        mapping(address => bool) contextCache;
+        mapping(address => address) proxyCache;
     }
 
+    /**
+    * @dev Get the MappedExtensions data stored inside this contract.
+    * @return ds The MappedExtensions struct stored in this contract
+    */
     function extensionStorage() private pure returns (MappedExtensions storage ds) {
-        bytes32 position = ERC20_EXTENSION_LIST_LOCATION;
+        bytes32 position = MAPPED_EXTENSION_STORAGE_SLOT;
         assembly {
             ds.slot := position
         }
     }
 
-    function _isActiveExtension(address extension) internal view returns (bool) {
+    /**
+    * @dev Determine if the given extension address is active (registered & enabled). The provided
+    * extension address can either be the global extension address or the extension proxy address.
+    * @return bool True if the provided extension address is registered & enabled, otherwise false.
+    */
+    function _isActiveExtension(address ext) internal view returns (bool) {
         MappedExtensions storage extLibStorage = extensionStorage();
+        address extension = __forceGlobalExtensionAddress(ext);
         return extLibStorage.extensions[extension].state == ExtensionState.EXTENSION_ENABLED;
     }
 
+    /**
+    * @dev Register an extension at the given global extension address. This will
+    * deploy a new ExtensionStorage contract to act as the extension proxy and register
+    * all function selectors the extension exposes.
+    * This will also invoke the initialize function on the extension proxy, to do this 
+    * we must know who the current caller is.
+    * Registering an extension automatically enables it for use.
+    *
+    * @param extension The global extension address to register
+    * @param token The token address that will be using this extension
+    * @param caller The current caller that will be initalizing the extension proxy
+    */
     function _registerExtension(address extension, address token, address caller) internal {
         MappedExtensions storage extLibStorage = extensionStorage();
         require(extLibStorage.extensions[extension].state == ExtensionState.EXTENSION_NOT_EXISTS, "The extension must not already exist");
@@ -58,10 +93,10 @@ library ExtensionLib {
 
         //Next we need to deploy the ExtensionStorage contract
         //To sandbox our extension's storage
-        ExtensionStorage context = new ExtensionStorage(token, extension, address(this));
+        ExtensionStorage extProxy = new ExtensionStorage(token, extension, address(this));
 
         //Next lets figure out what external functions to register in the Extension
-        bytes4[] memory externalFunctions = context.externalFunctions();
+        bytes4[] memory externalFunctions = extProxy.externalFunctions();
 
         //If we have external functions to register, then lets register them
         if (externalFunctions.length > 0) {
@@ -73,34 +108,51 @@ library ExtensionLib {
             }
         }
 
-        //Initialize the new extension context
-        context.prepareCall(caller);
-        context.initialize();
+        //Initialize the new extension proxy
+        extProxy.prepareCall(caller);
+        extProxy.initialize();
 
         //Finally, add it to storage
         extLibStorage.extensions[extension] = ExtensionData(
             ExtensionState.EXTENSION_ENABLED,
             extLibStorage.registeredExtensions.length,
-            address(context)
+            address(extProxy)
         );
 
         extLibStorage.registeredExtensions.push(extension);
-        extLibStorage.contextCache[address(context)] = true;
+        extLibStorage.proxyCache[address(extProxy)] = extension;
     }
 
-    function _functionToExtensionContextAddress(bytes4 funcSig) internal view returns (address) {
+    /**
+    * @dev Get the deployed extension proxy address that registered the provided
+    * function selector. If no extension registered the given function selector,
+    * then return address(0). If the extension that registered the function selector is disabled,
+    * then the address(0) is returned
+    * @param funcSig The function signature to lookup
+    * @return address Returns the deployed enabled extension proxy address that registered the
+    * provided function selector, otherwise address(0)
+    */
+    function _functionToExtensionProxyAddress(bytes4 funcSig) internal view returns (address) {
         MappedExtensions storage extLibStorage = extensionStorage();
 
         ExtensionData storage extData = extLibStorage.extensions[extLibStorage.funcToExtension[funcSig]];
 
         //Only return an address for an extension that is enabled
         if (extData.state == ExtensionState.EXTENSION_ENABLED) {
-            return extData.context;
+            return extData.extProxy;
         }
 
         return address(0);
     }
 
+    /**
+    * @dev Get the full ExtensionData of the extension that registered the provided
+    * function selector, even if the extension is currently disabled. 
+    * If no extension registered the given function selector, then a blank ExtensionData is returned.
+    * @param funcSig The function signature to lookup
+    * @return ExtensionData Returns the full ExtensionData of the extension that registered the
+    * provided function selector
+    */
     function _functionToExtensionData(bytes4 funcSig) internal view returns (ExtensionData storage) {
         MappedExtensions storage extLibStorage = extensionStorage();
 
@@ -109,48 +161,96 @@ library ExtensionLib {
         return extLibStorage.extensions[extLibStorage.funcToExtension[funcSig]];
     }
 
-    function _disableExtension(address extension) internal {
+    /**
+    * @dev Disable the extension at the provided address. This may either be the
+    * global extension address or the deployed extension proxy address. 
+    *
+    * Disabling the extension keeps the extension + storage live but simply disables
+    * all registered functions and transfer events
+    *
+    * @param ext Either the global extension address or the deployed extension proxy address to disable
+    */
+    function _disableExtension(address ext) internal {
         MappedExtensions storage extLibStorage = extensionStorage();
+        address extension = __forceGlobalExtensionAddress(ext);
+
         ExtensionData storage extData = extLibStorage.extensions[extension];
 
         require(extData.state == ExtensionState.EXTENSION_ENABLED, "The extension must be enabled");
 
         extData.state = ExtensionState.EXTENSION_DISABLED;
-        extLibStorage.contextCache[extData.context] = false;
+        extLibStorage.proxyCache[extData.extProxy] = address(0);
     }
 
-    function _enableExtension(address extension) internal {
+    /**
+    * @dev Enable the extension at the provided address. This may either be the
+    * global extension address or the deployed extension proxy address. 
+    *
+    * Enabling the extension simply enables all registered functions and transfer events
+    *
+    * @param ext Either the global extension address or the deployed extension proxy address to enable
+    */
+    function _enableExtension(address ext) internal {
         MappedExtensions storage extLibStorage = extensionStorage();
+        address extension = __forceGlobalExtensionAddress(ext);
+
         ExtensionData storage extData = extLibStorage.extensions[extension];
 
         require(extData.state == ExtensionState.EXTENSION_DISABLED, "The extension must be enabled");
 
         extData.state = ExtensionState.EXTENSION_ENABLED;
-        extLibStorage.contextCache[extData.context] = true;
+        extLibStorage.proxyCache[extData.extProxy] = extension;
     }
 
-    function _isContextAddress(address callsite) internal view returns (bool) {
+    /**
+    * @dev Check whether a given address is a deployed extension proxy address that
+    * is registered.
+    *
+    * @param callsite The address to check
+    */
+    function _isProxyAddress(address callsite) internal view returns (bool) {
         MappedExtensions storage extLibStorage = extensionStorage();
 
-        return extLibStorage.contextCache[callsite];
+        return extLibStorage.proxyCache[callsite] != address(0);
     }
 
+    /**
+    * @dev Get an array of all deployed extension proxy addresses, regardless of if they are
+    * enabled or disabled
+    */
     function _allExtensions() internal view returns (address[] memory) {
         MappedExtensions storage extLibStorage = extensionStorage();
         return extLibStorage.registeredExtensions;
     }
 
-    function _contextAddressForExtension(address extension) internal view returns (address) {
+    /**
+    * @dev Get the deployed extension proxy address given a global extension address. 
+    * This function assumes the given global extension address has been registered using
+    *  _registerExtension.
+    * @param extension The global extension address to convert
+    */
+    function _proxyAddressForExtension(address extension) internal view returns (address) {
         MappedExtensions storage extLibStorage = extensionStorage();
         ExtensionData storage extData = extLibStorage.extensions[extension];
 
         require(extData.state != ExtensionState.EXTENSION_NOT_EXISTS, "The extension must exist (either enabled or disabled)");
 
-        return extData.context;
+        return extData.extProxy;
     }
 
-    function _removeExtension(address extension) internal {
+    /**
+    * @dev Remove the extension at the provided address. This may either be the
+    * global extension address or the deployed extension proxy address. 
+    *
+    * Removing an extension deletes all data about the deployed extension proxy address
+    * and makes the extension's storage inaccessable forever.
+    *
+    * @param ext Either the global extension address or the deployed extension proxy address to remove
+    */
+    function _removeExtension(address ext) internal {
         MappedExtensions storage extLibStorage = extensionStorage();
+        address extension = __forceGlobalExtensionAddress(ext);
+
         ExtensionData storage extData = extLibStorage.extensions[extension];
 
         require(extData.state != ExtensionState.EXTENSION_NOT_EXISTS, "The extension must exist (either enabled or disabled)");
@@ -168,9 +268,22 @@ library ExtensionLib {
         extLibStorage.registeredExtensions[extensionIndex] = lastExtension;
         extLibStorage.extensions[lastExtension].index = extensionIndex;
 
-        extLibStorage.contextCache[extData.context] = false;
+        extLibStorage.proxyCache[extData.extProxy] = address(0);
         delete extLibStorage.extensions[extension];
         extLibStorage.registeredExtensions.pop();
+    }
+
+    /**
+    * @dev If the providen address is the deployed extension proxy, then convert it to the
+    * global extension address. Otherwise, return what was given 
+    */
+    function __forceGlobalExtensionAddress(address extension) private view returns (address) {
+        MappedExtensions storage extLibStorage = extensionStorage();
+        if (extLibStorage.proxyCache[extension] != address(0)) {
+            return extLibStorage.proxyCache[extension];
+        }
+
+        return extension; //nothing to do
     }
 
     /**
@@ -197,8 +310,8 @@ library ExtensionLib {
             //however, execute the call at the ExtensionStorage contract address
             //The ExtensionStorage contract will delegatecall the extension logic
             //and manage storage/api
-            address context = extData.context;
-            bool result = toInvoke(context, data);
+            address proxy = extData.extProxy;
+            bool result = toInvoke(proxy, data);
             if (!result) {
                 return false;
             }
