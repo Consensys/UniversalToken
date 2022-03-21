@@ -38,6 +38,13 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
     */
     event Upgraded(address indexed logic);
 
+    /**
+    * @dev Sets up the proxy by initalizing the owner + manager roles, as well as
+    * setting the logic contract. This will also register the token interface
+    * with the ERC1820 registry.
+    * @param logicAddress The address to use for the logic contract. Must be non-zero
+    * @param owner The address to use as the owner + manager.
+    */
     constructor(address logicAddress, address owner) {
         if (owner != address(0) && owner != _msgSender()) {
             transferOwnership(owner);
@@ -55,10 +62,21 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         _setLogic(logicAddress);
     }
 
-    function _getLogicContractAddress() internal view returns (address) {
+    /**
+    * @dev Get the current address for the logic contract. This is read from the ERC1820 registry
+    * @return address The address of the current logic contract
+    */
+    function _getLogicContractAddress() private view returns (address) {
         return ERC1820Client.interfaceAddr(address(this), __tokenLogicInterfaceName());
     }
 
+    /**
+    * @dev Saves the logic contract address to use for the proxy in the ERC1820 registry and 
+    * in the EIP1967 storage slot
+    * @notice This should not be called directly. If you wish to change the logic contract,
+    * use upgradeTo. This function side-steps some side-effects such as emitting the Upgraded
+    * event
+    */
     function _setLogic(address logic) internal {
         bytes32 EIP1967_LOCATION = bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1);
 
@@ -69,6 +87,15 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         StorageSlot.getAddressSlot(EIP1967_LOCATION).value = logic;
     }
     
+    /**
+    * @dev Upgrade the TokenProxy logic contract. Can only be executed by the current manager address
+    * @notice Perform an upgrade on the proxy and replace the current logic
+    * contract with a new one. You must provide the new address of the
+    * logic contract and (optionally) some arbitrary data to pass to
+    * the logic contract's initialize function.
+    * @param logic The address of the new logic contract
+    * @param data Any arbitrary data, will be passed to the new logic contract's initialize function
+    */
     function upgradeTo(address logic, bytes memory data) external override onlyManager {
         _setLogic(logic);
 
@@ -83,24 +110,57 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         emit Upgraded(logic);
     }
 
+    /**
+    * @dev Forward the current call to the logic contract. This will
+    * use delegatecall to forward the current call to the current logic
+    * contract. This function returns & exits the current call
+    */
     function _delegateCurrentCall() internal {
         _delegatecallAndReturn(_msgData());
     }
 
+    /**
+    * @dev Forward the current staticcall to the logic contract. This
+    * function works in both a read (STATICCALL) and write (CALL) call context.
+    * The return data from the staticcall is returned as arbitrary data. It is
+    * up to the invoker to decode the data (hint: Use BytesLib)
+    * @return results The return data from the result of the STATICCALL to the logic contract.
+    */
     function _staticDelegateCurrentCall() internal view returns (bytes memory results) {
         (, results) = _staticDelegateCall(_msgData());
     }
 
+    /**
+    * @dev A function modifier that will always forward the function
+    * definiation to the current logic contract. The body of the function
+    * is never invoked, so it can remain blank.
+    *
+    * Any data returned by the logic contract is returned to the current caller
+    */
     modifier delegated {
         _delegateCurrentCall();
         _;
     }
 
+    /**
+    * @dev A function modifier that will always forward the view function
+    * definiation to the current logic contract. The body of the view function
+    * is never invoked, so it can remain blank.
+    *
+    * Any data returned by the logic contract is returned to the current caller
+    */
     modifier staticdelegated {
         _staticDelegateCallAndReturn(_msgData());
         _;
     }
 
+    /**
+    * @dev Make a delegatecall to the current logic contract and return any returndata. If
+    * the call fails/reverts then this call reverts. 
+    * @param _calldata The calldata to use in the delegatecall
+    * @return success Whethter the delegatecall was successful
+    * @return result Any returndata resulting from the delegatecall
+    */
     function _delegatecall(bytes memory _calldata) internal returns (bool success, bytes memory result) {
         address logic = _getLogicContractAddress();
 
@@ -113,6 +173,11 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         }
     }
 
+    /**
+    * @dev Make a delegatecall to the current logic contract, returning any returndata to the
+    * current caller.
+    * @param _calldata The calldata to use in the delegatecall
+    */
     function _delegatecallAndReturn(bytes memory _calldata) internal {
         address logic = _getLogicContractAddress();
 
@@ -203,6 +268,11 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         }
     }
 
+    /**
+    * @dev The default fallback function the TokenProxy will use. Child contracts
+    * must override this function to add additional functionality to the fallback function of
+    * the proxy.
+    */
     function _fallback() internal virtual {
         if (msg.sig == STATICCALLMAGIC) {
             require(msg.sender == address(this), "STATICCALLMAGIC can only be used by the Proxy");
@@ -214,13 +284,25 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         }
     }
 
-    // Forward any function not found here to the logic
+    /**
+    * @notice Forward any function not found in the TokenProxy contract (or any child contracts)
+    * to the current logic contract.
+    */
     fallback() external override payable {
         _fallback();
     }
     
-    receive() external override payable {}
+    /**
+    * @dev Child contracts may override this function
+    * @notice Receive ether
+    */
+    receive() external override virtual payable {}
 
+    /**
+    * @notice The current domain version of the TokenProxy is the address of
+    * the current logic contract.
+    * @inheritdoc DomainAware
+    */
     function _domainVersion() internal virtual override view returns (bytes32) {
         return bytes32(uint256(uint160(_getLogicContractAddress())));
     }
