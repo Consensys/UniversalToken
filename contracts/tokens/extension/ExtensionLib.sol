@@ -5,8 +5,11 @@ import {TransferData} from "../../interface/IToken.sol";
 import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
 
 /**
+* @title Extension Library
+* @author Edward Penta
+* @notice This should only be used by the token proxy
 * @dev A library to provide several functions for managing extensions.
-* Should not be used directly, it's recommended to use one of the Extendable contracts
+* Should not be used directly, it's recommended to use one of the Extendable contracts.
 */
 library ExtensionLib {
     /**
@@ -103,6 +106,8 @@ library ExtensionLib {
             for (uint i = 0; i < externalFunctions.length; i++) {
                 bytes4 func = externalFunctions[i];
                 require(extLibStorage.funcToExtension[func] == address(0), "Function signature conflict");
+                //STATICCALLMAGIC not allowed
+                require(func != hex"ffffffff", "Invalid function signature");
 
                 extLibStorage.funcToExtension[func] = extension;
             }

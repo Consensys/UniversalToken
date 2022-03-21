@@ -12,10 +12,31 @@ import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {TransferData} from "../../interface/IToken.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
+/**
+* @title Token Proxy base Contract
+* @author Edward Penta
+* @notice This should be inherited by the token proxy
+* @dev A generic proxy contract to be used by any token standard. The final token proxy
+* contract should also inherit from a TokenERC1820Provider contract or implement those functions.
+* This contract handles roles, domain, logic contract tracking (through ERC1820 + EIP1967),
+* upgrading, and has several internal functions to delegatecall to the logic contract.
+*
+* This contract also has a fallback function to forward any un-routed calls to the current logic
+* contract
+*
+* The domain version of the TokenProxy will be the current address of the logic contract. The domain
+* name must be implemented by the final token proxy.
+*/
 abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, ITokenProxy {
     using BytesLib for bytes;
 
-    event Upgraded(address indexed implementation);
+    /**
+    * @dev This event is invoked when the logic contract is upgraded to a new contract
+    * address.
+    * @param logic The new logic contract address
+    * @notice Used by the EIP1967 standard
+    */
+    event Upgraded(address indexed logic);
 
     constructor(address logicAddress, address owner) {
         if (owner != address(0) && owner != _msgSender()) {
@@ -47,7 +68,6 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         //Update EIP1967 Storage Slot
         StorageSlot.getAddressSlot(EIP1967_LOCATION).value = logic;
     }
-
     
     function upgradeTo(address logic, bytes memory data) external override onlyManager {
         _setLogic(logic);
@@ -59,6 +79,8 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
 
         //Invoke initialize
         require(success, "Logic initializing failed");
+
+        emit Upgraded(logic);
     }
 
     function _delegateCurrentCall() internal {

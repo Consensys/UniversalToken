@@ -6,6 +6,9 @@ import {IExtension, TransferData} from "../../interface/IExtension.sol";
 import {ExtendableBase} from "./ExtendableBase.sol";
 
 /**
+* @title Transfer Hooks for Extensions
+* @author Edward Penta
+* @notice This should be inherited by a token logic contract
 * @dev ExtendableHooks provides the _triggerTokenTransfer internal
 * function that can be used to notify extensions when a transfer occurs.
 */

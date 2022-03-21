@@ -1,5 +1,10 @@
 pragma solidity ^0.8.0;
 
+/**
+* @title IExtendable
+* @author Edward Penta
+* @notice Interface for token proxy that offers extensions
+*/
 interface IExtendable {
     /**
     * @dev Register the extension at the given global extension address. This will deploy a new
