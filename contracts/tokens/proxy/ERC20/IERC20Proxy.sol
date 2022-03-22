@@ -5,7 +5,6 @@ import {ITokenProxy} from "../../../interface/ITokenProxy.sol";
 
 /**
 * @title Extendable ERC20 Proxy Interface
-* @author Edward Penta
 * @notice An interface to interact with an ERC20 Token (proxy).
 */
 interface IERC20Proxy is IERC20Metadata, ITokenProxy {

@@ -6,7 +6,6 @@ import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
 
 /**
 * @title Extension Library
-* @author Edward Penta
 * @notice This should only be used by the token proxy
 * @dev A library to provide several functions for managing extensions.
 * Should not be used directly, it's recommended to use one of the Extendable contracts.

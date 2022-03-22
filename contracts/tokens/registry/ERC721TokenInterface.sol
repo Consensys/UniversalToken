@@ -4,7 +4,6 @@ import {TokenERC1820Provider} from "../TokenERC1820Provider.sol";
 
 /**
 * @title ERC1820 Provider for ERC721
-* @author Edward Penta
 * @notice This should be inherited by the token proxy & token logic contracts
 * @dev A base contract that inherits from TokenERC1820Provider and implements
 * the interface name functions for ERC721

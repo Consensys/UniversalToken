@@ -5,7 +5,6 @@ import {ERC1820Implementer} from "../erc1820/ERC1820Implementer.sol";
 
 /**
 * @title ERC1820 Provider for Tokens
-* @author Edward Penta
 * @notice This is an abstract contract, you may want to inherit from
 * the contracts in the registry folder
 * @dev A base contract that provides ERC1820 functionality and also

@@ -14,7 +14,6 @@ import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 /**
 * @title Token Proxy base Contract
-* @author Edward Penta
 * @notice This should be inherited by the token proxy
 * @dev A generic proxy contract to be used by any token standard. The final token proxy
 * contract should also inherit from a TokenERC1820Provider contract or implement those functions.
@@ -29,6 +28,8 @@ import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 */
 abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, ITokenProxy {
     using BytesLib for bytes;
+
+    bytes32 private constant UPGRADING_FLAG_SLOT = keccak256("token.proxy.upgrading");
 
     /**
     * @dev This event is invoked when the logic contract is upgraded to a new contract
@@ -60,6 +61,22 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         require(logicAddress == ERC1820Client.interfaceAddr(logicAddress, __tokenLogicInterfaceName()), "Not registered as a logic contract");
 
         _setLogic(logicAddress);
+
+        //setup initalize call
+        bytes memory data = abi.encode(logicAddress, owner);
+        StorageSlot.getUint256Slot(UPGRADING_FLAG_SLOT).value = data.length;
+
+        //invoke the initialize function during deployment
+        (bool success,) = _delegatecall(
+            abi.encodeWithSelector(ITokenLogic.initialize.selector, data)
+        );
+
+        //Check initialize
+        require(success, "Logic initializing failed");
+    
+        StorageSlot.getUint256Slot(UPGRADING_FLAG_SLOT).value = 0;
+
+        emit Upgraded(logicAddress);
     }
 
     /**
@@ -97,6 +114,8 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
     * @param data Any arbitrary data, will be passed to the new logic contract's initialize function
     */
     function upgradeTo(address logic, bytes memory data) external override onlyManager {
+        StorageSlot.getUint256Slot(UPGRADING_FLAG_SLOT).value = data.length;
+
         _setLogic(logic);
 
         //invoke the initialize function whenever we upgrade
@@ -106,6 +125,8 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
 
         //Invoke initialize
         require(success, "Logic initializing failed");
+
+        StorageSlot.getUint256Slot(UPGRADING_FLAG_SLOT).value = 0;
 
         emit Upgraded(logic);
     }

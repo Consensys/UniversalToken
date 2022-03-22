@@ -7,7 +7,6 @@ import {ExtendableBase} from "./ExtendableBase.sol";
 
 /**
 * @title Router contract for Extensions
-* @author Edward Penta
 * @notice This should be inherited by token proxy contracts
 * @dev ExtendableRouter provides internal functions to manage
 * extensions, view extension data and invoke extension functions 

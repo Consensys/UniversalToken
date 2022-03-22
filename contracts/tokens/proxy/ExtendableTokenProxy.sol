@@ -11,7 +11,6 @@ import {ITokenProxy} from "../../interface/ITokenProxy.sol";
 
 /**
 * @title Extendable Token Proxy base Contract
-* @author Edward Penta
 * @notice This should be inherited by the token proxy that wishes to use extensions
 * @dev An extendable proxy contract to be used by any token standard. The final token proxy
 * contract should also inherit from a TokenERC1820Provider contract or implement those functions.

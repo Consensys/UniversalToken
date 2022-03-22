@@ -2,7 +2,6 @@ pragma solidity ^0.8.0;
 
 /**
 * @title IExtendable
-* @author Edward Penta
 * @notice Interface for token proxy that offers extensions
 */
 interface IExtendable {

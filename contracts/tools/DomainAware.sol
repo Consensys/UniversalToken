@@ -6,7 +6,6 @@ pragma solidity ^0.8.0;
 
 /**
 * @title Domain-Aware contract interface
-* @author Edward Penta
 * @notice This can be used to interact with a DomainAware contract of any type.
 * @dev An interface that represents a DomainAware contract. This interface provides
 * all public/external facing functions that the DomainAware contract implements.
@@ -47,7 +46,6 @@ interface IDomainAware {
 
 /**
 * @title Domain-Aware contract
-* @author Edward Penta
 * @notice This should be inherited by any contract that plans on using the EIP712 
 * typed structured data signing 
 * @dev A generic contract to be used by contract plans on using the EIP712 typed structure

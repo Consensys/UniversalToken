@@ -10,7 +10,6 @@ import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 /**
 * @title Extendable ERC20 Proxy
-* @author Edward Penta
 * @notice An ERC20 proxy contract that implements the IERC20 interface. This contract
 * can be deployed as-is, however it is recommended to use the ERC20Extendable contract
 * for more deployment options (such as minting an inital supply).
