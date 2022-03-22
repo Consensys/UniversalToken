@@ -43,7 +43,7 @@ abstract contract TokenLogic is TokenERC1820Provider, TokenRoles, ExtendableHook
     *
     * @param data The data to initalize with
     */
-    function initialize(bytes memory data) external {
+    function initialize(bytes memory data) external override {
         uint256 upgradeChallengeCheck = StorageSlot.getUint256Slot(UPGRADING_FLAG_SLOT).value;
         require(upgradeChallengeCheck != 0 && upgradeChallengeCheck == data.length, "The contract is not upgrading or was invoked incorrectly");
 

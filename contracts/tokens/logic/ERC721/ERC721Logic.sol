@@ -22,13 +22,7 @@ contract ERC721Logic is ERC721TokenInterface, TokenLogic, ERC721Upgradeable, ERC
     string internal _contractUri;
 
 
-    //TODO Add upgrade check
-    function initialize(bytes memory data) external override {
-        //require(msg.sender == address(this), "Unauthorized");
-        require(_onInitialize(data), "Initialize failed");
-    }
-
-    function _onInitialize(bytes memory data) internal virtual returns (bool) {
+    function _onInitialize(bytes memory data) internal virtual override returns (bool) {
         return true;
     }
 

@@ -48,7 +48,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     /**
     * @dev We don't need to do anything here
     */
-    function _onInitialize(bytes memory) internal override returns (bool) {
+    function _onInitialize(bytes memory) internal virtual override returns (bool) {
         return true;
     }
 
