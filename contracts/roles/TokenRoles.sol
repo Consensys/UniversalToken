@@ -7,16 +7,64 @@ import {RolesBase} from "./RolesBase.sol";
 import {ExtensionLib} from "../tokens/extension/ExtensionLib.sol";
 import {ITokenRoles} from "../interface/ITokenRoles.sol";
 
+/**
+* @title Token Roles
+* @notice A base contract for handling token roles. 
+* @dev This contract is responsible for the storage and API of access control
+* roles that all tokens should implement. This includes the following roles
+*  * Owner
+*     - A single owner address of the token, as implemented as Ownerable
+*  * Minter
+      - The access control role that allows an address to mint tokens
+*  * Manager
+*     - The single manager address of the token, can manage extensions
+*  * Controller
+*     - The access control role that allows an address to perform controlled-transfers
+* 
+* This contract also handles the storage of the burning/minting toggling.
+*/
 abstract contract TokenRoles is ITokenRoles, RolesBase, ContextUpgradeable {
     using Roles for Roles.Role;
 
+    /**
+    * @dev The storage slot for the burn/burnFrom toggle
+    */
     bytes32 constant TOKEN_ALLOW_BURN = keccak256("token.proxy.core.burn");
+    /**
+    * @dev The storage slot for the mint toggle
+    */
     bytes32 constant TOKEN_ALLOW_MINT = keccak256("token.proxy.core.mint");
+    /**
+    * @dev The storage slot that holds the current Owner address
+    */
     bytes32 constant TOKEN_OWNER = keccak256("token.proxy.core.owner");
+    /**
+    * @dev The access control role ID for the Minter role
+    */
     bytes32 constant TOKEN_MINTER_ROLE = keccak256("token.proxy.core.mint.role");
+    /**
+    * @dev The storage slot that holds the current Manager address
+    */
     bytes32 constant TOKEN_MANAGER_ADDRESS = bytes32(uint256(keccak256('eip1967.proxy.admin')) - 1);
+    /**
+    * @dev The access control role ID for the Controller role
+    */
     bytes32 constant TOKEN_CONTROLLER_ROLE = keccak256("token.proxy.controller.address");
+    
+    /**
+    * @notice This event is triggered when transferOwnership is invoked
+    * @param previousOwner The previous owner before the transfer
+    * @param newOwner The new owner of the token
+    */
     event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+    
+    /**
+    * @notice This event is triggered when the manager address is updated. This
+    * can occur when transferOwnership is invoked or when changeManager is invoked.
+    * This event name is taken from EIP1967
+    * @param previousAdmin The previous manager before the update
+    * @param newAdmin The new manager of the token
+    */
     event AdminChanged(address previousAdmin, address newAdmin);
 
     /**
@@ -26,21 +74,36 @@ abstract contract TokenRoles is ITokenRoles, RolesBase, ContextUpgradeable {
         _setOwner(_msgSender());
     }
 
+    /**
+    * @dev A function modifier that will only allow the current token manager to
+    * invoke the function
+    */
     modifier onlyManager {
         require(_msgSender() == manager(), "This function can only be invoked by the manager");
         _;
     }
 
+    /**
+    * @dev A function modifier that will only allow addresses with the Minter role granted
+    * to invoke the function
+    */
     modifier onlyMinter {
         require(isMinter(_msgSender()), "This function can only be invoked by a minter");
         _;
     }
 
+    /**
+    * @dev A function modifier that will only allow addresses with the Controller role granted
+    * to invoke the function
+    */
     modifier onlyControllers {
         require(isController(_msgSender()), "This function can only be invoked by a controller");
         _;
     }
 
+    /**
+    * @dev A function modifier that will only allow registered & enabled extensions to invoke the function
+    */
     modifier onlyExtensions {
         address extension = _msgSender();
         require(ExtensionLib._isActiveExtension(extension), "Only extensions can call");
@@ -55,36 +118,74 @@ abstract contract TokenRoles is ITokenRoles, RolesBase, ContextUpgradeable {
         _;
     }
 
+    /**
+    * @notice Returns the current token manager
+    */
     function manager() public override view returns (address) {
         return StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value;
     }
 
+    /**
+    * @notice Returns true if `caller` has the Controller role granted
+    */
     function isController(address caller) public override view returns (bool) {
         return hasRole(caller, TOKEN_CONTROLLER_ROLE);
     }
 
+    /**
+    * @notice Returns true if `caller` has the Minter role granted
+    */
     function isMinter(address caller) public override view returns (bool) {
         return hasRole(caller, TOKEN_MINTER_ROLE);
     }
 
+    /**
+    * @notice Grant the Controller role to `caller`. Only addresses with
+    * the Controller role granted may invoke this function
+    * @param caller The address to grant the Controller role to
+    */
     function addController(address caller) public override onlyControllers {
         _addRole(caller, TOKEN_CONTROLLER_ROLE);
     }
 
+    /**
+    * @notice Remove the Controller role from `caller`. Only addresses with
+    * the Controller role granted may invoke this function
+    * @param caller The address to remove the Controller role from
+    */
     function removeController(address caller) public override onlyControllers {
-        _addRole(caller, TOKEN_CONTROLLER_ROLE);
+        _removeRole(caller, TOKEN_CONTROLLER_ROLE);
     }
 
+    /**
+    * @notice Grant the Minter role to `caller`. Only addresses with
+    * the Minter role granted may invoke this function
+    * @param caller The address to grant the Minter role to
+    */
     function addMinter(address caller) public override onlyMinter {
         _addRole(caller, TOKEN_MINTER_ROLE);
     }
 
+    /**
+    * @notice Remove the Minter role from `caller`. Only addresses with
+    * the Minter role granted may invoke this function
+    * @param caller The address to remove the Minter role from
+    */
     function removeMinter(address caller) public override onlyMinter {
         _removeRole(caller, TOKEN_MINTER_ROLE);
     }
 
-    function changeManager(address newManager) external override onlyManager {
+    /**
+    * @notice Change the current token manager. Only the current token manager
+    * can set a new token manager.
+    * @dev This function is also invoked if transferOwnership is invoked
+    * when the current token owner is also the current manager. 
+    */
+    function changeManager(address newManager) public override onlyManager {
+        address oldManager = manager();
         StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = newManager;
+        
+        emit AdminChanged(oldManager, newManager);
     }
 
     /**
@@ -106,17 +207,30 @@ abstract contract TokenRoles is ITokenRoles, RolesBase, ContextUpgradeable {
     }
 
     /**
-     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * @notice Transfers ownership of the contract to a new account (`newOwner`).
      * Can only be called by the current owner.
+     * If the current owner is also the current manager, then the manager address
+     * is also updated to be the new owner
+     * @param newOwner The address of the new owner
      */
     function transferOwnership(address newOwner) public override virtual onlyOwner {
         require(newOwner != address(0), "Ownable: new owner is the zero address");
         _setOwner(newOwner);
     }
 
+    /**
+     * @dev Transfers ownership of the contract to a new account (`newOwner`).
+     * Can only be called by the current owner.
+     * If the current owner is also the current manager, then the manager address
+     * is also updated to be the new owner
+     * @param newOwner The address of the new owner
+     */
     function _setOwner(address newOwner) private {
         address oldOwner = owner();
         StorageSlot.getAddressSlot(TOKEN_OWNER).value = newOwner;
+        if (oldOwner == manager()) {
+            changeManager(newOwner);
+        }
         emit OwnershipTransferred(oldOwner, newOwner);
     }
 }
