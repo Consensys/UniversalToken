@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {TokenLogic} from "../TokenLogic.sol";
-import {IToken, TokenStandard} from "../../../interface/IToken.sol";
+import {IToken, TokenStandard} from "../../IToken.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ExtendableHooks} from "../../extension/ExtendableHooks.sol";
@@ -10,7 +10,6 @@ import {TransferData} from "../../../interface/IExtension.sol";
 import {TokenRoles} from "../../../roles/TokenRoles.sol";
 import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
-import {ITokenLogic} from "../../../interface/ITokenLogic.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 import {ERC20TokenInterface} from "../../registry/ERC20TokenInterface.sol";
 
@@ -44,6 +43,44 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
 
     bytes private _currentData;
     bytes private _currentOperatorData;
+
+    /**
+    * @dev The storage slot that will be used to store the ProtectedTokenData struct inside
+    * this TokenProxy
+    */
+    bytes32 constant ERC20_PROTECTED_TOKEN_DATA_SLOT = bytes32(uint256(keccak256("erc20.token.meta") - 1));
+
+    /**
+    * @notice Protected ERC20 token metadata stored in the proxy storage in a special storage slot.
+    * Includes thing such as name, symbol and deployment options.
+    * @dev This struct should only be written to inside the constructor and should be treated as readonly.
+    * Solidity 0.8.7 does not have anything for marking storage slots as read-only, so we'll just use
+    * the honor system for now.
+    * @param initialized Whether this proxy is initialized
+    * @param name The name of this ERC20 token
+    * @param symbol The symbol of this ERC20 token
+    * @param maxSupply The max supply of token allowed
+    * @param allowMint Whether minting is allowed
+    * @param allowBurn Whether burning is allowed
+    */
+    struct ProtectedTokenData {
+        bool initialized;
+        string name;
+        string symbol;
+        uint256 maxSupply;
+        bool allowMint;
+        bool allowBurn;
+    }
+
+    /**
+     * @dev Get the ProtectedTokenData struct stored in this contract
+     */
+    function _getProtectedTokenData() internal pure returns (ProtectedTokenData storage r) {
+        bytes32 slot = ERC20_PROTECTED_TOKEN_DATA_SLOT;
+        assembly {
+            r.slot := slot
+        }
+    }
     
     /**
     * @dev We don't need to do anything here
@@ -88,6 +125,8 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     */
     function mint(address to, uint256 amount) external onlyMinter returns (bool) {
         _mint(to, amount);
+
+        require(_totalSupply() <= _getProtectedTokenData().maxSupply, "Max supply has been exceeded");
 
         return true;
     }

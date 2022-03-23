@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {TokenLogic} from "../TokenLogic.sol";
-import {IToken, TokenStandard} from "../../../interface/IToken.sol";
+import {TokenStandard} from "../../IToken.sol";
 import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ERC721Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC721/ERC721Upgradeable.sol";
@@ -12,7 +12,6 @@ import {TransferData} from "../../../interface/IExtension.sol";
 import {TokenRoles} from "../../../roles/TokenRoles.sol";
 import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
-import {ITokenLogic} from "../../../interface/ITokenLogic.sol";
 import {ERC721TokenInterface} from "../../registry/ERC721TokenInterface.sol";
 
 contract ERC721Logic is ERC721TokenInterface, TokenLogic, ERC721Upgradeable, ERC721URIStorageUpgradeable, ERC721EnumerableUpgradeable, ERC721BurnableUpgradeable {

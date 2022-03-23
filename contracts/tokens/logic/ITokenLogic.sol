@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {IToken} from "./IToken.sol";
+import {IToken} from "../IToken.sol";
 
 /**
 * @title Token Logic Interface

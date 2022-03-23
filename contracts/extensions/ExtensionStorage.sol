@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {IToken} from "../interface/IToken.sol";
+import {IToken} from "../tokens/IToken.sol";
 import {IExtensionStorage} from "../interface/IExtensionStorage.sol";
 import {IExtension} from "../interface/IExtension.sol";
 import {IExtensionMetadata, TokenStandard} from "../interface/IExtensionMetadata.sol";
@@ -93,7 +93,6 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
     * @param implementation Address to delegate.
     */
     function _delegate(address implementation) internal {
-        bytes memory result;
         assembly {
             // Copy msg.data. We take full control of memory in this inline assembly
             // block because it will not return to Solidity code. We overwrite the
@@ -102,14 +101,8 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
 
             // Call the implementation.
             // out and outsize are 0 because we don't know the size yet.
-            result := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0)
-        }
+            let result := delegatecall(gas(), implementation, 0, calldatasize(), 0, 0)
 
-        //Clear _msgSender slot
-        StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = address(0);
-
-        // Continue to return
-        assembly {
             // Copy the returned data.
             returndatacopy(0, 0, returndatasize())
 

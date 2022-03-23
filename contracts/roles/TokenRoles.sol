@@ -182,6 +182,10 @@ abstract contract TokenRoles is ITokenRoles, RolesBase, ContextUpgradeable {
     * when the current token owner is also the current manager. 
     */
     function changeManager(address newManager) public override onlyManager {
+        _changeManager(newManager);
+    }
+
+    function _changeManager(address newManager) private {
         address oldManager = manager();
         StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = newManager;
         
@@ -229,7 +233,7 @@ abstract contract TokenRoles is ITokenRoles, RolesBase, ContextUpgradeable {
         address oldOwner = owner();
         StorageSlot.getAddressSlot(TOKEN_OWNER).value = newOwner;
         if (oldOwner == manager()) {
-            changeManager(newOwner);
+            _changeManager(newOwner);
         }
         emit OwnershipTransferred(oldOwner, newOwner);
     }

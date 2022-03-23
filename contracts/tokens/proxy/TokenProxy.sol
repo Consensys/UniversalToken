@@ -4,12 +4,12 @@ import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../erc1820/ERC1820Implementer.sol";
 import {TokenRoles} from "../../roles/TokenRoles.sol";
 import {DomainAware} from "../../tools/DomainAware.sol";
-import {ITokenLogic} from "../../interface/ITokenLogic.sol";
+import {ITokenLogic} from "../logic/ITokenLogic.sol";
 import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
-import {ITokenProxy} from "../../interface/ITokenProxy.sol";
+import {ITokenProxy} from "./ITokenProxy.sol";
 import {TokenERC1820Provider} from "../TokenERC1820Provider.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
-import {TransferData} from "../../interface/IToken.sol";
+import {TransferData} from "../IToken.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 /**

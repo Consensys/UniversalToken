@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {ITokenLogic} from "../../interface/ITokenLogic.sol";
+import {ITokenLogic} from "./ITokenLogic.sol";
 import {TokenRoles} from "../../roles/TokenRoles.sol";
 import {ExtendableHooks} from "../extension/ExtendableHooks.sol";
 import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";

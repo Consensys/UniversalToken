@@ -12,7 +12,7 @@ interface IExtendable {
     *
     * @param extension The deployed extension address to register
     */
-    function registerExtension(address extension) external returns (bool);
+    function registerExtension(address extension) external;
 
     /**
     * @dev Remove the extension at the provided address. This may either be the
@@ -23,7 +23,7 @@ interface IExtendable {
     *
     * @param extension Either the global extension address or the deployed extension proxy address to remove
     */
-    function removeExtension(address extension) external returns (bool);
+    function removeExtension(address extension) external;
 
     /**
     * @dev Disable the extension at the provided address. This may either be the
@@ -34,7 +34,7 @@ interface IExtendable {
     *
     * @param extension Either the global extension address or the deployed extension proxy address to disable
     */
-    function disableExtension(address extension) external returns (bool);
+    function disableExtension(address extension) external;
 
     /**
     * @dev Enable the extension at the provided address. This may either be the
@@ -44,13 +44,19 @@ interface IExtendable {
     *
     * @param extension Either the global extension address or the deployed extension proxy address to enable
     */
-    function enableExtension(address extension) external returns (bool);
+    function enableExtension(address extension) external;
 
     /**
     * @dev Get an array of all deployed extension proxy addresses, regardless of if they are
     * enabled or disabled
     */
-    function allExtensions() external view returns (address[] memory);
+    function allExtensionsRegistered() external view returns (address[] memory);
+
+    /**
+    * @dev Get an array of all deployed extension proxy addresses, regardless of if they are
+    * enabled or disabled
+    */
+    function allExtensionProxies() external view returns (address[] memory);
 
     /**
     * @dev Get the deployed extension proxy address given a global extension address. 

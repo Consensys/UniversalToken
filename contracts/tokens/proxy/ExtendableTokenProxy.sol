@@ -1,13 +1,11 @@
 pragma solidity ^0.8.0;
 
 import {TokenProxy} from "./TokenProxy.sol";
-import {IExtendableTokenProxy} from "../../interface/IExtendableTokenProxy.sol";
-import {ExtendableRouter} from "../extension/ExtendableRouter.sol";
-import {IExtendableTokenProxy} from "../../interface/IExtendableTokenProxy.sol";
+import {IExtendableTokenProxy} from "./IExtendableTokenProxy.sol";
+import {ExtendableProxy} from "../extension/ExtendableProxy.sol";
 import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
-import {ExtensionLib} from "../extension/ExtensionLib.sol";
 import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
-import {ITokenProxy} from "../../interface/ITokenProxy.sol";
+import {ITokenProxy} from "./ITokenProxy.sol";
 
 /**
 * @title Extendable Token Proxy base Contract
@@ -15,7 +13,7 @@ import {ITokenProxy} from "../../interface/ITokenProxy.sol";
 * @dev An extendable proxy contract to be used by any token standard. The final token proxy
 * contract should also inherit from a TokenERC1820Provider contract or implement those functions.
 * This contract does everything the TokenProxy does and adds extensions support to the proxy contract.
-* This is done by extending from ExtendableRouter and providing external functions that can be used
+* This is done by extending from ExtendableProxy and providing external functions that can be used
 * by the token proxy manager to manage extensions.
 *
 * This contract overrides the fallback function to forward any registered function selectors
@@ -23,7 +21,7 @@ import {ITokenProxy} from "../../interface/ITokenProxy.sol";
 *
 * The domain name must be implemented by the final token proxy.
 */
-abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtendableTokenProxy {
+abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendableTokenProxy {
     string constant internal EXTENDABLE_INTERFACE_NAME = "ExtendableToken";
 
     /**
@@ -37,15 +35,23 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtenda
     }
 
     /**
-    * @notice Return an array of all deployed extension proxy addresses, regardless of if they are
-    * enabled or disabled
+    * @notice Return an array of all global extension addresses, regardless of if they are
+    * enabled or disabled. You cannot interact with these addresses. For user interaction
+    * you should use ExtendableTokenProxy.allExtensionProxies
     * @return address[] All registered and deployed extension proxy addresses
     */
-    function allExtensions() external override view returns (address[] memory) {
-        //To return all the extensions, we'll read directly from the ERC20CoreExtendableBase's storage struct
-        //since it's stored here at the proxy
-        //The ExtensionLib library offers functions to do this
-        return ExtensionLib._allExtensions();
+    function allExtensionsRegistered() external override view returns (address[] memory) {
+        return _allExtensionsRegistered();
+    }
+
+    /**
+    * @notice Return an array of all deployed extension proxy addresses, regardless of if they are
+    * enabled or disabled. You can use these addresses for direct interaction. Remember you can also
+    * interact with extensions through the TokenProxy.
+    * @return address[] All registered and deployed extension proxy addresses
+    */
+    function allExtensionProxies() external override view returns (address[] memory) {
+        return _allExtensionProxies();
     }
 
     /**
@@ -55,7 +61,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtenda
     * @return address The deployed extension proxy address
     */
     function proxyAddressForExtension(address extension) external override view returns (address) {
-        return ExtensionLib._proxyAddressForExtension(extension);
+        return _proxyAddressForExtension(extension);
     }
 
     /**
@@ -71,26 +77,21 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtenda
     * See: IExtensionMetadata.requiredRoles()
     *
     * @param extension The global extension address to register
-    * @return bool Whether reigstration was successful
     */
-    function registerExtension(address extension) external override onlyManager returns (bool) {
-        bool result = _registerExtension(extension);
+    function registerExtension(address extension) external override onlyManager {
+        _registerExtension(extension, address(this), _msgSender());
 
-        if (result) {
-            address proxyAddress = ExtensionLib._proxyAddressForExtension(extension);
-            ExtensionStorage proxy = ExtensionStorage(payable(proxyAddress));
+        address proxyAddress = ExtensionLib._proxyAddressForExtension(extension);
+        ExtensionStorage proxy = ExtensionStorage(payable(proxyAddress));
 
-            bytes32[] memory requiredRoles = proxy.requiredRoles();
-            
-            //If we have roles we need to register, then lets register them
-            if (requiredRoles.length > 0) {
-                for (uint i = 0; i < requiredRoles.length; i++) {
-                    _addRole(proxyAddress, requiredRoles[i]);
-                }
+        bytes32[] memory requiredRoles = proxy.requiredRoles();
+        
+        //If we have roles we need to register, then lets register them
+        if (requiredRoles.length > 0) {
+            for (uint i = 0; i < requiredRoles.length; i++) {
+                _addRole(proxyAddress, requiredRoles[i]);
             }
         }
-
-        return result;
     }
 
     /**
@@ -102,30 +103,26 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtenda
     * 
     * @param extension Either the global extension address or the deployed extension proxy address to remove
     */
-    function removeExtension(address extension) external override onlyManager returns (bool) {
-        bool result = _removeExtension(extension);
+    function removeExtension(address extension) external override onlyManager {
+        _removeExtension(extension);
 
-        if (result) {
-            address proxyAddress;
-            if (ExtensionLib._isProxyAddress(extension)) {
-                proxyAddress = extension;
-            } else {
-                proxyAddress = ExtensionLib._proxyAddressForExtension(extension);
-            }
-
-            ExtensionStorage proxy = ExtensionStorage(payable(proxyAddress));
-
-            bytes32[] memory requiredRoles = proxy.requiredRoles();
-            
-            //If we have roles we need to register, then lets register them
-            if (requiredRoles.length > 0) {
-                for (uint i = 0; i < requiredRoles.length; i++) {
-                    _removeRole(proxyAddress, requiredRoles[i]);
-                }
-            }
+        address proxyAddress;
+        if (ExtensionLib._isProxyAddress(extension)) {
+            proxyAddress = extension;
+        } else {
+            proxyAddress = ExtensionLib._proxyAddressForExtension(extension);
         }
 
-        return result;
+        ExtensionStorage proxy = ExtensionStorage(payable(proxyAddress));
+
+        bytes32[] memory requiredRoles = proxy.requiredRoles();
+        
+        //If we have roles we need to register, then lets register them
+        if (requiredRoles.length > 0) {
+            for (uint i = 0; i < requiredRoles.length; i++) {
+                _removeRole(proxyAddress, requiredRoles[i]);
+            }
+        }
     }
 
     /**
@@ -137,8 +134,8 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtenda
     *
     * @param extension Either the global extension address or the deployed extension proxy address to disable
     */
-    function disableExtension(address extension) external override onlyManager returns (bool) {
-        return _disableExtension(extension);
+    function disableExtension(address extension) external override onlyManager {
+        _disableExtension(extension);
     }
 
     /**
@@ -149,8 +146,8 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableRouter, IExtenda
     *
     * @param extension Either the global extension address or the deployed extension proxy address to enable
     */
-    function enableExtension(address extension) external override onlyManager returns (bool) {
-        return _enableExtension(extension);
+    function enableExtension(address extension) external override onlyManager {
+        _enableExtension(extension);
     }
 
     /**

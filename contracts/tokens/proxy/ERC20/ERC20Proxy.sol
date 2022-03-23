@@ -16,7 +16,7 @@ import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 * You must provide a token logic contract address that implements the ERC20TokenLogic interface.
 *
 * The mint and burn/burnFrom functions can be toggled on/off during deployment. To check if mint/burn/burnFrom
-* are enabled, check the TokenMeta.
+* are enabled, check the ProtectedTokenData.
 *
 * @dev This proxy contract inherits from ExtendableTokenProxy and ERC20TokenInterface, meaning
 * it supports the full ERC20 spec and extensions that support ERC20. All ERC20 functions
@@ -32,11 +32,18 @@ import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     using BytesLib for bytes;
     
-    bytes32 constant ERC20_TOKEN_META = keccak256("erc20.token.meta");
+    /**
+    * @dev The storage slot that will be used to store the ProtectedTokenData struct inside
+    * this TokenProxy
+    */
+    bytes32 constant ERC20_PROTECTED_TOKEN_DATA_SLOT = bytes32(uint256(keccak256("erc20.token.meta") - 1));
 
     /**
-    * @notice The ERC20 token metadata stored. Includes thing such as name, symbol
-    * and options.
+    * @notice Protected ERC20 token metadata stored in the proxy storage in a special storage slot.
+    * Includes thing such as name, symbol and deployment options.
+    * @dev This struct should only be written to inside the constructor and should be treated as readonly.
+    * Solidity 0.8.7 does not have anything for marking storage slots as read-only, so we'll just use
+    * the honor system for now.
     * @param initialized Whether this proxy is initialized
     * @param name The name of this ERC20 token
     * @param symbol The symbol of this ERC20 token
@@ -44,7 +51,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     * @param allowMint Whether minting is allowed
     * @param allowBurn Whether burning is allowed
     */
-    struct TokenMeta {
+    struct ProtectedTokenData {
         bool initialized;
         string name;
         string symbol;
@@ -57,7 +64,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     * @notice Deploy a new ERC20 Token Proxy with a given token logic contract. You must
     * also provide the token's name/symbol, max supply, owner and whether token minting or
     * token buning is allowed
-    * @dev The constructor stores the TokenMeta and updates the domain seperator
+    * @dev The constructor stores the ProtectedTokenData and updates the domain seperator
     * @param name_ The name of the new ERC20 Token
     * @param symbol_ The symbol of the new ERC20 Token
     * @param allowMint Whether the mint function will be enabled on this token
@@ -77,7 +84,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
             _addRole(owner, TOKEN_MINTER_ROLE);
         }
 
-        TokenMeta storage m = _getTokenMeta();
+        ProtectedTokenData storage m = _getProtectedTokenData();
         m.name = name_;
         m.symbol = symbol_;
         m.maxSupply = maxSupply_;
@@ -110,10 +117,10 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     }
 
     /**
-     * @dev Get the TokenMeta struct stored in this contract
+     * @dev Get the ProtectedTokenData struct stored in this contract
      */
-    function _getTokenMeta() internal pure returns (TokenMeta storage r) {
-        bytes32 slot = ERC20_TOKEN_META;
+    function _getProtectedTokenData() internal pure returns (ProtectedTokenData storage r) {
+        bytes32 slot = ERC20_PROTECTED_TOKEN_DATA_SLOT;
         assembly {
             r.slot := slot
         }
@@ -132,7 +139,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     * @notice Returns true if minting is allowed on this token, otherwise false
     */
     function mintingAllowed() public override view returns (bool) {
-        TokenMeta storage m = _getTokenMeta();
+        ProtectedTokenData storage m = _getProtectedTokenData();
         return m.allowMint;
     }
 
@@ -140,24 +147,8 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     * @notice Returns true if burning is allowed on this token, otherwise false
     */
     function burningAllowed() public override view returns (bool) {
-        TokenMeta storage m = _getTokenMeta();
+        ProtectedTokenData storage m = _getProtectedTokenData();
         return m.allowBurn;
-    }
-
-    /**
-    * @dev Toggle minting on/off on this token.
-    */
-    function _toggleMinting(bool allowMinting) internal {
-        TokenMeta storage m = _getTokenMeta();
-        m.allowMint = allowMinting;
-    }
-
-    /**
-    * @dev Toggle burning on/off on this token.
-    */
-    function _toggleBurning(bool allowBurning) internal {
-        TokenMeta storage m = _getTokenMeta();
-        m.allowBurn = allowBurning;
     }
 
     /**
@@ -174,14 +165,14 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
      * @notice Returns the name of the token.
      */
     function name() public override view returns (string memory) {
-        return _getTokenMeta().name;
+        return _getProtectedTokenData().name;
     }
 
     /**
      * @notice Returns the symbol of the token.
      */
     function symbol() public override view returns (string memory) {
-        return _getTokenMeta().symbol;
+        return _getProtectedTokenData().symbol;
     }
 
     /**
@@ -218,14 +209,8 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     /// #if_succeeds {:msg "Minting is enabled"} mintingAllowed()
     /// #if_succeeds {:msg "The to address balance increases"} old(balanceOf(to)) + amount == balanceOf(to)
     /// #if_succeeds {:msg "The total supply has increases as expected"} old(totalSupply()) + amount == totalSupply()
-    /// #if_succeeds {:msg "The total supply is not bigger than the max cap"} old(totalSupply()) + amount <= _getTokenMeta().maxSupply
-    function mint(address to, uint256 amount) public override virtual onlyMinter mintingEnabled returns (bool) {
-        (bool result, ) = _delegatecall(_msgData());
-        
-        TokenMeta storage m = _getTokenMeta();
-        require(totalSupply() <= m.maxSupply, "ERC20: Max supply reached");
-        return result;
-    }
+    /// #if_succeeds {:msg "The total supply is not bigger than the max cap"} old(totalSupply()) + amount <= _getProtectedTokenData().maxSupply
+    function mint(address to, uint256 amount) public override virtual onlyMinter mintingEnabled delegated returns (bool) { }
 
     /**
      * @notice Destroys `amount` tokens from the caller.
@@ -294,6 +279,11 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
      * @param recipient The recipient of the token transfer from the caller
      * @param amount The amount from the caller's account to transfer
      */
+    /// #if_succeeds {:msg "The sender has sufficient balance at the start"} old(balanceOf(sender) >= amount);
+    /// #if_succeeds {:msg "The sender has amount less balance"} _msgSender() != recipient ==> old(balanceOf(_msgSender())) - amount == balanceOf(_msgSender());
+    /// #if_succeeds {:msg "The operator's balance doesnt change if its not the receiver"} _msgSender() != recipient ==> old(balanceOf(_msgSender())) == balanceOf(_msgSender());
+    /// #if_succeeds {:msg "The receiver receives amount"} sender != recipient ==> old(balanceOf(recipient)) + amount == balanceOf(recipient);
+    /// #if_succeeds {:msg "Transfer to self won't change the senders balance" } sender == recipient ==> old(balanceOf(recipient) == balanceOf(recipient));
     function transferFromWithData(address sender, address recipient, uint256 amount, bytes calldata data) public returns (bool) {
         bytes memory cdata = abi.encodeWithSelector(IERC20.transferFrom.selector, sender, recipient, amount, data);
 
