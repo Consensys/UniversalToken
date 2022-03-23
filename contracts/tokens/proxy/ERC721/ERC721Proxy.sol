@@ -4,7 +4,7 @@ import {IERC721Metadata} from "@openzeppelin/contracts/token/ERC721/extensions/I
 import {IERC721} from "@openzeppelin/contracts/token/ERC721/IERC721.sol";
 import {IERC721Proxy} from "./IERC721Proxy.sol";
 import {IERC721Logic} from "../../logic/ERC721/IERC721Logic.sol";
-import {IToken, TokenStandard, TransferData} from "../../../interface/IToken.sol";
+import {IToken, TokenStandard, TransferData} from "../../IToken.sol";
 import {ExtendableTokenProxy} from "../ExtendableTokenProxy.sol";
 import {ERC721TokenInterface} from "../../registry/ERC721TokenInterface.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";

@@ -6,6 +6,7 @@ import {ExtendableProxy} from "../extension/ExtendableProxy.sol";
 import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
 import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
 import {ITokenProxy} from "./ITokenProxy.sol";
+import {IDiamondLoupe} from "../../interface/IDiamondLoupe.sol";
 
 /**
 * @title Extendable Token Proxy base Contract
@@ -21,8 +22,17 @@ import {ITokenProxy} from "./ITokenProxy.sol";
 *
 * The domain name must be implemented by the final token proxy.
 */
-abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendableTokenProxy {
+abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendableTokenProxy, IDiamondLoupe {
     string constant internal EXTENDABLE_INTERFACE_NAME = "ExtendableToken";
+
+    /**
+    * @dev A function modifier that will only allow registered & enabled extensions to invoke the function
+    */
+    modifier onlyExtensions {
+        address extension = _msgSender();
+        require(_isActiveExtension(extension), "Only extensions can call");
+        _;
+    }
 
     /**
     * @dev Invoke TokenProxy constructor and register ourselves as an ExtendableToken
@@ -81,7 +91,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendab
     function registerExtension(address extension) external override onlyManager {
         _registerExtension(extension, address(this), _msgSender());
 
-        address proxyAddress = ExtensionLib._proxyAddressForExtension(extension);
+        address proxyAddress = _proxyAddressForExtension(extension);
         ExtensionStorage proxy = ExtensionStorage(payable(proxyAddress));
 
         bytes32[] memory requiredRoles = proxy.requiredRoles();
@@ -107,10 +117,10 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendab
         _removeExtension(extension);
 
         address proxyAddress;
-        if (ExtensionLib._isProxyAddress(extension)) {
+        if (_isExtensionProxyAddress(extension)) {
             proxyAddress = extension;
         } else {
-            proxyAddress = ExtensionLib._proxyAddressForExtension(extension);
+            proxyAddress = _proxyAddressForExtension(extension);
         }
 
         ExtensionStorage proxy = ExtensionStorage(payable(proxyAddress));
@@ -164,5 +174,40 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendab
         } else {
             super._fallback();
         }
+    }
+
+    /// @notice Gets all facet addresses and their four byte function selectors.
+    /// @return facets_ Facet
+    function facets() external override view returns (Facet[] memory facets_) {
+        address[] storage extensions = _allExtensionsRegistered();
+        facets_ = new Facet[](extensions.length);
+
+        for (uint i = 0; i < facets_.length; i++) {
+            facets_[i] = Facet(
+                extensions[i],
+                facetFunctionSelectors(extensions[i])
+            );
+        }
+    }
+
+    /// @notice Gets all the function selectors supported by a specific facet.
+    /// @param _facet The facet address.
+    /// @return facetFunctionSelectors_
+    function facetFunctionSelectors(address _facet) public override view returns (bytes4[] memory facetFunctionSelectors_) {
+        return _addressToExtensionData(_facet).externalFunctions;
+    }
+
+    /// @notice Get all the facet addresses used by a diamond.
+    /// @return facetAddresses_
+    function facetAddresses() external override view returns (address[] memory facetAddresses_) {
+        return _allExtensionsRegistered();
+    }
+
+    /// @notice Gets the facet that supports the given selector.
+    /// @dev If facet is not found return address(0).
+    /// @param _functionSelector The function selector.
+    /// @return facetAddress_ The facet address.
+    function facetAddress(bytes4 _functionSelector) external override view returns (address facetAddress_) {
+        return _functionToExtensionProxyAddress(_functionSelector);
     }
 }

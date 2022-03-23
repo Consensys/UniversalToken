@@ -1,7 +1,6 @@
 pragma solidity ^0.8.0;
 
 import {IExtensionStorage} from "../../interface/IExtensionStorage.sol";
-import {ExtensionLib} from "./ExtensionLib.sol";
 import {IExtension, TransferData} from "../../interface/IExtension.sol";
 import {ExtendableBase} from "./ExtendableBase.sol";
 

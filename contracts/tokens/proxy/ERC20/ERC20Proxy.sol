@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import {IERC20Proxy} from "./IERC20Proxy.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IERC20Logic} from "../../logic/ERC20/IERC20Logic.sol";
-import {IToken, TransferData, TokenStandard} from "../../../interface/IToken.sol";
+import {IToken, TransferData, TokenStandard} from "../../IToken.sol";
 import {ExtendableTokenProxy} from "../ExtendableTokenProxy.sol";
 import {ERC20TokenInterface} from "../../registry/ERC20TokenInterface.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
@@ -36,7 +36,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     * @dev The storage slot that will be used to store the ProtectedTokenData struct inside
     * this TokenProxy
     */
-    bytes32 constant ERC20_PROTECTED_TOKEN_DATA_SLOT = bytes32(uint256(keccak256("erc20.token.meta") - 1));
+    bytes32 constant ERC20_PROTECTED_TOKEN_DATA_SLOT = bytes32(uint256(keccak256("erc20.token.meta")) - 1);
 
     /**
     * @notice Protected ERC20 token metadata stored in the proxy storage in a special storage slot.

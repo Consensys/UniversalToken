@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {TransferData} from "../../interface/IToken.sol";
+import {TransferData} from "..//IToken.sol";
 import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
 
 /**
@@ -39,6 +39,7 @@ abstract contract ExtendableBase is ContextUpgradeable {
         ExtensionState state;
         uint256 index;
         address extProxy;
+        bytes4[] externalFunctions;
     }
 
     /**
@@ -64,6 +65,18 @@ abstract contract ExtendableBase is ContextUpgradeable {
         assembly {
             ds.slot := position
         }
+    }
+
+    /**
+    * @dev Obtain data about an extension address in the form of the ExtensionData struct. The
+    * address provided can be either the global extension address or the deployed extension proxy address
+    * @param ext The extension address to lookup, either the global extension address or the deployed extension proxy address
+    * @return ExtensionData Data about the extension in the form of the ExtensionData struct
+    */
+    function _addressToExtensionData(address ext) internal view returns (ExtensionData memory) {
+        MappedExtensions storage extLibStorage = extensionStorage();
+        address extension = __forceGlobalExtensionAddress(ext);
+        return extLibStorage.extensions[extension];
     }
 
     /**
@@ -123,7 +136,8 @@ abstract contract ExtendableBase is ContextUpgradeable {
         extLibStorage.extensions[extension] = ExtensionData(
             ExtensionState.EXTENSION_ENABLED,
             extLibStorage.registeredExtensions.length,
-            address(extProxy)
+            address(extProxy),
+            externalFunctions
         );
 
         extLibStorage.registeredExtensions.push(extension);

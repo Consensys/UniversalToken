@@ -4,7 +4,6 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cont
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {Roles} from "./Roles.sol";
 import {RolesBase} from "./RolesBase.sol";
-import {ExtensionLib} from "../tokens/extension/ExtensionLib.sol";
 import {ITokenRoles} from "../interface/ITokenRoles.sol";
 
 /**
@@ -98,15 +97,6 @@ abstract contract TokenRoles is ITokenRoles, RolesBase, ContextUpgradeable {
     */
     modifier onlyControllers {
         require(isController(_msgSender()), "This function can only be invoked by a controller");
-        _;
-    }
-
-    /**
-    * @dev A function modifier that will only allow registered & enabled extensions to invoke the function
-    */
-    modifier onlyExtensions {
-        address extension = _msgSender();
-        require(ExtensionLib._isActiveExtension(extension), "Only extensions can call");
         _;
     }
     

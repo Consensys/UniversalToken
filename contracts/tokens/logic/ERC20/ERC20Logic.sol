@@ -48,7 +48,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     * @dev The storage slot that will be used to store the ProtectedTokenData struct inside
     * this TokenProxy
     */
-    bytes32 constant ERC20_PROTECTED_TOKEN_DATA_SLOT = bytes32(uint256(keccak256("erc20.token.meta") - 1));
+    bytes32 constant ERC20_PROTECTED_TOKEN_DATA_SLOT = bytes32(uint256(keccak256("erc20.token.meta")) - 1);
 
     /**
     * @notice Protected ERC20 token metadata stored in the proxy storage in a special storage slot.
@@ -126,7 +126,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     function mint(address to, uint256 amount) external onlyMinter returns (bool) {
         _mint(to, amount);
 
-        require(_totalSupply() <= _getProtectedTokenData().maxSupply, "Max supply has been exceeded");
+        require(totalSupply() <= _getProtectedTokenData().maxSupply, "Max supply has been exceeded");
 
         return true;
     }

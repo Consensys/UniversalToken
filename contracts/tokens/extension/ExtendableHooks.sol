@@ -1,7 +1,6 @@
 pragma solidity ^0.8.0;
 
 import {IExtensionStorage} from "../../interface/IExtensionStorage.sol";
-import {ExtensionLib} from "./ExtensionLib.sol";
 import {IExtension, TransferData} from "../../interface/IExtension.sol";
 import {ExtendableBase} from "./ExtendableBase.sol";
 
@@ -45,6 +44,6 @@ abstract contract ExtendableHooks is ExtendableBase {
      * @param data The transfer data to that represents this transfer to send to extensions.
      */
     function _triggerTokenTransfer(TransferData memory data) internal virtual {
-        require(ExtensionLib._executeOnAllExtensions(_validateTransferWithExtension, data), "Extension failed validation of transfer");
+        require(_executeOnAllExtensions(_validateTransferWithExtension, data), "Extension failed validation of transfer");
     }
 }

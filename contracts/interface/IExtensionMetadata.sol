@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {TokenStandard} from "../interface/IToken.sol";
+import {TokenStandard} from "../tokens/IToken.sol";
 
 interface IExtensionMetadata {
     function externalFunctions() external view returns (bytes4[] memory);
