@@ -22,6 +22,10 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
         TokenStandard standard = IToken(token).tokenStandard();
 
         require(isTokenStandardSupported(standard), "Extension does not support token standard");
+        
+        //Update EIP1967 Storage Slot
+        bytes32 EIP1967_LOCATION = bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1);
+        StorageSlot.getAddressSlot(EIP1967_LOCATION).value = extension;
     }
 
     function _extension() internal view returns (IExtension) {
@@ -58,6 +62,10 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
         address old = ds.extension;
         ds.extension = extensionImplementation;
 
+        //Update EIP1967 Storage Slot
+        bytes32 EIP1967_LOCATION = bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1);
+        StorageSlot.getAddressSlot(EIP1967_LOCATION).value = extensionImplementation;
+
         emit ExtensionUpgraded(old, extensionImplementation);
     }
 
@@ -67,6 +75,10 @@ contract ExtensionStorage is IExtensionStorage, IExtensionMetadata, ExtensionBas
 
     fallback() external payable {
         if (msg.sender != _authorizedCaller() && msg.sender != address(this)) {
+            require(msg.sig != IExtension.initialize.selector, "Cannot directly invoke initialize");
+            require(msg.sig != IExtension.onTransferExecuted.selector, "Cannot directly invoke transferExecuted");
+            require(msg.sig != IExtensionStorage.prepareCall.selector, "Cannot directly invoke prepareCall");
+
             //They are calling the proxy directly
             //allow this, but just make sure we update the msg sender slot ourselves
             StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = msg.sender;

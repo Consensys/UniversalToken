@@ -1,3 +1,5 @@
+pragma solidity ^0.8.0;
+
 /**
 * @title Diamond Loupe Interface
 * @notice These functions look at diamonds
