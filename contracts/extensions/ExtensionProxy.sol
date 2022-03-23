@@ -75,6 +75,7 @@ contract ExtensionProxy is IExtensionProxy, IExtensionMetadata, ExtensionBase {
 
     fallback() external payable {
         if (msg.sender != _authorizedCaller() && msg.sender != address(this)) {
+            //These specific functions are restricted when using the proxy directly
             require(msg.sig != IExtension.initialize.selector, "Cannot directly invoke initialize");
             require(msg.sig != IExtension.onTransferExecuted.selector, "Cannot directly invoke transferExecuted");
             require(msg.sig != IExtensionProxy.prepareCall.selector, "Cannot directly invoke prepareCall");

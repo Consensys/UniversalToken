@@ -15,6 +15,15 @@ interface IExtendable {
     function registerExtension(address extension) external;
 
     /**
+    * @dev Upgrade a registered extension at the given global extension address. This will perform
+    * an upgrade on the ExtensionProxy contract that was deployed during registration. The new global
+    * extension address must have the same deployer and package hash.
+    * @param extension The global extension address to upgrade
+    * @param newExtension The new global extension address to upgrade the extension to
+    */
+    function upgradeExtension(address extension, address newExtension) external;
+
+    /**
     * @dev Remove the extension at the provided address. This may either be the
     * global extension address or the deployed extension proxy address. 
     *

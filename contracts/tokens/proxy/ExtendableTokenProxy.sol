@@ -105,6 +105,22 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendab
     }
 
     /**
+    * @notice Upgrade a registered extension at the given global extension address. This will perform
+    * an upgrade on the ExtensionProxy contract that was deployed during registration. The new global
+    * extension address must have the same deployer and package hash.
+    * @param extension The global extension address to upgrade
+    * @param newExtension The new global extension address to upgrade the extension to
+    */
+    function upgradeExtension(address extension, address newExtension) external override onlyManager {
+        address proxyAddress = _proxyAddressForExtension(extension);
+        require(proxyAddress != address(0), "Extension is not registered");
+
+        ExtensionProxy proxy = ExtensionProxy(payable(proxyAddress));
+
+        proxy.upgradeTo(newExtension);
+    }
+
+    /**
     * @notice Remove the extension at the provided address. This may either be the
     * global extension address or the deployed extension proxy address. 
     *
