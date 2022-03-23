@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {IExtensionStorage} from "../../interface/IExtensionStorage.sol";
+import {IExtensionProxy} from "../../interface/IExtensionProxy.sol";
 import {IExtension, TransferData} from "../../interface/IExtension.sol";
 import {ExtendableBase} from "./ExtendableBase.sol";
 
@@ -31,7 +31,7 @@ contract ExtendableProxy is ExtendableBase {
         require(toCall != address(0), "EXTROUTER: Function does not exist");
 
         if (_isExtensionProxyAddress(toCall)) {
-            IExtensionStorage proxy = IExtensionStorage(payable(toCall));
+            IExtensionProxy proxy = IExtensionProxy(payable(toCall));
             proxy.prepareCall(_msgSender());
         }
 

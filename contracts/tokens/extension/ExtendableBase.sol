@@ -3,7 +3,7 @@ pragma solidity ^0.8.0;
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {TransferData} from "..//IToken.sol";
-import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
+import {ExtensionProxy} from "../../extensions/ExtensionProxy.sol";
 
 /**
 * @title Base Contract for Extendable contracts
@@ -92,7 +92,7 @@ abstract contract ExtendableBase is ContextUpgradeable {
 
     /**
     * @dev Register an extension at the given global extension address. This will
-    * deploy a new ExtensionStorage contract to act as the extension proxy and register
+    * deploy a new ExtensionProxy contract to act as the extension proxy and register
     * all function selectors the extension exposes.
     * This will also invoke the initialize function on the extension proxy, to do this 
     * we must know who the current caller is.
@@ -109,9 +109,9 @@ abstract contract ExtendableBase is ContextUpgradeable {
         //TODO Register with 1820
         //Interfaces has been validated, lets begin setup
 
-        //Next we need to deploy the ExtensionStorage contract
+        //Next we need to deploy the ExtensionProxy contract
         //To sandbox our extension's storage
-        ExtensionStorage extProxy = new ExtensionStorage(token, extension, address(this));
+        ExtensionProxy extProxy = new ExtensionProxy(token, extension, address(this));
 
         //Next lets figure out what external functions to register in the Extension
         bytes4[] memory externalFunctions = extProxy.externalFunctions();
@@ -346,8 +346,8 @@ abstract contract ExtendableBase is ContextUpgradeable {
             }
 
             //Execute the implemented function using the enabled extension
-            //however, execute the call at the ExtensionStorage contract address
-            //The ExtensionStorage contract will delegatecall the extension logic
+            //however, execute the call at the ExtensionProxy contract address
+            //The ExtensionProxy contract will delegatecall the extension logic
             //and manage storage/api
             address proxy = extData.extProxy;
             bool result = toInvoke(proxy, data);

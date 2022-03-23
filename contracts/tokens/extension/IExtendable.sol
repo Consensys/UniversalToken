@@ -7,7 +7,7 @@ pragma solidity ^0.8.0;
 interface IExtendable {
     /**
     * @dev Register the extension at the given global extension address. This will deploy a new
-    * ExtensionStorage contract to act as a proxy. The extension's proxy will
+    * ExtensionProxy contract to act as a proxy. The extension's proxy will
     * be initalized and all functions the extension has will be registered
     *
     * @param extension The deployed extension address to register

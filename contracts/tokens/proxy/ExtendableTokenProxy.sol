@@ -4,7 +4,7 @@ import {TokenProxy} from "./TokenProxy.sol";
 import {IExtendableTokenProxy} from "./IExtendableTokenProxy.sol";
 import {ExtendableProxy} from "../extension/ExtendableProxy.sol";
 import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
-import {ExtensionStorage} from "../../extensions/ExtensionStorage.sol";
+import {ExtensionProxy} from "../../extensions/ExtensionProxy.sol";
 import {ITokenProxy} from "./ITokenProxy.sol";
 import {IDiamondLoupe} from "../../interface/IDiamondLoupe.sol";
 
@@ -76,7 +76,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendab
 
     /**
     * @notice Register an extension providing the given global extension address. This will
-    * deploy a new ExtensionStorage contract to act as the extension proxy and register
+    * deploy a new ExtensionProxy contract to act as the extension proxy and register
     * all function selectors the extension exposes.
     * This will also invoke the initialize function on the extension proxy. 
     *
@@ -92,7 +92,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendab
         _registerExtension(extension, address(this), _msgSender());
 
         address proxyAddress = _proxyAddressForExtension(extension);
-        ExtensionStorage proxy = ExtensionStorage(payable(proxyAddress));
+        ExtensionProxy proxy = ExtensionProxy(payable(proxyAddress));
 
         bytes32[] memory requiredRoles = proxy.requiredRoles();
         
@@ -123,7 +123,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendab
             proxyAddress = _proxyAddressForExtension(extension);
         }
 
-        ExtensionStorage proxy = ExtensionStorage(payable(proxyAddress));
+        ExtensionProxy proxy = ExtensionProxy(payable(proxyAddress));
 
         bytes32[] memory requiredRoles = proxy.requiredRoles();
         
