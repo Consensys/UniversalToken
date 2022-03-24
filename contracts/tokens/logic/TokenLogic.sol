@@ -7,6 +7,7 @@ import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../erc1820/ERC1820Implementer.sol";
 import {TokenERC1820Provider} from "../TokenERC1820Provider.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
+import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 /**
 * @title Base Token Logic Contract
@@ -23,6 +24,8 @@ import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 * when it's attached to a proxy. This occurs during deployment and during upgrading.
 */
 abstract contract TokenLogic is TokenERC1820Provider, TokenRoles, ExtendableHooks, ITokenLogic {
+    using BytesLib for bytes;
+
     bytes32 private constant UPGRADING_FLAG_SLOT = keccak256("token.proxy.upgrading");
 
     /**
@@ -32,6 +35,25 @@ abstract contract TokenLogic is TokenERC1820Provider, TokenRoles, ExtendableHook
     constructor() {
         ERC1820Client.setInterfaceImplementation(__tokenLogicInterfaceName(), address(this));
         ERC1820Implementer._setInterface(__tokenLogicInterfaceName()); // For migration
+    }
+
+    function _extractExtraCalldata(uint256 normalCallsize) internal view returns (bytes memory) {
+        bytes memory cdata = _msgData();
+
+        if (cdata.length > normalCallsize) {
+            //Start the slice from where the normal 
+            //parameter arguments should end
+            uint256 start = normalCallsize;
+
+            //The size of the slice will be the difference
+            //in expected size to actual size
+            uint256 size = cdata.length - normalCallsize;
+            
+            bytes memory extraData = cdata.slice(start, size);
+
+            return extraData;
+        }
+        return bytes("");
     }
 
     /**

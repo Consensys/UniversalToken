@@ -193,11 +193,8 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     // Override normal transfer functions
     // That way we can grab any extra data
     // that may be attached to the calldata
-    // (not including the forwarded _msgSender() from proxy)
-    
-    uint256 private constant MSG_SENDER_SIZE = 20;
-    uint256 private constant TRANSFER_CALL_SIZE = 20 + 32 + MSG_SENDER_SIZE;
-    uint256 private constant TRANSFER_FROM_CALL_SIZE = 20 + 20 + 32 + MSG_SENDER_SIZE;
+    uint256 private constant TRANSFER_CALL_SIZE = 20 + 32;
+    uint256 private constant TRANSFER_FROM_CALL_SIZE = 20 + 20 + 32;
     /**
      * @dev See {IERC20-transfer}.
      *
@@ -209,22 +206,9 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
      * @param amount The amount of tokens to transfer
      */
     function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
-        bytes memory cdata = _msgData();
-
-        if (cdata.length > TRANSFER_CALL_SIZE) {
-            //Start the slice from where the normal 
-            //parameter arguments should end
-            uint256 start = TRANSFER_CALL_SIZE - MSG_SENDER_SIZE;
-
-            //The size of the slice will be the difference
-            //in expected size to actual size
-            uint256 size = cdata.length - TRANSFER_CALL_SIZE;
-            
-            bytes memory extraData = cdata.slice(start, size);
-
-            _currentData = extraData;
-            _currentOperatorData = extraData;
-        }
+        bytes memory extraData = _extractExtraCalldata(TRANSFER_CALL_SIZE);
+        _currentData = extraData;
+        _currentOperatorData = extraData;
         
         return ERC20Upgradeable.transfer(recipient, amount);
     }
@@ -250,22 +234,9 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
         address recipient,
         uint256 amount
     ) public virtual override returns (bool) {
-        bytes memory cdata = _msgData();
-
-        if (cdata.length > TRANSFER_FROM_CALL_SIZE) {
-            //Start the slice from where the normal 
-            //parameter arguments should end
-            uint256 start = TRANSFER_FROM_CALL_SIZE - MSG_SENDER_SIZE;
-
-            //The size of the slice will be the difference
-            //in expected size to actual size
-            uint256 size = cdata.length - TRANSFER_FROM_CALL_SIZE;
-            
-            bytes memory extraData = cdata.slice(start, size);
-
-            _currentData = extraData;
-            _currentOperatorData = extraData;
-        }
+        bytes memory extraData = _extractExtraCalldata(TRANSFER_FROM_CALL_SIZE);
+        _currentData = extraData;
+        _currentOperatorData = extraData;
 
         return ERC20Upgradeable.transferFrom(sender, recipient, amount);
     }
