@@ -26,6 +26,9 @@ contract PauseExtension is TokenExtension, IPausable {
         _supportInterface(type(IPausable).interfaceId);
 
         _supportsAllTokenStandards();
+
+        _setPackageName("net.consensys.tokenext.PauseExtension");
+        _setVersion(1);
     }
     
     /**

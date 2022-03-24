@@ -21,6 +21,9 @@ contract CertificateValidatorExtension is TokenExtension, ICertificateValidator 
 
         //Register token standards supported
         _supportsAllTokenStandards();
+
+        _setPackageName("net.consensys.tokenext.CertificateValidatorExtension");
+        _setVersion(1);
     }
 
     modifier onlyCertificateSigner {

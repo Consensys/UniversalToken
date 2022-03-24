@@ -1,6 +1,5 @@
 pragma solidity ^0.8.0;
 
-import {IExtensionProxy} from "../../interface/IExtensionProxy.sol";
 import {IExtension, TransferData} from "../../interface/IExtension.sol";
 import {ExtendableBase} from "./ExtendableBase.sol";
 
@@ -30,10 +29,7 @@ contract ExtendableProxy is ExtendableBase {
         address toCall = _functionToExtensionProxyAddress(funcSig);
         require(toCall != address(0), "EXTROUTER: Function does not exist");
 
-        if (_isExtensionProxyAddress(toCall)) {
-            IExtensionProxy proxy = IExtensionProxy(payable(toCall));
-            proxy.prepareCall(_msgSender());
-        }
+        bytes memory finalData = abi.encodePacked(_msgData(), _msgSender());
 
         uint256 value = msg.value;
 
@@ -42,7 +38,7 @@ contract ExtendableProxy is ExtendableBase {
             // copy function selector and any arguments
             calldatacopy(0, 0, calldatasize())
             // execute function call using the facet
-            let result := call(gas(), toCall, value, 0, calldatasize(), 0, 0)
+            let result := call(gas(), toCall, value, add(finalData, 0x20), mload(finalData), 0, 0)
             // get any return value
             returndatacopy(0, 0, returndatasize())
             // return any return value or error back to the caller

@@ -1,13 +1,23 @@
 pragma solidity ^0.8.0;
 
 import {IToken} from "../tokens/IToken.sol";
-import {IExtensionProxy} from "../interface/IExtensionProxy.sol";
 import {IExtension} from "../interface/IExtension.sol";
 import {IExtensionMetadata, TokenStandard} from "../interface/IExtensionMetadata.sol";
 import {ExtensionBase} from "./ExtensionBase.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
-contract ExtensionProxy is IExtensionProxy, IExtensionMetadata, ExtensionBase {
+/**
+* @title Extension Proxy
+* @notice This contract can be interacted directly in a normal manner if the
+* caller is
+*   * An EOA
+*   * Not the registered token address
+*   * Not the registered admin
+*
+* If the caller is the registered token address or registered admin, then
+* each function call should be preceeded by a call to prepareCall. 
+*/
+contract ExtensionProxy is IExtensionMetadata, ExtensionBase {
     event ExtensionUpgraded(address indexed extension, address indexed newExtension);
 
     constructor(address token, address extension, address callsite) {
@@ -69,20 +79,12 @@ contract ExtensionProxy is IExtensionProxy, IExtensionMetadata, ExtensionBase {
         emit ExtensionUpgraded(old, extensionImplementation);
     }
 
-    function prepareCall(address caller) external override onlyAuthorizedCaller {
-        StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = caller;
-    }
-
     fallback() external payable {
-        if (msg.sender != _authorizedCaller() && msg.sender != address(this)) {
-            //These specific functions are restricted when using the proxy directly
-            require(msg.sig != IExtension.initialize.selector, "Cannot directly invoke initialize");
+        if (msg.sender != _authorizedCaller()) {
+            //This specific function is restricted when using the proxy directly
+            //Only the "admin" can invoke this, everyone else (include ourselves) 
+            //shouldn't invoke this
             require(msg.sig != IExtension.onTransferExecuted.selector, "Cannot directly invoke transferExecuted");
-            require(msg.sig != IExtensionProxy.prepareCall.selector, "Cannot directly invoke prepareCall");
-
-            //They are calling the proxy directly
-            //allow this, but just make sure we update the msg sender slot ourselves
-            StorageSlot.getAddressSlot(MSG_SENDER_SLOT).value = msg.sender;
         }
         
         ProxyData storage ds = _proxyData();

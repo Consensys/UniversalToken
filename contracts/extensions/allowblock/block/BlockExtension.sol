@@ -39,6 +39,9 @@ contract BlockExtension is TokenExtension, IBlocklistedRole, IBlocklistedAdminRo
         _supportInterface(type(IBlocklistedAdminRole).interfaceId);
 
         _supportsAllTokenStandards();
+
+        _setPackageName("net.consensys.tokenext.BlockExtension");
+        _setVersion(1);
     }
 
     function initialize() external override {

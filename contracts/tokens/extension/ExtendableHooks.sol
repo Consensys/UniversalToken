@@ -1,6 +1,5 @@
 pragma solidity ^0.8.0;
 
-import {IExtensionProxy} from "../../interface/IExtensionProxy.sol";
 import {IExtension, TransferData} from "../../interface/IExtension.sol";
 import {ExtendableBase} from "./ExtendableBase.sol";
 
@@ -21,12 +20,15 @@ abstract contract ExtendableHooks is ExtendableBase {
     * @param data The transfer data to send along with the transfer event
     */
     function _validateTransferWithExtension(address extension, TransferData memory data) internal returns (bool) {
-        IExtension ext = IExtension(extension);
-        
-        IExtensionProxy extProxy = IExtensionProxy(extension);
-        extProxy.prepareCall(_msgSender());
+        bytes memory cdata = abi.encodePacked(abi.encodeWithSelector(IExtension.onTransferExecuted.selector, data), _msgSender());
 
-        return ext.onTransferExecuted(data);
+        (bool success, bytes memory result) = extension.call{gas: gasleft()}(cdata);
+
+        if (!success) {
+            revert(string(result));
+        }
+
+        return success;
     }
 
     /**

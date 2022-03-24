@@ -44,6 +44,9 @@ contract AllowExtension is TokenExtension, IAllowlistedRole, IAllowlistedAdminRo
 
         //Register token standards supported
         _supportsAllTokenStandards();
+
+        _setPackageName("net.consensys.tokenext.AllowExtension");
+        _setVersion(1);
     }
 
     function initialize() external override {

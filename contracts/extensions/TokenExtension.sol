@@ -18,6 +18,7 @@ abstract contract TokenExtension is IExtension, ExtensionBase, RolesBase {
 
     constructor() {
         _deployer = msg.sender;
+        __update_package_hash();
     }
 
     function __update_package_hash() private {

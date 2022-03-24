@@ -129,8 +129,13 @@ abstract contract ExtendableBase is ContextUpgradeable {
         }
 
         //Initialize the new extension proxy
-        extProxy.prepareCall(caller);
-        extProxy.initialize();
+        bytes memory initializeCalldata = abi.encodePacked(abi.encodeWithSelector(ExtensionProxy.initialize.selector), _msgSender());
+
+        (bool success, bytes memory result) = address(extProxy).call{gas: gasleft()}(initializeCalldata);
+
+        if (!success) {
+            revert(string(result));
+        }
 
         //Finally, add it to storage
         extLibStorage.extensions[extension] = ExtensionData(
