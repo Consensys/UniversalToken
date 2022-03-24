@@ -26,42 +26,14 @@ async function main() {
   
   const PauseExtension = await hre.ethers.getContractFactory("PauseExtension");
 
-
-
-  console.log("Deploy token test");
-
   const ERC20Extendable = await hre.ethers.getContractFactory("ERC20Extendable");
-  const erc20 = await ERC20Extendable.deploy(
-    "TokenName",   //token name
-    "DAU",         //token symbol
-    true,          //allow minting
-    true,          //allow burning
-    deployer,      //token owner address
-    1000,          //initial supply to give to owner address
-    5000,          //max supply
-    logic.address  //address of token logic contract
-  );
-  await erc20.deployed();
+  const erc20 = await ERC20Extendable.attach("0x7DB654D584B62f1047fD317b3d6faF546CBD8898");
 
-  console.log("Deployer is " + deployer);
-  console.log("Total supply is " + (await erc20.totalSupply()));
-  console.log("Is deployer minter? " + (await erc20.isMinter(deployer)));
+  const pauseToken = await PauseExtension.attach("0x7DB654D584B62f1047fD317b3d6faF546CBD8898");
 
-  console.log("Deployed to " + erc20.address);
-  
-  console.log("Doing pre-extension mint");
-  await erc20.mint(accounts[1], "1000");
+  //console.log("Am I a pauser?" + (await pauseToken.isPauser(deployer)));
 
-  console.log("ERC20Extendable token contract deployed to:", erc20.address);
-
-  console.log("Deploying PauseableExtension");
-  const pauseExtContract = await PauseExtension.deploy();
-  await pauseExtContract.deployed();
-
-  console.log("Registering PauseExtension on token");
-  await erc20.registerExtension(pauseExtContract.address);
-
-  const pauseToken = await PauseExtension.attach(erc20.address);
+  //console.log("Is token a pauser?" + (await pauseToken.isPauser(erc20.address)));
   
   console.log("Doing pause()");
   await pauseToken.pause();

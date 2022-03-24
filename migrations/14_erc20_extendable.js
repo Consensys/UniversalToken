@@ -18,10 +18,15 @@ module.exports = async function (deployer, network, accounts) {
   const logic = await ERC20Logic.deployed();
 
   await deployer.deploy(ERC20Extendable, 
-    tokenName, tokenSymbol, 
-    allowMint, allowBurn, 
-    owner, initialSupply, 
-    maxSupply, logic.address
+    tokenName, 
+    tokenSymbol, 
+    allowMint, 
+    allowBurn, 
+    owner, 
+    initialSupply, 
+    maxSupply, 
+    logic.address
   );
+
   console.log('\n   > ERC20Extendable deployment: Success -->', ERC20Extendable.address);
 };
