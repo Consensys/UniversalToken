@@ -78,6 +78,10 @@ contract PauseExtension is TokenExtension, IPausable {
         _pausedFor[caller] = true;
     }
 
+    function isPauser(address caller) external override view returns (bool) {
+        return hasRole(caller, PAUSER_ROLE);
+    }
+
     function unpauseFor(address caller) external override onlyPauser {
         _pausedFor[caller] = false;
     }

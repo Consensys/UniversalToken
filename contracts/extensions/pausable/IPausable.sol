@@ -25,4 +25,6 @@ interface IPausable {
     function pauseFor(address caller) external;
 
     function unpauseFor(address caller) external;
+
+    function isPauser(address caller) external view returns (bool);
 }

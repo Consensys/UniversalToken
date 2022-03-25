@@ -12,10 +12,12 @@ contract CertificateValidatorExtension is TokenExtension, ICertificateValidator 
     constructor() {
         _registerFunction(CertificateValidatorExtension.addCertificateSigner.selector);
         _registerFunction(CertificateValidatorExtension.removeCertificateSigner.selector);
+        _registerFunction(CertificateValidatorExtension.setValidationMode.selector);
 
         _registerFunctionName('isCertificateSigner(address)');
         _registerFunctionName('usedCertificateNonce(address)');
         _registerFunctionName('usedCertificateSalt(bytes32)');
+        _registerFunctionName('getValidationMode()');
 
         _supportInterface(type(ICertificateValidator).interfaceId);
 
@@ -53,6 +55,14 @@ contract CertificateValidatorExtension is TokenExtension, ICertificateValidator 
 
     function usedCertificateSalt(bytes32 salt) external override view returns (bool) {
         return CertificateLib.usedCertificateSalt(salt);
+    }
+
+    function getValidationMode() external override view returns (CertificateValidationType) {
+        return CertificateLib.certificateData()._certificateType;
+    }
+
+    function setValidationMode(CertificateValidationType mode) external override onlyCertificateSigner {
+        CertificateLib.certificateData()._certificateType = mode;
     }
 
     function onTransferExecuted(TransferData memory data) external override returns (bool) {
