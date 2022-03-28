@@ -60,7 +60,7 @@ const craftCertificate = async (
   const extension = await CertificateValidatorExtension.at(_token.address);
   const tokenSetup = await extension.getValidationMode();
   const domainSeparator = await _token.generateDomainSeparator();
-  if (tokenSetup === CERTIFICATE_VALIDATION_NONCE) {
+  if (tokenSetup == CERTIFICATE_VALIDATION_NONCE) {
     return craftNonceBasedCertificate(
       _txPayload,
       _token,
@@ -68,7 +68,7 @@ const craftCertificate = async (
       _txSender,
       domainSeparator
     );
-  } else if (tokenSetup === CERTIFICATE_VALIDATION_SALT) {
+  } else if (tokenSetup == CERTIFICATE_VALIDATION_SALT) {
     return craftSaltBasedCertificate(
       _txPayload,
       _token,
@@ -98,7 +98,9 @@ const craftNonceBasedCertificate = async (
     expirationTime.getTime() / 1000,
   );
 
-  let rawTxPayload;
+  const rawTxPayload = _txPayload;
+
+  /* let rawTxPayload;
   if (_txPayload.length >= 64) {
     rawTxPayload = _txPayload.substring(0, _txPayload.length - 64);
   } else {
@@ -107,7 +109,7 @@ const craftNonceBasedCertificate = async (
         _txPayload.length / 2
       } instead)`,
     );
-  }
+  } */
 
   const packedAndHashedParameters = soliditySha3(
     { type: 'address', value: _txSender.toString() },
@@ -161,7 +163,9 @@ const craftSaltBasedCertificate = async (
     expirationTime.getTime() / 1000,
   );
 
-  let rawTxPayload;
+  const rawTxPayload = _txPayload;
+
+/*   let rawTxPayload;
   if (_txPayload.length >= 64) {
     rawTxPayload = _txPayload.substring(0, _txPayload.length - 64);
   } else {
@@ -170,7 +174,7 @@ const craftSaltBasedCertificate = async (
         _txPayload.length / 2
       } instead)`,
     );
-  }
+  } */
 
   const packedAndHashedParameters = soliditySha3(
     { type: 'address', value: _txSender.toString() },
@@ -301,8 +305,8 @@ contract(
           ).encodeABI(),
           token,
           clock, // this.clock
-          recipient
-        )
+          deployer
+        );
 
         assert.equal(await token.totalSupply(), initialSupply);
         assert.equal(await token.balanceOf(deployer), initialSupply);

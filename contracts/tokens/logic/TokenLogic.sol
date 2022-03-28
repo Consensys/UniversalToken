@@ -48,7 +48,7 @@ abstract contract TokenLogic is TokenERC1820Provider, TokenRoles, ExtendableHook
             //The size of the slice will be the difference
             //in expected size to actual size
             uint256 size = cdata.length - normalCallsize;
-            
+ 
             bytes memory extraData = cdata.slice(start, size);
 
             return extraData;

@@ -1,5 +1,6 @@
 pragma solidity ^0.8.0;
 
+import {TokenStandard} from "../interface/IExtension.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
@@ -41,6 +42,7 @@ abstract contract ExtensionBase is ContextUpgradeable {
         address extension;
         address callsite;
         bool initialized;
+        TokenStandard standard;
     }
 
     /**

@@ -160,7 +160,6 @@ abstract contract DomainAware is IDomainAware {
         uint256 chainID = _chainID();
         bytes memory dn = _domainName();
         bytes memory dv = abi.encodePacked(_domainVersion());
-
         require(dn.length > 0, "Domain name is empty");
         require(dv.length > 0, "Domain version is empty");
 

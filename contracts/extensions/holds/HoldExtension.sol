@@ -1,12 +1,10 @@
 pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import {ERC20Extension} from "../ERC20Extension.sol";
-import {TransferData} from "../../../interface/IExtension.sol";
+import {TokenExtension, TransferData, TokenStandard} from "../TokenExtension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import "../../../interface/IERC20HoldableToken.sol";
 
-contract HoldExtension is ERC20Extension {
+contract HoldExtension is TokenExtension {
     using SafeMath for uint256;
     bytes32 constant HOLD_DATA_SLOT = keccak256("holdable.holddata");
 
@@ -31,8 +29,37 @@ contract HoldExtension is ERC20Extension {
         uint256 totalSupplyOnHold;
     }
 
+    event NewHold(
+        bytes32 indexed holdId,
+        address indexed recipient,
+        address indexed notary,
+        uint256 amount,
+        uint256 expirationDateTime,
+        bytes32 lockHash
+    );
+    event ExecutedHold(
+        bytes32 indexed holdId,
+        bytes32 lockPreimage,
+        address recipient
+    );
+    event ReleaseHold(bytes32 indexed holdId, address sender);
+
 
     constructor() {
+        _setPackageName("net.consensys.tokens.extensions.HoldExtension");
+        _supportsTokenStandard(TokenStandard.ERC20);
+        _setVersion(1);
+        _requireRole(TOKEN_CONTROLLER_ROLE);
+
+        _registerFunction(this.hold.selector);
+        _registerFunction(this.releaseHold.selector);
+        _registerFunction(this.balanceOnHold.selector);
+        _registerFunction(this.spendableBalanceOf.selector);
+        _registerFunction(this.holdStatus.selector);
+        //Need to do by name, this.executeHold.selector is ambigious
+        _registerFunctionName("executeHold(bytes32)");
+        _registerFunctionName("executeHold(bytes32)");
+        _registerFunctionName("executeHold(bytes32,bytes32,address)");
 
     }
 
@@ -77,11 +104,11 @@ contract HoldExtension is ERC20Extension {
             "hold: notary must not be a zero address"
         );
         require(amount != 0, "hold: amount must be greater than zero");
-        //TODO Add extension API for ERC20 view functions
-        /* require(
-            this.balanceOf(msg.sender) >= amount,
+        
+        require(
+            _erc20Token().balanceOf(_msgSender()) >= amount,
             "hold: amount exceeds available balance"
-        ); */
+        );
         holdId = keccak256(
             abi.encodePacked(
                 recipient,
@@ -99,7 +126,7 @@ contract HoldExtension is ERC20Extension {
             "hold: id already exists"
         );
         data.holds[holdId] = HoldData(
-            msg.sender,
+            _msgSender(),
             recipient,
             notary,
             amount,
@@ -107,19 +134,19 @@ contract HoldExtension is ERC20Extension {
             lockHash,
             HoldStatusCode.Held
         );
-        data.accountHoldBalances[msg.sender] = data.accountHoldBalances[msg.sender].add(
+        data.accountHoldBalances[_msgSender()] = data.accountHoldBalances[_msgSender()].add(
             amount
         );
         data.totalSupplyOnHold = data.totalSupplyOnHold.add(amount);
 
-        /* emit NewHold(
+        emit NewHold(
             holdId,
             recipient,
             notary,
             amount,
             expirationDateTime,
             lockHash
-        ); */
+        );
     }
 
     /**
@@ -205,11 +232,18 @@ contract HoldExtension is ERC20Extension {
         HoldExtensionData storage data = holdData();
 
         require(
-            data.holds[holdId].notary == msg.sender,
+            data.holds[holdId].notary == _msgSender(),
             "executeHold: caller must be the hold notary"
         );
 
-        _transferFrom(data.holds[holdId].sender, recipient, data.holds[holdId].amount);
+        TransferData memory transferData = _buildTransfer(data.holds[holdId].sender, recipient, data.holds[holdId].amount);
+        _tokenTransfer(transferData);
+        //if (_tokenStandard() == TokenStandard.ERC20) {
+        
+        //} else {
+            //TODO Add support for other tokens
+        //    revert("Standard not supported");
+        //}
 
         data.holds[holdId].status = HoldStatusCode.Executed;
         data.accountHoldBalances[data.holds[holdId]
@@ -218,7 +252,7 @@ contract HoldExtension is ERC20Extension {
         );
         data.totalSupplyOnHold = data.totalSupplyOnHold.sub(data.holds[holdId].amount);
 
-        //emit ExecutedHold(holdId, lockPreimage, recipient);
+        emit ExecutedHold(holdId, lockPreimage, recipient);
     }
 
     /**
@@ -228,12 +262,12 @@ contract HoldExtension is ERC20Extension {
     function releaseHold(bytes32 holdId) public isHeld(holdId) {
         HoldExtensionData storage data = holdData();
         
-        if (data.holds[holdId].sender == msg.sender) {
+        if (data.holds[holdId].sender == _msgSender()) {
             require(
                 block.timestamp > data.holds[holdId].expirationDateTime,
                 "releaseHold: can only release after the expiration date."
             );
-        } else if (data.holds[holdId].notary != msg.sender) {
+        } else if (data.holds[holdId].notary != _msgSender()) {
             revert("releaseHold: caller must be the hold sender or notary.");
         }
 
@@ -244,7 +278,7 @@ contract HoldExtension is ERC20Extension {
         );
         data.totalSupplyOnHold = data.totalSupplyOnHold.sub(data.holds[holdId].amount);
 
-        //emit ReleaseHold(holdId, msg.sender);
+        emit ReleaseHold(holdId, _msgSender());
     }
 
     /**
@@ -262,8 +296,12 @@ contract HoldExtension is ERC20Extension {
      */
     function spendableBalanceOf(address account) public view returns (uint256) {
         HoldExtensionData storage data = holdData();
-        //TODO Add view functions to extensions
-        return _balanceOf(account) - data.accountHoldBalances[account];
+        //if (_tokenStandard() == TokenStandard.ERC20) {
+        return _erc20Token().balanceOf(account) - data.accountHoldBalances[account];
+        //} else {
+            //TODO Add support for other tokens
+        //    revert("Stnadard not supported");
+        //}
     }
 
     /**
@@ -276,7 +314,7 @@ contract HoldExtension is ERC20Extension {
     }
 
     function onTransferExecuted(TransferData memory data) external override returns (bool) {
-
+        require(spendableBalanceOf(data.from) >= data.value, "HoldableToken: amount exceeds available balance");
         return true;
     }
 }

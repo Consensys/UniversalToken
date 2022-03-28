@@ -5,6 +5,7 @@ import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {Roles} from "./Roles.sol";
 import {RolesBase} from "./RolesBase.sol";
 import {ITokenRoles} from "../interface/ITokenRoles.sol";
+import {TokenRolesConstants} from "./TokenRolesConstants.sol";
 
 /**
 * @title Token Roles
@@ -22,33 +23,8 @@ import {ITokenRoles} from "../interface/ITokenRoles.sol";
 * 
 * This contract also handles the storage of the burning/minting toggling.
 */
-abstract contract TokenRoles is ITokenRoles, RolesBase, ContextUpgradeable {
+abstract contract TokenRoles is TokenRolesConstants, ITokenRoles, RolesBase, ContextUpgradeable {
     using Roles for Roles.Role;
-
-    /**
-    * @dev The storage slot for the burn/burnFrom toggle
-    */
-    bytes32 constant TOKEN_ALLOW_BURN = keccak256("token.proxy.core.burn");
-    /**
-    * @dev The storage slot for the mint toggle
-    */
-    bytes32 constant TOKEN_ALLOW_MINT = keccak256("token.proxy.core.mint");
-    /**
-    * @dev The storage slot that holds the current Owner address
-    */
-    bytes32 constant TOKEN_OWNER = keccak256("token.proxy.core.owner");
-    /**
-    * @dev The access control role ID for the Minter role
-    */
-    bytes32 constant TOKEN_MINTER_ROLE = keccak256("token.proxy.core.mint.role");
-    /**
-    * @dev The storage slot that holds the current Manager address
-    */
-    bytes32 constant TOKEN_MANAGER_ADDRESS = bytes32(uint256(keccak256('eip1967.proxy.admin')) - 1);
-    /**
-    * @dev The access control role ID for the Controller role
-    */
-    bytes32 constant TOKEN_CONTROLLER_ROLE = keccak256("token.proxy.controller.address");
     
     /**
     * @notice This event is triggered when transferOwnership is invoked

@@ -262,7 +262,10 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     /// #if_succeeds {:msg "The receiver receives amount"} _msgSender() != recipient ==> old(balanceOf(recipient)) + amount == balanceOf(recipient);
     /// #if_succeeds {:msg "Transfer to self won't change the senders balance" } _msgSender() == recipient ==> old(balanceOf(_msgSender())) == balanceOf(_msgSender());
     function transferWithData(address recipient, uint256 amount, bytes calldata data) public returns (bool) {
-        bytes memory cdata = abi.encodeWithSelector(IERC20.transfer.selector, recipient, amount, data);
+        bytes memory normalData = abi.encodeWithSelector(IERC20.transfer.selector, recipient, amount);
+
+        //append any extra data packed
+        bytes memory cdata = abi.encodePacked(normalData, data);
 
         (bool result,) = _delegatecall(cdata);
 

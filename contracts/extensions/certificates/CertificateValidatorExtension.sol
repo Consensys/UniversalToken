@@ -67,19 +67,19 @@ contract CertificateValidatorExtension is TokenExtension, ICertificateValidator 
 
     function onTransferExecuted(TransferData memory data) external override returns (bool) {
         require(data.data.length > 0, "Data cannot be empty");
-
+        
         CertificateValidationType validationType = CertificateLib.certificateData()._certificateType;
 
         require(validationType > CertificateValidationType.None, "Validation mode not set");
 
         bool valid = false;
         if (validationType == CertificateValidationType.NonceBased) {
-            valid = CertificateLib._checkNonceBasedCertificate(address(this), data.operator, data.payload, data.data);
+            valid = CertificateLib._checkNonceBasedCertificate(data.token, data.operator, data.payload, data.data);
 
             CertificateLib.certificateData()._usedCertificateNonce[data.operator]++;
         } else if (validationType == CertificateValidationType.SaltBased) {
             bytes32 salt;
-            (valid, salt) = CertificateLib._checkSaltBasedCertificate(address(this), data.operator, data.payload, data.data);
+            (valid, salt) = CertificateLib._checkSaltBasedCertificate(data.token, data.operator, data.payload, data.data);
 
             CertificateLib.certificateData()._usedCertificateSalt[salt] = true;
         }

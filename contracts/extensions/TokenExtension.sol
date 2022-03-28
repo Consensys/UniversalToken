@@ -4,8 +4,11 @@ import {ExtensionBase} from "./ExtensionBase.sol";
 import {IExtension, TransferData, TokenStandard} from "../interface/IExtension.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {RolesBase} from "../roles/RolesBase.sol";
+import {IERC20Proxy} from "../tokens/proxy/ERC20/IERC20Proxy.sol";
+import {TokenRolesConstants} from "../roles/TokenRolesConstants.sol";
+import {IToken} from "../tokens/IToken.sol";
 
-abstract contract TokenExtension is IExtension, ExtensionBase, RolesBase {
+abstract contract TokenExtension is TokenRolesConstants, IExtension, ExtensionBase, RolesBase {
     mapping(TokenStandard => bool) supportedTokenStandards;
     //Should only be modified inside the constructor
     bytes4[] private _exposedFuncSigs;
@@ -117,9 +120,44 @@ abstract contract TokenExtension is IExtension, ExtensionBase, RolesBase {
         return addr == _tokenOwner();
     }
 
+    function _erc20Token() internal view returns (IERC20Proxy) {
+        return IERC20Proxy(_tokenAddress());
+    }
+
     function _tokenOwner() internal view returns (address) {
         Ownable token = Ownable(_tokenAddress());
 
         return token.owner();
+    }
+
+    function _tokenStandard() internal view returns (TokenStandard) {
+        return _proxyData().standard;
+    }
+
+    function _buildTransfer(address from, address to, uint256 amountOrTokenId) internal view returns (TransferData memory) {
+        uint256 amount = amountOrTokenId;
+        uint256 tokenId = 0;
+        if (_tokenStandard() == TokenStandard.ERC721) {
+            amount = 0;
+            tokenId = amountOrTokenId;
+        }
+
+        address token = _tokenAddress();
+        return TransferData(
+            token,
+            _msgData(),
+            bytes32(0),
+            address(this),
+            from,
+            to,
+            amount,
+            tokenId,
+            bytes(""),
+            bytes("")
+        );
+    }
+
+    function _tokenTransfer(TransferData memory tdata) internal returns (bool) {
+        return IToken(_tokenAddress()).tokenTransfer(tdata);
     }
 }

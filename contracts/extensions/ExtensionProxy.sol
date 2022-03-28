@@ -21,15 +21,16 @@ contract ExtensionProxy is IExtensionMetadata, ExtensionBase {
     event ExtensionUpgraded(address indexed extension, address indexed newExtension);
 
     constructor(address token, address extension, address callsite) {
+        //Ensure we support this token standard
+        TokenStandard standard = IToken(token).tokenStandard();
+
         //Setup proxy data
         ProxyData storage ds = _proxyData();
 
         ds.token = token;
         ds.extension = extension;
         ds.callsite = callsite;
-        
-        //Ensure we support this token standard
-        TokenStandard standard = IToken(token).tokenStandard();
+        ds.standard = standard;
 
         require(isTokenStandardSupported(standard), "Extension does not support token standard");
         

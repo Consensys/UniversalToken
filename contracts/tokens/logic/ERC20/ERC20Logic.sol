@@ -193,8 +193,8 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     // Override normal transfer functions
     // That way we can grab any extra data
     // that may be attached to the calldata
-    uint256 private constant TRANSFER_CALL_SIZE = 20 + 32;
-    uint256 private constant TRANSFER_FROM_CALL_SIZE = 20 + 20 + 32;
+    uint256 private constant TRANSFER_CALL_SIZE = 4 + 32 + 32;
+    uint256 private constant TRANSFER_FROM_CALL_SIZE = 4 + 32 + 32 + 32;
     /**
      * @dev See {IERC20-transfer}.
      *

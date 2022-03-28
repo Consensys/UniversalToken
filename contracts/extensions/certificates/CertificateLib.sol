@@ -3,6 +3,8 @@ pragma solidity ^0.8.0;
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {Roles} from "../../roles/Roles.sol";
 import {DomainAware} from "../../tools/DomainAware.sol";
+import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
+
 
 enum CertificateValidationType {
     None,
@@ -12,7 +14,7 @@ enum CertificateValidationType {
 
 library CertificateLib {
     using SafeMath for uint256;
-
+    using BytesLib for bytes;
     using Roles for Roles.Role;
 
     bytes32 constant CERTIFICATE_DATA_SLOT = keccak256("certificates.data");
@@ -84,10 +86,7 @@ library CertificateLib {
         // Perform ecrecover to ensure message information corresponds to certificate
         if (v == 27 || v == 28) {
             // Extract certificate from payload
-            bytes memory payloadWithoutCertificate = new bytes(payloadWithCertificate.length.sub(160));
-            for (uint i = 0; i < payloadWithCertificate.length.sub(160); i++) { // replace 4 bytes corresponding to function selector
-                payloadWithoutCertificate[i] = payloadWithCertificate[i];
-            }
+            bytes memory payloadWithoutCertificate = payloadWithCertificate.slice(0, payloadWithCertificate.length - certificate.length);
 
             // Pack and hash
             bytes memory pack = abi.encodePacked(
@@ -157,24 +156,23 @@ library CertificateLib {
         // Perform ecrecover to ensure message information corresponds to certificate
         if (v == 27 || v == 28) {
             // Extract certificate from payload
-            bytes memory payloadWithoutCertificate = new bytes(payloadWithCertificate.length.sub(192));
-            for (uint i = 0; i < payloadWithCertificate.length.sub(192); i++) { // replace 4 bytes corresponding to function selector
-                payloadWithoutCertificate[i] = payloadWithCertificate[i];
-            }
+            bytes memory payloadWithoutCertificate = payloadWithCertificate.slice(0, payloadWithCertificate.length - certificate.length);
 
             // Pack and hash
-            bytes memory pack = abi.encodePacked(
-                msgSender,
-                token,
-                payloadWithoutCertificate,
-                e,
-                salt
+            bytes32 pack = keccak256(
+                abi.encodePacked(
+                    msgSender,
+                    token,
+                    payloadWithoutCertificate,
+                    e,
+                    salt
+                )
             );
 
-            bytes32 hash = keccak256(
+            bytes32 hashVal = keccak256(
                 abi.encodePacked(
                     DomainAware(token).generateDomainSeparator(),
-                    keccak256(pack)
+                    pack
                 )
             );
 
@@ -188,8 +186,10 @@ library CertificateLib {
                 s := mload(add(certificate, 0x80))
             }
 
+            address signer = ecrecover(hashVal, v, r, s);
+
             // Check if certificate match expected transactions parameters
-            if (isCertificateSigner(ecrecover(hash, v, r, s)) && !certificateData()._usedCertificateSalt[salt]) {
+            if (isCertificateSigner(signer) && !certificateData()._usedCertificateSalt[salt]) {
                 return (true, salt);
             }
         }
