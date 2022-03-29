@@ -14,10 +14,12 @@ import "../roles/MinterRole.sol";
 contract ERC721Token is Ownable, ERC721, ERC721URIStorage, ERC721Enumerable, ERC721Burnable, ERC721Pausable,  MinterRole, ERC1820Implementer, AccessControlEnumerable {
   string constant internal ERC721_TOKEN = "ERC721Token";
   string internal _baseUri;
+  string internal _contractUri;
 
-  constructor(string memory name, string memory symbol, string memory baseUri) ERC721(name, symbol) {
+  constructor(string memory name, string memory symbol, string memory baseUri, string memory contractUri) ERC721(name, symbol) {
     ERC1820Implementer._setInterface(ERC721_TOKEN);
     _baseUri = baseUri;
+    _contractUri = contractUri;
   }
 
   /**
@@ -28,6 +30,12 @@ contract ERC721Token is Ownable, ERC721, ERC721URIStorage, ERC721Enumerable, ERC
   */
   function mint(address to, uint256 tokenId) public onlyMinter returns (bool) {
       _mint(to, tokenId);
+      return true;
+  }
+  
+  function mintAndSetTokenURI(address to, uint256 tokenId, string memory uri) public onlyMinter returns (bool) {
+      _mint(to, tokenId);
+      _setTokenURI(tokenId, uri);
       return true;
   }
 
@@ -66,6 +74,14 @@ contract ERC721Token is Ownable, ERC721, ERC721URIStorage, ERC721Enumerable, ERC
 
   function _burn(uint256 tokenId) internal virtual override(ERC721, ERC721URIStorage) {
       ERC721URIStorage._burn(tokenId);
+  }
+
+  function setContractURI(string memory uri) public virtual onlyOwner {
+      _contractUri = uri;
+  }
+
+  function contractURI() public view returns (string memory) {
+    return _contractUri;
   }
 
   /************************************* Domain Aware ******************************************/

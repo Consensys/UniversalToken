@@ -7,6 +7,7 @@ const BatchReader = artifacts.require("BatchReader.sol");
 
 const ERC1820Registry = artifacts.require("IERC1820Registry");
 
+const ERC721Token = artifacts.require("ERC721Token");
 const ERC1400HoldableCertificate = artifacts.require("ERC1400HoldableCertificateToken");
 const ERC1400TokensValidator = artifacts.require("ERC1400TokensValidator");
 
@@ -19,6 +20,7 @@ const {
   setHoldsActivated,
   addTokenController
 } = require("./common/extension");
+const { assert } = require("chai");
 
 const EMPTY_CERTIFICATE = "0x";
 
@@ -131,6 +133,20 @@ contract(
         ZERO_ADDRESS, // certitficate signer
         CERTIFICATE_VALIDATION_NONE,
         { from: controller3 }
+      );
+
+      this.token5 = await ERC721Token.new(
+        "ERC721Token",
+        "DAU",
+        "",
+        ""
+      );
+
+      this.token6 = await ERC721Token.new(
+        "ERC721Token",
+        "DAU",
+        "",
+        ""
       );
 
       // Add token extension controllers
@@ -366,6 +382,41 @@ contract(
       await this.extension.addBlocklisted(this.token1.address, tokenHolder3, { from: controller1 });
       await this.extension.addBlocklisted(this.token2.address, tokenHolder2, { from: controller1 });
       await this.extension.addBlocklisted(this.token2.address, tokenHolder3, { from: controller1 });
+
+      // Mint NFTs
+      await this.token5.mint(tokenHolder1, 1);
+      await this.token5.mint(tokenHolder1, 2);
+      await this.token5.mint(tokenHolder1, 3);
+      await this.token5.mint(tokenHolder1, 4);
+
+      await this.token5.mint(tokenHolder2, 5);
+      await this.token5.mint(tokenHolder2, 6);
+      await this.token5.mint(tokenHolder2, 7);
+
+      await this.token5.mint(tokenHolder3, 8);
+      await this.token5.mint(tokenHolder3, 9);
+      await this.token5.mint(tokenHolder3, 10);
+      await this.token5.mint(tokenHolder3, 11);
+      await this.token5.mint(tokenHolder3, 12);
+      await this.token5.mint(tokenHolder3, 13);
+      await this.token5.mint(tokenHolder3, 14);
+
+      await this.token6.mint(tokenHolder1, 10);
+      await this.token6.mint(tokenHolder1, 20);
+      await this.token6.mint(tokenHolder1, 30);
+      await this.token6.mint(tokenHolder1, 40);
+
+      await this.token6.mint(tokenHolder2, 50);
+      await this.token6.mint(tokenHolder2, 60);
+      await this.token6.mint(tokenHolder2, 70);
+
+      await this.token6.mint(tokenHolder3, 80);
+      await this.token6.mint(tokenHolder3, 90);
+      await this.token6.mint(tokenHolder3, 100);
+      await this.token6.mint(tokenHolder3, 110);
+      await this.token6.mint(tokenHolder3, 120);
+      await this.token6.mint(tokenHolder3, 130);
+      await this.token6.mint(tokenHolder3, 140);
     });
 
     describe("batchTokenSuppliesInfos", function () {
@@ -879,6 +930,82 @@ contract(
         assert.equal(parseInt(batchBalancesOf2[11]), 0);
 
       });
+    });
+
+    describe("batchERC721Balances", function() {
+      it("returns the list of minted tokens", async function() {
+        const tokenHolders = [tokenHolder1, tokenHolder2, tokenHolder3];
+        const tokenAddresses = [this.token5.address, this.token6.address];
+
+        const batchERC721Balances = await this.balanceReader.batchERC721Balances(
+          tokenAddresses,
+          tokenHolders,
+          { from: unknown }
+        );
+
+        const batchEthBalances = batchERC721Balances[0];
+        const batchBalancesOf = batchERC721Balances[1];
+
+        assert.equal(batchBalancesOf.length, tokenAddresses.length);
+        assert.equal(batchEthBalances.length, tokenHolders.length);
+
+        const token5Balances = batchBalancesOf[0];
+        const token6Balances = batchBalancesOf[1];
+
+        assert.equal(token5Balances.length, tokenHolders.length);
+        assert.equal(token6Balances.length, tokenHolders.length);
+
+        const token5Holder1 = token5Balances[0];
+        const token5Holder2 = token5Balances[1];
+        const token5Holder3 = token5Balances[2];
+
+        const token6Holder1 = token6Balances[0];
+        const token6Holder2 = token6Balances[1];
+        const token6Holder3 = token6Balances[2];
+
+        assert.equal(token5Holder1.length, 4);
+        assert.equal(token5Holder2.length, 3);
+        assert.equal(token5Holder3.length, 7);
+
+        assert.equal(token6Holder1.length, 4);
+        assert.equal(token6Holder2.length, 3);
+        assert.equal(token6Holder3.length, 7);
+
+        assert.equal(token5Holder1[0], 1);
+        assert.equal(token5Holder1[1], 2);
+        assert.equal(token5Holder1[2], 3);
+        assert.equal(token5Holder1[3], 4);
+
+        assert.equal(token5Holder2[0], 5);
+        assert.equal(token5Holder2[1], 6);
+        assert.equal(token5Holder2[2], 7);
+
+        assert.equal(token5Holder3[0], 8);
+        assert.equal(token5Holder3[1], 9);
+        assert.equal(token5Holder3[2], 10);
+        assert.equal(token5Holder3[3], 11);
+        assert.equal(token5Holder3[4], 12);
+        assert.equal(token5Holder3[5], 13);
+        assert.equal(token5Holder3[6], 14);
+
+        
+        assert.equal(token6Holder1[0], 10);
+        assert.equal(token6Holder1[1], 20);
+        assert.equal(token6Holder1[2], 30);
+        assert.equal(token6Holder1[3], 40);
+
+        assert.equal(token6Holder2[0], 50);
+        assert.equal(token6Holder2[1], 60);
+        assert.equal(token6Holder2[2], 70);
+
+        assert.equal(token6Holder3[0], 80);
+        assert.equal(token6Holder3[1], 90);
+        assert.equal(token6Holder3[2], 100);
+        assert.equal(token6Holder3[3], 110);
+        assert.equal(token6Holder3[4], 120);
+        assert.equal(token6Holder3[5], 130);
+        assert.equal(token6Holder3[6], 140);
+      })
     });
 
     describe("batchValidations", function () {
