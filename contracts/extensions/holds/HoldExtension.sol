@@ -3,50 +3,26 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {TokenExtension, TransferData, TokenStandard} from "../TokenExtension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
+import {IHoldableToken, ERC20HoldData, HoldStatusCode} from "../../interface/IHoldableToken.sol";
 
-contract HoldExtension is TokenExtension {
+contract HoldExtension is TokenExtension, IHoldableToken {
     using SafeMath for uint256;
     bytes32 constant HOLD_DATA_SLOT = keccak256("holdable.holddata");
 
-    enum HoldStatusCode {Nonexistent, Held, Executed, Released}
-
-    struct HoldData {
-        address sender;
-        address recipient;
-        address notary;
-        uint256 amount;
-        uint256 expirationDateTime;
-        bytes32 lockHash;
-        HoldStatusCode status;
-    }
-
     struct HoldExtensionData {
         // mapping of accounts to hold data
-        mapping(bytes32 => HoldData) holds;
+        mapping(bytes32 => ERC20HoldData) holds;
         // mapping of accounts and their total amount on hold
         mapping(address => uint256) accountHoldBalances;
+
+        mapping(bytes32 => bytes32) holdHashToId;
 
         uint256 totalSupplyOnHold;
     }
 
-    event NewHold(
-        bytes32 indexed holdId,
-        address indexed recipient,
-        address indexed notary,
-        uint256 amount,
-        uint256 expirationDateTime,
-        bytes32 lockHash
-    );
-    event ExecutedHold(
-        bytes32 indexed holdId,
-        bytes32 lockPreimage,
-        address recipient
-    );
-    event ReleaseHold(bytes32 indexed holdId, address sender);
-
 
     constructor() {
-        _setPackageName("net.consensys.tokens.extensions.HoldExtension");
+        _setPackageName("net.consensys.tokenext.HoldExtension");
         _supportsTokenStandard(TokenStandard.ERC20);
         _setVersion(1);
         _requireRole(TOKEN_CONTROLLER_ROLE);
@@ -58,7 +34,7 @@ contract HoldExtension is TokenExtension {
         _registerFunction(this.holdStatus.selector);
         //Need to do by name, this.executeHold.selector is ambigious
         _registerFunctionName("executeHold(bytes32)");
-        _registerFunctionName("executeHold(bytes32)");
+        _registerFunctionName("executeHold(bytes32,bytes32)");
         _registerFunctionName("executeHold(bytes32,bytes32,address)");
 
     }
@@ -71,17 +47,55 @@ contract HoldExtension is TokenExtension {
     }
 
     function initialize() external override {
-
+        _listenForTokenTransfers(this.onTransferExecuted);
+        _listenForTokenApprovals(this.onApproveExecuted);
     }
 
     modifier isHeld(bytes32 holdId) {
         HoldExtensionData storage data = holdData();
         require(
-            data.holds[holdId].status == HoldStatusCode.Held,
-            "Hold is not in Held status"
+            data.holds[holdId].status == HoldStatusCode.Ordered ||
+            data.holds[holdId].status == HoldStatusCode.ExecutedAndKeptOpen,
+            "Hold is not in Ordered status"
         );
         _;
     }
+
+    function generateHoldId(
+        address recipient,
+        address notary,
+        uint256 amount,
+        uint256 expirationDateTime,
+        bytes32 lockHash
+    ) external pure returns (bytes32 holdId) {
+        holdId = keccak256(
+            abi.encodePacked(
+                recipient,
+                notary,
+                amount,
+                expirationDateTime,
+                lockHash
+            )
+        );
+    }
+
+    /**
+    * @dev Retrieve hold hash, and ID for given parameters
+    */
+    function retrieveHoldHashId(address notary, address sender, address recipient, uint value) public view returns (bytes32, bytes32) {
+        HoldExtensionData storage data = holdData();
+        // Pack and hash hold parameters
+        bytes32 holdHash = keccak256(abi.encodePacked(
+            address(this), //Include the token address to indicate domain
+            sender,
+            recipient,
+            notary,
+            value
+        ));
+        bytes32 holdId = data.holdHashToId[holdHash];
+
+        return (holdHash, holdId);
+    }  
 
     /**
      @notice Called by the sender to hold some tokens for a recipient that the sender can not release back to themself until after the expiration date.
@@ -93,46 +107,46 @@ contract HoldExtension is TokenExtension {
      @return holdId a unique identifier for the hold.
      */
     function hold(
+        bytes32 holdId,
         address recipient,
         address notary,
         uint256 amount,
         uint256 expirationDateTime,
         bytes32 lockHash
-    ) public returns (bytes32 holdId) {
+    ) public override returns (bool) {
         require(
             notary != address(0),
             "hold: notary must not be a zero address"
         );
         require(amount != 0, "hold: amount must be greater than zero");
-        
         require(
-            _erc20Token().balanceOf(_msgSender()) >= amount,
+            this.spendableBalanceOf(_msgSender()) >= amount,
             "hold: amount exceeds available balance"
-        );
-        holdId = keccak256(
-            abi.encodePacked(
-                recipient,
-                notary,
-                amount,
-                expirationDateTime,
-                lockHash
-            )
         );
 
         HoldExtensionData storage data = holdData();
+
+        (bytes32 holdHash,) = retrieveHoldHashId(
+            notary,
+            _msgSender(),
+            recipient,
+            amount
+        );
+
+        data.holdHashToId[holdHash] = holdId;
 
         require(
             data.holds[holdId].status == HoldStatusCode.Nonexistent,
             "hold: id already exists"
         );
-        data.holds[holdId] = HoldData(
+        data.holds[holdId] = ERC20HoldData(
             _msgSender(),
             recipient,
             notary,
             amount,
             expirationDateTime,
             lockHash,
-            HoldStatusCode.Held
+            HoldStatusCode.Ordered
         );
         data.accountHoldBalances[_msgSender()] = data.accountHoldBalances[_msgSender()].add(
             amount
@@ -149,11 +163,16 @@ contract HoldExtension is TokenExtension {
         );
     }
 
-    /**
+    function retrieveHoldData(bytes32 holdId) external override view returns (ERC20HoldData memory) {
+        HoldExtensionData storage data = holdData();
+        return data.holds[holdId];
+    }
+
+        /**
      @notice Called by the notary to transfer the held tokens to the set at the hold recipient if there is no hash lock.
      @param holdId a unique identifier for the hold.
      */
-    function executeHold(bytes32 holdId) public {
+    function executeHold(bytes32 holdId) public override {
         HoldExtensionData storage data = holdData();
 
         require(
@@ -161,7 +180,7 @@ contract HoldExtension is TokenExtension {
             "executeHold: must pass the recipient on execution as the recipient was not set on hold"
         );
         require(
-            data.holds[holdId].lockHash == bytes32(0),
+            data.holds[holdId].secretHash == bytes32(0),
             "executeHold: need preimage if the hold has a lock hash"
         );
 
@@ -173,16 +192,16 @@ contract HoldExtension is TokenExtension {
      @param holdId a unique identifier for the hold.
      @param lockPreimage the image used to generate the lock hash with a sha256 hash
      */
-    function executeHold(bytes32 holdId, bytes32 lockPreimage) public {
+    function executeHold(bytes32 holdId, bytes32 lockPreimage) public override {
         HoldExtensionData storage data = holdData();
-        
+
         require(
             data.holds[holdId].recipient != address(0),
             "executeHold: must pass the recipient on execution as the recipient was not set on hold"
         );
-        if (data.holds[holdId].lockHash != bytes32(0)) {
+        if (data.holds[holdId].secretHash != bytes32(0)) {
             require(
-                data.holds[holdId].lockHash ==
+                data.holds[holdId].secretHash ==
                     sha256(abi.encodePacked(lockPreimage)),
                 "executeHold: preimage hash does not match lock hash"
             );
@@ -201,7 +220,7 @@ contract HoldExtension is TokenExtension {
         bytes32 holdId,
         bytes32 lockPreimage,
         address recipient
-    ) public {
+    ) public override {
         HoldExtensionData storage data = holdData();
         require(
             data.holds[holdId].recipient == address(0),
@@ -211,9 +230,9 @@ contract HoldExtension is TokenExtension {
             recipient != address(0),
             "executeHold: recipient must not be a zero address"
         );
-        if (data.holds[holdId].lockHash != bytes32(0)) {
+        if (data.holds[holdId].secretHash != bytes32(0)) {
             require(
-                data.holds[holdId].lockHash ==
+                data.holds[holdId].secretHash ==
                     sha256(abi.encodePacked(lockPreimage)),
                 "executeHold: preimage hash does not match lock hash"
             );
@@ -230,20 +249,14 @@ contract HoldExtension is TokenExtension {
         address recipient
     ) internal isHeld(holdId) {
         HoldExtensionData storage data = holdData();
-
         require(
-            data.holds[holdId].notary == _msgSender(),
+            data.holds[holdId].notary == msg.sender,
             "executeHold: caller must be the hold notary"
         );
 
         TransferData memory transferData = _buildTransfer(data.holds[holdId].sender, recipient, data.holds[holdId].amount);
         _tokenTransfer(transferData);
-        //if (_tokenStandard() == TokenStandard.ERC20) {
-        
-        //} else {
-            //TODO Add support for other tokens
-        //    revert("Standard not supported");
-        //}
+        //super._transfer(holds[holdId].sender, recipient, holds[holdId].amount);
 
         data.holds[holdId].status = HoldStatusCode.Executed;
         data.accountHoldBalances[data.holds[holdId]
@@ -252,6 +265,15 @@ contract HoldExtension is TokenExtension {
         );
         data.totalSupplyOnHold = data.totalSupplyOnHold.sub(data.holds[holdId].amount);
 
+        (bytes32 holdHash,) = retrieveHoldHashId(
+            data.holds[holdId].notary,
+            data.holds[holdId].sender,
+            data.holds[holdId].recipient,
+            data.holds[holdId].amount
+        );
+
+        delete data.holdHashToId[holdHash];
+
         emit ExecutedHold(holdId, lockPreimage, recipient);
     }
 
@@ -259,19 +281,21 @@ contract HoldExtension is TokenExtension {
      @notice Called by the notary at any time or the sender after the expiration date to release the held tokens back to the sender.
      @param holdId a unique identifier for the hold.
      */
-    function releaseHold(bytes32 holdId) public isHeld(holdId) {
+    function releaseHold(bytes32 holdId) public override isHeld(holdId) {
         HoldExtensionData storage data = holdData();
-        
+
         if (data.holds[holdId].sender == _msgSender()) {
             require(
                 block.timestamp > data.holds[holdId].expirationDateTime,
                 "releaseHold: can only release after the expiration date."
             );
+            data.holds[holdId].status = HoldStatusCode.ReleasedOnExpiration;
         } else if (data.holds[holdId].notary != _msgSender()) {
             revert("releaseHold: caller must be the hold sender or notary.");
+        } else {
+            data.holds[holdId].status = HoldStatusCode.ReleasedByNotary;
         }
 
-        data.holds[holdId].status = HoldStatusCode.Released;
         data.accountHoldBalances[data.holds[holdId]
             .sender] = data.accountHoldBalances[data.holds[holdId].sender].sub(
             data.holds[holdId].amount
@@ -285,7 +309,7 @@ contract HoldExtension is TokenExtension {
      @notice Amount of tokens owned by an account that are held pending execution or release.
      @param account owner of the tokens
      */
-    function balanceOnHold(address account) public view returns (uint256) {
+    function balanceOnHold(address account) public override view returns (uint256) {
         HoldExtensionData storage data = holdData();
         return data.accountHoldBalances[account];
     }
@@ -294,7 +318,7 @@ contract HoldExtension is TokenExtension {
      @notice Total amount of tokens owned by an account including all the held tokens pending execution or release.
      @param account owner of the tokens
      */
-    function spendableBalanceOf(address account) public view returns (uint256) {
+    function spendableBalanceOf(address account) public override view returns (uint256) {
         HoldExtensionData storage data = holdData();
         //if (_tokenStandard() == TokenStandard.ERC20) {
         return _erc20Token().balanceOf(account) - data.accountHoldBalances[account];
@@ -304,16 +328,29 @@ contract HoldExtension is TokenExtension {
         //}
     }
 
+    function totalSupplyOnHold() external override view returns (uint256) {
+        HoldExtensionData storage data = holdData();
+        return data.totalSupplyOnHold;
+    }
+
     /**
      @param holdId a unique identifier for the hold.
      @return hold status code.
      */
-    function holdStatus(bytes32 holdId) public view returns (HoldStatusCode) {
+    function holdStatus(bytes32 holdId) public override view returns (HoldStatusCode) {
         HoldExtensionData storage data = holdData();
         return data.holds[holdId].status;
     }
 
-    function onTransferExecuted(TransferData memory data) external override returns (bool) {
+    function onTransferExecuted(TransferData memory data) external onlyToken returns (bool) {
+        //only check if not a mint
+        if (data.from != address(0)) {
+            require(spendableBalanceOf(data.from) >= data.value, "HoldableToken: amount exceeds available balance");
+        }
+        return true;
+    }
+
+    function onApproveExecuted(TransferData memory data) external virtual onlyToken returns (bool) {
         require(spendableBalanceOf(data.from) >= data.value, "HoldableToken: amount exceeds available balance");
         return true;
     }

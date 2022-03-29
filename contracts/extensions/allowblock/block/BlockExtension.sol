@@ -46,6 +46,7 @@ contract BlockExtension is TokenExtension, IBlocklistedRole, IBlocklistedAdminRo
 
     function initialize() external override {
         _addRole(_msgSender(), BLOCKLIST_ADMIN_ROLE);
+        _listenForTokenTransfers(this.onTransferExecuted);
     }
 
     function isBlocklisted(address account) external override view returns (bool) {
@@ -72,7 +73,7 @@ contract BlockExtension is TokenExtension, IBlocklistedRole, IBlocklistedAdminRo
         _removeRole(account, BLOCKLIST_ADMIN_ROLE);
     }
 
-    function onTransferExecuted(TransferData memory data) external override returns (bool) {
+    function onTransferExecuted(TransferData memory data) external onlyToken returns (bool) {
         if (data.from != address(0)) {
             require(!hasRole(data.from, BLOCKLIST_ROLE), "from address is blocklisted");
         }

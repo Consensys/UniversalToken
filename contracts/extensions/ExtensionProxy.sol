@@ -81,13 +81,6 @@ contract ExtensionProxy is IExtensionMetadata, ExtensionBase {
     }
 
     fallback() external payable {
-        if (msg.sender != _authorizedCaller()) {
-            //This specific function is restricted when using the proxy directly
-            //Only the "admin" can invoke this, everyone else (include ourselves) 
-            //shouldn't invoke this
-            require(msg.sig != IExtension.onTransferExecuted.selector, "Cannot directly invoke transferExecuted");
-        }
-        
         ProxyData storage ds = _proxyData();
         
         _delegate(ds.extension);

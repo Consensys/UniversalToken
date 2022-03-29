@@ -35,6 +35,7 @@ contract CertificateValidatorExtension is TokenExtension, ICertificateValidator 
 
     function initialize() external override {
         _addRole(_msgSender(), CERTIFICATE_SIGNER_ROLE);
+        _listenForTokenTransfers(this.onTransferExecuted);
     }
 
     function isCertificateSigner(address account) external override view returns (bool) {
@@ -65,7 +66,7 @@ contract CertificateValidatorExtension is TokenExtension, ICertificateValidator 
         CertificateLib.certificateData()._certificateType = mode;
     }
 
-    function onTransferExecuted(TransferData memory data) external override returns (bool) {
+    function onTransferExecuted(TransferData memory data) external onlyToken returns (bool) {
         require(data.data.length > 0, "Data cannot be empty");
         
         CertificateValidationType validationType = CertificateLib.certificateData()._certificateType;

@@ -114,7 +114,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
         _currentData = "";
         _currentOperatorData = "";
 
-        _triggerTokenTransfer(data);
+        _triggerTokenTransferEvent(data);
     }
 
     /**
@@ -123,7 +123,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     * @param to The recipient of the minted tokens
     * @param amount The amount of tokens to be minted
     */
-    function mint(address to, uint256 amount) external onlyMinter returns (bool) {
+    function mint(address to, uint256 amount) external virtual onlyMinter returns (bool) {
         _mint(to, amount);
 
         require(totalSupply() <= _getProtectedTokenData().maxSupply, "Max supply has been exceeded");
@@ -171,7 +171,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     * Only token controllers can use this funciton
     * @param td The TransferData containing the kind of transfer to perform
     */
-    function tokenTransfer(TransferData calldata td) external override onlyControllers returns (bool) {
+    function tokenTransfer(TransferData calldata td) external virtual override onlyControllers returns (bool) {
         require(td.partition == bytes32(0), "Invalid transfer data: partition");
         require(td.token == address(this), "Invalid transfer data: token");
         require(td.tokenId == 0, "Invalid transfer data: tokenId");
@@ -193,6 +193,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     // Override normal transfer functions
     // That way we can grab any extra data
     // that may be attached to the calldata
+    uint256 private constant APPROVE_CALL_SIZE = 4 + 32 + 32;
     uint256 private constant TRANSFER_CALL_SIZE = 4 + 32 + 32;
     uint256 private constant TRANSFER_FROM_CALL_SIZE = 4 + 32 + 32 + 32;
     /**
@@ -239,6 +240,74 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
         _currentOperatorData = extraData;
 
         return ERC20Upgradeable.transferFrom(sender, recipient, amount);
+    }
+
+    function approve(address spender, uint256 amount) public virtual override returns (bool) { 
+        super.approve(spender, amount);
+
+        bytes memory extraData = _extractExtraCalldata(TRANSFER_CALL_SIZE);
+
+        TransferData memory data = TransferData(
+            address(this),
+            _msgData(),
+            0x00000000000000000000000000000000,
+            _msgSender(),
+            _msgSender(),
+            spender,
+            amount,
+            0,
+            extraData,
+            extraData
+        );
+        _triggerTokenApprovalEvent(data);
+
+        return true;
+    }
+
+    function increaseAllowance(address spender, uint256 addedValue) public virtual override returns (bool) {
+        super.increaseAllowance(spender, addedValue);
+        uint256 amount = super.allowance(_msgSender(), spender) + addedValue;
+
+        bytes memory extraData = _extractExtraCalldata(TRANSFER_CALL_SIZE);
+
+        TransferData memory data = TransferData(
+            address(this),
+            _msgData(),
+            0x00000000000000000000000000000000,
+            _msgSender(),
+            _msgSender(),
+            spender,
+            amount,
+            0,
+            extraData,
+            extraData
+        );
+        _triggerTokenApprovalEvent(data);
+
+        return true;
+    }
+
+    function decreaseAllowance(address spender, uint256 subtractedValue) public virtual override returns (bool) {
+        super.decreaseAllowance(spender, subtractedValue);
+        uint256 amount = super.allowance(_msgSender(), spender) - subtractedValue;
+
+        bytes memory extraData = _extractExtraCalldata(TRANSFER_CALL_SIZE);
+
+        TransferData memory data = TransferData(
+            address(this),
+            _msgData(),
+            0x00000000000000000000000000000000,
+            _msgSender(),
+            _msgSender(),
+            spender,
+            amount,
+            0,
+            extraData,
+            extraData
+        );
+        _triggerTokenApprovalEvent(data);
+
+        return true;
     }
 
     /**

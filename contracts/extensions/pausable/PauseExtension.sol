@@ -58,6 +58,8 @@ contract PauseExtension is TokenExtension, IPausable {
 
     function initialize() external override {
         _addRole(_msgSender(), PAUSER_ROLE);
+        _listenForTokenTransfers(this.onTransferExecuted);
+        _listenForTokenApprovals(this.onTransferExecuted);
     }
 
     function pause() external override onlyPauser whenNotPaused {
@@ -108,7 +110,7 @@ contract PauseExtension is TokenExtension, IPausable {
         emit PauserRemoved(account);
     }
 
-    function onTransferExecuted(TransferData memory data) external override returns (bool) {
+    function onTransferExecuted(TransferData memory data) external onlyToken returns (bool) {
         bool isPaused = isPausedFor(data.from);
 
         require(!isPaused, "Transfers are paused");

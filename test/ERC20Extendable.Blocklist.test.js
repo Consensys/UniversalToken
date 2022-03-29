@@ -53,12 +53,12 @@ contract(
       });
 
       it("Deployer can registers extension", async () => {
-        assert.equal((await token.allExtensions()).length, 0);
+        assert.equal((await token.allExtensionsRegistered()).length, 0);
 
         const result = await token.registerExtension(blockExt, { from: deployer });
         assert.equal(result.receipt.status, 1);
 
-        assert.equal((await token.allExtensions()).length, 1);
+        assert.equal((await token.allExtensionsRegistered()).length, 1);
       });
 
       it("Transfers work if not on block list (100 tokens from deployer to recipient)", async () => {

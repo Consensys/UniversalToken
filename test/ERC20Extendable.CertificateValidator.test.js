@@ -23,7 +23,6 @@ const SECONDS_IN_A_DAY = 24*SECONDS_IN_AN_HOUR;
 const CertificateValidatorExtension = artifacts.require("CertificateValidatorExtension");
 const ERC20Extendable = artifacts.require("ERC20Extendable");
 const ERC20Logic = artifacts.require("ERC20Logic");
-const ERC20LogicMock = artifacts.require("ERC20LogicMock");
 const ClockMock = artifacts.require("ClockMock");
 
 const CERTIFICATE_SIGNER_PRIVATE_KEY = "0x1699611cc662aad2db30d5cf44bd531a8b16710e43624fc0e801c6592f72f9ab";
@@ -297,7 +296,18 @@ contract(
         assert.equal((await ext.getValidationMode()), CERTIFICATE_VALIDATION_DEFAULT);
       });
 
-      it("Transfer 100 tokens from deployer to recipient with certificate", async () => {
+      it("Only certificate signers can set the validation mode", async () => {
+        const ext = await CertificateValidatorExtension.at(token.address);
+        assert.equal((await ext.getValidationMode()), CERTIFICATE_VALIDATION_DEFAULT);
+
+        await expectRevert.unspecified(
+          ext.setValidationMode(CERTIFICATE_VALIDATION_DEFAULT, { from: recipient })
+        );
+
+        assert.equal((await ext.getValidationMode()), CERTIFICATE_VALIDATION_DEFAULT);
+      });
+
+      it("Transfer 100 tokens from deployer to recipient with salt-based certificate", async () => {
         const certificate = await craftCertificate(
           token.contract.methods.transfer(
             recipient,
@@ -321,382 +331,74 @@ contract(
         assert.equal(await token.totalSupply(), initialSupply);
       });
 
-      /* it("Allow list admins can add their own address to allow list", async () => {
-        const allowlistToken = await AllowExtension.at(token.address);
-
-        assert.equal(await allowlistToken.isAllowlisted(deployer), false);
-
-        const result = await allowlistToken.addAllowlisted(deployer, { from: deployer });
-        assert.equal(result.receipt.status, 1);
-
-        assert.equal(await allowlistToken.isAllowlisted(deployer), true);
-      });
-
-      it("Holder can't add addresses to allow list", async () => {
-        const allowlistToken = await AllowExtension.at(token.address);
-
-        assert.equal(await allowlistToken.isAllowlisted(holder), false);
-
-        await expectRevert.unspecified(
-          allowlistToken.addAllowlisted(holder, { from: holder })
+      it("Transfers fail if bad certificate", async () => {
+        const domainSeparator = await token.generateDomainSeparator();
+        const certificate = await craftNonceBasedCertificate(
+          token.contract.methods.transfer(
+            recipient,
+            200,
+          ).encodeABI(),
+          token,
+          clock, // this.clock
+          deployer,
+          domainSeparator
         );
-        
-        assert.equal(await allowlistToken.isAllowlisted(holder), false);
+
+        assert.equal(await token.balanceOf(deployer), initialSupply - 100);
+        await expectRevert.unspecified(
+          token.transferWithData(recipient, 200, certificate, { from: deployer })
+        );
       });
 
-      it("Allow list admins can make other addresses allow list admins", async () => {
-        const allowlistToken = await AllowExtension.at(token.address);
+      it("Transfers fail if valid certificate, but transfer payload does not match", async () => {
+        const certificate = await craftCertificate(
+          token.contract.methods.transfer(
+            recipient,
+            100,
+          ).encodeABI(),
+          token,
+          clock, // this.clock
+          deployer
+        );
 
-        assert.equal(await allowlistToken.isAllowlistedAdmin(holder), false);
+        assert.equal(await token.balanceOf(deployer), initialSupply - 100);
+        await expectRevert.unspecified(
+          token.transferWithData(recipient, 200, certificate, { from: deployer })
+        );
+      });
 
-        const result = await allowlistToken.addAllowlistedAdmin(holder, { from: deployer });
+      it("Certificate signers can change the validation mode", async () => {
+        const ext = await CertificateValidatorExtension.at(token.address);
+        assert.equal((await ext.getValidationMode()), CERTIFICATE_VALIDATION_DEFAULT);
+
+        const result = await ext.setValidationMode(CERTIFICATE_VALIDATION_NONCE, { from: deployer });
         assert.equal(result.receipt.status, 1);
 
-        assert.equal(await allowlistToken.isAllowlistedAdmin(holder), true);
+        assert.equal((await ext.getValidationMode()), CERTIFICATE_VALIDATION_NONCE);
       });
 
-      it("Holder can now add addresses to allow list", async () => {
-        const allowlistToken = await AllowExtension.at(token.address);
+      it("Transfer 100 tokens from deployer to recipient with nonce-based certificate", async () => {
+        const certificate = await craftCertificate(
+          token.contract.methods.transfer(
+            recipient,
+            200,
+          ).encodeABI(),
+          token,
+          clock, // this.clock
+          deployer
+        );
 
-        assert.equal(await allowlistToken.isAllowlisted(recipient), false);
-
-        const result = await allowlistToken.addAllowlisted(recipient, { from: holder });
-        assert.equal(result.receipt.status, 1);
-
-        assert.equal(await allowlistToken.isAllowlisted(recipient), true);
-      });
-
-      it("Transfer 100 tokens from recipient to deployer", async () => {
         assert.equal(await token.totalSupply(), initialSupply);
         assert.equal(await token.balanceOf(deployer), initialSupply - 100);
-        assert.equal(await token.balanceOf(recipient), 100);
-        const result = await token.transfer(deployer, 100, { from: recipient });
+        const result = await token.transferWithData(recipient, 200, certificate, { from: deployer });
         assert.equal(result.receipt.status, 1);
-        assert.equal(await token.balanceOf(deployer), initialSupply);
+        assert.equal(await token.balanceOf(deployer), initialSupply - 300);
         assert.equal(await token.balanceOf(holder), 0);
         assert.equal(await token.balanceOf(sender), 0);
-        assert.equal(await token.balanceOf(recipient), 0);
+        assert.equal(await token.balanceOf(recipient), 300);
         assert.equal(await token.balanceOf(recipient2), 0);
         assert.equal(await token.balanceOf(notary), 0);
         assert.equal(await token.totalSupply(), initialSupply);
       });
-
-      it("Allow list admins can remove allow listed addresses", async () => {
-        const allowlistToken = await AllowExtension.at(token.address);
-
-        assert.equal(await allowlistToken.isAllowlisted(recipient), true);
-
-        const result = await allowlistToken.removeAllowlisted(recipient, { from: holder });
-        assert.equal(result.receipt.status, 1);
-
-        assert.equal(await allowlistToken.isAllowlisted(recipient), false);
-      });
-
-
-      it("Allow list admins can remove allow list admins", async () => {
-        const allowlistToken = await AllowExtension.at(token.address);
-
-        assert.equal(await allowlistToken.isAllowlistedAdmin(holder), true);
-
-        const result = await allowlistToken.removeAllowlistedAdmin(holder, { from: deployer });
-        assert.equal(result.receipt.status, 1);
-
-        assert.equal(await allowlistToken.isAllowlistedAdmin(holder), false);
-      });
-
-      it("Holder can't add addresses to allow list", async () => {
-        const allowlistToken = await AllowExtension.at(token.address);
-
-        assert.equal(await allowlistToken.isAllowlisted(holder), false);
-
-        await expectRevert.unspecified(
-          allowlistToken.addAllowlisted(holder, { from: holder })
-        );
-        
-        assert.equal(await allowlistToken.isAllowlisted(holder), false);
-      });
-
-      it("Deployer can disable extensions", async () => {
-        const result2 = await token.disableExtension(allowExt, { from: deployer });
-
-        assert.equal(result2.receipt.status, 1);
-      });
-
-      it("Transfer 100 tokens from deployer to recipient", async () => {
-        assert.equal(await token.totalSupply(), initialSupply);
-        assert.equal(await token.balanceOf(deployer), initialSupply);
-        const result = await token.transfer(recipient, 100, { from: deployer });
-        assert.equal(result.receipt.status, 1);
-        assert.equal(await token.balanceOf(deployer), initialSupply - 100);
-        assert.equal(await token.balanceOf(holder), 0);
-        assert.equal(await token.balanceOf(sender), 0);
-        assert.equal(await token.balanceOf(recipient), 100);
-        assert.equal(await token.balanceOf(recipient2), 0);
-        assert.equal(await token.balanceOf(notary), 0);
-        assert.equal(await token.totalSupply(), initialSupply);
-      });
-
-      it("Transfer 100 tokens from recipient to deployer", async () => {
-        assert.equal(await token.totalSupply(), initialSupply);
-        assert.equal(await token.balanceOf(deployer), initialSupply - 100);
-        assert.equal(await token.balanceOf(recipient), 100);
-        const result = await token.transfer(deployer, 100, { from: recipient });
-        assert.equal(result.receipt.status, 1);
-        assert.equal(await token.balanceOf(deployer), initialSupply);
-        assert.equal(await token.balanceOf(holder), 0);
-        assert.equal(await token.balanceOf(sender), 0);
-        assert.equal(await token.balanceOf(recipient), 0);
-        assert.equal(await token.balanceOf(recipient2), 0);
-        assert.equal(await token.balanceOf(notary), 0);
-        assert.equal(await token.totalSupply(), initialSupply);
-      });
-
-      it("addAllowlisted fails when extension is disabled", async () => {
-        const allowlistToken = await AllowExtension.at(token.address);
-        await expectRevert.unspecified(
-          allowlistToken.addAllowlistedAdmin(holder, { from: deployer })
-        );
-      });
-
-      it("isAllowlistedAdmin fails when extension is disabled", async () => {
-        const allowlistToken = await AllowExtension.at(token.address);
-        await expectRevert.unspecified(
-          allowlistToken.isAllowlistedAdmin(holder)
-        );
-      });
-
-      it("No one else can enable extensions", async () => {
-        await expectRevert.unspecified(
-          token.enableExtension(allowExt, { from: holder })
-        );
-      });
-
-      it("No one else can register extensions", async () => {
-        await expectRevert.unspecified(
-          token.registerExtension(allowExt, { from: holder })
-        );
-      });
-
-      it("Only deployer can enable extensions", async () => {
-        const result2 = await token.enableExtension(allowExt, { from: deployer });
-
-        assert.equal(result2.receipt.status, 1);
-      });
-
-      it("No one else can disable extensions", async () => {
-        await expectRevert.unspecified(
-          token.registerExtension(allowExt, { from: holder })
-        );
-      });
-
-      it("Allow list admin can allow list several addresses", async () => {
-        const allowlistToken = await AllowExtension.at(token.address);
-
-        const addresses = [sender, holder, recipient, recipient2, notary]
-
-        for (let i = 0; i < addresses.length; i++) {
-          const adr = addresses[i];
-          
-          assert.equal(await allowlistToken.isAllowlisted(adr), false);
-
-          const result = await allowlistToken.addAllowlisted(adr, { from: deployer });
-          assert.equal(result.receipt.status, 1);
-  
-          assert.equal(await allowlistToken.isAllowlisted(adr), true);
-        }
-      });
-
-      it("Mint 1000 tokens to holder", async () => {
-        assert.equal(await token.totalSupply(), initialSupply);
-        assert.equal(await token.balanceOf(holder), 0);
-        const result = await token.mint(holder, 1000, { from: deployer });
-        assert.equal(result.receipt.status, 1);
-        assert.equal(await token.balanceOf(deployer), initialSupply);
-        assert.equal(await token.balanceOf(holder), 1000);
-        assert.equal(await token.balanceOf(sender), 0);
-        assert.equal(await token.balanceOf(recipient), 0);
-        assert.equal(await token.balanceOf(recipient2), 0);
-        assert.equal(await token.balanceOf(notary), 0);
-        assert.equal(await token.totalSupply(), initialSupply + 1000);
-      });
-
-      it("Holder Burns 100 tokens", async () => {
-        assert.equal(await token.totalSupply(), initialSupply + 1000);
-        assert.equal(await token.balanceOf(holder), 1000);
-        const result = await token.burn(100, { from: holder });
-        assert.equal(result.receipt.status, 1);
-        assert.equal(await token.balanceOf(deployer), initialSupply);
-        assert.equal(await token.balanceOf(holder), 1000 - 100);
-        assert.equal(await token.balanceOf(sender), 0);
-        assert.equal(await token.balanceOf(recipient), 0);
-        assert.equal(await token.balanceOf(recipient2), 0);
-        assert.equal(await token.balanceOf(notary), 0);
-        assert.equal(await token.totalSupply(),  initialSupply + 1000 - 100);
-      });
-
-      it("Transfer 100 tokens from holder to recipient", async () => {
-        assert.equal(await token.totalSupply(), initialSupply + 1000 - 100);
-        assert.equal(await token.balanceOf(holder), 900);
-        const result = await token.transfer(recipient, 100, { from: holder });
-        assert.equal(result.receipt.status, 1);
-        assert.equal(await token.balanceOf(deployer), initialSupply);
-        assert.equal(await token.balanceOf(holder), 800);
-        assert.equal(await token.balanceOf(sender), 0);
-        assert.equal(await token.balanceOf(recipient), 100);
-        assert.equal(await token.balanceOf(recipient2), 0);
-        assert.equal(await token.balanceOf(notary), 0);
-        assert.equal(await token.totalSupply(), initialSupply + 1000 - 100);
-      });
-
-      it("only minters can mint", async () => {
-        assert.equal(await token.isMinter(recipient), false);
-        await expectRevert.unspecified(
-          token.mint(recipient2, 200, { from: recipient })
-        );
-      });
-
-      it("recipient cant transfer 200 tokens to recipient2 with no balance", async () => {
-        await expectRevert.unspecified(
-          token.transfer(recipient2, 200, { from: recipient })
-        );
-      });
-
-      it("recipient cant transferFrom 200 tokens from holder to recipient2 no balance", async () => {
-        await expectRevert.unspecified(
-          token.transfer(recipient2, 200, { from: recipient })
-        );
-      });
-
-      it("notary can transferFrom(holder, recipient2, 200) when holder uses approve", async () => {
-        await expectRevert.unspecified(
-          token.transfer(recipient2, 200, { from: notary })
-        );
-        
-        assert.equal(await token.totalSupply(), initialSupply + 1000 - 100);
-        assert.equal(await token.balanceOf(holder), 800);
-        assert.equal(await token.allowance(holder, notary), 0);
-
-        const result = await token.approve(notary, 200, { from: holder });
-        assert.equal(await token.allowance(holder, notary), 200);
-        const result2 = await token.transferFrom(holder, recipient2, 200, { from: notary });
-
-        assert.equal(result.receipt.status, 1);
-        assert.equal(result2.receipt.status, 1);
-
-        assert.equal(await token.balanceOf(deployer), initialSupply);
-        assert.equal(await token.balanceOf(holder), 600);
-        assert.equal(await token.balanceOf(sender), 0);
-        assert.equal(await token.balanceOf(recipient2), 200);
-        assert.equal(await token.allowance(holder, notary), 0);
-        assert.equal(await token.balanceOf(notary), 0);
-        assert.equal(await token.totalSupply(), initialSupply + 1000 - 100);
-      });
-
-      it("notary can transferFrom(holder, recipient2, 200) when holder uses increaseAllowance and decreaseAllowance", async () => {
-        await expectRevert.unspecified(
-          token.transfer(recipient2, 200, { from: notary })
-        );
-        
-        assert.equal(await token.totalSupply(), initialSupply + 1000 - 100);
-        assert.equal(await token.balanceOf(holder), 600);
-        assert.equal(await token.allowance(holder, notary), 0);
-  
-        const result = await token.increaseAllowance(notary, 300, { from: holder });
-        const result2 = await token.decreaseAllowance(notary, 100, { from: holder });
-
-        assert.equal(await token.allowance(holder, notary), 200);
-        const result3 = await token.transferFrom(holder, recipient2, 200, { from: notary });
-  
-        assert.equal(result.receipt.status, 1);
-        assert.equal(result2.receipt.status, 1);
-        assert.equal(result3.receipt.status, 1);
-  
-        assert.equal(await token.balanceOf(deployer), initialSupply);
-        assert.equal(await token.balanceOf(holder), 400);
-        assert.equal(await token.balanceOf(sender), 0);
-        assert.equal(await token.balanceOf(recipient), 100);
-        assert.equal(await token.balanceOf(recipient2), 400);
-        assert.equal(await token.allowance(holder, recipient), 0);
-        assert.equal(await token.balanceOf(notary), 0);
-        assert.equal(await token.totalSupply(), initialSupply + 1000 - 100);
-      });
-
-      it("notary can burnFrom(holder, 200) when holder uses increaseAllowance and decreaseAllowance", async () => {
-        await expectRevert.unspecified(
-          token.transfer(recipient2, 200, { from: notary })
-        );
-        
-        assert.equal(await token.totalSupply(), initialSupply + 1000 - 100);
-        assert.equal(await token.balanceOf(holder), 400);
-        assert.equal(await token.allowance(holder, notary), 0);
-  
-        const result = await token.increaseAllowance(notary, 300, { from: holder });
-        const result2 = await token.decreaseAllowance(notary, 100, { from: holder });
-
-        assert.equal(await token.allowance(holder, notary), 200);
-        const result3 = await token.burnFrom(holder, 200, { from: notary });
-  
-        assert.equal(result.receipt.status, 1);
-        assert.equal(result2.receipt.status, 1);
-        assert.equal(result3.receipt.status, 1);
-  
-        assert.equal(await token.balanceOf(deployer), initialSupply);
-        assert.equal(await token.balanceOf(holder), 200);
-        assert.equal(await token.balanceOf(sender), 0);
-        assert.equal(await token.balanceOf(recipient), 100);
-        assert.equal(await token.balanceOf(recipient2), 400);
-        assert.equal(await token.allowance(holder, notary), 0);
-        assert.equal(await token.balanceOf(notary), 0);
-        assert.equal(await token.totalSupply(), initialSupply + 1000 - 300);
-      });
-
-      it("notary can burnFrom(holder, 200) when holder uses approve", async () => {
-        await expectRevert.unspecified(
-          token.transfer(recipient2, 200, { from: notary })
-        );
-        
-        assert.equal(await token.totalSupply(), initialSupply + 1000 - 300);
-        assert.equal(await token.balanceOf(holder), 200);
-        assert.equal(await token.allowance(holder, notary), 0);
-  
-        const result = await token.approve(notary, 200, { from: holder });
-
-        assert.equal(await token.allowance(holder, notary), 200);
-        const result3 = await token.burnFrom(holder, 200, { from: notary });
-  
-        assert.equal(result.receipt.status, 1);
-        assert.equal(result3.receipt.status, 1);
-  
-        assert.equal(await token.balanceOf(deployer), initialSupply);
-        assert.equal(await token.balanceOf(holder), 0);
-        assert.equal(await token.balanceOf(sender), 0);
-        assert.equal(await token.balanceOf(recipient), 100);
-        assert.equal(await token.balanceOf(recipient2), 400);
-        assert.equal(await token.allowance(holder, notary), 0);
-        assert.equal(await token.balanceOf(notary), 0);
-        assert.equal(await token.totalSupply(), initialSupply + 1000 - 500);
-      });
-
-      it("upgradeTo reverts if non-owner executes it", async () => {
-        let newLogic = await ERC20LogicMock.new();
-
-        await expectRevert.unspecified(
-          token.upgradeTo(newLogic.address, "0x", { from: notary })
-        );
-      });
-
-      it("when the owner upgrades, it's successful", async () => {
-        let newLogic = await ERC20LogicMock.new();
-
-        await token.upgradeTo(newLogic.address, "0x", { from: deployer });
-
-        //Bind the token address to the mock ABI
-        //so we can invoke new functions
-        const upgradedTokenApi = await ERC20LogicMock.at(token.address);
-
-        //Only mock contract has the isMock function
-        assert.equal(await upgradedTokenApi.isMock(), "This is a mock!");
-      }); */
-
     });
 })

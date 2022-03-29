@@ -113,6 +113,10 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
     * @param data Any arbitrary data, will be passed to the new logic contract's initialize function
     */
     function upgradeTo(address logic, bytes memory data) external override onlyManager {
+        if (data.length == 0) {
+            data = bytes("f");
+        }
+        
         StorageSlot.getUint256Slot(UPGRADING_FLAG_SLOT).value = data.length;
 
         _setLogic(logic);

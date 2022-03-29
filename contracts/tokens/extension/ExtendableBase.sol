@@ -56,6 +56,11 @@ abstract contract ExtendableBase is ContextUpgradeable {
         mapping(address => address) proxyCache;
     }
 
+    modifier onlyActiveExtension {
+        require(_isActiveExtension(msg.sender), "Only active extensions can invoke");
+        _;
+    }
+
     /**
     * @dev Get the MappedExtensions data stored inside this contract.
     * @return ds The MappedExtensions struct stored in this contract
@@ -77,6 +82,10 @@ abstract contract ExtendableBase is ContextUpgradeable {
         MappedExtensions storage extLibStorage = extensionStorage();
         address extension = __forceGlobalExtensionAddress(ext);
         return extLibStorage.extensions[extension];
+    }
+
+    function _extensionState(address ext) internal view returns (ExtensionState) {
+        return _addressToExtensionData(ext).state;
     }
 
     /**
@@ -128,15 +137,6 @@ abstract contract ExtendableBase is ContextUpgradeable {
             }
         }
 
-        //Initialize the new extension proxy
-        bytes memory initializeCalldata = abi.encodePacked(abi.encodeWithSelector(ExtensionProxy.initialize.selector), _msgSender());
-
-        (bool success, bytes memory result) = address(extProxy).call{gas: gasleft()}(initializeCalldata);
-
-        if (!success) {
-            revert(string(result));
-        }
-
         //Finally, add it to storage
         extLibStorage.extensions[extension] = ExtensionData(
             ExtensionState.EXTENSION_ENABLED,
@@ -147,6 +147,15 @@ abstract contract ExtendableBase is ContextUpgradeable {
 
         extLibStorage.registeredExtensions.push(extension);
         extLibStorage.proxyCache[address(extProxy)] = extension;
+
+        //Initialize the new extension proxy
+        bytes memory initializeCalldata = abi.encodePacked(abi.encodeWithSelector(ExtensionProxy.initialize.selector), _msgSender());
+
+        (bool success, bytes memory result) = address(extProxy).call{gas: gasleft()}(initializeCalldata);
+
+        if (!success) {
+            revert(string(result));
+        }
 
         return true;
     }
@@ -207,7 +216,7 @@ abstract contract ExtendableBase is ContextUpgradeable {
         require(extData.state == ExtensionState.EXTENSION_ENABLED, "The extension must be enabled");
 
         extData.state = ExtensionState.EXTENSION_DISABLED;
-        extLibStorage.proxyCache[extData.extProxy] = address(0);
+        //extLibStorage.proxyCache[extData.extProxy] = address(0);
     }
 
     /**
@@ -227,7 +236,7 @@ abstract contract ExtendableBase is ContextUpgradeable {
         require(extData.state == ExtensionState.EXTENSION_DISABLED, "The extension must be enabled");
 
         extData.state = ExtensionState.EXTENSION_ENABLED;
-        extLibStorage.proxyCache[extData.extProxy] = extension;
+        //extLibStorage.proxyCache[extData.extProxy] = extension;
     }
 
     /**

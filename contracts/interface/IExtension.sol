@@ -14,12 +14,4 @@ interface IExtension is IExtensionMetadata {
     * with a TokenProxy 
     */
     function initialize() external;
-
-    /**
-    * @notice This function cannot be invoked directly
-    * @dev This function is invoked right after a transfer occurs on the
-    * Token.
-    * @param data The information about the transfer that just occured as a TransferData struct
-    */
-    function onTransferExecuted(TransferData memory data) external returns (bool);
 }

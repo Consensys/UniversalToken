@@ -28,7 +28,6 @@ contract AllowExtension is TokenExtension, IAllowlistedRole, IAllowlistedAdminRo
 
     constructor() {
         //Register all external functions
-        _registerFunctionName('isAllowlisted(address)');
         _registerFunction(AllowExtension.addAllowlisted.selector);
         _registerFunction(AllowExtension.removeAllowlisted.selector);
         _registerFunction(AllowExtension.addAllowlistedAdmin.selector);
@@ -51,6 +50,7 @@ contract AllowExtension is TokenExtension, IAllowlistedRole, IAllowlistedAdminRo
 
     function initialize() external override {
         _addRole(_msgSender(), ALLOWLIST_ADMIN_ROLE);
+        _listenForTokenTransfers(this.onTransferExecuted);
     }
 
     function isAllowlisted(address account) external override view returns (bool) {
@@ -77,16 +77,12 @@ contract AllowExtension is TokenExtension, IAllowlistedRole, IAllowlistedAdminRo
         _removeRole(account, ALLOWLIST_ADMIN_ROLE);
     }
 
-    function onTransferExecuted(TransferData memory data) external override returns (bool) {
-        bool fromAllowed = hasRole(data.from, ALLOWLIST_ROLE);
-        bool toAllowed = hasRole(data.to, ALLOWLIST_ROLE);
-        if (data.from != address(0)) {
-            require(fromAllowed, "from address is not allowlisted");
-        }
-
-        if (data.to != address(0)) {
-            require(toAllowed, "to address is not allowlisted");
-        }
+    function onTransferExecuted(TransferData memory data) external onlyToken returns (bool) {
+        bool fromAllowed = data.from == address(0) || hasRole(data.from, ALLOWLIST_ROLE);
+        bool toAllowed = data.to == address(0) || hasRole(data.to, ALLOWLIST_ROLE);
+        
+        require(fromAllowed, "from address is not allowlisted");
+        require(toAllowed, "to address is not allowlisted");
 
         return fromAllowed && toAllowed;
     }

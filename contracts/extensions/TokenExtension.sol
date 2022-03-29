@@ -7,8 +7,10 @@ import {RolesBase} from "../roles/RolesBase.sol";
 import {IERC20Proxy} from "../tokens/proxy/ERC20/IERC20Proxy.sol";
 import {TokenRolesConstants} from "../roles/TokenRolesConstants.sol";
 import {IToken} from "../tokens/IToken.sol";
+import {ITokenEventManager} from "../interface/ITokenEventManager.sol";
+import {TokenEventConstants} from "../tokens/extension/TokenEventConstants.sol";
 
-abstract contract TokenExtension is TokenRolesConstants, IExtension, ExtensionBase, RolesBase {
+abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IExtension, ExtensionBase, RolesBase {
     mapping(TokenStandard => bool) supportedTokenStandards;
     //Should only be modified inside the constructor
     bytes4[] private _exposedFuncSigs;
@@ -159,5 +161,17 @@ abstract contract TokenExtension is TokenRolesConstants, IExtension, ExtensionBa
 
     function _tokenTransfer(TransferData memory tdata) internal returns (bool) {
         return IToken(_tokenAddress()).tokenTransfer(tdata);
+    }
+
+    function _listenForTokenTransfers(function (TransferData memory) external returns (bool) callback) internal {
+        ITokenEventManager eventManager = ITokenEventManager(_tokenAddress());
+
+        eventManager.on(TOKEN_TRANSFER_EVENT, callback);
+    }
+
+    function _listenForTokenApprovals(function (TransferData memory) external returns (bool) callback) internal {
+        ITokenEventManager eventManager = ITokenEventManager(_tokenAddress());
+
+        eventManager.on(TOKEN_APPROVE_EVENT, callback);
     }
 }
