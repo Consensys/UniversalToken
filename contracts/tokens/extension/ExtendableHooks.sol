@@ -8,8 +8,8 @@ import {ITokenEventManager} from "../../interface/ITokenEventManager.sol";
 /**
 * @title Transfer Hooks for Extensions
 * @notice This should be inherited by a token logic contract
-* @dev ExtendableHooks provides the _triggerTokenTransfer internal
-* function that can be used to notify extensions when a transfer occurs.
+* @dev ExtendableHooks provides the _triggerTokenTransferEvent and _triggerTokenApproveEvent internal
+* function that can be used to notify extensions when a transfer/approval occurs.
 */
 abstract contract ExtendableHooks is ExtendableBase, TokenEventConstants, ITokenEventManager {
 
@@ -26,6 +26,12 @@ abstract contract ExtendableHooks is ExtendableBase, TokenEventConstants, IToken
         }
     }
 
+    /**
+    * @notice Can not be used directly, can only be used by enabled and registered extensions
+    * @dev Listen for an event hash and invoke a given callback function. This callback function
+    * will be invoked with the TransferData for the event as well as the current caller that trigger
+    * the event appended to the end of the calldata. This can usually be accessed using _msgSender()
+    */
     function on(bytes32 eventId, function (TransferData memory) external returns (bool) callback) external override onlyActiveExtension {
         eventManagerData().listeners[eventId].push(SavedCallbackFunction(callback));
     }

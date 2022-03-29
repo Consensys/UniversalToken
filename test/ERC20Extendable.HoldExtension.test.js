@@ -86,7 +86,7 @@ contract(
       it("Failed hold from notary with zero address", async () => {
         let holdableToken = await HoldExtension.at(this.token.address);
         try {
-          await this.holdableToken.hold(
+          await holdableToken.hold(
             web3.utils.randomHex(32),
             recipient2,
             ZERO_ADDRESS,
@@ -99,8 +99,8 @@ contract(
         } catch (err) {
           assert.instanceOf(err, Error);
           assert.match(err.message, /notary must not be a zero address/);
-          assert.equal(await this.holdableToken.spendableBalanceOf(recipient), 0);
-          assert.equal(await this.holdableToken.balanceOnHold(recipient), 0);
+          assert.equal(await holdableToken.spendableBalanceOf(recipient), 0);
+          assert.equal(await holdableToken.balanceOnHold(recipient), 0);
           assert.equal(await this.token.balanceOf(recipient), 0);
         }
       });

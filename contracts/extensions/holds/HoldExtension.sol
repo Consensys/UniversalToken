@@ -342,16 +342,16 @@ contract HoldExtension is TokenExtension, IHoldableToken {
         return data.holds[holdId].status;
     }
 
-    function onTransferExecuted(TransferData memory data) external onlyToken returns (bool) {
+    function onTransferExecuted(TransferData memory data) external virtual onlyToken returns (bool) {
         //only check if not a mint
         if (data.from != address(0)) {
-            require(spendableBalanceOf(data.from) >= data.value, "HoldableToken: amount exceeds available balance");
+            require(spendableBalanceOf(data.from) >= data.value, "HoldableToken: amount exceeds available balance (transfer)");
         }
         return true;
     }
 
     function onApproveExecuted(TransferData memory data) external virtual onlyToken returns (bool) {
-        require(spendableBalanceOf(data.from) >= data.value, "HoldableToken: amount exceeds available balance");
+        require(spendableBalanceOf(data.from) >= data.value, "HoldableToken: amount exceeds available balance (approve)");
         return true;
     }
 }
