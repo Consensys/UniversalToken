@@ -12,10 +12,9 @@ import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 * registration instance. This includes the current Token address, the current Extension
 * global address and an "authorized caller" (callsite).
 *
-* The ExtensionBase also defines a _msgSender() function, this function should be used
-* instead of the msg.sender variable. _msgSender() has a different behavior depending
-* on who the msg.sender variable is, this is to allow both meta-transactions and 
-* proxy forwarding
+* The _msgSender() function is also defined and should be used instead of the msg.sender variable.
+*  _msgSender() has a different behavior depending on who the msg.sender variable is, 
+* this is to allow both meta-transactions
 *
 * The "callsite" can be used to support meta transactions through a trusted forwarder. Currently
 * not implemented
@@ -101,22 +100,6 @@ abstract contract ExtensionBase is ContextUpgradeable {
     modifier onlyAuthorizedCallerOrSelf {
         require(msg.sender == _authorizedCaller() || msg.sender == address(this), "Caller: Unauthorized");
         _;
-    }
-
-    /**
-    * @dev Get the current msg.sender for the current CALL context
-    */
-    function _msgSender() internal virtual override view returns (address ret) {
-        if (msg.data.length >= 24 && msg.sender == _authorizedCaller()) {
-            // At this point we know that the sender is a token proxy,
-            // so we trust that the last bytes of msg.data are the verified sender address.
-            // extract sender address from the end of msg.data
-            assembly {
-                ret := shr(96,calldataload(sub(calldatasize(),20)))
-            }
-        } else {
-            return super._msgSender();
-        }
     }
 
     receive() external payable {}
