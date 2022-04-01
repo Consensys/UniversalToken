@@ -2,11 +2,11 @@ pragma solidity ^0.8.0;
 
 import {TokenProxy} from "./TokenProxy.sol";
 import {IExtendableTokenProxy} from "./IExtendableTokenProxy.sol";
-import {ExtendableProxy} from "../extension/ExtendableProxy.sol";
+import {ExtendableDiamond} from "../extension/ExtendableDiamond.sol";
 import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
-import {ExtensionProxy} from "../../extensions/ExtensionProxy.sol";
+import {ERC1820Implementer} from "../../erc1820/ERC1820Implementer.sol";
+import {IExtension} from "../../interface/IExtension.sol";
 import {ITokenProxy} from "./ITokenProxy.sol";
-import {IDiamondLoupe} from "../../interface/IDiamondLoupe.sol";
 
 /**
 * @title Extendable Token Proxy base Contract
@@ -14,7 +14,7 @@ import {IDiamondLoupe} from "../../interface/IDiamondLoupe.sol";
 * @dev An extendable proxy contract to be used by any token standard. The final token proxy
 * contract should also inherit from a TokenERC1820Provider contract or implement those functions.
 * This contract does everything the TokenProxy does and adds extensions support to the proxy contract.
-* This is done by extending from ExtendableProxy and providing external functions that can be used
+* This is done by extending from ExtendableDiamond and providing external functions that can be used
 * by the token proxy manager to manage extensions.
 *
 * This contract overrides the fallback function to forward any registered function selectors
@@ -22,7 +22,7 @@ import {IDiamondLoupe} from "../../interface/IDiamondLoupe.sol";
 *
 * The domain name must be implemented by the final token proxy.
 */
-abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendableTokenProxy, IDiamondLoupe {
+abstract contract ExtendableTokenProxy is TokenProxy, ExtendableDiamond, IExtendableTokenProxy {
     string constant internal EXTENDABLE_INTERFACE_NAME = "ExtendableToken";
 
     /**
@@ -42,6 +42,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendab
     */
     constructor(address logicAddress, address owner) TokenProxy(logicAddress, owner) {
         ERC1820Client.setInterfaceImplementation(EXTENDABLE_INTERFACE_NAME, address(this));
+        ERC1820Implementer._setInterface(EXTENDABLE_INTERFACE_NAME); // For migration
     }
 
     /**
@@ -55,30 +56,10 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendab
     }
 
     /**
-    * @notice Return an array of all deployed extension proxy addresses, regardless of if they are
-    * enabled or disabled. You can use these addresses for direct interaction. Remember you can also
-    * interact with extensions through the TokenProxy.
-    * @return address[] All registered and deployed extension proxy addresses
-    */
-    function allExtensionProxies() external override view returns (address[] memory) {
-        return _allExtensionProxies();
-    }
-
-    /**
-    * @notice Return the deployed extension proxy address given a global extension address.
-    * This function reverts if the given global extension has not been registered using
-    * registerExtension
-    * @return address The deployed extension proxy address
-    */
-    function proxyAddressForExtension(address extension) external override view returns (address) {
-        return _proxyAddressForExtension(extension);
-    }
-
-    /**
-    * @notice Register an extension providing the given global extension address. This will
-    * deploy a new ExtensionProxy contract to act as the extension proxy and register
-    * all function selectors the extension exposes.
-    * This will also invoke the initialize function on the extension proxy. 
+    * @notice Register an extension providing the given global extension address.  This will create a new
+    * DiamondCut with the extension address being the facet. All external functions the extension
+    * exposes will be registered with the DiamondCut. The DiamondCut will be initalized by calling
+    * the initialize function on the extension through delegatecall
     *
     * Registering an extension automatically enables it for use.
     *
@@ -89,71 +70,71 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendab
     * @param extension The global extension address to register
     */
     function registerExtension(address extension) external override onlyManager {
-        _registerExtension(extension, address(this), _msgSender());
+        _registerExtension(extension);
 
-        address proxyAddress = _proxyAddressForExtension(extension);
-        ExtensionProxy proxy = ExtensionProxy(payable(proxyAddress));
+        IExtension ext = IExtension(extension);
 
-        bytes32[] memory requiredRoles = proxy.requiredRoles();
-        
+        string memory interfaceLabel = ext.interfaceLabel();
+
+        ERC1820Client.setInterfaceImplementation(interfaceLabel, address(this));
+        ERC1820Implementer._setInterface(interfaceLabel); // For migration
+
+        _addRequiredRolesForExtension(extension);
+    }
+
+    function _addRequiredRolesForExtension(address extension) internal {
+        //The registered extension in a diamond is delegatecalled
+        //That means any token actions the extension may request via
+        //a normal call will come from ourselves (address(this))
+        //so grant any required roles to ourselves if we dont
+        //already have it
+        address user = address(this);
+
+        bytes32[] memory requiredRoles = IExtension(extension).requiredRoles();
+
         //If we have roles we need to register, then lets register them
         if (requiredRoles.length > 0) {
             for (uint i = 0; i < requiredRoles.length; i++) {
-                _addRole(proxyAddress, requiredRoles[i]);
+                if (!hasRole(user, requiredRoles[i])) {
+                    _addRole(user, requiredRoles[i]);
+                }
             }
         }
     }
 
     /**
-    * @notice Upgrade a registered extension at the given global extension address. This will perform
-    * an upgrade on the ExtensionProxy contract that was deployed during registration. The new global
-    * extension address must have the same deployer and package hash.
+    * @notice Upgrade a registered extension at the given global extension address. This will
+    * perform a replacement DiamondCut. The new global extension address must have the same deployer and package hash.
     * @param extension The global extension address to upgrade
     * @param newExtension The new global extension address to upgrade the extension to
     */
     function upgradeExtension(address extension, address newExtension) external override onlyManager {
-        address proxyAddress = _proxyAddressForExtension(extension);
-        require(proxyAddress != address(0), "Extension is not registered");
-
-        ExtensionProxy proxy = ExtensionProxy(payable(proxyAddress));
-
-        proxy.upgradeTo(newExtension);
+        _upgradeExtension(extension, newExtension);
     }
 
     /**
     * @notice Remove the extension at the provided address. This may either be the
-    * global extension address or the deployed extension proxy address. 
+    * global extension address or the deployed extension proxy address.
     *
     * Removing an extension deletes all data about the deployed extension proxy address
-    * and makes the extension's storage inaccessable forever. 
-    * 
+    * and makes the extension's storage inaccessable forever.
+    *
     * @param extension Either the global extension address or the deployed extension proxy address to remove
     */
     function removeExtension(address extension) external override onlyManager {
         _removeExtension(extension);
 
-        address proxyAddress;
-        if (_isExtensionProxyAddress(extension)) {
-            proxyAddress = extension;
-        } else {
-            proxyAddress = _proxyAddressForExtension(extension);
-        }
+        IExtension ext = IExtension(extension);
 
-        ExtensionProxy proxy = ExtensionProxy(payable(proxyAddress));
+        string memory interfaceLabel = ext.interfaceLabel();
 
-        bytes32[] memory requiredRoles = proxy.requiredRoles();
-        
-        //If we have roles we need to register, then lets register them
-        if (requiredRoles.length > 0) {
-            for (uint i = 0; i < requiredRoles.length; i++) {
-                _removeRole(proxyAddress, requiredRoles[i]);
-            }
-        }
+        ERC1820Client.setInterfaceImplementation(interfaceLabel, address(0));
+        ERC1820Implementer._removeInterface(interfaceLabel); // For migration
     }
 
     /**
     * @notice Disable the extension at the provided address. This may either be the
-    * global extension address or the deployed extension proxy address. 
+    * global extension address or the deployed extension proxy address.
     *
     * Disabling the extension keeps the extension + storage live but simply disables
     * all registered functions and transfer events
@@ -166,7 +147,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendab
 
     /**
     * @notice Enable the extension at the provided address. This may either be the
-    * global extension address or the deployed extension proxy address. 
+    * global extension address or the deployed extension proxy address.
     *
     * Enabling the extension simply enables all registered functions and transfer events
     *
@@ -190,40 +171,5 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendab
         } else {
             super._fallback();
         }
-    }
-
-    /// @notice Gets all facet addresses and their four byte function selectors.
-    /// @return facets_ Facet
-    function facets() external override view returns (Facet[] memory facets_) {
-        address[] storage extensions = _allExtensionsRegistered();
-        facets_ = new Facet[](extensions.length);
-
-        for (uint i = 0; i < facets_.length; i++) {
-            facets_[i] = Facet(
-                extensions[i],
-                facetFunctionSelectors(extensions[i])
-            );
-        }
-    }
-
-    /// @notice Gets all the function selectors supported by a specific facet.
-    /// @param _facet The facet address.
-    /// @return facetFunctionSelectors_
-    function facetFunctionSelectors(address _facet) public override view returns (bytes4[] memory facetFunctionSelectors_) {
-        return _addressToExtensionData(_facet).externalFunctions;
-    }
-
-    /// @notice Get all the facet addresses used by a diamond.
-    /// @return facetAddresses_
-    function facetAddresses() external override view returns (address[] memory facetAddresses_) {
-        return _allExtensionsRegistered();
-    }
-
-    /// @notice Gets the facet that supports the given selector.
-    /// @dev If facet is not found return address(0).
-    /// @param _functionSelector The function selector.
-    /// @return facetAddress_ The facet address.
-    function facetAddress(bytes4 _functionSelector) external override view returns (address facetAddress_) {
-        return _functionToExtensionProxyAddress(_functionSelector);
     }
 }

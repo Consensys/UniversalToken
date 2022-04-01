@@ -7,7 +7,5 @@ import {IDomainAware} from "../../tools/DomainAware.sol";
 interface ITokenProxy is IToken, ITokenRoles, IDomainAware {
     fallback() external payable;
 
-    receive() external payable;
-
     function upgradeTo(address logic, bytes memory data) external;
 }

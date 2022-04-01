@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import {ContextUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/ContextUpgradeable.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {Roles} from "./Roles.sol";
 import {RolesBase} from "./RolesBase.sol";

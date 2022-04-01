@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {TokenStandard} from "../interface/IExtension.sol";
-import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import {ContextUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/ContextUpgradeable.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
 /**
@@ -17,8 +17,8 @@ import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 * on who the msg.sender variable is, this is to allow both meta-transactions and 
 * proxy forwarding
 *
-* The "callsite" should be considered an admin-style address. See
-* ExtensionProxy for more information
+* The "callsite" can be used to support meta transactions through a trusted forwarder. Currently
+* not implemented
 *
 * The ExtensionBase also provides several function modifiers to restrict function
 * invokation

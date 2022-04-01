@@ -8,7 +8,6 @@ import {ITokenLogic} from "../logic/ITokenLogic.sol";
 import {ITokenProxy} from "./ITokenProxy.sol";
 import {TokenERC1820Provider} from "../TokenERC1820Provider.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
-import {TransferData} from "../IToken.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 /**
@@ -315,12 +314,6 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
     fallback() external override payable {
         _fallback();
     }
-    
-    /**
-    * @dev Child contracts may override this function
-    * @notice Receive ether
-    */
-    receive() external override virtual payable {}
 
     /**
     * @notice The current domain version of the TokenProxy is the address of

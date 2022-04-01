@@ -26,6 +26,7 @@ contract CertificateValidatorExtension is TokenExtension, ICertificateValidator 
 
         _setPackageName("net.consensys.tokenext.CertificateValidatorExtension");
         _setVersion(1);
+        _setInterfaceLabel("CertificateValidatorExtension");
     }
 
     modifier onlyCertificateSigner {

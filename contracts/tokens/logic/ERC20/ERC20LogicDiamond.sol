@@ -8,19 +8,19 @@ import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 import {ERC20TokenInterface} from "../../registry/ERC20TokenInterface.sol";
 
 /**
-* @title Extendable ERC20 Logic
+* @title Extendable ERC20 Logic with Diamond Storage
 * @notice An ERC20 logic contract that implements the IERC20 interface. This contract
 * can be deployed as-is.
 *
 * The logic contract is not responsible for the logic required for name() and symbol() (The proxy
-* contract handles this). This means that no constructor arguments are required for deployment. 
+* contract handles this). This means that no constructor arguments are required for deployment.
 *
 *
 * @dev This logic contract inherits from OpenZeppelin's ERC20Upgradeable, TokenLogic and ERC20TokenInterface.
 * This meaning it supports the full ERC20 spec along with any OpenZeppelin (or other 3rd party) contract extensions.
 * You may inherit from this logic contract to add additional functionality.
 *
-* Any additional functions added to the logic contract through a child contract that is not explictly declared in the 
+* Any additional functions added to the logic contract through a child contract that is not explictly declared in the
 * proxy contract may be overriden by registered & enabled extensions. To prevent this, explictly declare the new function
 * in the proxy contract and forward the call using delegated function modifier
 *
@@ -30,9 +30,8 @@ import {ERC20TokenInterface} from "../../registry/ERC20TokenInterface.sol";
 * these transfer events. This is done through the {ExtendableHooks._triggerTokenTransfer} function inside
 * the {ERC20Logic._afterTokenTransfer} function. The _afterTokenTransfer function was chosen to follow
 * the checks, effects and interactions pattern
-*
 */
-contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
+contract ERC20LogicDiamond is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     using BytesLib for bytes;
 
     bytes private _currentData;
@@ -75,7 +74,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
             r.slot := slot
         }
     }
-    
+
     /**
     * @dev We don't need to do anything here
     */
@@ -105,7 +104,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
             _currentOperatorData
         );
 
-        
+
         _currentData = "";
         _currentOperatorData = "";
 
@@ -153,16 +152,16 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     function burnFrom(address account, uint256 amount) public virtual returns (bool) {
         uint256 currentAllowance = allowance(account, _msgSender());
         require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
-        unchecked {
-            _approve(account, _msgSender(), currentAllowance - amount);
-        }
+    unchecked {
+        _approve(account, _msgSender(), currentAllowance - amount);
+    }
         _burn(account, amount);
 
         return true;
     }
 
     /**
-    * @dev Executes a controlled transfer where the sender is `td.from` and the recipeint is `td.to`. 
+    * @dev Executes a controlled transfer where the sender is `td.from` and the recipeint is `td.to`.
     * Only token controllers can use this funciton
     * @param td The TransferData containing the kind of transfer to perform
     */
@@ -205,7 +204,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
         bytes memory extraData = _extractExtraCalldata(TRANSFER_CALL_SIZE);
         _currentData = extraData;
         _currentOperatorData = extraData;
-        
+
         return ERC20Upgradeable.transfer(recipient, amount);
     }
 
@@ -237,7 +236,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
         return ERC20Upgradeable.transferFrom(sender, recipient, amount);
     }
 
-    function approve(address spender, uint256 amount) public virtual override returns (bool) { 
+    function approve(address spender, uint256 amount) public virtual override returns (bool) {
         super.approve(spender, amount);
 
         bytes memory extraData = _extractExtraCalldata(TRANSFER_CALL_SIZE);
@@ -305,10 +304,5 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
         return true;
     }
 
-    /**
-    * This empty reserved space is put in place to allow future versions to add new
-    * variables without shifting down storage in the inheritance chain.
-    * See https://docs.openzeppelin.com/contracts/4.x/upgradeable#storage_gaps
-    */
-    uint256[48] private __gap;
+
 }

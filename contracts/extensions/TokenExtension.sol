@@ -11,42 +11,81 @@ import {ITokenEventManager} from "../interface/ITokenEventManager.sol";
 import {TokenEventConstants} from "../tokens/extension/TokenEventConstants.sol";
 
 abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IExtension, ExtensionBase, RolesBase {
-    mapping(TokenStandard => bool) supportedTokenStandards;
-    //Should only be modified inside the constructor
-    bytes4[] private _exposedFuncSigs;
-    mapping(bytes4 => bool) private _interfaceMap;
-    bytes32[] private _requiredRoles;
-    address private _deployer;
-    uint256 private _version;
-    string private _package;
-    bytes32 private _packageHash;
+    bytes32 constant EXT_DATA_SLOT = keccak256("ext.meta.data");
+
+    /**
+    * @dev The Metadata associated with the Extension that identifies it on-chain and provides
+    * information about the Extension. This information includes what function selectors it exposes,
+    * what token roles are required for the extension, and extension metadata such as the version, deployer address
+    * and package hash
+    * This data should only be modified inside the constructor
+    * @param _packageHash Hash of the package namespace for this Extension
+    * @param _requiredRoles An array of token role IDs that are required for this Extension's registration
+    * @param _deployer The address that deployed this Extension
+    * @param _version The version of this Extension
+    * @param _exposedFuncSigs An array of function selectors this Extension exposes to a Proxy or Diamond
+    * @param _package The unhashed version of the package namespace for this Extension
+    * @param _interfaceMap A mapping of interface IDs this Extension implements
+    * @param supportedTokenStandards A mapping of token standards this Extension supports
+    */
+    struct TokenExtensionData {
+        bytes32 _packageHash;
+        bytes32[] _requiredRoles;
+        address _deployer;
+        uint256 _version;
+        bytes4[] _exposedFuncSigs;
+        string _package;
+        string _interfaceLabel;
+        mapping(bytes4 => bool) _interfaceMap;
+        mapping(TokenStandard => bool) supportedTokenStandards;
+    }
 
     constructor() {
-        _deployer = msg.sender;
+        _extensionData()._deployer = msg.sender;
         __update_package_hash();
+
+        require(bytes(_extensionData()._interfaceLabel).length > 0, "No interface label set in Extension constructor");
+        require(_extensionData()._packageHash != bytes32(0), "No package set in Extension constructor");
+    }
+
+    /**
+    * @dev The ProxyData struct stored in this registered Extension instance.
+    */
+    function _extensionData() internal pure returns (TokenExtensionData storage ds) {
+        bytes32 position = EXT_DATA_SLOT;
+        assembly {
+            ds.slot := position
+        }
     }
 
     function __update_package_hash() private {
-        _packageHash = keccak256(abi.encodePacked(_deployer, _package));
+        TokenExtensionData storage data = _extensionData();
+        data._packageHash = keccak256(abi.encodePacked(data._deployer, data._package));
     }
 
     function _setVersion(uint256 __version) internal {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
 
-        _version = __version;
+        _extensionData()._version = __version;
+    }
+
+    function _setInterfaceLabel(string memory interfaceLabel_) internal {
+        require(isInsideConstructorCall(), "Function must be called inside the constructor");
+
+        _extensionData()._interfaceLabel = interfaceLabel_;
     }
 
     function _setPackageName(string memory package) internal {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
 
-        _package = package;
+        _extensionData()._package = package;
 
         __update_package_hash();
     }
     
     function _supportsTokenStandard(TokenStandard tokenStandard) internal {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
-        supportedTokenStandards[tokenStandard] = true;
+        _extensionData().supportedTokenStandards[tokenStandard] = true;
     }
 
     function _supportsAllTokenStandards() internal {
@@ -57,19 +96,19 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IE
     }
 
     function extensionDeployer() external override view returns (address) {
-        return _deployer;
+        return _extensionData()._deployer;
     }
 
     function packageHash() external override view returns (bytes32) {
-        return _packageHash;
+        return _extensionData()._packageHash;
     }
 
     function version() external override view returns (uint256) {
-        return _version;
+        return _extensionData()._version;
     }
 
     function isTokenStandardSupported(TokenStandard standard) external override view returns (bool) {
-        return supportedTokenStandards[standard];
+        return _extensionData().supportedTokenStandards[standard];
     }
 
     modifier onlyOwner {
@@ -85,12 +124,12 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IE
 
     function _requireRole(bytes32 roleId) internal {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
-        _requiredRoles.push(roleId);
+        _extensionData()._requiredRoles.push(roleId);
     }
 
     function _supportInterface(bytes4 interfaceId) internal {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
-        _interfaceMap[interfaceId] = true;
+        _extensionData()._interfaceMap[interfaceId] = true;
     }
 
     function _registerFunctionName(string memory selector) internal {
@@ -99,16 +138,23 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IE
 
     function _registerFunction(bytes4 selector) internal {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
-        _exposedFuncSigs.push(selector);
+        _extensionData()._exposedFuncSigs.push(selector);
     }
 
     
     function externalFunctions() external override view returns (bytes4[] memory) {
-        return _exposedFuncSigs;
+        return _extensionData()._exposedFuncSigs;
     }
 
     function requiredRoles() external override view returns (bytes32[] memory) {
-        return _requiredRoles;
+        return _extensionData()._requiredRoles;
+    }
+
+    /**
+    * @notice The ERC1820 interface label the extension will be registered as in the ERC1820 registry
+    */
+    function interfaceLabel() external override view returns (string memory) {
+        return _extensionData()._interfaceLabel;
     }
 
     function isInsideConstructorCall() internal view returns (bool) {

@@ -27,6 +27,20 @@ contract ERC1820Implementer is IERC1820Implementer {
     }
   }
 
+  function _removeInterface(string memory interfaceLabel) internal {
+    _removeInterface(interfaceLabel, true, true);
+  }
+
+  function _removeInterface(string memory interfaceLabel, bool forSelf, bool forAll) internal {
+    //Implement the interface for myself
+    if (forSelf)
+      _interfaceHashes[address(this)][keccak256(abi.encodePacked(interfaceLabel))] = false;
+
+    //Implement the interface for everyone
+    if (forAll)
+      _interfaceHashes[address(0)][keccak256(abi.encodePacked(interfaceLabel))] = false;
+  }
+
   //TODO Rename to _setInterfaceForAll
   function _setInterface(string memory interfaceLabel) internal {
     _setInterface(interfaceLabel, true, true);

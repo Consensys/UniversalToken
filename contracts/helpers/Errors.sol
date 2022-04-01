@@ -44,4 +44,19 @@ library Errors {
     string public constant SW_PRICE_SETTER_NOT_TOKEN_ORACLE_1 = '36';
     string public constant SW_PRICE_SETTER_NOT_TOKEN_ORACLE_2 = '37';
     string public constant SW_NO_PRICE_OWNERSHIP = '38';
+
+    //diamond
+    string public constant DIAMOND_NO_FUNCTION = '39';
+    string public constant NO_SELECTORS_IN_FACET = '40'; // LibDiamondCut: No selectors in facet to cut
+    string public constant FACET_CANNOT_BE_ZERO = '41'; // LibDiamondCut: Add facet can't be address(0)
+    string public constant FACET_HAS_NO_CODE = '42'; // LibDiamondCut: New facet has no code
+    string public constant FUNCTION_CONFLICT = '43'; // LibDiamondCut: Can't add function that already exists
+    string public constant FACET_MUST_BE_ZERO = '44'; // LibDiamondCut: Remove facet address must be address(0)
+    string public constant FUNCTION_NOT_FOUND = '45'; // LibDiamondCut: Can't remove function that doesn't exist
+    string public constant FUNCTION_IMMUTABLE = '46'; // LibDiamondCut: Can't remove immutable function
+    string public constant UNEXPECTED_CALLDATA = '47'; // LibDiamondCut: _init is address(0) but_calldata is not empty
+    string public constant MISSING_INIT_ADDRESS = '48'; // LibDiamondCut: _calldata is empty but _init is not address(0)
+    string public constant INIT_ADDRESS_NO_CODE = '49'; // LibDiamondCut: _init address has no code
+    string public constant INIT_REVERTED = '50'; // LibDiamondCut: _init function reverted
+
 }

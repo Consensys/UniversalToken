@@ -8,8 +8,22 @@ contract PauseExtension is TokenExtension, IPausable {
 
     bytes32 constant PAUSER_ROLE = keccak256("pausable.roles.pausers");
 
-    bool private _isPaused;
-    mapping(address => bool) private _pausedFor;
+    bytes32 constant PAUSE_EXTSTATE_SLOT = keccak256("pausable.state");
+
+    struct PauseExtState {
+        bool _isPaused;
+        mapping(address => bool) _pausedFor;
+    }
+
+    /**
+    * @dev The ProxyData struct stored in this registered Extension instance.
+    */
+    function _pauseState() internal pure returns (PauseExtState storage ds) {
+        bytes32 position = PAUSE_EXTSTATE_SLOT;
+        assembly {
+            ds.slot := position
+        }
+    }
 
     constructor() {
         _registerFunction(PauseExtension.addPauser.selector);
@@ -29,6 +43,7 @@ contract PauseExtension is TokenExtension, IPausable {
 
         _setPackageName("net.consensys.tokenext.PauseExtension");
         _setVersion(1);
+        _setInterfaceLabel("PauseExtension");
     }
     
     /**
@@ -53,7 +68,7 @@ contract PauseExtension is TokenExtension, IPausable {
     }
 
     function isPaused() public override view returns (bool) {
-        return _isPaused;
+        return _pauseState()._isPaused;
     }
 
     function initialize() external override {
@@ -63,21 +78,21 @@ contract PauseExtension is TokenExtension, IPausable {
     }
 
     function pause() external override onlyPauser whenNotPaused {
-        _isPaused = true;
+        _pauseState()._isPaused = true;
         emit Paused(_msgSender());
     }
 
     function unpause() external override onlyPauser whenPaused {
-        _isPaused = false;
+        _pauseState()._isPaused = false;
         emit Unpaused(_msgSender());
     }
 
     function isPausedFor(address caller) public override view returns (bool) {
-        return isPaused() || _pausedFor[caller];
+        return isPaused() || _pauseState()._pausedFor[caller];
     }
 
     function pauseFor(address caller) external override onlyPauser {
-        _pausedFor[caller] = true;
+        _pauseState()._pausedFor[caller] = true;
     }
 
     function isPauser(address caller) external override view returns (bool) {
@@ -85,7 +100,7 @@ contract PauseExtension is TokenExtension, IPausable {
     }
 
     function unpauseFor(address caller) external override onlyPauser {
-        _pausedFor[caller] = false;
+        _pauseState()._pausedFor[caller] = false;
     }
 
     function addPauser(address account) external override onlyPauser {

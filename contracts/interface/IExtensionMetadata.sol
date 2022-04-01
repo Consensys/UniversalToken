@@ -45,4 +45,9 @@ interface IExtensionMetadata {
     * @notice The version of this extension, represented as a number
     */
     function version() external view returns (uint256);
+
+    /**
+    * @notice The ERC1820 interface label the extension will be registered as in the ERC1820 registry
+    */
+    function interfaceLabel() external view returns (string memory);
 }

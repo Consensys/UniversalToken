@@ -23,6 +23,7 @@ contract HoldExtension is TokenExtension, IHoldableToken {
 
     constructor() {
         _setPackageName("net.consensys.tokenext.HoldExtension");
+        _setInterfaceLabel("HoldExtension");
         _supportsTokenStandard(TokenStandard.ERC20);
         _setVersion(1);
         _requireRole(TOKEN_CONTROLLER_ROLE);
@@ -36,6 +37,7 @@ contract HoldExtension is TokenExtension, IHoldableToken {
         _registerFunctionName("executeHold(bytes32)");
         _registerFunctionName("executeHold(bytes32,bytes32)");
         _registerFunctionName("executeHold(bytes32,bytes32,address)");
+
 
     }
 
@@ -161,6 +163,8 @@ contract HoldExtension is TokenExtension, IHoldableToken {
             expirationDateTime,
             lockHash
         );
+
+        return true;
     }
 
     function retrieveHoldData(bytes32 holdId) external override view returns (ERC20HoldData memory) {

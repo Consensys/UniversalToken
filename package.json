@@ -12,6 +12,7 @@
     "build:ERC1400HoldableCertificateSaltToken": "sol-merger \"./contracts/certificate/ERC1400HoldableCertificateSaltToken.sol\" ./artifacts",
     "build:ERC1400TokensValidator": "sol-merger \"./contracts/extensions/tokenExtensions/ERC1400TokensValidator.sol\" ./artifacts",
     "build": "yarn run clean && yarn run build:ERC1400 && yarn run build:ERC1400TokensValidator && yarn run build:ERC1400HoldableCertificateNonceToken && yarn run build:ERC1400HoldableCertificateSaltToken",
+    "compile": "truffle compile",
     "clean": "rm -rf artifacts",
     "coverage": "yarn truffle run coverage --network coverage",
     "env": "node setup.js",
@@ -87,8 +88,8 @@
     "web3-utils": "^1.2.8"
   },
   "dependencies": {
+    "@gnus.ai/contracts-upgradeable-diamond": "^4.5.0",
     "@openzeppelin/contracts": "^4.2.0",
-    "@openzeppelin/contracts-upgradeable": "^4.4.2",
     "crypto": "^1.0.1",
     "ethereumjs-wallet": "^0.6.3",
     "ethers": "^5.5.3",
