@@ -53,11 +53,6 @@ abstract contract ExtendableBase is ContextUpgradeable {
         mapping(address => ExtensionData) extensions;
     }
 
-    modifier onlyActiveExtension {
-        require(_isActiveExtension(msg.sender), "Only active extensions can invoke");
-        _;
-    }
-
     /**
     * @dev Get the MappedExtensions data stored inside this contract.
     * @return ds The MappedExtensions struct stored in this contract
