@@ -7,6 +7,8 @@ import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../erc1820/ERC1820Implementer.sol";
 import {IExtension} from "../../interface/IExtension.sol";
 import {ITokenProxy} from "./ITokenProxy.sol";
+import {Errors} from "../../helpers/Errors.sol";
+
 
 /**
 * @title Extendable Token Proxy base Contract
@@ -30,7 +32,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableDiamond, IExtend
     */
     modifier onlyExtensions {
         address extension = _msgSender();
-        require(_isActiveExtension(extension), "Only extensions can call");
+        require(_isActiveExtension(extension), Errors.UNAUTHORIZED_ONLY_EXTENSIONS);
         _;
     }
 

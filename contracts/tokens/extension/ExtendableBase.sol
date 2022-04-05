@@ -1,7 +1,6 @@
 pragma solidity ^0.8.0;
 
 import {ContextUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/ContextUpgradeable.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {TransferData} from "..//IToken.sol";
 
 /**
@@ -91,22 +90,6 @@ abstract contract ExtendableBase is ContextUpgradeable {
     function _isActiveExtension(address extension) internal view returns (bool) {
         MappedExtensions storage extLibStorage = _extensionStorage();
         return extLibStorage.extensions[extension].state == ExtensionState.EXTENSION_ENABLED;
-    }
-
-    /**
-    * @dev Get the full ExtensionData of the extension that registered the provided
-    * function selector, even if the extension is currently disabled. 
-    * If no extension registered the given function selector, then a blank ExtensionData is returned.
-    * @param funcSig The function signature to lookup
-    * @return ExtensionData Returns the full ExtensionData of the extension that registered the
-    * provided function selector
-    */
-    function _functionToExtensionData(bytes4 funcSig) internal view returns (ExtensionData storage) {
-        MappedExtensions storage extLibStorage = _extensionStorage();
-
-        require(extLibStorage.funcToExtension[funcSig] != address(0), "Unknown function");
-
-        return extLibStorage.extensions[extLibStorage.funcToExtension[funcSig]];
     }
 
     /**

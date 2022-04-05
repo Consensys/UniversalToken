@@ -4,7 +4,6 @@ import {TokenExtension, TransferData} from "../../TokenExtension.sol";
 import {IAllowlistedRole} from "./IAllowlistedRole.sol";
 import {IAllowlistedAdminRole} from "./IAllowlistedAdminRole.sol";
 import {TokenExtension, TransferData} from "../../TokenExtension.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract AllowExtension is TokenExtension, IAllowlistedRole, IAllowlistedAdminRole {
 

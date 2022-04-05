@@ -1,12 +1,13 @@
 pragma solidity ^0.8.0;
 
 import {IERC20Proxy} from "./IERC20Proxy.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IERC20Upgradeable} from "@gnus.ai/contracts-upgradeable-diamond/token/ERC20/IERC20Upgradeable.sol";
 import {IERC20Logic} from "../../logic/ERC20/IERC20Logic.sol";
 import {IToken, TransferData, TokenStandard} from "../../IToken.sol";
 import {ExtendableTokenProxy} from "../ExtendableTokenProxy.sol";
 import {ERC20TokenInterface} from "../../registry/ERC20TokenInterface.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
+import {Errors} from "../../../helpers/Errors.sol";
 
 /**
 * @title Extendable ERC20 Proxy
@@ -78,7 +79,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
         bool allowMint, bool allowBurn, address owner,
         uint256 maxSupply_, address logicAddress
     ) ExtendableTokenProxy(logicAddress, owner) { 
-        require(maxSupply_ > 0, "Max supply must be non-zero");
+        require(maxSupply_ > 0, Errors.MAX_SUPPLY_ZERO);
 
         if (allowMint) {
             _addRole(owner, TOKEN_MINTER_ROLE);
@@ -103,7 +104,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     * functions get disabled if minting is disabled
     */
     modifier mintingEnabled {
-        require(mintingAllowed(), "Minting is disabled");
+        require(mintingAllowed(), Errors.MINTING_DISABLED);
         _;
     }
 
@@ -112,7 +113,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     * functions get disabled if burning is disabled
     */
     modifier burningEnabled {
-        require(burningAllowed(), "Burning is disabled");
+        require(burningAllowed(), Errors.BURNING_DISABLED);
         _;
     }
 
@@ -185,7 +186,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     * the token controllers role can invoke this function.
     */
     function tokenTransfer(TransferData calldata td) external override onlyControllers returns (bool) {
-        require(td.token == address(this), "Invalid token");
+        require(td.token == address(this), Errors.INVALID_TOKEN_TRANSFER);
 
         if (td.partition != bytes32(0)) {
             return false; //We cannot do partition transfers
@@ -262,7 +263,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     /// #if_succeeds {:msg "The receiver receives amount"} _msgSender() != recipient ==> old(balanceOf(recipient)) + amount == balanceOf(recipient);
     /// #if_succeeds {:msg "Transfer to self won't change the senders balance" } _msgSender() == recipient ==> old(balanceOf(_msgSender())) == balanceOf(_msgSender());
     function transferWithData(address recipient, uint256 amount, bytes calldata data) public returns (bool) {
-        bytes memory normalData = abi.encodeWithSelector(IERC20.transfer.selector, recipient, amount);
+        bytes memory normalData = abi.encodeWithSelector(IERC20Upgradeable.transfer.selector, recipient, amount);
 
         //append any extra data packed
         bytes memory cdata = abi.encodePacked(normalData, data);
@@ -288,7 +289,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
     /// #if_succeeds {:msg "The receiver receives amount"} sender != recipient ==> old(balanceOf(recipient)) + amount == balanceOf(recipient);
     /// #if_succeeds {:msg "Transfer to self won't change the senders balance" } sender == recipient ==> old(balanceOf(recipient) == balanceOf(recipient));
     function transferFromWithData(address sender, address recipient, uint256 amount, bytes calldata data) public returns (bool) {
-        bytes memory cdata = abi.encodeWithSelector(IERC20.transferFrom.selector, sender, recipient, amount, data);
+        bytes memory cdata = abi.encodeWithSelector(IERC20Upgradeable.transferFrom.selector, sender, recipient, amount, data);
 
         (bool result,) = _delegatecall(cdata);
 
@@ -509,7 +510,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
      * @param amount The amount of tokens to send to the recipient from the sender's account 
      */
     function _transferFrom(address sender, address recipient, uint256 amount) internal returns (bool) {
-        (bool result,) = _delegatecall(abi.encodeWithSelector(IERC20.transferFrom.selector, sender, recipient, amount));
+        (bool result,) = _delegatecall(abi.encodeWithSelector(IERC20Upgradeable.transferFrom.selector, sender, recipient, amount));
         return result;
     }
 
@@ -530,7 +531,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
      * @param amount The total amount of tokens the spender is approved to spend on behalf of the caller
      */
     function _approve(address spender, uint256 amount) internal returns (bool) {
-        (bool result,) = _delegatecall(abi.encodeWithSelector(IERC20.approve.selector, spender, amount));
+        (bool result,) = _delegatecall(abi.encodeWithSelector(IERC20Upgradeable.approve.selector, spender, amount));
         return result;
     }
 
@@ -544,7 +545,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
      * @param amount The amount from the caller's account to transfer
      */
     function _transfer(address recipient, uint256 amount) internal returns (bool) {
-        (bool result,) = _delegatecall(abi.encodeWithSelector(IERC20.transfer.selector, recipient, amount));
+        (bool result,) = _delegatecall(abi.encodeWithSelector(IERC20Upgradeable.transfer.selector, recipient, amount));
         return result;
     }
 

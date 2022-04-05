@@ -7,8 +7,9 @@ import {DomainAware} from "../../tools/DomainAware.sol";
 import {ITokenLogic} from "../logic/ITokenLogic.sol";
 import {ITokenProxy} from "./ITokenProxy.sol";
 import {TokenERC1820Provider} from "../TokenERC1820Provider.sol";
-import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
+import {StorageSlotUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/StorageSlotUpgradeable.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
+import {Errors} from "../../helpers/Errors.sol";
 
 /**
 * @title Token Proxy base Contract
@@ -47,22 +48,22 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
     constructor(address logicAddress, address owner) {
         if (owner != address(0) && owner != _msgSender()) {
             transferOwnership(owner);
-            StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = owner;
+            StorageSlotUpgradeable.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = owner;
         } else {
-            StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = _msgSender();
+            StorageSlotUpgradeable.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = _msgSender();
         }
 
         ERC1820Client.setInterfaceImplementation(__tokenInterfaceName(), address(this));
         ERC1820Implementer._setInterface(__tokenInterfaceName()); // For migration
 
-        require(logicAddress != address(0), "Logic address must be given");
+        require(logicAddress != address(0), Errors.NO_LOGIC_ADDRESS);
         require(logicAddress == ERC1820Client.interfaceAddr(logicAddress, __tokenLogicInterfaceName()), "Not registered as a logic contract");
 
         _setLogic(logicAddress);
 
         //setup initalize call
         bytes memory data = abi.encode(logicAddress, owner);
-        StorageSlot.getUint256Slot(UPGRADING_FLAG_SLOT).value = data.length;
+        StorageSlotUpgradeable.getUint256Slot(UPGRADING_FLAG_SLOT).value = data.length;
 
         //invoke the initialize function during deployment
         (bool success,) = _delegatecall(
@@ -70,9 +71,9 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         );
 
         //Check initialize
-        require(success, "Logic initializing failed");
+        require(success, Errors.LOGIC_INIT_FAILED);
     
-        StorageSlot.getUint256Slot(UPGRADING_FLAG_SLOT).value = 0;
+        StorageSlotUpgradeable.getUint256Slot(UPGRADING_FLAG_SLOT).value = 0;
 
         emit Upgraded(logicAddress);
     }
@@ -99,7 +100,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         ERC1820Client.setInterfaceImplementation(__tokenLogicInterfaceName(), logic);
         
         //Update EIP1967 Storage Slot
-        StorageSlot.getAddressSlot(EIP1967_LOCATION).value = logic;
+        StorageSlotUpgradeable.getAddressSlot(EIP1967_LOCATION).value = logic;
     }
     
     /**
@@ -116,7 +117,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
             data = bytes("f");
         }
         
-        StorageSlot.getUint256Slot(UPGRADING_FLAG_SLOT).value = data.length;
+        StorageSlotUpgradeable.getUint256Slot(UPGRADING_FLAG_SLOT).value = data.length;
 
         _setLogic(logic);
 
@@ -126,9 +127,9 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         );
 
         //Invoke initialize
-        require(success, "Logic initializing failed");
+        require(success, Errors.LOGIC_INIT_FAILED);
 
-        StorageSlot.getUint256Slot(UPGRADING_FLAG_SLOT).value = 0;
+        StorageSlotUpgradeable.getUint256Slot(UPGRADING_FLAG_SLOT).value = 0;
 
         emit Upgraded(logic);
     }
@@ -298,7 +299,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
     */
     function _fallback() internal virtual {
         if (msg.sig == STATICCALLMAGIC) {
-            require(msg.sender == address(this), "STATICCALLMAGIC can only be used by the Proxy");
+            require(msg.sender == address(this), Errors.UNAUTHORIZED_FOR_STATICCALL_MAGIC);
 
             bytes memory _calldata = msg.data.slice(4, msg.data.length - 4);
             _delegatecallAndReturn(_calldata);

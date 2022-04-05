@@ -3,7 +3,6 @@ pragma solidity ^0.8.0;
 import {IBlocklistedRole} from "./IBlocklistedRole.sol";
 import {IBlocklistedAdminRole} from "./IBlocklistedAdminRole.sol";
 import {TokenExtension, TransferData} from "../../TokenExtension.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract BlockExtension is TokenExtension, IBlocklistedRole, IBlocklistedAdminRole {
 

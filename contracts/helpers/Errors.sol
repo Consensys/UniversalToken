@@ -59,4 +59,16 @@ library Errors {
     string public constant INIT_ADDRESS_NO_CODE = '49'; // LibDiamondCut: _init address has no code
     string public constant INIT_REVERTED = '50'; // LibDiamondCut: _init function reverted
 
+    //token proxy
+    string public constant NO_LOGIC_ADDRESS = '51'; // Logic address must be given
+    string public constant LOGIC_INIT_FAILED = '52'; // Logic initializing failed
+    string public constant UNAUTHORIZED_FOR_STATICCALL_MAGIC = '53'; // STATICCALLMAGIC can only be used by the Proxy
+    string public constant UNAUTHORIZED_ONLY_EXTENSIONS = '54'; // Only extensions can call
+
+    //erc20 token
+    string public constant MAX_SUPPLY_ZERO = '55'; // Max supply must be non-zero
+    string public constant MINTING_DISABLED = '56'; // Minting is disabled
+    string public constant BURNING_DISABLED = '57'; // Burning is disabled
+    string public constant INVALID_TOKEN_TRANSFER = '58'; // Invalid token
+
 }

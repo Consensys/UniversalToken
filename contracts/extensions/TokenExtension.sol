@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 import {ExtensionBase} from "./ExtensionBase.sol";
 import {IExtension, TransferData, TokenStandard} from "../interface/IExtension.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
+import {OwnableUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/access/OwnableUpgradeable.sol";
 import {RolesBase} from "../roles/RolesBase.sol";
 import {IERC20Proxy} from "../tokens/proxy/ERC20/IERC20Proxy.sol";
 import {TokenRolesConstants} from "../roles/TokenRolesConstants.sol";
@@ -173,7 +173,7 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IE
     }
 
     function _tokenOwner() internal view returns (address) {
-        Ownable token = Ownable(_tokenAddress());
+        OwnableUpgradeable token = OwnableUpgradeable(_tokenAddress());
 
         return token.owner();
     }

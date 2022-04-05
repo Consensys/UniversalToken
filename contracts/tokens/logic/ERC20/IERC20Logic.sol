@@ -1,13 +1,13 @@
 pragma solidity ^0.8.0;
 
 import {ITokenLogic} from "../ITokenLogic.sol";
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20MetadataUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 
 /**
 * @title Upgradable ERC20 Logic Interface
 * @notice An interface to interact with an ERC20 Token (logic).
 */
-interface IERC20Logic is IERC20Metadata, ITokenLogic {
+interface IERC20Logic is IERC20MetadataUpgradeable, ITokenLogic {
     /**
      * @notice Destroys `amount` tokens from the caller.
      *

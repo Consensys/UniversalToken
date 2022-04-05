@@ -1,13 +1,13 @@
 pragma solidity ^0.8.0;
 
-import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {IERC20MetadataUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/token/ERC20/extensions/IERC20MetadataUpgradeable.sol";
 import {ITokenProxy} from "../ITokenProxy.sol";
 
 /**
 * @title Extendable ERC20 Proxy Interface
 * @notice An interface to interact with an ERC20 Token (proxy).
 */
-interface IERC20Proxy is IERC20Metadata, ITokenProxy {
+interface IERC20Proxy is IERC20MetadataUpgradeable, ITokenProxy {
     /**
     * @notice Returns true if minting is allowed on this token, otherwise false
     */

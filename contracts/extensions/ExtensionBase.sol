@@ -2,7 +2,6 @@ pragma solidity ^0.8.0;
 
 import {TokenStandard} from "../interface/IExtension.sol";
 import {ContextUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/ContextUpgradeable.sol";
-import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
 /**
 * @title Extension Base Contract

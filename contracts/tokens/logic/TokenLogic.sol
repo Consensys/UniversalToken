@@ -6,7 +6,7 @@ import {ExtendableHooks} from "../extension/ExtendableHooks.sol";
 import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../erc1820/ERC1820Implementer.sol";
 import {TokenERC1820Provider} from "../TokenERC1820Provider.sol";
-import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
+import {StorageSlotUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/StorageSlotUpgradeable.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 /**
@@ -66,7 +66,7 @@ abstract contract TokenLogic is TokenERC1820Provider, TokenRoles, ExtendableHook
     * @param data The data to initalize with
     */
     function initialize(bytes memory data) external override {
-        uint256 upgradeChallengeCheck = StorageSlot.getUint256Slot(UPGRADING_FLAG_SLOT).value;
+        uint256 upgradeChallengeCheck = StorageSlotUpgradeable.getUint256Slot(UPGRADING_FLAG_SLOT).value;
         require(upgradeChallengeCheck != 0 && upgradeChallengeCheck == data.length, "The contract is not upgrading or was invoked incorrectly");
 
         require(_onInitialize(data), "Initialize failed");

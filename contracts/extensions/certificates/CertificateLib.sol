@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import {SafeMathUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/math/SafeMathUpgradeable.sol";
 import {Roles} from "../../roles/Roles.sol";
 import {DomainAware} from "../../tools/DomainAware.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
@@ -13,7 +13,7 @@ enum CertificateValidationType {
 }
 
 library CertificateLib {
-    using SafeMath for uint256;
+    using SafeMathUpgradeable for uint256;
     using BytesLib for bytes;
     using Roles for Roles.Role;
 

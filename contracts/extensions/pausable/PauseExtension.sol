@@ -2,7 +2,6 @@ pragma solidity ^0.8.0;
 
 import {IPausable} from "./IPausable.sol";
 import {TokenExtension, TransferData} from "../TokenExtension.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract PauseExtension is TokenExtension, IPausable {
 

@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {ContextUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/ContextUpgradeable.sol";
-import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
+import {StorageSlotUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/StorageSlotUpgradeable.sol";
 import {Roles} from "./Roles.sol";
 import {RolesBase} from "./RolesBase.sol";
 import {ITokenRoles} from "../interface/ITokenRoles.sol";
@@ -88,7 +88,7 @@ abstract contract TokenRoles is TokenRolesConstants, ITokenRoles, RolesBase, Con
     * @notice Returns the current token manager
     */
     function manager() public override view returns (address) {
-        return StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value;
+        return StorageSlotUpgradeable.getAddressSlot(TOKEN_MANAGER_ADDRESS).value;
     }
 
     /**
@@ -153,7 +153,7 @@ abstract contract TokenRoles is TokenRolesConstants, ITokenRoles, RolesBase, Con
 
     function _changeManager(address newManager) private {
         address oldManager = manager();
-        StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = newManager;
+        StorageSlotUpgradeable.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = newManager;
         
         emit AdminChanged(oldManager, newManager);
     }
@@ -162,7 +162,7 @@ abstract contract TokenRoles is TokenRolesConstants, ITokenRoles, RolesBase, Con
      * @dev Returns the address of the current owner.
      */
     function owner() public override view virtual returns (address) {
-        return StorageSlot.getAddressSlot(TOKEN_OWNER).value;
+        return StorageSlotUpgradeable.getAddressSlot(TOKEN_OWNER).value;
     }
 
     /**
@@ -197,7 +197,7 @@ abstract contract TokenRoles is TokenRolesConstants, ITokenRoles, RolesBase, Con
      */
     function _setOwner(address newOwner) private {
         address oldOwner = owner();
-        StorageSlot.getAddressSlot(TOKEN_OWNER).value = newOwner;
+        StorageSlotUpgradeable.getAddressSlot(TOKEN_OWNER).value = newOwner;
         if (oldOwner == manager()) {
             _changeManager(newOwner);
         }
