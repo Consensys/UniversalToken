@@ -10,6 +10,8 @@ import {TokenERC1820Provider} from "../TokenERC1820Provider.sol";
 import {StorageSlotUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/StorageSlotUpgradeable.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 import {Errors} from "../../helpers/Errors.sol";
+import {ExtendableDiamond} from "../extension/ExtendableDiamond.sol";
+import {IExtension} from "../../interface/IExtension.sol";
 
 /**
 * @title Token Proxy base Contract
@@ -25,10 +27,20 @@ import {Errors} from "../../helpers/Errors.sol";
 * The domain version of the TokenProxy will be the current address of the logic contract. The domain
 * name must be implemented by the final token proxy.
 */
-abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, ITokenProxy {
+abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, ExtendableDiamond, ITokenProxy {
     using BytesLib for bytes;
 
     bytes32 private constant UPGRADING_FLAG_SLOT = keccak256("token.proxy.upgrading");
+    string constant internal EXTENDABLE_INTERFACE_NAME = "ExtendableToken";
+
+    /**
+    * @dev A function modifier that will only allow registered & enabled extensions to invoke the function
+    */
+    modifier onlyExtensions {
+        address extension = _msgSender();
+        require(_isActiveExtension(extension), Errors.UNAUTHORIZED_ONLY_EXTENSIONS);
+        _;
+    }
 
     /**
     * @dev This event is invoked when the logic contract is upgraded to a new contract
@@ -55,6 +67,9 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
 
         ERC1820Client.setInterfaceImplementation(__tokenInterfaceName(), address(this));
         ERC1820Implementer._setInterface(__tokenInterfaceName()); // For migration
+
+        ERC1820Client.setInterfaceImplementation(EXTENDABLE_INTERFACE_NAME, address(this));
+        ERC1820Implementer._setInterface(EXTENDABLE_INTERFACE_NAME); // For migration
 
         require(logicAddress != address(0), Errors.NO_LOGIC_ADDRESS);
         require(logicAddress == ERC1820Client.interfaceAddr(logicAddress, __tokenLogicInterfaceName()), "Not registered as a logic contract");
@@ -132,6 +147,96 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
         StorageSlotUpgradeable.getUint256Slot(UPGRADING_FLAG_SLOT).value = 0;
 
         emit Upgraded(logic);
+    }
+
+    /**
+    * @notice Return an array of all global extension addresses, regardless of if they are
+    * enabled or disabled. You cannot interact with these addresses. For user interaction
+    * you should use ExtendableTokenProxy.allExtensionProxies
+    * @return address[] All registered and deployed extension proxy addresses
+    */
+    function allExtensionsRegistered() external override view returns (address[] memory) {
+        return _allExtensionsRegistered();
+    }
+
+    /**
+    * @notice Register an extension providing the given global extension address.  This will create a new
+    * DiamondCut with the extension address being the facet. All external functions the extension
+    * exposes will be registered with the DiamondCut. The DiamondCut will be initalized by calling
+    * the initialize function on the extension through delegatecall
+    *
+    * Registering an extension automatically enables it for use.
+    *
+    * Registering an extension automatically grants any roles the extension requires to
+    * the address of the deployed extension proxy.
+    * See: IExtensionMetadata.requiredRoles()
+    *
+    * @param extension The global extension address to register
+    */
+    function registerExtension(address extension) external override onlyManager {
+        _registerExtension(extension);
+
+        IExtension ext = IExtension(extension);
+
+        string memory interfaceLabel = ext.interfaceLabel();
+
+        ERC1820Client.setInterfaceImplementation(interfaceLabel, address(this));
+        ERC1820Implementer._setInterface(interfaceLabel); // For migration
+    }
+
+    /**
+    * @notice Upgrade a registered extension at the given global extension address. This will
+    * perform a replacement DiamondCut. The new global extension address must have the same deployer and package hash.
+    * @param extension The global extension address to upgrade
+    * @param newExtension The new global extension address to upgrade the extension to
+    */
+    function upgradeExtension(address extension, address newExtension) external override onlyManager {
+        _upgradeExtension(extension, newExtension);
+    }
+
+    /**
+    * @notice Remove the extension at the provided address. This may either be the
+    * global extension address or the deployed extension proxy address.
+    *
+    * Removing an extension deletes all data about the deployed extension proxy address
+    * and makes the extension's storage inaccessable forever.
+    *
+    * @param extension Either the global extension address or the deployed extension proxy address to remove
+    */
+    function removeExtension(address extension) external override onlyManager {
+        _removeExtension(extension);
+
+        IExtension ext = IExtension(extension);
+
+        string memory interfaceLabel = ext.interfaceLabel();
+
+        ERC1820Client.setInterfaceImplementation(interfaceLabel, address(0));
+        ERC1820Implementer._removeInterface(interfaceLabel); // For migration
+    }
+
+    /**
+    * @notice Disable the extension at the provided address. This may either be the
+    * global extension address or the deployed extension proxy address.
+    *
+    * Disabling the extension keeps the extension + storage live but simply disables
+    * all registered functions and transfer events
+    *
+    * @param extension Either the global extension address or the deployed extension proxy address to disable
+    */
+    function disableExtension(address extension) external override onlyManager {
+        _disableExtension(extension);
+    }
+
+    /**
+    * @notice Enable the extension at the provided address. This may either be the
+    * global extension address or the deployed extension proxy address.
+    *
+    * Enabling the extension simply enables all registered functions and transfer events
+    *
+    * @param extension Either the global extension address or the deployed extension proxy address to enable
+    */
+    function enableExtension(address extension) external override onlyManager {
+        _enableExtension(extension);
     }
 
     /**
@@ -298,13 +403,19 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
     * the proxy.
     */
     function _fallback() internal virtual {
-        if (msg.sig == STATICCALLMAGIC) {
-            require(msg.sender == address(this), Errors.UNAUTHORIZED_FOR_STATICCALL_MAGIC);
+        bool isExt = _isExtensionFunction(msg.sig);
 
-            bytes memory _calldata = msg.data.slice(4, msg.data.length - 4);
-            _delegatecallAndReturn(_calldata);
+        if (isExt) {
+            _invokeExtensionFunction();
         } else {
-            _delegateCurrentCall();
+            if (msg.sig == STATICCALLMAGIC) {
+                require(msg.sender == address(this), Errors.UNAUTHORIZED_FOR_STATICCALL_MAGIC);
+
+                bytes memory _calldata = msg.data.slice(4, msg.data.length - 4);
+                _delegatecallAndReturn(_calldata);
+            } else {
+                _delegateCurrentCall();
+            }
         }
     }
 

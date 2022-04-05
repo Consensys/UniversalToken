@@ -4,7 +4,7 @@ import {IERC20Proxy} from "./IERC20Proxy.sol";
 import {IERC20Upgradeable} from "@gnus.ai/contracts-upgradeable-diamond/token/ERC20/IERC20Upgradeable.sol";
 import {IERC20Logic} from "../../logic/ERC20/IERC20Logic.sol";
 import {IToken, TransferData, TokenStandard} from "../../IToken.sol";
-import {ExtendableTokenProxy} from "../ExtendableTokenProxy.sol";
+import {TokenProxy} from "../TokenProxy.sol";
 import {ERC20TokenInterface} from "../../registry/ERC20TokenInterface.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 import {Errors} from "../../../helpers/Errors.sol";
@@ -30,7 +30,7 @@ import {Errors} from "../../../helpers/Errors.sol";
 *
 * The domain name of this contract is the ERC20 token name()
 */
-contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
+contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
     using BytesLib for bytes;
     
     /**
@@ -78,7 +78,7 @@ contract ERC20Proxy is ERC20TokenInterface, ExtendableTokenProxy, IERC20Proxy {
         string memory name_, string memory symbol_, 
         bool allowMint, bool allowBurn, address owner,
         uint256 maxSupply_, address logicAddress
-    ) ExtendableTokenProxy(logicAddress, owner) { 
+    ) TokenProxy(logicAddress, owner) { 
         require(maxSupply_ > 0, Errors.MAX_SUPPLY_ZERO);
 
         if (allowMint) {

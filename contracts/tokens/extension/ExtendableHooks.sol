@@ -1,9 +1,8 @@
 pragma solidity ^0.8.0;
 
-import {IExtension, TransferData} from "../../interface/IExtension.sol";
-import {ExtendableBase} from "./ExtendableBase.sol";
+import {TokenEventManager} from "./TokenEventManager.sol";
 import {TokenEventConstants} from "./TokenEventConstants.sol";
-import {ITokenEventManager} from "../../interface/ITokenEventManager.sol";
+import {TransferData} from "../../interface/IExtension.sol";
 
 /**
 * @title Transfer Hooks for Extensions
@@ -11,54 +10,7 @@ import {ITokenEventManager} from "../../interface/ITokenEventManager.sol";
 * @dev ExtendableHooks provides the _triggerTokenTransferEvent and _triggerTokenApproveEvent internal
 * function that can be used to notify extensions when a transfer/approval occurs.
 */
-abstract contract ExtendableHooks is ExtendableBase, TokenEventConstants, ITokenEventManager {
-
-    bytes32 constant EVENT_MANAGER_DATA_SLOT = keccak256("token.transferdata.events");
-
-    struct EventManagerData {
-        mapping(bytes32 => SavedCallbackFunction[]) listeners;
-    }
-
-    modifier onlySelf {
-        require(msg.sender == address(this), "Can only be invoked by self");
-        _;
-    }
-
-    function eventManagerData() internal pure returns (EventManagerData storage ds) {
-        bytes32 position = EVENT_MANAGER_DATA_SLOT;
-        assembly {
-            ds.slot := position
-        }
-    }
-
-    /**
-    * @notice Can not be used directly, can only be used by enabled and registered extensions
-    * @dev Listen for an event hash and invoke a given callback function. This callback function
-    * will be invoked with the TransferData for the event as well as the current caller that trigger
-    * the event appended to the end of the calldata. This can usually be accessed using _msgSender()
-    */
-    function on(bytes32 eventId, function (TransferData memory) external returns (bool) callback) external override onlySelf {
-        eventManagerData().listeners[eventId].push(SavedCallbackFunction(callback));
-    }
-
-    function _trigger(bytes32 eventId, TransferData memory data) internal {
-        SavedCallbackFunction[] storage callbacks = eventManagerData().listeners[eventId];
-
-        for (uint i = 0; i < callbacks.length; i++) {
-            bytes4 listenerFuncSelector = callbacks[i].func.selector;
-            address listenerAddress = callbacks[i].func.address;
-
-            if (_extensionState(listenerAddress) == ExtensionState.EXTENSION_DISABLED) {
-                continue; //Skip disabled extensions
-            }
-
-            bytes memory cdata = abi.encodeWithSelector(listenerFuncSelector, data);
-
-            (bool success, bytes memory result) = listenerAddress.delegatecall{gas: gasleft()}(cdata);
-
-            require(success, string(result));
-        }
-    }
+abstract contract ExtendableHooks is TokenEventManager, TokenEventConstants {
 
     /**
      * @dev Hook that is called before any transfer of tokens. This includes

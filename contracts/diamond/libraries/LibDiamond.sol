@@ -55,9 +55,7 @@ library LibDiamond {
             IDiamondCut.FacetCutAction action = _diamondCut[facetIndex].action;
             if (action == IDiamondCut.FacetCutAction.Add) {
                 addFunctions(_diamondCut[facetIndex].facetAddress, _diamondCut[facetIndex].functionSelectors);
-            } else if (action == IDiamondCut.FacetCutAction.Replace) {
-                replaceFunctions(_diamondCut[facetIndex].facetAddress, _diamondCut[facetIndex].functionSelectors);
-            } else if (action == IDiamondCut.FacetCutAction.Remove) {
+            }else if (action == IDiamondCut.FacetCutAction.Remove) {
                 removeFunctions(_diamondCut[facetIndex].facetAddress, _diamondCut[facetIndex].functionSelectors);
             } else {
                 revert("LibDiamondCut: Incorrect FacetCutAction");
@@ -86,30 +84,6 @@ library LibDiamond {
             ds.facetFunctionSelectors[_facetAddress].functionSelectors.push(selector);
             ds.selectorToFacetAndPosition[selector].facetAddress = _facetAddress;
             ds.selectorToFacetAndPosition[selector].functionSelectorPosition = selectorPosition;
-            selectorPosition++;
-        }
-    }
-
-    function replaceFunctions(address _facetAddress, bytes4[] memory _functionSelectors) internal {
-        require(_functionSelectors.length > 0, Errors.NO_SELECTORS_IN_FACET);
-        DiamondStorage storage ds = diamondStorage();
-        require(_facetAddress != address(0), Errors.FACET_CANNOT_BE_ZERO);
-        uint16 selectorPosition = uint16(ds.facetFunctionSelectors[_facetAddress].functionSelectors.length);
-        // add new facet address if it does not exist
-        if (selectorPosition == 0) {
-            enforceHasContractCode(_facetAddress, Errors.FACET_HAS_NO_CODE);
-            ds.facetFunctionSelectors[_facetAddress].facetAddressPosition = uint16(ds.facetAddresses.length);
-            ds.facetAddresses.push(_facetAddress);
-        }
-        for (uint256 selectorIndex; selectorIndex < _functionSelectors.length; selectorIndex++) {
-            bytes4 selector = _functionSelectors[selectorIndex];
-            address oldFacetAddress = ds.selectorToFacetAndPosition[selector].facetAddress;
-            require(oldFacetAddress != _facetAddress, Errors.FUNCTION_CONFLICT);
-            removeFunction(oldFacetAddress, selector);
-            // add function
-            ds.selectorToFacetAndPosition[selector].functionSelectorPosition = selectorPosition;
-            ds.facetFunctionSelectors[_facetAddress].functionSelectors.push(selector);
-            ds.selectorToFacetAndPosition[selector].facetAddress = _facetAddress;
             selectorPosition++;
         }
     }

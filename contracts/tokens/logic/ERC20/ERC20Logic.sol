@@ -149,16 +149,11 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
      * @param account The account to burn from
      * @param amount The amount of tokens to burn
      */
-    function burnFrom(address account, uint256 amount) public virtual returns (bool) {
-        uint256 currentAllowance = allowance(account, _msgSender());
-        require(currentAllowance >= amount, "ERC20: burn amount exceeds allowance");
-    unchecked {
-        _approve(account, _msgSender(), currentAllowance - amount);
-    }
+    function burnFrom(address account, uint256 amount) public virtual {
+        _spendAllowance(account, _msgSender(), amount);
         _burn(account, amount);
-
-        return true;
     }
+    
 
     /**
     * @dev Executes a controlled transfer where the sender is `td.from` and the recipeint is `td.to`.
