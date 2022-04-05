@@ -19,6 +19,11 @@ abstract contract ExtendableHooks is ExtendableBase, TokenEventConstants, IToken
         mapping(bytes32 => SavedCallbackFunction[]) listeners;
     }
 
+    modifier onlySelf {
+        require(msg.sender == address(this), "Can only be invoked by self");
+        _;
+    }
+
     function eventManagerData() internal pure returns (EventManagerData storage ds) {
         bytes32 position = EVENT_MANAGER_DATA_SLOT;
         assembly {
@@ -32,7 +37,7 @@ abstract contract ExtendableHooks is ExtendableBase, TokenEventConstants, IToken
     * will be invoked with the TransferData for the event as well as the current caller that trigger
     * the event appended to the end of the calldata. This can usually be accessed using _msgSender()
     */
-    function on(bytes32 eventId, function (TransferData memory) external returns (bool) callback) external override onlyActiveExtension {
+    function on(bytes32 eventId, function (TransferData memory) external returns (bool) callback) external override onlySelf {
         eventManagerData().listeners[eventId].push(SavedCallbackFunction(callback));
     }
 
@@ -47,9 +52,9 @@ abstract contract ExtendableHooks is ExtendableBase, TokenEventConstants, IToken
                 continue; //Skip disabled extensions
             }
 
-            bytes memory cdata = abi.encodePacked(abi.encodeWithSelector(listenerFuncSelector, data), _msgSender());
+            bytes memory cdata = abi.encodeWithSelector(listenerFuncSelector, data);
 
-            (bool success, bytes memory result) = listenerAddress.call{gas: gasleft()}(cdata);
+            (bool success, bytes memory result) = listenerAddress.delegatecall{gas: gasleft()}(cdata);
 
             require(success, string(result));
         }
