@@ -60,7 +60,7 @@ library Errors {
     string public constant INIT_REVERTED = '50'; // LibDiamondCut: _init function reverted
 
     //token proxy
-    string public constant NO_LOGIC_ADDRESS = '51'; // Logic address must be given
+    string public constant NO_LOGIC_ADDRESS = "51"; // Logic address must be given
     string public constant LOGIC_INIT_FAILED = '52'; // Logic initializing failed
     string public constant UNAUTHORIZED_FOR_STATICCALL_MAGIC = '53'; // STATICCALLMAGIC can only be used by the Proxy
     string public constant UNAUTHORIZED_ONLY_EXTENSIONS = '54'; // Only extensions can call

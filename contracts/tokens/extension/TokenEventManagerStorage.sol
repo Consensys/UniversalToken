@@ -1,8 +1,9 @@
+pragma solidity ^0.8.0;
 
 import {IExtension, TransferData} from "../../interface/IExtension.sol";
 
 abstract contract TokenEventManagerStorage {
-    bytes32 constant EVENT_MANAGER_DATA_SLOT = keccak256("token.transferdata.events");
+    bytes32 constant EVENT_MANAGER_DATA_SLOT = keccak256("consensys.contracts.token.eventmanager.data");
     
     struct ExtensionListeningCache {
         bool listening;
@@ -10,10 +11,12 @@ abstract contract TokenEventManagerStorage {
     }
 
     struct SavedCallbackFunction {
-        function (TransferData memory) external returns (bool) func;
+        address callbackAddress;
+        bytes4 callbackSelector;
     }
 
     struct EventManagerData {
+        uint256 eventFiringStack;
         mapping(address => bytes32[]) eventListForExtensions;
         mapping(address => mapping(bytes32 => ExtensionListeningCache)) listeningCache;
         mapping(bytes32 => SavedCallbackFunction[]) listeners;

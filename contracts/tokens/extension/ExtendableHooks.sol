@@ -26,6 +26,24 @@ abstract contract ExtendableHooks is TokenEventManager, TokenEventConstants {
      *
      * @param data The transfer data to that represents this transfer to send to extensions.
      */
+    function _triggerTokenBeforeTransferEvent(TransferData memory data) internal virtual {
+        _trigger(TOKEN_BEFORE_TRANSFER_EVENT, data);
+    }
+
+    /**
+     * @dev Hook that is called after any transfer of tokens. This includes
+     * minting and burning.
+     *
+     * Calling conditions:
+     *
+     * - when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
+     * will be transferred to `to`.
+     * - when `from` is zero, `amount` tokens will be minted for `to`.
+     * - when `to` is zero, `amount` of ``from``'s tokens will be burned.
+     * - `from` and `to` are never both zero.
+     *
+     * @param data The transfer data to that represents this transfer to send to extensions.
+     */
     function _triggerTokenTransferEvent(TransferData memory data) internal virtual {
         _trigger(TOKEN_TRANSFER_EVENT, data);
     }

@@ -7,11 +7,10 @@ import {RolesBase} from "../roles/RolesBase.sol";
 import {IERC20Proxy} from "../tokens/proxy/ERC20/IERC20Proxy.sol";
 import {TokenRolesConstants} from "../roles/TokenRolesConstants.sol";
 import {IToken} from "../tokens/IToken.sol";
-import {ITokenEventManager} from "../interface/ITokenEventManager.sol";
-import {TokenEventConstants} from "../tokens/extension/TokenEventConstants.sol";
+import {TokenEventListener} from "../tokens/extension/TokenEventListener.sol";
 
-abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IExtension, ExtensionBase, RolesBase {
-    bytes32 constant EXT_DATA_SLOT = keccak256("ext.meta.data");
+abstract contract TokenExtension is TokenRolesConstants, TokenEventListener, IExtension, ExtensionBase, RolesBase {
+    bytes32 constant EXT_DATA_SLOT = keccak256("consensys.contracts.token.ext.storage.meta");
 
     /**
     * @dev The Metadata associated with the Extension that identifies it on-chain and provides
@@ -43,9 +42,6 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IE
     constructor() {
         _extensionData()._deployer = msg.sender;
         __update_package_hash();
-
-        require(bytes(_extensionData()._interfaceLabel).length > 0, "No interface label set in Extension constructor");
-        require(_extensionData()._packageHash != bytes32(0), "No package set in Extension constructor");
     }
 
     /**
@@ -179,7 +175,8 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IE
     }
 
     function _tokenStandard() internal view returns (TokenStandard) {
-        return _proxyData().standard;
+        //TODO Optimize this
+        return IToken(_tokenAddress()).tokenStandard();
     }
 
     function _buildTransfer(address from, address to, uint256 amountOrTokenId) internal view returns (TransferData memory) {
@@ -195,7 +192,7 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IE
             token,
             _msgData(),
             bytes32(0),
-            address(this),
+            _extensionAddress(),
             from,
             to,
             amount,
@@ -205,19 +202,31 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IE
         );
     }
 
+    function _buildTransferWithData(address from, address to, uint256 amountOrTokenId, bytes memory data) internal view returns (TransferData memory) {
+        TransferData memory t = _buildTransfer(from, to, amountOrTokenId);
+        t.data = data;
+        return t;
+    }
+
+    function _buildTransferWithOperatorData(address from, address to, uint256 amountOrTokenId, bytes memory data) internal view returns (TransferData memory) {
+        TransferData memory t = _buildTransfer(from, to, amountOrTokenId);
+        t.operatorData = data;
+        return t;
+    }
+
     function _tokenTransfer(TransferData memory tdata) internal returns (bool) {
         return IToken(_tokenAddress()).tokenTransfer(tdata);
     }
 
     function _listenForTokenTransfers(function (TransferData memory) external returns (bool) callback) internal {
-        ITokenEventManager eventManager = ITokenEventManager(_tokenAddress());
+        _on(TOKEN_TRANSFER_EVENT, _extensionAddress(), callback.selector);
+    }
 
-        eventManager.on(TOKEN_TRANSFER_EVENT, callback);
+    function _listenForTokenBeforeTransfers(function (TransferData memory) external returns (bool) callback) internal {
+        _on(TOKEN_BEFORE_TRANSFER_EVENT, _extensionAddress(), callback.selector);
     }
 
     function _listenForTokenApprovals(function (TransferData memory) external returns (bool) callback) internal {
-        ITokenEventManager eventManager = ITokenEventManager(_tokenAddress());
-
-        eventManager.on(TOKEN_APPROVE_EVENT, callback);
+        _on(TOKEN_APPROVE_EVENT, _extensionAddress(), callback.selector);
     }
 }

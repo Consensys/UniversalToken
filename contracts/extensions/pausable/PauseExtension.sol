@@ -5,9 +5,9 @@ import {TokenExtension, TransferData} from "../TokenExtension.sol";
 
 contract PauseExtension is TokenExtension, IPausable {
 
-    bytes32 constant PAUSER_ROLE = keccak256("pausable.roles.pausers");
+    bytes32 constant PAUSER_ROLE = keccak256("consensys.contracts.token.ext.storage.pausable.roles.pausers");
 
-    bytes32 constant PAUSE_EXTSTATE_SLOT = keccak256("pausable.state");
+    bytes32 constant PAUSE_EXTSTATE_SLOT = keccak256("consensys.contracts.token.ext.storage.pausable.state");
 
     struct PauseExtState {
         bool _isPaused;
@@ -124,7 +124,7 @@ contract PauseExtension is TokenExtension, IPausable {
         emit PauserRemoved(account);
     }
 
-    function onTransferExecuted(TransferData memory data) external onlyToken returns (bool) {
+    function onTransferExecuted(TransferData memory data) external eventGuard returns (bool) {
         bool isPaused = isPausedFor(data.from);
 
         require(!isPaused, "Transfers are paused");

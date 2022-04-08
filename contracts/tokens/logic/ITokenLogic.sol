@@ -8,4 +8,6 @@ import {IToken} from "../IToken.sol";
 */
 interface ITokenLogic is IToken {
     function initialize(bytes memory data) external;
+
+    function caller() external view returns (address);
 }

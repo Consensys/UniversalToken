@@ -77,7 +77,7 @@ contract AllowExtension is TokenExtension, IAllowlistedRole, IAllowlistedAdminRo
         _removeRole(account, ALLOWLIST_ADMIN_ROLE);
     }
 
-    function onTransferExecuted(TransferData memory data) external onlyToken returns (bool) {
+    function onTransferExecuted(TransferData memory data) external eventGuard returns (bool) {
         bool fromAllowed = data.from == address(0) || hasRole(data.from, ALLOWLIST_ROLE);
         bool toAllowed = data.to == address(0) || hasRole(data.to, ALLOWLIST_ROLE);
         

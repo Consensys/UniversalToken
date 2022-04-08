@@ -34,14 +34,11 @@ import {ERC20TokenInterface} from "../../registry/ERC20TokenInterface.sol";
 contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     using BytesLib for bytes;
 
-    bytes private _currentData;
-    bytes private _currentOperatorData;
-
     /**
     * @dev The storage slot that will be used to store the ProtectedTokenData struct inside
     * this TokenProxy
     */
-    bytes32 constant ERC20_PROTECTED_TOKEN_DATA_SLOT = bytes32(uint256(keccak256("erc20.token.meta")) - 1);
+    bytes32 constant ERC20_PROTECTED_TOKEN_DATA_SLOT = bytes32(uint256(keccak256("consensys.contracts.token.erc20.metadata")) - 1);
 
     /**
     * @notice Protected ERC20 token metadata stored in the proxy storage in a special storage slot.
@@ -83,6 +80,38 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     }
 
     /**
+    * @dev This function is invoked directly before each token transfer. This is overriden here
+    * so we can invoke the transfer event on all registered & enabled extensions. We do this
+    * by building a TransferData object and invoking _triggerBeforeTokenTransfer
+    * @param from The sender of this token transfer
+    * @param to The recipient of this token transfer
+    * @param amount How many tokens were transferred
+    */
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal override virtual {
+        TransferCallData storage tcd = _transferCallData();
+        
+        address operator = _msgSender();
+        if (tcd._currentOperator != address(0)) {
+            operator = tcd._currentOperator;
+        }
+
+        TransferData memory data = TransferData(
+            address(this),
+            _msgData(),
+            0x00000000000000000000000000000000,
+            operator,
+            from,
+            to,
+            amount,
+            0,
+            tcd._currentData,
+            tcd._currentOperatorData
+        );
+
+        _triggerTokenBeforeTransferEvent(data);
+    }
+
+    /**
     * @dev This function is invoked directly after each token transfer. This is overriden here
     * so we can invoke the transfer event on all registered & enabled extensions. We do this
     * by building a TransferData object and invoking _triggerTokenTransfer
@@ -91,22 +120,27 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     * @param amount How many tokens were transferred
     */
     function _afterTokenTransfer(address from, address to, uint256 amount) internal override virtual {
+        TransferCallData storage tcd = _transferCallData();
+        
+        address operator = _msgSender();
+        if (tcd._currentOperator != address(0)) {
+            operator = tcd._currentOperator;
+        }
+
         TransferData memory data = TransferData(
             address(this),
             _msgData(),
             0x00000000000000000000000000000000,
-            _msgSender(),
+            operator,
             from,
             to,
             amount,
             0,
-            _currentData,
-            _currentOperatorData
+            tcd._currentData,
+            tcd._currentOperatorData
         );
 
-
-        _currentData = "";
-        _currentOperatorData = "";
+        _resetTransferCallData();
 
         _triggerTokenTransferEvent(data);
     }
@@ -119,9 +153,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     */
     function mint(address to, uint256 amount) external virtual onlyMinter returns (bool) {
         _mint(to, amount);
-
         require(totalSupply() <= _getProtectedTokenData().maxSupply, "Max supply has been exceeded");
-
         return true;
     }
 
@@ -165,8 +197,10 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
         require(td.token == address(this), "Invalid transfer data: token");
         require(td.tokenId == 0, "Invalid transfer data: tokenId");
 
-        _currentData = td.data;
-        _currentOperatorData = td.operatorData;
+        TransferCallData storage tcd = _transferCallData();
+        tcd._currentData = td.data;
+        tcd._currentOperatorData = td.operatorData;
+        tcd._currentOperator = td.operator;
         _transfer(td.from, td.to, td.value);
 
         return true;
@@ -197,8 +231,10 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
      */
     function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
         bytes memory extraData = _extractExtraCalldata(TRANSFER_CALL_SIZE);
-        _currentData = extraData;
-        _currentOperatorData = extraData;
+
+        TransferCallData storage tcd = _transferCallData();
+        tcd._currentData = extraData;
+        tcd._currentOperatorData = extraData;
 
         return ERC20Upgradeable.transfer(recipient, amount);
     }
@@ -225,8 +261,10 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
         uint256 amount
     ) public virtual override returns (bool) {
         bytes memory extraData = _extractExtraCalldata(TRANSFER_FROM_CALL_SIZE);
-        _currentData = extraData;
-        _currentOperatorData = extraData;
+
+        TransferCallData storage tcd = _transferCallData();
+        tcd._currentData = extraData;
+        tcd._currentOperatorData = extraData;
 
         return ERC20Upgradeable.transferFrom(sender, recipient, amount);
     }

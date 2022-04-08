@@ -8,7 +8,8 @@ module.exports = {
     "extensions/allowblock/allow/IAllowlistedAdminRole.sol",
     "extensions/allowblock/allow/IAllowlistedRole.sol",
     "extensions/allowblock/block/IBlocklistedAdminRole.sol",
-    "extensions/allowblock/block/IBlocklistedRole.sol"],
+    "extensions/allowblock/block/IBlocklistedRole.sol",
+    "tokens/extension/ExtendableHooks.sol"],
   copyPackages: ["@openzeppelin/contracts"],
   mocha: {
     enableTimeouts: false,

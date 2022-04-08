@@ -11,7 +11,7 @@ abstract contract ExtensionRegistrationStorage {
     /**
     * @dev The storage slot that will hold the MappedExtensions struct
     */
-    bytes32 constant MAPPED_EXTENSION_STORAGE_SLOT = keccak256("erc20.core.storage.address");
+    bytes32 constant MAPPED_EXTENSION_STORAGE_SLOT = keccak256("consensys.contracts.token.storage.ext.registration.data");
 
     /**
     * @dev A state of all possible registered extension states

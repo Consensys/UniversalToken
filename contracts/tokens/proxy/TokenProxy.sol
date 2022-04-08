@@ -30,7 +30,7 @@ import {IExtension} from "../../interface/IExtension.sol";
 abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, ExtendableDiamond, ITokenProxy {
     using BytesLib for bytes;
 
-    bytes32 private constant UPGRADING_FLAG_SLOT = keccak256("token.proxy.upgrading");
+    bytes32 private constant UPGRADING_FLAG_SLOT = keccak256("consensys.contracts.token.storage.logic.upgrading");
     string constant internal EXTENDABLE_INTERFACE_NAME = "ExtendableToken";
 
     /**
@@ -76,6 +76,9 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
 
         _setLogic(logicAddress);
 
+        //Extensions can do controlled transfers
+        _addRole(address(this), TOKEN_CONTROLLER_ROLE);
+
         //setup initalize call
         bytes memory data = abi.encode(logicAddress, owner);
         StorageSlotUpgradeable.getUint256Slot(UPGRADING_FLAG_SLOT).value = data.length;
@@ -84,12 +87,12 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
         (bool success,) = _delegatecall(
             abi.encodeWithSelector(ITokenLogic.initialize.selector, data)
         );
-
+        
         //Check initialize
         require(success, Errors.LOGIC_INIT_FAILED);
     
         StorageSlotUpgradeable.getUint256Slot(UPGRADING_FLAG_SLOT).value = 0;
-
+        
         emit Upgraded(logicAddress);
     }
 

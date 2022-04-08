@@ -17,8 +17,8 @@ library CertificateLib {
     using BytesLib for bytes;
     using Roles for Roles.Role;
 
-    bytes32 constant CERTIFICATE_DATA_SLOT = keccak256("certificates.data");
-    bytes32 constant CERTIFICATE_SIGNER_ROLE = keccak256("certificates.roles.certificatesigner");
+    bytes32 constant CERTIFICATE_DATA_SLOT = keccak256("consensys.contracts.token.ext.storage.certificates.data");
+    bytes32 constant CERTIFICATE_SIGNER_ROLE = keccak256("consensys.contracts.token.ext.storage.certificates.roles.certificatesigner");
 
     struct CertificateData {
         // Mapping from (token, certificateNonce) to "used" status to ensure a certificate can be used only once

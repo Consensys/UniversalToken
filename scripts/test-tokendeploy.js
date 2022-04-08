@@ -20,15 +20,16 @@ async function main() {
 
   const ERC20LogicMock = await hre.ethers.getContractFactory("ERC20LogicMock");
   
+  console.log("Deploying ERC20Logic");
   const ERC20Logic = await hre.ethers.getContractFactory("ERC20Logic");
   const logic = await ERC20Logic.deploy();
   await logic.deployed();
   
   const PauseExtension = await hre.ethers.getContractFactory("PauseExtension");
 
+  console.log("ERC20Logic deployed at: " + logic.address);
 
-
-  console.log("Deploy token test");
+  console.log("Deploy token test using logic at " + logic.address);
 
   const ERC20Extendable = await hre.ethers.getContractFactory("ERC20Extendable");
   const erc20 = await ERC20Extendable.deploy(

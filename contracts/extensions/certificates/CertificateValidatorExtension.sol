@@ -6,7 +6,7 @@ import {CertificateLib, CertificateValidationType} from "./CertificateLib.sol";
 
 contract CertificateValidatorExtension is TokenExtension, ICertificateValidator {
     
-    bytes32 constant CERTIFICATE_SIGNER_ROLE = keccak256("certificates.roles.certificatesigner");
+    bytes32 constant CERTIFICATE_SIGNER_ROLE = keccak256("consensys.contracts.token.ext.storage.certificates.roles.certificatesigner");
 
     constructor() {
         _registerFunction(CertificateValidatorExtension.addCertificateSigner.selector);
@@ -66,7 +66,7 @@ contract CertificateValidatorExtension is TokenExtension, ICertificateValidator 
         CertificateLib.certificateData()._certificateType = mode;
     }
 
-    function onTransferExecuted(TransferData memory data) external onlyToken returns (bool) {
+    function onTransferExecuted(TransferData memory data) external eventGuard returns (bool) {
         require(data.data.length > 0, "Data cannot be empty");
         
         CertificateValidationType validationType = CertificateLib.certificateData()._certificateType;

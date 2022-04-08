@@ -29,6 +29,7 @@ async function main() {
   const accounts = await ethers.provider.listAccounts();
 
   const deployer = accounts[0];
+  console.log("Account is " + deployer);
 
   const ERC20LogicMock = await hre.ethers.getContractFactory("ERC20LogicMock");
   

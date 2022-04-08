@@ -7,5 +7,6 @@ enum HoldStatusCode {
     ExecutedAndKeptOpen,
     ReleasedByNotary,
     ReleasedByPayee,
-    ReleasedOnExpiration
+    ReleasedOnExpiration,
+    Executing
 }

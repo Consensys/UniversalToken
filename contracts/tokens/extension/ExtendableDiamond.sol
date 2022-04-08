@@ -43,7 +43,8 @@ contract ExtendableDiamond is TokenEventManagerStorage, ExtensionRegistrationSto
             IDiamondCut.FacetCutAction.Add,
             externalFunctions
         );
-        LibDiamond.diamondCut(_diamondCut, extension, abi.encodeWithSelector(IExtension.initialize.selector));
+        bytes memory initCalldata = abi.encodePacked(abi.encodeWithSelector(IExtension.initialize.selector), extension);
+        LibDiamond.diamondCut(_diamondCut, extension, initCalldata);
 
         //Finally, add it to storage
         extLibStorage.extensions[extension] = ExtensionData(
@@ -54,9 +55,6 @@ contract ExtendableDiamond is TokenEventManagerStorage, ExtensionRegistrationSto
         );
 
         extLibStorage.registeredExtensions.push(extension);
-
-
-
         return true;
     }
 
@@ -120,7 +118,9 @@ contract ExtendableDiamond is TokenEventManagerStorage, ExtensionRegistrationSto
     * This call returns and exits the current call context.
     */
     function _invokeExtensionFunction() internal virtual {
-        require(_isExtensionFunction(msg.sig), "No extension found with function signature");
+        LibDiamond.DiamondStorage storage ds = LibDiamond.diamondStorage();
+        address extension = ds.selectorToFacetAndPosition[msg.sig].facetAddress;
+        require(_isActiveExtension(extension), "Extension is disabled");
 
         _callFacet(msg.sig);
     }
@@ -249,7 +249,7 @@ contract ExtendableDiamond is TokenEventManagerStorage, ExtensionRegistrationSto
             SavedCallbackFunction storage lastCallback = emd.listeners[eventId][lastCallbackIndex];
 
             emd.listeners[eventId][callbackIndex] = lastCallback;
-            emd.listeningCache[lastCallback.func.address][eventId].listenIndex = callbackIndex;
+            emd.listeningCache[lastCallback.callbackAddress][eventId].listenIndex = callbackIndex;
 
             delete emd.listeningCache[extension][eventId];
             emd.listeners[eventId].pop();

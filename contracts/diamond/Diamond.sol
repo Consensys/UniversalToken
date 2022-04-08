@@ -37,9 +37,11 @@ contract Diamond is IDiamondLoupe, IERC165 {
         }
         address facet = ds.selectorToFacetAndPosition[funcSig].facetAddress;
         require(facet != address(0), Errors.DIAMOND_NO_FUNCTION);
+
+        bytes memory finalData = abi.encodePacked(msg.data, facet);
+
         assembly {
-            calldatacopy(0, 0, calldatasize())
-            let result := delegatecall(gas(), facet, 0, calldatasize(), 0, 0)
+            let result := delegatecall(sub(gas(), 5000), facet, add(finalData, 0x20), mload(finalData), 0, 0)
             returndatacopy(0, 0, returndatasize())
             switch result
             case 0 {

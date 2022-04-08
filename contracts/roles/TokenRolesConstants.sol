@@ -4,19 +4,19 @@ abstract contract TokenRolesConstants {
         /**
     * @dev The storage slot for the burn/burnFrom toggle
     */
-    bytes32 constant TOKEN_ALLOW_BURN = keccak256("token.proxy.core.burn");
+    bytes32 constant TOKEN_ALLOW_BURN = keccak256("consensys.contracts.token.storage.core.burn");
     /**
     * @dev The storage slot for the mint toggle
     */
-    bytes32 constant TOKEN_ALLOW_MINT = keccak256("token.proxy.core.mint");
+    bytes32 constant TOKEN_ALLOW_MINT = keccak256("consensys.contracts.token.storage.core.mint");
     /**
     * @dev The storage slot that holds the current Owner address
     */
-    bytes32 constant TOKEN_OWNER = keccak256("token.proxy.core.owner");
+    bytes32 constant TOKEN_OWNER = keccak256("consensys.contracts.token.storage.core.owner");
     /**
     * @dev The access control role ID for the Minter role
     */
-    bytes32 constant TOKEN_MINTER_ROLE = keccak256("token.proxy.core.mint.role");
+    bytes32 constant TOKEN_MINTER_ROLE = keccak256("consensys.contracts.token.storage.core.mint.role");
     /**
     * @dev The storage slot that holds the current Manager address
     */
@@ -24,5 +24,5 @@ abstract contract TokenRolesConstants {
     /**
     * @dev The access control role ID for the Controller role
     */
-    bytes32 constant TOKEN_CONTROLLER_ROLE = keccak256("token.proxy.controller.address");
+    bytes32 constant TOKEN_CONTROLLER_ROLE = keccak256("consensys.contracts.token.storage.controller.address");
 }

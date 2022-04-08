@@ -6,7 +6,7 @@ import {IHoldableToken, ERC20HoldData, HoldStatusCode} from "../../interface/IHo
 
 contract HoldExtension is TokenExtension, IHoldableToken {
     using SafeMathUpgradeable for uint256;
-    bytes32 constant HOLD_DATA_SLOT = keccak256("holdable.holddata");
+    bytes32 constant HOLD_DATA_SLOT = keccak256("consensys.contracts.token.ext.storage.holdable.data");
 
     struct HoldExtensionData {
         // mapping of accounts to hold data
@@ -48,7 +48,7 @@ contract HoldExtension is TokenExtension, IHoldableToken {
     }
 
     function initialize() external override {
-        _listenForTokenTransfers(this.onTransferExecuted);
+        _listenForTokenBeforeTransfers(this.onTransferExecuted);
         _listenForTokenApprovals(this.onApproveExecuted);
     }
 
@@ -257,7 +257,9 @@ contract HoldExtension is TokenExtension, IHoldableToken {
             "executeHold: caller must be the hold notary"
         );
 
-        TransferData memory transferData = _buildTransfer(data.holds[holdId].sender, recipient, data.holds[holdId].amount);
+        data.holds[holdId].status = HoldStatusCode.Executing;
+
+        TransferData memory transferData = _buildTransferWithOperatorData(data.holds[holdId].sender, recipient, data.holds[holdId].amount, abi.encode(holdId));
         _tokenTransfer(transferData);
         //super._transfer(holds[holdId].sender, recipient, holds[holdId].amount);
 
@@ -345,15 +347,23 @@ contract HoldExtension is TokenExtension, IHoldableToken {
         return data.holds[holdId].status;
     }
 
-    function onTransferExecuted(TransferData memory data) external virtual onlyToken returns (bool) {
+    function onTransferExecuted(TransferData memory data) external virtual eventGuard returns (bool) {
         //only check if not a mint
         if (data.from != address(0)) {
-            require(spendableBalanceOf(data.from) >= data.value, "HoldableToken: amount exceeds available balance (transfer)");
+            if (data.operatorData.length > 0 && data.operator == _extensionAddress()) {
+                //Dont trigger normal spendableBalanceOf check
+                //if we triggered this transfer as a result of _executeHold
+                (bytes32 holdId) = abi.decode(data.operatorData, (bytes32));
+                HoldExtensionData storage hd = holdData();
+                require(hd.holds[holdId].status == HoldStatusCode.Executing, "Hold in weird state");
+            } else {
+                require(spendableBalanceOf(data.from) >= data.value, "HoldableToken: amount exceeds available balance (transfer)");
+            }
         }
         return true;
     }
 
-    function onApproveExecuted(TransferData memory data) external virtual onlyToken returns (bool) {
+    function onApproveExecuted(TransferData memory data) external virtual eventGuard returns (bool) {
         require(spendableBalanceOf(data.from) >= data.value, "HoldableToken: amount exceeds available balance (approve)");
         return true;
     }

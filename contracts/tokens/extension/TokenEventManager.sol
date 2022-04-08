@@ -1,8 +1,8 @@
+pragma solidity ^0.8.0;
 
 import {ContextUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/ContextUpgradeable.sol";
 import {TransferData} from "../../interface/IExtension.sol";
 import {ExtensionRegistrationStorage} from "./ExtensionRegistrationStorage.sol";
-import {ITokenEventManager} from "../../interface/ITokenEventManager.sol";
 import {TokenEventManagerStorage} from "./TokenEventManagerStorage.sol";
 
 /**
@@ -25,43 +25,10 @@ import {TokenEventManagerStorage} from "./TokenEventManagerStorage.sol";
 * generic types, simply replace TransferData with type T and replace the callback
 * type with function (T memory) external returns (bool)
 */
-abstract contract TokenEventManager is TokenEventManagerStorage, ExtensionRegistrationStorage, ITokenEventManager {
-
-    modifier onlySelf {
-        require(msg.sender == address(this), "Can only be invoked by self");
-        _;
-    }
+abstract contract TokenEventManager is TokenEventManagerStorage, ExtensionRegistrationStorage {
     
     function _extensionState(address ext) internal view returns (ExtensionState) {
         return _addressToExtensionData(ext).state;
-    }
-
-    function on(bytes32 eventId, function (TransferData memory) external returns (bool) callback) external override onlySelf {
-        _on(eventId, callback);
-    }
-
-    /**
-    * @dev Listen for an event hash and invoke a given callback function. This callback function
-    * will be invoked with the TransferData for the event.
-    */
-    function _on(bytes32 eventId, function (TransferData memory) external returns (bool) callback) internal {
-        EventManagerData storage emd = eventManagerData();
-        address ext = callback.address;
-
-        require(!emd.listeningCache[ext][eventId].listening, "Address already listening for event");
-
-        uint256 eventIndex = emd.listeners[eventId].length;
-        
-        emd.listeners[eventId].push(SavedCallbackFunction(
-                callback
-            )
-        );
-
-
-        ExtensionListeningCache storage elc = emd.listeningCache[ext][eventId];
-
-        elc.listening = true;
-        elc.listenIndex = eventIndex;
     }
 
     function _trigger(bytes32 eventId, TransferData memory data) internal {
@@ -71,18 +38,19 @@ abstract contract TokenEventManager is TokenEventManagerStorage, ExtensionRegist
         
         require(!emd.isFiring[eventId], "Recursive trigger not allowed");
         
+        emd.eventFiringStack++;
         emd.isFiring[eventId] = true;
 
 
         for (uint i = 0; i < callbacks.length; i++) {
-            bytes4 listenerFuncSelector = callbacks[i].func.selector;
-            address listenerAddress = callbacks[i].func.address;
+            bytes4 listenerFuncSelector = callbacks[i].callbackSelector;
+            address listenerAddress = callbacks[i].callbackAddress;
 
             if (_extensionState(listenerAddress) == ExtensionState.EXTENSION_DISABLED) {
                 continue; //Skip disabled extensions
             }
 
-            bytes memory cdata = abi.encodeWithSelector(listenerFuncSelector, data);
+            bytes memory cdata = abi.encodePacked(abi.encodeWithSelector(listenerFuncSelector, data), listenerAddress);
 
             (bool success, bytes memory result) = listenerAddress.delegatecall{gas: gasleft()}(cdata);
 
@@ -90,5 +58,6 @@ abstract contract TokenEventManager is TokenEventManagerStorage, ExtensionRegist
         }
 
         emd.isFiring[eventId] = false;
+        emd.eventFiringStack--;
     }
 }

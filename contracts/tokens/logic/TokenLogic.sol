@@ -26,7 +26,16 @@ import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 abstract contract TokenLogic is TokenERC1820Provider, TokenRoles, ExtendableHooks, ITokenLogic {
     using BytesLib for bytes;
 
-    bytes32 private constant UPGRADING_FLAG_SLOT = keccak256("token.proxy.upgrading");
+        
+    struct TransferCallData {
+        address _currentOperator;
+        bytes _currentData;
+        bytes _currentOperatorData;
+    }
+
+    bytes32 private constant TRANSFER_CALLDATA_SLOT = keccak256("consensys.contracts.token.storage.logic.upgrading");
+
+    bytes32 private constant UPGRADING_FLAG_SLOT = keccak256("consensys.contracts.token.storage.logic.upgrading");
 
     /**
     * @dev Register token logic interfaces to the ERC1820 registry. These
@@ -35,6 +44,24 @@ abstract contract TokenLogic is TokenERC1820Provider, TokenRoles, ExtendableHook
     constructor() {
         ERC1820Client.setInterfaceImplementation(__tokenLogicInterfaceName(), address(this));
         ERC1820Implementer._setInterface(__tokenLogicInterfaceName()); // For migration
+    }
+
+    function caller() external override view returns (address) {
+        return msg.sender;
+    }
+
+    function _resetTransferCallData() internal {
+        TransferCallData storage r = _transferCallData();
+        r._currentOperator = address(0);
+        r._currentData = "";
+        r._currentOperatorData = "";
+    }
+
+    function _transferCallData() internal pure returns (TransferCallData storage r) {
+        bytes32 slot = TRANSFER_CALLDATA_SLOT;
+        assembly {
+            r.slot := slot
+        }
     }
 
     function _extractExtraCalldata(uint256 normalCallsize) internal view returns (bytes memory) {

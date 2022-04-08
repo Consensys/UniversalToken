@@ -72,7 +72,7 @@ abstract contract DomainAware is IDomainAware {
     /**
     * @dev The storage slot the DomainData is stored in this contract
     */
-    bytes32 constant DOMAIN_AWARE_SLOT = keccak256("domainaware.data");
+    bytes32 constant DOMAIN_AWARE_SLOT = keccak256("consensys.contracts.domainaware.data");
 
     /**
     * @dev The cached DomainData for this chain & contract version.
