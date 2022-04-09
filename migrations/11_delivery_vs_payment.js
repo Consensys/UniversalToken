@@ -2,7 +2,7 @@ const { soliditySha3 } = require("web3-utils");
 
 const DVPContract = artifacts.require('./Swaps.sol');
 
-const ERC1820Registry = artifacts.require('IERC1820Registry');
+const ERC1820Registry = artifacts.require('ERC1820Registry');
 
 const DELIVERY_VS_PAYMENT = 'DeliveryVsPayment';
 

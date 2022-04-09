@@ -16,7 +16,7 @@ const { advanceTimeAndBlock } = require("./utils/time")
 
 const FundIssuerContract = artifacts.require("FundIssuer");
 const ERC1400 = artifacts.require("ERC1400");
-const ERC1820Registry = artifacts.require("IERC1820Registry");
+const ERC1820Registry = artifacts.require("ERC1820Registry");
 
 const ERC1400_TOKENS_RECIPIENT_INTERFACE = "ERC1400TokensRecipient";
 
