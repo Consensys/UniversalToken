@@ -29,5 +29,7 @@ abstract contract TokenEventListener is TokenEventManagerStorage, TokenEventCons
         ExtensionListeningCache storage elc = emd.listeningCache[callbackAddress][eventId];
         elc.listening = true;
         elc.listenIndex = eventIndex;
+
+        emd.eventListForExtensions[callbackAddress].push(eventId);
     }
 }

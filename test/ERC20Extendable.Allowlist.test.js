@@ -457,5 +457,15 @@ contract(
         assert.equal(await upgradedTokenApi.isMock(), "This is a mock!");
       });
 
+      it("Deployer can remove extensions", async () => {
+        assert.equal((await token.allExtensionsRegistered()).length, 1);
+
+        const result2 = await token.removeExtension(allowExt, { from: deployer });
+
+        assert.equal(result2.receipt.status, 1);
+
+        assert.equal((await token.allExtensionsRegistered()).length, 0);
+      });
+
     });
 })
