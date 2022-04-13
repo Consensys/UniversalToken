@@ -70,8 +70,8 @@ contract PauseExtension is TokenExtension, IPausable {
         return _pauseState()._isPaused;
     }
 
-    function initialize() external override {
-        _addRole(_msgSender(), PAUSER_ROLE);
+    function initialize() external override initializer {
+        _addRoleOrIgnore(_msgSender(), PAUSER_ROLE);
         _listenForTokenTransfers(this.onTransferExecuted);
         _listenForTokenApprovals(this.onTransferExecuted);
     }

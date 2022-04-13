@@ -15,15 +15,6 @@ interface IExtensionMetadata {
     * function selectors to add to the TokenProxy
     */
     function externalFunctions() external view returns (bytes4[] memory);
-    
-    /**
-    * @notice An array of role IDs that this extension requires from the Token
-    * in order to function properly
-    * @dev This function is used by the TokenProxy to determine what
-    * roles to grant to the extension after registration and what roles to remove
-    * when removing the extension
-    */
-    function requiredRoles() external view returns (bytes32[] memory);
 
     /**
     * @notice Whether a given Token standard is supported by this Extension

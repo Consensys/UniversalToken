@@ -19,7 +19,6 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventListener, IEx
     * and package hash
     * This data should only be modified inside the constructor
     * @param _packageHash Hash of the package namespace for this Extension
-    * @param _requiredRoles An array of token role IDs that are required for this Extension's registration
     * @param _deployer The address that deployed this Extension
     * @param _version The version of this Extension
     * @param _exposedFuncSigs An array of function selectors this Extension exposes to a Proxy or Diamond
@@ -29,7 +28,6 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventListener, IEx
     */
     struct TokenExtensionData {
         bytes32 _packageHash;
-        bytes32[] _requiredRoles;
         address _deployer;
         uint256 _version;
         bytes4[] _exposedFuncSigs;
@@ -118,11 +116,6 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventListener, IEx
         _;
     }
 
-    function _requireRole(bytes32 roleId) internal {
-        require(isInsideConstructorCall(), "Function must be called inside the constructor");
-        _extensionData()._requiredRoles.push(roleId);
-    }
-
     function _supportInterface(bytes4 interfaceId) internal {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
         _extensionData()._interfaceMap[interfaceId] = true;
@@ -140,10 +133,6 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventListener, IEx
     
     function externalFunctions() external override view returns (bytes4[] memory) {
         return _extensionData()._exposedFuncSigs;
-    }
-
-    function requiredRoles() external override view returns (bytes32[] memory) {
-        return _extensionData()._requiredRoles;
     }
 
     /**

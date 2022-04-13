@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
 abstract contract TokenRolesConstants {
-        /**
+    /**
     * @dev The storage slot for the burn/burnFrom toggle
     */
     bytes32 constant TOKEN_ALLOW_BURN = keccak256("consensys.contracts.token.storage.core.burn");

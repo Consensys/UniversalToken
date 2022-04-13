@@ -1,7 +1,5 @@
 pragma solidity ^0.8.0;
 
-import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
-import {ERC1820Implementer} from "../../erc1820/ERC1820Implementer.sol";
 import {TokenRoles} from "../../roles/TokenRoles.sol";
 import {DomainAware} from "../../tools/DomainAware.sol";
 import {ITokenLogic} from "../logic/ITokenLogic.sol";
@@ -65,14 +63,14 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
             StorageSlotUpgradeable.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = _msgSender();
         }
 
-        ERC1820Client.setInterfaceImplementation(__tokenInterfaceName(), address(this));
-        ERC1820Implementer._setInterface(__tokenInterfaceName()); // For migration
+        setInterfaceImplementation(__tokenInterfaceName(), address(this));
+        _setInterface(__tokenInterfaceName()); // For migration
 
-        ERC1820Client.setInterfaceImplementation(EXTENDABLE_INTERFACE_NAME, address(this));
-        ERC1820Implementer._setInterface(EXTENDABLE_INTERFACE_NAME); // For migration
+        setInterfaceImplementation(EXTENDABLE_INTERFACE_NAME, address(this));
+        _setInterface(EXTENDABLE_INTERFACE_NAME); // For migration
 
         require(logicAddress != address(0), Errors.NO_LOGIC_ADDRESS);
-        require(logicAddress == ERC1820Client.interfaceAddr(logicAddress, __tokenLogicInterfaceName()), "Not registered as a logic contract");
+        require(logicAddress == interfaceAddr(logicAddress, __tokenLogicInterfaceName()), "Not registered as a logic contract");
 
         _setLogic(logicAddress);
 
@@ -101,7 +99,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
     * @return address The address of the current logic contract
     */
     function _getLogicContractAddress() private view returns (address) {
-        return ERC1820Client.interfaceAddr(address(this), __tokenLogicInterfaceName());
+        return interfaceAddr(address(this), __tokenLogicInterfaceName());
     }
 
     /**
@@ -115,7 +113,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
         bytes32 EIP1967_LOCATION = bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1);
 
         //Update registry
-        ERC1820Client.setInterfaceImplementation(__tokenLogicInterfaceName(), logic);
+        setInterfaceImplementation(__tokenLogicInterfaceName(), logic);
         
         //Update EIP1967 Storage Slot
         StorageSlotUpgradeable.getAddressSlot(EIP1967_LOCATION).value = logic;
@@ -170,10 +168,6 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
     *
     * Registering an extension automatically enables it for use.
     *
-    * Registering an extension automatically grants any roles the extension requires to
-    * the address of the deployed extension proxy.
-    * See: IExtensionMetadata.requiredRoles()
-    *
     * @param extension The global extension address to register
     */
     function registerExtension(address extension) external override onlyManager {
@@ -183,8 +177,8 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
 
         string memory interfaceLabel = ext.interfaceLabel();
 
-        ERC1820Client.setInterfaceImplementation(interfaceLabel, address(this));
-        ERC1820Implementer._setInterface(interfaceLabel); // For migration
+        setInterfaceImplementation(interfaceLabel, address(this));
+        _setInterface(interfaceLabel); // For migration
     }
 
     /**
@@ -213,8 +207,8 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
 
         string memory interfaceLabel = ext.interfaceLabel();
 
-        ERC1820Client.setInterfaceImplementation(interfaceLabel, address(0));
-        ERC1820Implementer._removeInterface(interfaceLabel); // For migration
+        setInterfaceImplementation(interfaceLabel, address(0));
+        _removeInterface(interfaceLabel); // For migration
     }
 
     /**

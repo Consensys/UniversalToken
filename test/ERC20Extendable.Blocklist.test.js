@@ -14,6 +14,8 @@ const BlockExtension = artifacts.require("BlockExtension");
 const ERC20Extendable = artifacts.require("ERC20Extendable");
 const ERC20Logic = artifacts.require("ERC20Logic");
 const ERC20LogicMock = artifacts.require("ERC20LogicMock");
+const MockBlockExtension = artifacts.require("MockBlockExtension");
+const MockAllowExtension = artifacts.require("MockAllowExtension");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";
 const ZERO_BYTES32 =
@@ -132,6 +134,55 @@ contract(
         assert.equal(result.receipt.status, 1);
 
         assert.equal(await blocklistToken.isBlocklisted(recipient), false);
+      });
+
+      it("Revert if non-manager attempts extension upgrade", async () => {
+        let newExt = await MockBlockExtension.new();
+
+        await expectRevert.unspecified(
+          token.upgradeExtension(blockExt, newExt.address, { from: holder })
+        );
+      });
+
+      it("Cant upgrade extension to different package", async () => {
+        let newExt = await MockAllowExtension.new();
+
+        await expectRevert.unspecified(
+          token.upgradeExtension(blockExt, newExt.address, { from: deployer })
+        );
+      });
+
+      it("Cant upgrade extension to same package version", async () => {
+        let newExt = await BlockExtension.new();
+
+        await expectRevert.unspecified(
+          token.upgradeExtension(blockExt, newExt.address, { from: deployer })
+        );
+      });
+
+      it("Cant upgrade extension from different deployer", async () => {
+        let newExt = await MockBlockExtension.new({ from: holder });
+
+        await expectRevert.unspecified(
+          token.upgradeExtension(blockExt, newExt.address, { from: deployer })
+        );
+      });
+
+      it("Manager can upgrade registered extensions", async () => {
+        let newExt = await MockBlockExtension.new();
+
+        assert.equal((await token.allExtensionsRegistered()).length, 1);
+
+        const result = await token.upgradeExtension(blockExt, newExt.address, { from: deployer });
+
+        assert.equal(result.receipt.status, 1);
+        assert.equal((await token.allExtensionsRegistered()).length, 1);
+
+        const blocklistToken = await MockBlockExtension.at(token.address);
+
+        assert.equal((await blocklistToken.mockUpgradeTest()), "This upgrade worked");
+
+        blockExt = newExt.address;
       });
 
       

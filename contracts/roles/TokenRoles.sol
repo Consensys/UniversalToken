@@ -1,11 +1,10 @@
 pragma solidity ^0.8.0;
 
+import {TokenRolesConstants} from "./TokenRolesConstants.sol";
 import {ContextUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/ContextUpgradeable.sol";
 import {StorageSlotUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/StorageSlotUpgradeable.sol";
-import {Roles} from "./Roles.sol";
 import {RolesBase} from "./RolesBase.sol";
 import {ITokenRoles} from "../interface/ITokenRoles.sol";
-import {TokenRolesConstants} from "./TokenRolesConstants.sol";
 
 /**
 * @title Token Roles
@@ -23,9 +22,8 @@ import {TokenRolesConstants} from "./TokenRolesConstants.sol";
 * 
 * This contract also handles the storage of the burning/minting toggling.
 */
-abstract contract TokenRoles is TokenRolesConstants, ITokenRoles, RolesBase, ContextUpgradeable {
-    using Roles for Roles.Role;
-    
+abstract contract TokenRoles is TokenRolesConstants, RolesBase, ContextUpgradeable, ITokenRoles {
+
     /**
     * @notice This event is triggered when transferOwnership is invoked
     * @param previousOwner The previous owner before the transfer

@@ -1,6 +1,5 @@
 pragma solidity ^0.8.0;
 
-import {ContextUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/ContextUpgradeable.sol";
 import {TransferData} from "../../interface/IExtension.sol";
 import {ExtensionRegistrationStorage} from "./ExtensionRegistrationStorage.sol";
 import {TokenEventManagerStorage} from "./TokenEventManagerStorage.sol";

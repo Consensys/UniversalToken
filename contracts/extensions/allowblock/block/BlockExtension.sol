@@ -45,7 +45,7 @@ contract BlockExtension is TokenExtension, IBlocklistedRole, IBlocklistedAdminRo
     }
 
     function initialize() external override {
-        _addRole(_msgSender(), BLOCKLIST_ADMIN_ROLE);
+        _addRoleOrIgnore(_msgSender(), BLOCKLIST_ADMIN_ROLE);
         _listenForTokenTransfers(this.onTransferExecuted);
     }
 

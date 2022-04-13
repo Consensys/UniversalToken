@@ -49,7 +49,7 @@ contract AllowExtension is TokenExtension, IAllowlistedRole, IAllowlistedAdminRo
     }
 
     function initialize() external override {
-        _addRole(_msgSender(), ALLOWLIST_ADMIN_ROLE);
+        _addRoleOrIgnore(_msgSender(), ALLOWLIST_ADMIN_ROLE);
         _listenForTokenTransfers(this.onTransferExecuted);
     }
 

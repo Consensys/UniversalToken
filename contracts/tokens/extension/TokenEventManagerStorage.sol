@@ -1,6 +1,5 @@
 pragma solidity ^0.8.0;
 
-import {IExtension, TransferData} from "../../interface/IExtension.sol";
 
 abstract contract TokenEventManagerStorage {
     bytes32 constant EVENT_MANAGER_DATA_SLOT = keccak256("consensys.contracts.token.eventmanager.data");

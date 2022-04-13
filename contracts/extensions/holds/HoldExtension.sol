@@ -25,7 +25,6 @@ contract HoldExtension is TokenExtension, IHoldableToken {
         _setInterfaceLabel("HoldExtension");
         _supportsTokenStandard(TokenStandard.ERC20);
         _setVersion(1);
-        _requireRole(TOKEN_CONTROLLER_ROLE);
 
         _registerFunction(this.hold.selector);
         _registerFunction(this.releaseHold.selector);

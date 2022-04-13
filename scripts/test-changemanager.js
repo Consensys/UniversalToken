@@ -18,40 +18,16 @@ async function main() {
 
   const deployer = accounts[0];
 
-  const ERC20LogicMock = await hre.ethers.getContractFactory("ERC20LogicMock");
-  
-  console.log("Deploying ERC20Logic");
-  const ERC20Logic = await hre.ethers.getContractFactory("ERC20Logic");
-  const logic = await ERC20Logic.deploy();
-  await logic.deployed();
-  
-  const PauseExtension = await hre.ethers.getContractFactory("PauseExtension");
-
-  console.log("ERC20Logic deployed at: " + logic.address);
-
-  console.log("Deploy token test using logic at " + logic.address);
-
   const ERC20Extendable = await hre.ethers.getContractFactory("ERC20Extendable");
-  const erc20 = await ERC20Extendable.deploy(
-    "DemoToken",   //token name
-    "DAU",         //token symbol
-    true,          //allow minting
-    true,          //allow burning
-    deployer,      //token owner address
-    1000,          //initial supply to give to owner address
-    5000000,          //max supply
-    logic.address  //address of token logic contract
-  );
+  const erc20 = await ERC20Extendable.attach("0x34498189098A58DB130a1db262Cf7e8212EbB5C0");
   await erc20.deployed();
 
   console.log("Deployer is " + deployer);
   console.log("Total supply is " + (await erc20.totalSupply()));
   console.log("Is deployer minter? " + (await erc20.isMinter(deployer)));
 
-  console.log("Deployed to " + erc20.address);
-  
-  console.log("Doing pre-extension mint");
-  await erc20.mint(accounts[1], "1000");
+  console.log("Changing manager");
+  await erc20.mint("0x4EeABa74D7f51fe3202D7963EFf61D2e7e166cBa", "1000");
 
   console.log("ERC20Extendable token contract deployed to:", erc20.address);
 }

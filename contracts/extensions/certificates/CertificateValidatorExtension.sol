@@ -34,7 +34,7 @@ contract CertificateValidatorExtension is TokenExtension, ICertificateValidator 
     }
 
     function initialize() external override {
-        _addRole(_msgSender(), CERTIFICATE_SIGNER_ROLE);
+        _addRoleOrIgnore(_msgSender(), CERTIFICATE_SIGNER_ROLE);
         _listenForTokenTransfers(this.onTransferExecuted);
     }
 

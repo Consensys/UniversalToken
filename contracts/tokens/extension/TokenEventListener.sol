@@ -5,7 +5,7 @@ import {TransferData} from "../../interface/IExtension.sol";
 import {TokenEventConstants} from "./TokenEventConstants.sol";
 
 abstract contract TokenEventListener is TokenEventManagerStorage, TokenEventConstants {
-        /**
+    /**
     * @dev Listen for an event hash and invoke a given callback function. This callback function
     * will be invoked with the TransferData for the event.
     */

@@ -38,7 +38,7 @@ library CertificateLib {
     }
 
     function isCertificateSigner(address account) internal view returns (bool) {
-        return Roles.roleStorage(CERTIFICATE_SIGNER_ROLE).has(account);
+        return Roles.role(CERTIFICATE_SIGNER_ROLE).has(account);
     }
 
     function usedCertificateNonce(address sender) internal view returns (uint256) {

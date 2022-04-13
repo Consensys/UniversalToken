@@ -1,12 +1,12 @@
 pragma solidity ^0.8.0;
 
+import {TokenEventManagerStorage} from "./TokenEventManagerStorage.sol";
 import {IExtension, TransferData} from "../../interface/IExtension.sol";
 import {ExtensionRegistrationStorage} from "./ExtensionRegistrationStorage.sol";
 import {LibDiamond} from "../../diamond/libraries/LibDiamond.sol";
 import {IDiamondCut} from "../../diamond/interfaces/IDiamondCut.sol";
 import {Diamond} from "../../diamond/Diamond.sol";
 import {IToken, TokenStandard} from "../IToken.sol";
-import {TokenEventManagerStorage} from "./TokenEventManagerStorage.sol";
 
 /**
 * @title Router contract for Extensions
