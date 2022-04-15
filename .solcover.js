@@ -9,7 +9,8 @@ module.exports = {
     "extensions/allowblock/allow/IAllowlistedRole.sol",
     "extensions/allowblock/block/IBlocklistedAdminRole.sol",
     "extensions/allowblock/block/IBlocklistedRole.sol",
-    "tokens/extension/TokenEventListener.sol"],
+    "tokens/extension/TokenEventListener.sol",
+    "erc1820/ERC1820Registry.sol"],
   copyPackages: ["@openzeppelin/contracts"],
   mocha: {
     enableTimeouts: false,
