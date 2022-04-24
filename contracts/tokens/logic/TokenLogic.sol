@@ -8,6 +8,7 @@ import {ERC1820Implementer} from "../../erc1820/ERC1820Implementer.sol";
 import {TokenERC1820Provider} from "../TokenERC1820Provider.sol";
 import {StorageSlotUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/StorageSlotUpgradeable.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
+import {RegisteredFunctionLookup} from "../../tools/RegisteredFunctionLookup.sol";
 
 /**
 * @title Base Token Logic Contract
@@ -23,7 +24,7 @@ import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 * The child contract should override _onInitialize to determine how the logic contract should initalize
 * when it's attached to a proxy. This occurs during deployment and during upgrading.
 */
-abstract contract TokenLogic is TokenERC1820Provider, TokenRoles, ExtendableHooks, ITokenLogic {
+abstract contract TokenLogic is TokenERC1820Provider, TokenRoles, ExtendableHooks, RegisteredFunctionLookup, ITokenLogic {
     using BytesLib for bytes;
 
         
@@ -44,10 +45,8 @@ abstract contract TokenLogic is TokenERC1820Provider, TokenRoles, ExtendableHook
     constructor() {
         ERC1820Client.setInterfaceImplementation(__tokenLogicInterfaceName(), address(this));
         ERC1820Implementer._setInterface(__tokenLogicInterfaceName()); // For migration
-    }
 
-    function caller() external override view returns (address) {
-        return msg.sender;
+
     }
 
     function _resetTransferCallData() internal {

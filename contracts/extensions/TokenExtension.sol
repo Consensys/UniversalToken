@@ -7,8 +7,9 @@ import {TokenRoles} from "../roles/TokenRoles.sol";
 import {IERC20Proxy} from "../tokens/proxy/ERC20/IERC20Proxy.sol";
 import {IToken} from "../tokens/IToken.sol";
 import {TokenEventListener} from "../tokens/extension/TokenEventListener.sol";
+import {RegisteredFunctionLookup} from "../tools/RegisteredFunctionLookup.sol";
 
-abstract contract TokenExtension is TokenEventListener, IExtension, ExtensionBase, TokenRoles {
+abstract contract TokenExtension is TokenEventListener, RegisteredFunctionLookup, ExtensionBase, TokenRoles, IExtension {
     bytes32 constant EXT_DATA_SLOT = keccak256("consensys.contracts.token.ext.storage.meta");
 
     /**
@@ -20,7 +21,6 @@ abstract contract TokenExtension is TokenEventListener, IExtension, ExtensionBas
     * @param _packageHash Hash of the package namespace for this Extension
     * @param _deployer The address that deployed this Extension
     * @param _version The version of this Extension
-    * @param _exposedFuncSigs An array of function selectors this Extension exposes to a Proxy or Diamond
     * @param _package The unhashed version of the package namespace for this Extension
     * @param _interfaceMap A mapping of interface IDs this Extension implements
     * @param supportedTokenStandards A mapping of token standards this Extension supports
@@ -29,7 +29,6 @@ abstract contract TokenExtension is TokenEventListener, IExtension, ExtensionBas
         bytes32 _packageHash;
         address _deployer;
         uint256 _version;
-        bytes4[] _exposedFuncSigs;
         string _package;
         string _interfaceLabel;
         mapping(bytes4 => bool) _interfaceMap;
@@ -107,20 +106,6 @@ abstract contract TokenExtension is TokenEventListener, IExtension, ExtensionBas
     function _supportInterface(bytes4 interfaceId) internal {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
         _extensionData()._interfaceMap[interfaceId] = true;
-    }
-
-    function _registerFunctionName(string memory selector) internal {
-        _registerFunction(bytes4(keccak256(abi.encodePacked(selector))));
-    }
-
-    function _registerFunction(bytes4 selector) internal {
-        require(isInsideConstructorCall(), "Function must be called inside the constructor");
-        _extensionData()._exposedFuncSigs.push(selector);
-    }
-
-    
-    function externalFunctions() external override view returns (bytes4[] memory) {
-        return _extensionData()._exposedFuncSigs;
     }
 
     /**
