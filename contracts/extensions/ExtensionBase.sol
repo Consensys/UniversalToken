@@ -49,20 +49,14 @@ abstract contract ExtensionBase is ContextUpgradeable {
     }
 
     /**
-    * @dev The current token address that registered this extension instance
-    */
-    function _tokenAddress() internal view returns (address payable) {
-        return payable(this); //we are the token address
-    }
-
-    /**
     * @dev A function modifier to only allow a function only used for events to be
     * guarded by ensuring that the function is only invoked if we are the token.
     * This ensures that only a delegatecall to this function from the token address
     * is valid
     */
     modifier eventGuard {
-        require(address(this) == _tokenAddress(), "Token: Unauthorized");
+        //TODO Add event check here
+        //require(address(this) == _tokenAddress(), "Token: Unauthorized");
         _;
     }
 

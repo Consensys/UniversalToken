@@ -10,6 +10,9 @@ import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 import {Errors} from "../../helpers/Errors.sol";
 import {ExtendableDiamond} from "../extension/ExtendableDiamond.sol";
 import {IExtension} from "../../interface/IExtension.sol";
+import {LibDiamond} from "../../diamond/libraries/LibDiamond.sol";
+import {IDiamondCut} from "../../diamond/interfaces/IDiamondCut.sol";
+import {IRegisteredFunctionLookup} from "../../interface/IRegisteredFunctionLookup.sol";
 
 /**
 * @title Token Proxy base Contract
@@ -70,7 +73,6 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
         _setInterface(EXTENDABLE_INTERFACE_NAME); // For migration
 
         require(logicAddress != address(0), Errors.NO_LOGIC_ADDRESS);
-        require(logicAddress == interfaceAddr(logicAddress, __tokenLogicInterfaceName()), "Not registered as a logic contract");
 
         _setLogic(logicAddress);
 
@@ -110,13 +112,28 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
     * event
     */
     function _setLogic(address logic) internal {
-        bytes32 EIP1967_LOCATION = bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1);
+        require(logic == interfaceAddr(logic, __tokenLogicInterfaceName()), "Not registered as a logic contract");
+
+        bytes32 LOGIC_LOCATION = bytes32(uint256(keccak256('token.proxy.implementation')) - 1);
 
         //Update registry
         setInterfaceImplementation(__tokenLogicInterfaceName(), logic);
         
-        //Update EIP1967 Storage Slot
-        StorageSlotUpgradeable.getAddressSlot(EIP1967_LOCATION).value = logic;
+        //Update Storage Slot so we can grab this later
+        StorageSlotUpgradeable.getAddressSlot(LOGIC_LOCATION).value = logic;
+
+        //Interfaces has been validated, lets create diamond facet
+        //Next lets figure out what external functions to register from the TokenLogic contract given
+        bytes4[] memory externalFunctions = IRegisteredFunctionLookup(logic).externalFunctions();
+
+        IDiamondCut.FacetCut[] memory _diamondCut = new IDiamondCut.FacetCut[](1);
+        _diamondCut[0] = IDiamondCut.FacetCut(
+            logic,
+            IDiamondCut.FacetCutAction.Add,
+            externalFunctions
+        );
+        bytes memory initCalldata = abi.encodePacked(abi.encodeWithSelector(IExtension.initialize.selector), logic);
+        LibDiamond.diamondCut(_diamondCut, logic, initCalldata);
     }
     
     /**

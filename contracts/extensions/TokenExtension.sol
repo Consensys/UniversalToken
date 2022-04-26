@@ -3,13 +3,13 @@ pragma solidity ^0.8.0;
 import {ExtensionBase} from "./ExtensionBase.sol";
 import {IExtension, TransferData, TokenStandard} from "../interface/IExtension.sol";
 import {OwnableUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/access/OwnableUpgradeable.sol";
-import {RolesBase} from "../roles/RolesBase.sol";
+import {TokenRoles} from "../roles/TokenRoles.sol";
 import {IERC20Proxy} from "../tokens/proxy/ERC20/IERC20Proxy.sol";
-import {TokenRolesConstants} from "../roles/TokenRolesConstants.sol";
 import {IToken} from "../tokens/IToken.sol";
 import {TokenEventListener} from "../tokens/extension/TokenEventListener.sol";
+import {RegisteredFunctionLookup} from "../tools/RegisteredFunctionLookup.sol";
 
-abstract contract TokenExtension is TokenRolesConstants, TokenEventListener, IExtension, ExtensionBase, RolesBase {
+abstract contract TokenExtension is TokenEventListener, RegisteredFunctionLookup, ExtensionBase, TokenRoles, IExtension {
     bytes32 constant EXT_DATA_SLOT = keccak256("consensys.contracts.token.ext.storage.meta");
 
     /**
@@ -21,7 +21,6 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventListener, IEx
     * @param _packageHash Hash of the package namespace for this Extension
     * @param _deployer The address that deployed this Extension
     * @param _version The version of this Extension
-    * @param _exposedFuncSigs An array of function selectors this Extension exposes to a Proxy or Diamond
     * @param _package The unhashed version of the package namespace for this Extension
     * @param _interfaceMap A mapping of interface IDs this Extension implements
     * @param supportedTokenStandards A mapping of token standards this Extension supports
@@ -30,7 +29,6 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventListener, IEx
         bytes32 _packageHash;
         address _deployer;
         uint256 _version;
-        bytes4[] _exposedFuncSigs;
         string _package;
         string _interfaceLabel;
         mapping(bytes4 => bool) _interfaceMap;
@@ -105,34 +103,9 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventListener, IEx
         return _extensionData().supportedTokenStandards[standard];
     }
 
-    modifier onlyOwner {
-        require(_msgSender() == _tokenOwner(), "Only the token owner can invoke");
-        _;
-    }
-
-    modifier onlyTokenOrOwner {
-        address msgSender = _msgSender();
-        require(msgSender == _tokenOwner() || msgSender == _tokenAddress(), "Only the token or token owner can invoke");
-        _;
-    }
-
     function _supportInterface(bytes4 interfaceId) internal {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
         _extensionData()._interfaceMap[interfaceId] = true;
-    }
-
-    function _registerFunctionName(string memory selector) internal {
-        _registerFunction(bytes4(keccak256(abi.encodePacked(selector))));
-    }
-
-    function _registerFunction(bytes4 selector) internal {
-        require(isInsideConstructorCall(), "Function must be called inside the constructor");
-        _extensionData()._exposedFuncSigs.push(selector);
-    }
-
-    
-    function externalFunctions() external override view returns (bytes4[] memory) {
-        return _extensionData()._exposedFuncSigs;
     }
 
     /**
@@ -149,23 +122,13 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventListener, IEx
         return size == 0;
     }
 
-    function _isTokenOwner(address addr) internal view returns (bool) {
-        return addr == _tokenOwner();
-    }
-
     function _erc20Token() internal view returns (IERC20Proxy) {
-        return IERC20Proxy(_tokenAddress());
-    }
-
-    function _tokenOwner() internal view returns (address) {
-        OwnableUpgradeable token = OwnableUpgradeable(_tokenAddress());
-
-        return token.owner();
+        return IERC20Proxy(payable(this));
     }
 
     function _tokenStandard() internal view returns (TokenStandard) {
         //TODO Optimize this
-        return IToken(_tokenAddress()).tokenStandard();
+        return IToken(address(this)).tokenStandard();
     }
 
     function _buildTransfer(address from, address to, uint256 amountOrTokenId) internal view returns (TransferData memory) {
@@ -176,7 +139,7 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventListener, IEx
             tokenId = amountOrTokenId;
         }
 
-        address token = _tokenAddress();
+        address token = address(this);
         return TransferData(
             token,
             _msgData(),
@@ -204,7 +167,7 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventListener, IEx
     }
 
     function _tokenTransfer(TransferData memory tdata) internal returns (bool) {
-        return IToken(_tokenAddress()).tokenTransfer(tdata);
+        return IToken(address(this)).tokenTransfer(tdata);
     }
 
     function _listenForTokenTransfers(function (TransferData memory) external returns (bool) callback) internal {
