@@ -4,13 +4,13 @@ import {Roles} from "./Roles.sol";
 
 /**
 * @title Roles API
-* @dev This base smart contract is resposible for managing roles 
-* and offer internal functions for adding/removing roles from
+* @dev This base smart contract is responsible for managing roles 
+* and offers internal functions for adding/removing roles from
 * an address.
-* Roles are denotted by a hashed string that hold a mapping of
+* Roles are denoted by a hashed string that hold a mapping of
 * address => bool
 * To avoid storage slot conflicts, the hashed string provided is
-* concatted with "roles.storage." internally.
+* concatenated with "roles.storage." internally.
 * The storage for roles is handled by the Roles library
 */
 abstract contract RolesBase {
