@@ -32,34 +32,6 @@ import {Errors} from "../../../helpers/Errors.sol";
 */
 contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
     using BytesLib for bytes;
-    
-    /**
-    * @dev The storage slot that will be used to store the ProtectedTokenData struct inside
-    * this TokenProxy
-    */
-    bytes32 constant ERC20_PROTECTED_TOKEN_DATA_SLOT = bytes32(uint256(keccak256("consensys.contracts.token.erc20.metadata")) - 1);
-
-    /**
-    * @notice Protected ERC20 token metadata stored in the proxy storage in a special storage slot.
-    * Includes thing such as name, symbol and deployment options.
-    * @dev This struct should only be written to inside the constructor and should be treated as readonly.
-    * Solidity 0.8.7 does not have anything for marking storage slots as read-only, so we'll just use
-    * the honor system for now.
-    * @param initialized Whether this proxy is initialized
-    * @param name The name of this ERC20 token
-    * @param symbol The symbol of this ERC20 token
-    * @param maxSupply The max supply of token allowed
-    * @param allowMint Whether minting is allowed
-    * @param allowBurn Whether burning is allowed
-    */
-    struct ProtectedTokenData {
-        bool initialized;
-        string name;
-        string symbol;
-        uint256 maxSupply;
-        bool allowMint;
-        bool allowBurn;
-    }
 
     /**
     * @notice Deploy a new ERC20 Token Proxy with a given token logic contract. You must
@@ -78,53 +50,14 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
         string memory name_, string memory symbol_, 
         bool allowMint, bool allowBurn, address owner,
         uint256 maxSupply_, address logicAddress
-    ) TokenProxy(logicAddress, owner) { 
-        require(maxSupply_ > 0, Errors.MAX_SUPPLY_ZERO);
-
+    ) TokenProxy(logicAddress, owner, abi.encode(name_, symbol_, maxSupply_)) {
         if (allowMint) {
             _addRole(owner, TOKEN_MINTER_ROLE);
         }
 
-        ProtectedTokenData storage m = _getProtectedTokenData();
-        m.name = name_;
-        m.symbol = symbol_;
-        m.maxSupply = maxSupply_;
-        m.allowMint = allowMint;
-        m.allowBurn = allowBurn;
-
         //Update the doamin seperator now that 
         //we've setup everything
         _updateDomainSeparator();
-
-        m.initialized = true;
-    }
-    
-    /**
-    * @dev A function modifier to place on minting functions to ensure those
-    * functions get disabled if minting is disabled
-    */
-    modifier mintingEnabled {
-        require(mintingAllowed(), Errors.MINTING_DISABLED);
-        _;
-    }
-
-    /**
-    * @dev A function modifier to place on burning functions to ensure those
-    * functions get disabled if burning is disabled
-    */
-    modifier burningEnabled {
-        require(burningAllowed(), Errors.BURNING_DISABLED);
-        _;
-    }
-
-    /**
-     * @dev Get the ProtectedTokenData struct stored in this contract
-     */
-    function _getProtectedTokenData() internal pure returns (ProtectedTokenData storage r) {
-        bytes32 slot = ERC20_PROTECTED_TOKEN_DATA_SLOT;
-        assembly {
-            r.slot := slot
-        }
     }
 
     /**
@@ -137,20 +70,20 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
     }
 
     /**
-    * @notice Returns true if minting is allowed on this token, otherwise false
-    */
-    function mintingAllowed() public override view returns (bool) {
-        ProtectedTokenData storage m = _getProtectedTokenData();
-        return m.allowMint;
-    }
+     * @notice Returns the remaining number of tokens that `spender` will be
+     * allowed to spend on behalf of `owner` through {transferFrom}. This is
+     * zero by default.
+     *
+     * @dev This value changes when {approve} or {transferFrom} are called.
+     * @param owner The address of the owner that owns the tokens
+     * @param spender The address of the spender that will spend owner's tokens
+     */
+    function allowance(address owner, address spender) public override view returns (uint256) {
+        (,bytes memory result) = _staticDelegateCall(abi.encodeWithSelector(this.allowance.selector, owner, spender));
 
-    /**
-    * @notice Returns true if burning is allowed on this token, otherwise false
-    */
-    function burningAllowed() public override view returns (bool) {
-        ProtectedTokenData storage m = _getProtectedTokenData();
-        return m.allowBurn;
-    }
+        return result.toUint256(0);
+     }
+
 
     /**
      * @notice Returns the amount of tokens owned by `account`.
@@ -165,35 +98,33 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
     /**
      * @notice Returns the name of the token.
      */
-    function name() public override view returns (string memory) {
-        return _getProtectedTokenData().name;
-    }
+    function name() external override view staticdelegated returns (string memory) { }
 
     /**
      * @notice Returns the symbol of the token.
      */
-    function symbol() public override view returns (string memory) {
-        return _getProtectedTokenData().symbol;
-    }
+    function symbol() external override view staticdelegated returns (string memory) { }
 
     /**
      * @notice Returns the decimals places of the token.
      */
-    function decimals() public override view staticdelegated returns (uint8) { }
+    function decimals() external override view staticdelegated returns (uint8) { }
+
+    /**
+    * @notice Returns true if burning is allowed on this token, otherwise false
+    */
+    function burningAllowed() external override view staticdelegated returns (bool) { }
+    
+    /**
+    * @notice Returns true if minting is allowed on this token, otherwise false
+    */
+    function mintingAllowed() external override view staticdelegated returns (bool) { }
     
     /**
     * @notice Execute a controlled transfer of tokens `from` -> `to`. Only addresses with
     * the token controllers role can invoke this function.
     */
-    function tokenTransfer(TransferData calldata td) external override onlyControllers returns (bool) {
-        require(td.token == address(this), Errors.INVALID_TOKEN_TRANSFER);
-
-        if (td.partition != bytes32(0)) {
-            return false; //We cannot do partition transfers
-        }
-
-        _delegateCurrentCall();
-    }
+    function tokenTransfer(TransferData calldata td) external override onlyControllers delegated returns (bool) { }
 
     /**
      * @notice Creates `amount` new tokens for `to`.
@@ -211,7 +142,10 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
     /// #if_succeeds {:msg "The to address balance increases"} old(balanceOf(to)) + amount == balanceOf(to)
     /// #if_succeeds {:msg "The total supply has increases as expected"} old(totalSupply()) + amount == totalSupply()
     /// #if_succeeds {:msg "The total supply is not bigger than the max cap"} old(totalSupply()) + amount <= _getProtectedTokenData().maxSupply
-    function mint(address to, uint256 amount) public override virtual onlyMinter mintingEnabled delegated returns (bool) { }
+    function mint(
+        address to, 
+        uint256 amount
+    ) external override virtual onlyMinter delegated returns (bool) { }
 
     /**
      * @notice Destroys `amount` tokens from the caller.
@@ -224,7 +158,9 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
     /// #if_succeeds {:msg "There's enough in total supply to burn"} old(totalSupply()) <= amount
     /// #if_succeeds {:msg "The to address balance decreased as expected"} old(balanceOf(_msgSender())) - amount == balanceOf(_msgSender())
     /// #if_succeeds {:msg "The total supply has decreased as expected"} old(totalSupply()) - amount == totalSupply()
-    function burn(uint256 amount) public override virtual burningEnabled delegated returns (bool) { }
+    function burn(
+        uint256 amount
+    ) external override virtual delegated returns (bool) { }
     
     /**
      * @notice Destroys `amount` tokens from `account`, deducting from the caller's
@@ -246,7 +182,10 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
     /// #if_succeeds {:msg "The to address balance decreased as expected"} old(balanceOf(account)) - amount == balanceOf(account)
     /// #if_succeeds {:msg "The total supply has decreased as expected"} old(totalSupply()) - amount == totalSupply()
     /// #if_succeeds {:msg "The operator's balance does not change"} old(balanceOf(_msgSender())) == balanceOf(_msgSender())
-    function burnFrom(address account, uint256 amount) public override virtual burningEnabled delegated returns (bool) { }
+    function burnFrom(
+        address account, 
+        uint256 amount
+    ) external override virtual delegated returns (bool) { }
 
     /**
      * @notice Moves `amount` tokens from the caller's account to `recipient`, passing arbitrary data to 
@@ -262,16 +201,16 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
     /// #if_succeeds {:msg "The sender has amount less balance"} _msgSender() != recipient ==> old(balanceOf(_msgSender())) - amount == balanceOf(_msgSender());
     /// #if_succeeds {:msg "The receiver receives amount"} _msgSender() != recipient ==> old(balanceOf(recipient)) + amount == balanceOf(recipient);
     /// #if_succeeds {:msg "Transfer to self won't change the senders balance" } _msgSender() == recipient ==> old(balanceOf(_msgSender())) == balanceOf(_msgSender());
-    function transferWithData(address recipient, uint256 amount, bytes calldata data) public returns (bool) {
-        bytes memory normalData = abi.encodeWithSelector(IERC20Upgradeable.transfer.selector, recipient, amount);
-
-        //append any extra data packed
-        bytes memory cdata = abi.encodePacked(normalData, data);
-
-        (bool result,) = _delegatecall(cdata);
-
-        return result;
-    }
+    function transferWithData(
+        address recipient, 
+        uint256 amount, 
+        bytes calldata data
+    ) external delegatedWith(
+        abi.encodePacked(
+            abi.encodeWithSelector(IERC20Upgradeable.transfer.selector, recipient, amount),
+            data
+        )
+    ) returns (bool) { }
     
     /**
      * @notice Moves `amount` tokens from the caller's account to `recipient`, passing arbitrary data to 
@@ -288,13 +227,17 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
     /// #if_succeeds {:msg "The operator's balance doesnt change if its not the receiver"} _msgSender() != recipient ==> old(balanceOf(_msgSender())) == balanceOf(_msgSender());
     /// #if_succeeds {:msg "The receiver receives amount"} sender != recipient ==> old(balanceOf(recipient)) + amount == balanceOf(recipient);
     /// #if_succeeds {:msg "Transfer to self won't change the senders balance" } sender == recipient ==> old(balanceOf(recipient) == balanceOf(recipient));
-    function transferFromWithData(address sender, address recipient, uint256 amount, bytes calldata data) public returns (bool) {
-        bytes memory cdata = abi.encodeWithSelector(IERC20Upgradeable.transferFrom.selector, sender, recipient, amount, data);
-
-        (bool result,) = _delegatecall(cdata);
-
-        return result;
-    }
+    function transferFromWithData(
+        address sender, 
+        address recipient, 
+        uint256 amount, 
+        bytes calldata data
+    ) external delegatedWith(
+        abi.encodePacked(
+            abi.encodeWithSelector(IERC20Upgradeable.transferFrom.selector, sender, recipient, amount),
+            data
+        )
+    ) returns (bool) { }
 
     /**
      * @notice Moves `amount` tokens from the caller's account to `recipient`.
@@ -309,7 +252,10 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
     /// #if_succeeds {:msg "The sender has amount less balance"} _msgSender() != recipient ==> old(balanceOf(_msgSender())) - amount == balanceOf(_msgSender());
     /// #if_succeeds {:msg "The receiver receives amount"} _msgSender() != recipient ==> old(balanceOf(recipient)) + amount == balanceOf(recipient);
     /// #if_succeeds {:msg "Transfer to self won't change the senders balance" } _msgSender() == recipient ==> old(balanceOf(_msgSender())) == balanceOf(_msgSender());
-    function transfer(address recipient, uint256 amount) public override delegated returns (bool) { }
+    function transfer(
+        address recipient, 
+        uint256 amount
+    ) external override delegated returns (bool) { }
 
     /**
      * @notice Sets `amount` as the allowance of `spender` over the caller's tokens.
@@ -330,22 +276,9 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
     /// #if_succeeds {:msg "The spender's balance doesnt change"} old(balanceOf(spender)) == balanceOf(spender);
     /// #if_succeeds {:msg "The owner's balance doesnt change"} old(balanceOf(_msgSender())) == balanceOf(_msgSender());
     /// #if_succeeds {:msg "The spender's allowance increases as expected"} old(allowance(_msgSender(), spender)) + amount == allowance(_msgSender(), spender);
-    function approve(address spender, uint256 amount) public override delegated returns (bool) { }
-
-    /**
-     * @notice Returns the remaining number of tokens that `spender` will be
-     * allowed to spend on behalf of `owner` through {transferFrom}. This is
-     * zero by default.
-     *
-     * @dev This value changes when {approve} or {transferFrom} are called.
-     * @param owner The address of the owner that owns the tokens
-     * @param spender The address of the spender that will spend owner's tokens
-     */
-    function allowance(address owner, address spender) public override view returns (uint256) {
-        (,bytes memory result) = _staticDelegateCall(abi.encodeWithSelector(this.allowance.selector, owner, spender));
-
-        return result.toUint256(0);
-     }
+    function approve(
+        address spender, uint256 amount
+    ) external override delegated returns (bool) { }
 
     /**
      * @notice Moves `amount` tokens from `sender` to `recipient` using the
@@ -368,7 +301,7 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
         address sender,
         address recipient,
         uint256 amount
-    ) public override delegated returns (bool) { }
+    ) external override delegated returns (bool) { }
 
     /** 
      * @notice Atomically increases the allowance granted to `spender` by the caller.
@@ -384,7 +317,9 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
      * @param spender The address that will be given the allownace increase
      * @param addedValue How much the allowance should be increased by
      */
-    function increaseAllowance(address spender, uint256 addedValue) public override virtual delegated returns (bool) { }
+    function increaseAllowance(
+        address spender, uint256 addedValue
+    ) external override virtual delegated returns (bool) { }
 
     /**
      * @notice Atomically decreases the allowance granted to `spender` by the caller.
@@ -402,7 +337,10 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
      * @param spender The address that will be given the allownace decrease
      * @param subtractedValue How much the allowance should be decreased by
      */
-    function decreaseAllowance(address spender, uint256 subtractedValue) public override virtual delegated returns (bool) { }
+    function decreaseAllowance(
+        address spender, 
+        uint256 subtractedValue
+    ) external override virtual delegated returns (bool) { }
 
     /**
      * @dev Creates `amount` new tokens for `to`.
@@ -418,21 +356,5 @@ contract ERC20Proxy is ERC20TokenInterface, TokenProxy, IERC20Proxy {
     function _mint(address receipient, uint256 amount) internal returns (bool) {
         (bool result,) = _delegatecall(abi.encodeWithSelector(IERC20Proxy.mint.selector, receipient, amount));
         return result;
-    }
-
-    /**
-    * @dev The domain name of this ERC20 Token Proxy will be the ERC20 Token name().
-    * This value does not change.
-    */
-    function _domainName() internal virtual override view returns (bytes memory) {
-        return bytes(name());
-    }
-
-    /**
-    * @notice This Token Proxy supports the ERC20 standard
-    * @dev This value does not change, will always return TokenStandard.ERC20
-    */
-    function tokenStandard() external pure override returns (TokenStandard) {
-        return TokenStandard.ERC20;
     }
 }

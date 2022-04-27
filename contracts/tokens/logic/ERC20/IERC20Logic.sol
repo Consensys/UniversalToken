@@ -9,6 +9,16 @@ import {IERC20MetadataUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/
 */
 interface IERC20Logic is IERC20MetadataUpgradeable, ITokenLogic {
     /**
+    * @notice Returns true if minting is allowed on this token, otherwise false
+    */
+    function mintingAllowed() external view returns (bool);
+
+    /**
+    * @notice Returns true if burning is allowed on this token, otherwise false
+    */
+    function burningAllowed() external view returns (bool);
+
+    /**
      * @notice Destroys `amount` tokens from the caller.
      *
      * @dev See {ERC20-_burn}.

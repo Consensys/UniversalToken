@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-interface IRegisteredFunctionLookup {
+interface IExternalFunctionLookup {
     /**
     * @notice An array of function signatures this extension adds when
     * registered when a TokenProxy

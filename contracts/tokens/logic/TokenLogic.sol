@@ -8,7 +8,8 @@ import {ERC1820Implementer} from "../../erc1820/ERC1820Implementer.sol";
 import {TokenERC1820Provider} from "../TokenERC1820Provider.sol";
 import {StorageSlotUpgradeable} from "@gnus.ai/contracts-upgradeable-diamond/utils/StorageSlotUpgradeable.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
-import {RegisteredFunctionLookup} from "../../tools/RegisteredFunctionLookup.sol";
+import {ExternalFunctionStorageBase} from "../../tools/ExternalFunctionStorageBase.sol";
+import "hardhat/console.sol";
 
 /**
 * @title Base Token Logic Contract
@@ -24,7 +25,7 @@ import {RegisteredFunctionLookup} from "../../tools/RegisteredFunctionLookup.sol
 * The child contract should override _onInitialize to determine how the logic contract should initalize
 * when it's attached to a proxy. This occurs during deployment and during upgrading.
 */
-abstract contract TokenLogic is TokenERC1820Provider, TokenRoles, ExtendableHooks, RegisteredFunctionLookup, ITokenLogic {
+abstract contract TokenLogic is TokenERC1820Provider, TokenRoles, ExtendableHooks, ExternalFunctionStorageBase, ITokenLogic {
     using BytesLib for bytes;
 
         
@@ -45,8 +46,6 @@ abstract contract TokenLogic is TokenERC1820Provider, TokenRoles, ExtendableHook
     constructor() {
         ERC1820Client.setInterfaceImplementation(__tokenLogicInterfaceName(), address(this));
         ERC1820Implementer._setInterface(__tokenLogicInterfaceName()); // For migration
-
-
     }
 
     function _resetTransferCallData() internal {
@@ -92,7 +91,9 @@ abstract contract TokenLogic is TokenERC1820Provider, TokenRoles, ExtendableHook
     * @param data The data to initalize with
     */
     function initialize(bytes memory data) external override {
+        console.log("Got data with size %s", data.length);
         uint256 upgradeChallengeCheck = StorageSlotUpgradeable.getUint256Slot(UPGRADING_FLAG_SLOT).value;
+        console.log("Expected it to be %s", upgradeChallengeCheck);
         require(upgradeChallengeCheck != 0 && upgradeChallengeCheck == data.length, "The contract is not upgrading or was invoked incorrectly");
 
         require(_onInitialize(data), "Initialize failed");

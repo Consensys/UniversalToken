@@ -29,6 +29,7 @@ struct TransferData {
 * @notice An enum of different token standards by name
 */
 enum TokenStandard {
+    UNKNOWN,
     ERC20,
     ERC721,
     ERC1400,
@@ -51,9 +52,9 @@ interface IToken {
     function tokenTransfer(TransferData calldata transfer) external returns (bool);
 
     /**
-    * @notice A function to determine what token standard this token implements. This
-    * is a pure function, meaning the value should not change
+    * @notice A function to determine what token standard this token implements. The
+    * value return by this function should not change.
     * @return TokenStandard The token standard this token implements
     */
-    function tokenStandard() external pure returns (TokenStandard);
+    function tokenStandard() external view returns (TokenStandard);
 }

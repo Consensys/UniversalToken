@@ -1,14 +1,14 @@
 pragma solidity ^0.8.0;
 
 import {TokenStandard} from "../tokens/IToken.sol";
-import {IRegisteredFunctionLookup} from "./IRegisteredFunctionLookup.sol";
+import {IExternalFunctionLookup} from "./IExternalFunctionLookup.sol";
 
 /**
 * @title Extension Metadata Interface
 * @dev An interface that extensions must implement that provides additional
 * metadata about the extension. 
 */
-interface IExtensionMetadata is IRegisteredFunctionLookup {
+interface IExtensionMetadata is IExternalFunctionLookup {
     /**
     * @notice Whether a given Token standard is supported by this Extension
     * @param standard The standard to check support for

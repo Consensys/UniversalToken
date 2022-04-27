@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
-import {IRegisteredFunctionLookup} from "../interface/IRegisteredFunctionLookup.sol";
+import {IExternalFunctionLookup} from "../interface/IExternalFunctionLookup.sol";
 
-abstract contract RegisteredFunctionLookup is IRegisteredFunctionLookup {
+abstract contract ExternalFunctionStorageBase is IExternalFunctionLookup {
     bytes32 constant FUNC_DATA_SLOT = keccak256("consensys.contracts.token.ext.storage.meta");
 
     /**
@@ -12,14 +12,14 @@ abstract contract RegisteredFunctionLookup is IRegisteredFunctionLookup {
     * to the storage is prohibited outside of a constructor.
     * @param _exposedFuncSigs An array of function selectors this Extension exposes to a Proxy or Diamond
     */
-    struct RegisteredFunctions {
+    struct ExternalFunctionStorage {
         bytes4[] _exposedFuncSigs;
     }
 
     /**
     * @dev The ProxyData struct stored in this registered Extension instance.
     */
-    function __registeredFunctionData() private pure returns (RegisteredFunctions storage ds) {
+    function __externalFunctionStorage() private pure returns (ExternalFunctionStorage storage ds) {
         bytes32 position = FUNC_DATA_SLOT;
         assembly {
             ds.slot := position
@@ -39,11 +39,11 @@ abstract contract RegisteredFunctionLookup is IRegisteredFunctionLookup {
 
     function _registerFunction(bytes4 selector) internal {
         require(__isInsideConstructorCall(), "Function must be called inside the constructor");
-        __registeredFunctionData()._exposedFuncSigs.push(selector);
+        __externalFunctionStorage()._exposedFuncSigs.push(selector);
     }
 
     
     function externalFunctions() external override view returns (bytes4[] memory) {
-        return __registeredFunctionData()._exposedFuncSigs;
+        return __externalFunctionStorage()._exposedFuncSigs;
     }
 } 

@@ -12,7 +12,9 @@ import {ExtendableDiamond} from "../extension/ExtendableDiamond.sol";
 import {IExtension} from "../../interface/IExtension.sol";
 import {LibDiamond} from "../../diamond/libraries/LibDiamond.sol";
 import {IDiamondCut} from "../../diamond/interfaces/IDiamondCut.sol";
-import {IRegisteredFunctionLookup} from "../../interface/IRegisteredFunctionLookup.sol";
+import {IExternalFunctionLookup} from "../../interface/IExternalFunctionLookup.sol";
+import {INameable} from "../../interface/INameable.sol";
+import {TokenStandard, TransferData} from "../IToken.sol";
 
 /**
 * @title Token Proxy base Contract
@@ -58,7 +60,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
     * @param logicAddress The address to use for the logic contract. Must be non-zero
     * @param owner The address to use as the owner + manager.
     */
-    constructor(address logicAddress, address owner) {
+    constructor(address logicAddress, address owner, bytes memory initalizeCalldata) {
         if (owner != address(0) && owner != _msgSender()) {
             transferOwnership(owner);
             StorageSlotUpgradeable.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = owner;
@@ -74,7 +76,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
 
         require(logicAddress != address(0), Errors.NO_LOGIC_ADDRESS);
 
-        _setLogic(logicAddress);
+        _setLogic(logicAddress, initalizeCalldata);
 
         //Extensions can do controlled transfers
         _addRole(address(this), TOKEN_CONTROLLER_ROLE);
@@ -111,29 +113,55 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
     * use upgradeTo. This function side-steps some side-effects such as emitting the Upgraded
     * event
     */
-    function _setLogic(address logic) internal {
+    function _setLogic(address logic, bytes memory _initCalldata) internal {
         require(logic == interfaceAddr(logic, __tokenLogicInterfaceName()), "Not registered as a logic contract");
 
         bytes32 LOGIC_LOCATION = bytes32(uint256(keccak256('token.proxy.implementation')) - 1);
+        StorageSlotUpgradeable.AddressSlot storage logicStorage = StorageSlotUpgradeable.getAddressSlot(LOGIC_LOCATION);
+
+        IDiamondCut.FacetCut[] memory _diamondCut;
+        if (logicStorage.value != address(0)) {
+            //If a logic contract is already set, we are removing and then adding
+            //a diamond facet to simulate an upgrade
+            _diamondCut = new IDiamondCut.FacetCut[](2);
+            //Remove the diamond facet first before re-adding the new diamond facet
+
+            //Lets figure out what external functions to remove from the TokenLogic contract given
+            bytes4[] memory functionsToRemove = IExternalFunctionLookup(logicStorage.value).externalFunctions();
+
+            _diamondCut[0] = IDiamondCut.FacetCut(
+                logicStorage.value,
+                IDiamondCut.FacetCutAction.Remove,
+                functionsToRemove
+            );
+        } else {
+            //We are only adding a new diamond facet
+            _diamondCut = new IDiamondCut.FacetCut[](1);
+        }
 
         //Update registry
         setInterfaceImplementation(__tokenLogicInterfaceName(), logic);
         
         //Update Storage Slot so we can grab this later
-        StorageSlotUpgradeable.getAddressSlot(LOGIC_LOCATION).value = logic;
+        logicStorage.value = logic;
 
         //Interfaces has been validated, lets create diamond facet
         //Next lets figure out what external functions to register from the TokenLogic contract given
-        bytes4[] memory externalFunctions = IRegisteredFunctionLookup(logic).externalFunctions();
+        bytes4[] memory externalFunctions = IExternalFunctionLookup(logic).externalFunctions();
 
-        IDiamondCut.FacetCut[] memory _diamondCut = new IDiamondCut.FacetCut[](1);
         _diamondCut[0] = IDiamondCut.FacetCut(
             logic,
             IDiamondCut.FacetCutAction.Add,
             externalFunctions
         );
-        bytes memory initCalldata = abi.encodePacked(abi.encodeWithSelector(IExtension.initialize.selector), logic);
+
+        bytes memory initCalldata = abi.encodePacked(abi.encodeWithSelector(IExtension.initialize.selector), _initCalldata, logic);
+
+        StorageSlotUpgradeable.getUint256Slot(UPGRADING_FLAG_SLOT).value = _initCalldata.length;
+
         LibDiamond.diamondCut(_diamondCut, logic, initCalldata);
+
+        StorageSlotUpgradeable.getUint256Slot(UPGRADING_FLAG_SLOT).value = 0;
     }
     
     /**
@@ -143,26 +171,14 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
     * logic contract and (optionally) some arbitrary data to pass to
     * the logic contract's initialize function.
     * @param logic The address of the new logic contract
-    * @param data Any arbitrary data, will be passed to the new logic contract's initialize function
+    * @param initCalldata Any arbitrary data, will be passed to the new logic contract's initialize function
     */
-    function upgradeTo(address logic, bytes memory data) external override onlyManager {
-        if (data.length == 0) {
-            data = bytes("f");
+    function upgradeTo(address logic, bytes memory initCalldata) external override onlyManager {
+        if (initCalldata.length == 0) {
+            initCalldata = bytes("f");
         }
-        
-        StorageSlotUpgradeable.getUint256Slot(UPGRADING_FLAG_SLOT).value = data.length;
 
-        _setLogic(logic);
-
-        //invoke the initialize function whenever we upgrade
-        (bool success,) = _delegatecall(
-            abi.encodeWithSelector(ITokenLogic.initialize.selector, data)
-        );
-
-        //Invoke initialize
-        require(success, Errors.LOGIC_INIT_FAILED);
-
-        StorageSlotUpgradeable.getUint256Slot(UPGRADING_FLAG_SLOT).value = 0;
+        _setLogic(logic, initCalldata);
 
         emit Upgraded(logic);
     }
@@ -281,7 +297,29 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
     * Any data returned by the logic contract is returned to the current caller
     */
     modifier delegated {
+        //Invoke with current msg.data
         _delegateCurrentCall();
+        _;
+    }
+
+    modifier delegatedWith(bytes memory __msgData) {
+        //Invoke with given msg.data
+        _delegatecallAndReturn(__msgData);
+        _;
+    }
+
+    modifier delegatedThrough(bytes4 funcSelector) {
+        //Grab original msg.data
+        bytes memory __msgData = _msgData();
+
+        //Grab msg.data[4:] or everything after the first 4 bytes
+        bytes memory msgDataNoFunc = __msgData.slice(4, __msgData.length - 4);
+
+        //Create a new msg.data with the overriden funcSelector
+        bytes memory updatedCalldata = abi.encodePacked(funcSelector, msgDataNoFunc);
+
+        //Invoke
+        _delegatecallAndReturn(updatedCalldata);
         _;
     }
 
@@ -449,4 +487,19 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
     function _domainVersion() internal virtual override view returns (bytes32) {
         return bytes32(uint256(uint160(_getLogicContractAddress())));
     }
+
+    /**
+    * @dev The domain name of this Token Proxy. By default, the Token Proxy assumes
+    * the logic contract implements the INameable interface and grabs the name
+    * using the logic contract code
+    */
+    function _domainName() internal virtual override view returns (bytes memory result) {
+        (,result) = _staticDelegateCall(abi.encodeWithSelector(INameable.name.selector));
+    }
+
+    /**
+    * @dev What token standard this Token Proxy supports. By default, the Token Proxy
+    * will forward this call to the logic contract
+    */
+    function tokenStandard() external view override staticdelegated returns (TokenStandard) { }
 }

@@ -5,6 +5,7 @@ import {TransferData, TokenStandard} from "../../IToken.sol";
 import {ExtendableHooks} from "../../extension/ExtendableHooks.sol";
 import {ERC20Upgradeable} from "@gnus.ai/contracts-upgradeable-diamond/token/ERC20/ERC20Upgradeable.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
+import {Errors} from "../../../helpers/Errors.sol";
 import {ERC20TokenInterface} from "../../registry/ERC20TokenInterface.sol";
 
 /**
@@ -34,11 +35,45 @@ import {ERC20TokenInterface} from "../../registry/ERC20TokenInterface.sol";
 contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     using BytesLib for bytes;
 
+    constructor() {
+        //Register metadata functions
+        _registerFunction(this.name.selector);
+        _registerFunction(this.symbol.selector);
+        _registerFunction(this.decimals.selector);
+        _registerFunction(this.tokenStandard.selector);
+
+        //Register view functions
+        _registerFunction(this.totalSupply.selector);
+        _registerFunction(this.balanceOf.selector);
+        _registerFunction(this.allowance.selector);
+
+        //Register restriction functions
+        _registerFunction(this.mintingAllowed.selector);
+        _registerFunction(this.burningAllowed.selector);
+        
+        //Register mint function
+        _registerFunction(this.mint.selector);
+
+        //Register burning functions
+        _registerFunction(this.burn.selector);
+        _registerFunction(this.burnFrom.selector);
+
+        //Register transfer functions
+        _registerFunction(this.tokenTransfer.selector);
+        _registerFunction(this.transfer.selector);
+        _registerFunction(this.transferFrom.selector);
+
+        //Register approval functions
+        _registerFunction(this.approve.selector);
+        _registerFunction(this.increaseAllowance.selector);
+        _registerFunction(this.decreaseAllowance.selector);
+    }
+
     /**
     * @dev The storage slot that will be used to store the ProtectedTokenData struct inside
     * this TokenProxy
     */
-    bytes32 constant ERC20_PROTECTED_TOKEN_DATA_SLOT = bytes32(uint256(keccak256("consensys.contracts.token.erc20.metadata")) - 1);
+    bytes32 constant ERC20_TOKEN_OPTION_SLOT = bytes32(uint256(keccak256("consensys.contracts.token.erc20.metadata")) - 1);
 
     /**
     * @notice Protected ERC20 token metadata stored in the proxy storage in a special storage slot.
@@ -46,27 +81,39 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     * @dev This struct should only be written to inside the constructor and should be treated as readonly.
     * Solidity 0.8.7 does not have anything for marking storage slots as read-only, so we'll just use
     * the honor system for now.
-    * @param initialized Whether this proxy is initialized
-    * @param name The name of this ERC20 token
-    * @param symbol The symbol of this ERC20 token
     * @param maxSupply The max supply of token allowed
     * @param allowMint Whether minting is allowed
     * @param allowBurn Whether burning is allowed
     */
-    struct ProtectedTokenData {
-        bool initialized;
-        string name;
-        string symbol;
+    struct TokenOptionsStorage {
         uint256 maxSupply;
         bool allowMint;
         bool allowBurn;
     }
 
     /**
+    * @dev A function modifier to place on minting functions to ensure those
+    * functions get disabled if minting is disabled
+    */
+    modifier mintingEnabled {
+        require(mintingAllowed(), Errors.MINTING_DISABLED);
+        _;
+    }
+
+    /**
+    * @dev A function modifier to place on burning functions to ensure those
+    * functions get disabled if burning is disabled
+    */
+    modifier burningEnabled {
+        require(burningAllowed(), Errors.BURNING_DISABLED);
+        _;
+    }
+
+    /**
      * @dev Get the ProtectedTokenData struct stored in this contract
      */
-    function _getProtectedTokenData() internal pure returns (ProtectedTokenData storage r) {
-        bytes32 slot = ERC20_PROTECTED_TOKEN_DATA_SLOT;
+    function _getTokenOptions() internal pure returns (TokenOptionsStorage storage r) {
+        bytes32 slot = ERC20_TOKEN_OPTION_SLOT;
         assembly {
             r.slot := slot
         }
@@ -75,7 +122,23 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     /**
     * @dev We don't need to do anything here
     */
-    function _onInitialize(bytes memory) internal virtual override returns (bool) {
+    function _onInitialize(bytes memory initData) internal initializer virtual override returns (bool) {
+        (
+            string memory _name, 
+            string memory _symbol, 
+            uint256 _maxSupply,
+            bool _allowMint,
+            bool _allowBurn
+        ) = abi.decode(initData, (string, string, uint256, bool, bool));
+
+        require(_maxSupply > 0, Errors.MAX_SUPPLY_ZERO);
+
+        TokenOptionsStorage storage m = _getTokenOptions();
+        m.maxSupply = _maxSupply;
+        m.allowMint = _allowMint;
+        m.allowBurn = _allowBurn;
+
+        __ERC20_init(_name, _symbol);
         return true;
     }
 
@@ -146,6 +209,22 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     }
 
     /**
+    * @notice Returns true if minting is allowed on this token, otherwise false
+    */
+    function mintingAllowed() public view returns (bool) {
+        TokenOptionsStorage storage m = _getTokenOptions();
+        return m.allowMint;
+    }
+
+    /**
+    * @notice Returns true if burning is allowed on this token, otherwise false
+    */
+    function burningAllowed() public view returns (bool) {
+        TokenOptionsStorage storage m = _getTokenOptions();
+        return m.allowBurn;
+    }
+
+    /**
     * @dev Mints `amount` tokens and sends to `to` address.
     * Only an address with the Minter role can invoke this function
     * @param to The recipient of the minted tokens
@@ -153,7 +232,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     */
     function mint(address to, uint256 amount) external virtual onlyMinter returns (bool) {
         _mint(to, amount);
-        require(totalSupply() <= _getProtectedTokenData().maxSupply, "Max supply has been exceeded");
+        require(totalSupply() <= _getTokenOptions().maxSupply, "Max supply has been exceeded");
         return true;
     }
 

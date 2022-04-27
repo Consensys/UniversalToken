@@ -7,9 +7,9 @@ import {TokenRoles} from "../roles/TokenRoles.sol";
 import {IERC20Proxy} from "../tokens/proxy/ERC20/IERC20Proxy.sol";
 import {IToken} from "../tokens/IToken.sol";
 import {TokenEventListener} from "../tokens/extension/TokenEventListener.sol";
-import {RegisteredFunctionLookup} from "../tools/RegisteredFunctionLookup.sol";
+import {ExternalFunctionStorageBase} from "../tools/ExternalFunctionStorageBase.sol";
 
-abstract contract TokenExtension is TokenEventListener, RegisteredFunctionLookup, ExtensionBase, TokenRoles, IExtension {
+abstract contract TokenExtension is TokenEventListener, ExternalFunctionStorageBase, ExtensionBase, TokenRoles, IExtension {
     bytes32 constant EXT_DATA_SLOT = keccak256("consensys.contracts.token.ext.storage.meta");
 
     /**
