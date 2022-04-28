@@ -1,7 +1,7 @@
 
 /**
 * @title Extension Registration Storage
-* @notice Internal functions and definations to access extension registration on the current
+* @notice Internal functions and definitions to access extension registration on the current
 * token
 * @dev This contract should be inherited from any other contract (include extensions/facets) that
 * wish to access the extensions registered. For the sake of contract size, this is intentionally left
