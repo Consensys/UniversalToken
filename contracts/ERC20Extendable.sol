@@ -12,7 +12,9 @@ contract ERC20Extendable is ERC20Proxy {
     ) ERC20Proxy(name_, symbol_, allowMint, allowBurn, owner, maxSupply, logicAddress) {
         initalSupply = _initalSupply;
 
-        if (owner != _msgSender()) {
+        bool isNotOwner = owner != _msgSender();
+
+        if (isNotOwner) {
             //Temporaroly add minter role to msg.sender
             //If the sender is not the final owner
             _addRole(_msgSender(), TOKEN_MINTER_ROLE); 
@@ -20,7 +22,7 @@ contract ERC20Extendable is ERC20Proxy {
 
         _mint(owner, initalSupply);
 
-        if (owner != _msgSender()) {
+        if (isNotOwner) {
             //Remove after mint is complete
             //If the sender is not the final owner
             _removeRole(_msgSender(), TOKEN_MINTER_ROLE);

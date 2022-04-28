@@ -70,7 +70,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, E
         _setInterface(EXTENDABLE_INTERFACE_NAME); // For migration
 
         require(logicAddress != address(0), Errors.NO_LOGIC_ADDRESS);
-        require(logicAddress == interfaceAddr(logicAddress, __tokenLogicInterfaceName()), "Not registered as a logic contract");
+        require(logicAddress == interfaceAddr(logicAddress, __tokenLogicInterfaceName()), Errors.NOT_A_LOGIC_CONTRACT);
 
         _setLogic(logicAddress);
 

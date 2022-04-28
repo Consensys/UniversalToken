@@ -71,4 +71,14 @@ library Errors {
     string public constant BURNING_DISABLED = '57'; // Burning is disabled
     string public constant INVALID_TOKEN_TRANSFER = '58'; // Invalid token
 
+    string public constant NOT_A_LOGIC_CONTRACT = '59'; // Not registered as a logic contract
+    string public constant EXTENSION_ALREADY_EXISTS = '60'; // The extension must not already exist
+    string public constant EXTENSION_DOESNT_EXISTS = '61'; // The extension must not already exist
+
+    string public constant DEPLOYERS_DONT_MATCH = '62'; // Deployer address for new extension is different than current
+    string public constant PACKAGE_HASH_DONT_MATCH = '63'; // Package for new extension is different than current
+    string public constant VERSION_DONT_MATCH = '64'; // Versions should not match
+    string public constant INTERFACE_LABELS_DONT_MATCH = '65'; // Interface labels do not match
+    string public constant EXTENSION_DISABLED = '66'; // Extension is disabled
+    string public constant EXTENSION_ENABLED = '67'; // Extension is already enabled
 }
