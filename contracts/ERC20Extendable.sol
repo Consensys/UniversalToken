@@ -11,6 +11,19 @@ contract ERC20Extendable is ERC20Proxy {
         uint256 maxSupply, address logicAddress
     ) ERC20Proxy(name_, symbol_, allowMint, allowBurn, owner, maxSupply, logicAddress) {
         initalSupply = _initalSupply;
+
+        if (owner != _msgSender()) {
+            //Temporaroly add minter role to msg.sender
+            //If the sender is not the final owner
+            _addRole(_msgSender(), TOKEN_MINTER_ROLE); 
+        }
+        
         _mint(owner, initalSupply);
+
+        if (owner != _msgSender()) {
+            //Remove after mint is complete
+            //If the sender is not the final owner
+            _removeRole(_msgSender(), TOKEN_MINTER_ROLE);
+        }
     }
 }

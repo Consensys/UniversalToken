@@ -35,8 +35,6 @@ contract ExtendableProxy is ExtendableBase {
 
         // Execute external function from facet using call and return any value.
         assembly {
-            // copy function selector and any arguments
-            calldatacopy(0, 0, calldatasize())
             // execute function call using the facet
             let result := call(gas(), toCall, value, add(finalData, 0x20), mload(finalData), 0, 0)
             // get any return value
