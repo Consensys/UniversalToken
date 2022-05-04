@@ -5,11 +5,11 @@
 // Runtime Environment's members available in the global scope.
 const hre = require("hardhat");
 const {
-    nowSeconds,
-    advanceTime,
-    takeSnapshot,
-    revertToSnapshot,
-  } = require("../test/utils/time");
+  nowSeconds,
+  advanceTime,
+  takeSnapshot,
+  revertToSnapshot,
+} = require("../test/utils/time");
 const { newSecretHashPair } = require("../test/utils/crypto");
 const { web3 } = require("@openzeppelin/test-helpers/src/setup");
 
@@ -38,7 +38,7 @@ async function main() {
   
   const HoldExtension = await hre.ethers.getContractFactory("HoldExtension");
 
-  const ERC20Extendable = await hre.ethers.getContractFactory("ERC20Extendable");
+  const ERC20Extendable = await hre.ethers.getContractFactory("ERC20");
 
   console.log("Deploy token test");
 

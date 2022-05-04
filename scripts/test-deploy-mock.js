@@ -26,7 +26,7 @@ async function main() {
   
   const PauseExtension = await hre.ethers.getContractFactory("PauseExtension");
 
-  const ERC20Extendable = await hre.ethers.getContractFactory("ERC20Extendable");
+  const ERC20Extendable = await hre.ethers.getContractFactory("ERC20");
   const erc20 = await ERC20Extendable.attach("0x7DB654D584B62f1047fD317b3d6faF546CBD8898");
 
   const pauseToken = await PauseExtension.attach("0x7DB654D584B62f1047fD317b3d6faF546CBD8898");

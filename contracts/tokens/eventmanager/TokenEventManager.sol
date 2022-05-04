@@ -5,6 +5,7 @@ import {TokenEventConstants} from "./TokenEventConstants.sol";
 import {ITokenEventManager} from "./ITokenEventManager.sol";
 import {RegisteredExtensionStorage} from "../storage/RegisteredExtensionStorage.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
+import {TokenEventManagerStorage} from "../storage/TokenEventManagerStorage.sol";
 
 /**
 * @title Transfer Hooks for Extensions
@@ -12,20 +13,7 @@ import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/Cont
 * @dev ExtendableHooks provides the _triggerTokenTransferEvent and _triggerTokenApproveEvent internal
 * function that can be used to notify extensions when a transfer/approval occurs.
 */
-abstract contract TokenEventManager is RegisteredExtensionStorage, ContextUpgradeable, TokenEventConstants, ITokenEventManager {
-
-    bytes32 constant internal EVENT_MANAGER_DATA_SLOT = keccak256("token.transferdata.events");
-
-    struct EventManagerData {
-        mapping(bytes32 => SavedCallbackFunction[]) listeners;
-    }
-
-    function eventManagerData() internal pure returns (EventManagerData storage ds) {
-        bytes32 position = EVENT_MANAGER_DATA_SLOT;
-        assembly {
-            ds.slot := position
-        }
-    }
+abstract contract TokenEventManager is TokenEventManagerStorage, RegisteredExtensionStorage, ContextUpgradeable, TokenEventConstants, ITokenEventManager {
 
     function _extensionState(address ext) internal view returns (ExtensionState) {
         return _addressToExtensionData(ext).state;
@@ -38,17 +26,22 @@ abstract contract TokenEventManager is RegisteredExtensionStorage, ContextUpgrad
     * the event appended to the end of the calldata. This can usually be accessed using _msgSender()
     */
     function on(bytes32 eventId, function (TransferData memory) external returns (bool) callback) external override onlyActiveExtension {
-        eventManagerData().listeners[eventId].push(SavedCallbackFunction(callback));
+        _on(eventId, callback);
     }
 
     function _trigger(bytes32 eventId, TransferData memory data) internal {
-        SavedCallbackFunction[] storage callbacks = eventManagerData().listeners[eventId];
+        EventManagerData storage emd = eventManagerData();
+
+        SavedCallbackFunction[] storage callbacks = emd.listeners[eventId];
+        
+        require(!emd.isFiring[eventId], "Recursive trigger not allowed");
+        
+        emd.eventFiringStack++;
+        emd.isFiring[eventId] = true;
 
         for (uint i = 0; i < callbacks.length; i++) {
-            bytes4 listenerFuncSelector = callbacks[i].func.selector;
-
-            /* solhint-disable-next-line */
-            address listenerAddress = callbacks[i].func.address;
+            bytes4 listenerFuncSelector = callbacks[i].callbackSelector;
+            address listenerAddress = callbacks[i].callbackAddress;
 
             if (_extensionState(listenerAddress) == ExtensionState.EXTENSION_DISABLED) {
                 continue; //Skip disabled extensions
@@ -60,6 +53,9 @@ abstract contract TokenEventManager is RegisteredExtensionStorage, ContextUpgrad
 
             require(success, string(result));
         }
+        
+        emd.isFiring[eventId] = false;
+        emd.eventFiringStack--;
     }
 
     /**

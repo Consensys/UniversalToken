@@ -30,7 +30,7 @@ async function main() {
 
   console.log("Deploy token test");
 
-  const ERC20Extendable = await hre.ethers.getContractFactory("ERC20Extendable");
+  const ERC20Extendable = await hre.ethers.getContractFactory("ERC20");
   const erc20 = await ERC20Extendable.deploy(
     "TokenName",   //token name
     "DAU",         //token symbol

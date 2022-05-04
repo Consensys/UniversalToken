@@ -158,7 +158,7 @@ const craftSaltBasedCertificate = async (
 
   const rawTxPayload = _txPayload;
 
-/*   let rawTxPayload;
+  /*   let rawTxPayload;
   if (_txPayload.length >= 64) {
     rawTxPayload = _txPayload.substring(0, _txPayload.length - 64);
   } else {
@@ -218,7 +218,7 @@ async function main() {
   
   const ClockMock = await hre.ethers.getContractFactory("ClockMock");
   const ERC20Logic = await hre.ethers.getContractFactory("ERC20Logic");
-  const ERC20Extendable = await hre.ethers.getContractFactory("ERC20Extendable");
+  const ERC20Extendable = await hre.ethers.getContractFactory("ERC20");
   const CertificateValidatorExtension = await hre.ethers.getContractFactory("CertificateValidatorExtension");
 
   console.log("deploying clock");

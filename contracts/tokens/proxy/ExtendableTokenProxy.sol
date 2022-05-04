@@ -7,6 +7,7 @@ import {ExtensionProxy} from "../../extensions/ExtensionProxy.sol";
 import {ITokenProxy} from "./ITokenProxy.sol";
 import {IExtension, TransferData} from "../../extensions/IExtension.sol";
 import {RegisteredExtensionStorage} from "../storage/RegisteredExtensionStorage.sol";
+import {TokenEventManagerStorage} from "../storage/TokenEventManagerStorage.sol";
 
 /**
 * @title Extendable Token Proxy base Contract
@@ -22,7 +23,7 @@ import {RegisteredExtensionStorage} from "../storage/RegisteredExtensionStorage.
 *
 * The domain name must be implemented by the final token proxy.
 */
-abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage, IExtendableTokenProxy {
+abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage, TokenEventManagerStorage, IExtendableTokenProxy {
     string constant internal EXTENDABLE_INTERFACE_NAME = "ExtendableToken";
 
     /**
@@ -111,13 +112,20 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     * @param extension The global extension address to upgrade
     * @param newExtension The new global extension address to upgrade the extension to
     */
-    function upgradeExtension(address extension, address newExtension) external override onlyManager {
+    function upgradeExtension(address extension, address newExtension) external override onlyManager {        
         address proxyAddress = _proxyAddressForExtension(extension);
         require(proxyAddress != address(0), "Extension is not registered");
 
         ExtensionProxy proxy = ExtensionProxy(payable(proxyAddress));
 
+        //Remove old extension data
+        _removeExtension(extension);
+        
+        //Perform upgrade on ExtensionProxy
         proxy.upgradeTo(newExtension);
+
+        //Save new extension data
+        _saveExtension(proxy, newExtension);
     }
 
     /**
@@ -130,8 +138,6 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     * @param extension Either the global extension address or the deployed extension proxy address to remove
     */
     function removeExtension(address extension) external override onlyManager {
-        _removeExtension(extension);
-
         address proxyAddress;
         if (_isExtensionProxyAddress(extension)) {
             proxyAddress = extension;
@@ -149,6 +155,10 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
                 _removeRole(proxyAddress, requiredRoles[i]);
             }
         }
+
+        _removeExtension(extension);
+
+        _clearListeners(proxyAddress);
     }
 
     /**
@@ -215,31 +225,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
         //To sandbox our extension's storage
         ExtensionProxy extProxy = new ExtensionProxy(token, extension, address(this));
 
-        //Next lets figure out what external functions to register in the Extension
-        bytes4[] memory externalFunctions = extProxy.externalFunctions();
-
-        //If we have external functions to register, then lets register them
-        if (externalFunctions.length > 0) {
-            for (uint i = 0; i < externalFunctions.length; i++) {
-                bytes4 func = externalFunctions[i];
-                require(extLibStorage.funcToExtension[func] == address(0), "Function signature conflict");
-                //STATICCALLMAGIC not allowed
-                require(func != hex"ffffffff", "Invalid function signature");
-
-                extLibStorage.funcToExtension[func] = extension;
-            }
-        }
-
-        //Finally, add it to storage
-        extLibStorage.extensions[extension] = ExtensionData(
-            ExtensionState.EXTENSION_ENABLED,
-            extLibStorage.registeredExtensions.length,
-            address(extProxy),
-            externalFunctions
-        );
-
-        extLibStorage.registeredExtensions.push(extension);
-        extLibStorage.proxyCache[address(extProxy)] = extension;
+        _saveExtension(extProxy, extension);
 
         //Initialize the new extension proxy
         bytes memory initializeCalldata = abi.encodePacked(abi.encodeWithSelector(ExtensionProxy.initialize.selector), _msgSender());
@@ -384,6 +370,36 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
         return extData.extProxy;
     }
 
+    function _saveExtension(ExtensionProxy extProxy, address extension) internal {
+        MappedExtensions storage extLibStorage = _extensionStorage();
+
+        //Next lets figure out what external functions to register in the Extension
+        bytes4[] memory externalFunctions = extProxy.externalFunctions();
+
+        //If we have external functions to register, then lets register them
+        if (externalFunctions.length > 0) {
+            for (uint i = 0; i < externalFunctions.length; i++) {
+                bytes4 func = externalFunctions[i];
+                require(extLibStorage.funcToExtension[func] == address(0), "Function signature conflict");
+                //STATICCALLMAGIC not allowed
+                require(func != hex"ffffffff", "Invalid function signature");
+
+                extLibStorage.funcToExtension[func] = extension;
+            }
+        }
+
+        //Finally, add it to storage
+        extLibStorage.extensions[extension] = ExtensionData(
+            ExtensionState.EXTENSION_ENABLED,
+            extLibStorage.registeredExtensions.length,
+            address(extProxy),
+            externalFunctions
+        );
+
+        extLibStorage.registeredExtensions.push(extension);
+        extLibStorage.proxyCache[address(extProxy)] = extension;
+    }
+
     /**
     * @dev Remove the extension at the provided address. This may either be the
     * global extension address or the deployed extension proxy address. 
@@ -415,6 +431,21 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
         extLibStorage.extensions[lastExtension].index = extensionIndex;
 
         extLibStorage.proxyCache[extData.extProxy] = address(0);
+
+        bytes4[] storage externalFunctions = extData.externalFunctions;
+
+        //If we have external functions to remove, then lets remove them
+        if (externalFunctions.length > 0) {
+            for (uint i = 0; i < externalFunctions.length; i++) {
+                bytes4 func = externalFunctions[i];
+                require(extLibStorage.funcToExtension[func] == ext, "Function signature conflict");
+                //STATICCALLMAGIC not allowed
+                require(func != hex"ffffffff", "Invalid function signature");
+
+                extLibStorage.funcToExtension[func] = address(0);
+            }
+        }
+
         delete extLibStorage.extensions[extension];
         extLibStorage.registeredExtensions.pop();
     }
