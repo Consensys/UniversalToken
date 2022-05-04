@@ -1,0 +1,14 @@
+{
+  "extends": "solhint:default",
+  "rules": {
+    "quotes": ["error", "double"],
+    "no-empty-blocks": "off",
+    "const-name-snakecase": "error",
+    "func-visibility": "error",
+    "state-visibility": "error",
+    "reentrancy": "warn",
+    "no-inline-assembly": "warn",
+    "check-send-result": "warn",
+    "max-line-length": ["error", 180]
+  }
+}
