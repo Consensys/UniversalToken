@@ -145,4 +145,8 @@ contract ExtensionProxy is IExtensionMetadata, ExtensionBase {
     function version() public view override returns (uint256) {
         return _extension().version();
     }
+
+    function interfaceLabel() public view override returns (string memory) {
+        return _extension().interfaceLabel();
+    }
 }

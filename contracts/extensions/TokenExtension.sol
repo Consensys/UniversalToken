@@ -7,8 +7,8 @@ import {RolesBase} from "../utils/roles/RolesBase.sol";
 import {IERC20Proxy} from "../tokens/proxy/ERC20/IERC20Proxy.sol";
 import {TokenRolesConstants} from "../utils/roles/TokenRolesConstants.sol";
 import {IToken} from "../tokens/IToken.sol";
-import {ITokenEventManager} from "../tokens/extension/ITokenEventManager.sol";
-import {TokenEventConstants} from "../tokens/extension/TokenEventConstants.sol";
+import {ITokenEventManager} from "../tokens/eventmanager/ITokenEventManager.sol";
+import {TokenEventConstants} from "../tokens/eventmanager/TokenEventConstants.sol";
 
 abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IExtension, ExtensionBase, RolesBase {
     mapping(TokenStandard => bool) private supportedTokenStandards;
@@ -20,6 +20,7 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IE
     uint256 private _version;
     string private _package;
     bytes32 private _packageHash;
+    string private _interfaceLabel;
 
     constructor() {
         _deployer = msg.sender;
@@ -47,6 +48,12 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IE
     function _supportsTokenStandard(TokenStandard tokenStandard) internal {
         require(isInsideConstructorCall(), "Function must be called inside the constructor");
         supportedTokenStandards[tokenStandard] = true;
+    }
+
+    function _setInterfaceLabel(string memory interfaceLabel_) internal {
+        require(isInsideConstructorCall(), "Function must be called inside the constructor");
+
+        _interfaceLabel = interfaceLabel_;
     }
 
     function _supportsAllTokenStandards() internal {
@@ -118,6 +125,13 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IE
         return size == 0;
     }
 
+    /**
+    * @notice The ERC1820 interface label the extension will be registered as in the ERC1820 registry
+    */
+    function interfaceLabel() external override view returns (string memory) {
+        return _interfaceLabel;
+    }
+
     function _isTokenOwner(address addr) internal view returns (bool) {
         return addr == _tokenOwner();
     }
@@ -149,7 +163,7 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IE
             token,
             _msgData(),
             bytes32(0),
-            address(this),
+            _extensionAddress(),
             from,
             to,
             amount,
@@ -157,6 +171,18 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IE
             bytes(""),
             bytes("")
         );
+    }
+
+    function _buildTransferWithData(address from, address to, uint256 amountOrTokenId, bytes memory data) internal view returns (TransferData memory) {
+        TransferData memory t = _buildTransfer(from, to, amountOrTokenId);
+        t.data = data;
+        return t;
+    }
+
+    function _buildTransferWithOperatorData(address from, address to, uint256 amountOrTokenId, bytes memory data) internal view returns (TransferData memory) {
+        TransferData memory t = _buildTransfer(from, to, amountOrTokenId);
+        t.operatorData = data;
+        return t;
     }
 
     function _tokenTransfer(TransferData memory tdata) internal returns (bool) {
@@ -167,6 +193,11 @@ abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IE
         ITokenEventManager eventManager = ITokenEventManager(_tokenAddress());
 
         eventManager.on(TOKEN_TRANSFER_EVENT, callback);
+    }
+
+    function _listenForTokenBeforeTransfers(function (TransferData memory) external returns (bool) callback) internal {
+        ITokenEventManager eventManager = ITokenEventManager(_tokenAddress());
+        eventManager.on(TOKEN_BEFORE_TRANSFER_EVENT, callback);
     }
 
     function _listenForTokenApprovals(function (TransferData memory) external returns (bool) callback) internal {

@@ -15,7 +15,7 @@ import "./IERC1400TokensRecipient.sol";
 import "./IERC20HoldableToken.sol";
 import "./IHoldableERC1400TokenExtension.sol";
 
-import "./IERC1400.sol";
+import "../mocks/legacy/erc1400/IERC1400.sol";
 import "../Errors.sol";
 
 

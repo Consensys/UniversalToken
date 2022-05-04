@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 import {ERC20Proxy} from "./tokens/proxy/ERC20/ERC20Proxy.sol";
 
-contract ERC20Extendable is ERC20Proxy {
+contract ERC20 is ERC20Proxy {
     uint256 public initalSupply;
     
     constructor(

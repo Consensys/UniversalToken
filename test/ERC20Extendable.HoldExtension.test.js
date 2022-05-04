@@ -11,7 +11,7 @@ const { bytes32 } = require("./utils/regex");
 const { expectRevert } = require("@openzeppelin/test-helpers");
 
 const HoldExtension = artifacts.require("HoldExtension");
-const ERC20Extendable = artifacts.require("ERC20Extendable");
+const ERC20Extendable = artifacts.require("ERC20");
 const ERC20Logic = artifacts.require("ERC20Logic");
 
 const ZERO_ADDRESS = "0x0000000000000000000000000000000000000000";

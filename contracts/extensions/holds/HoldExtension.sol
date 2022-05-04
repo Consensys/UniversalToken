@@ -1,13 +1,12 @@
 pragma solidity ^0.8.0;
 
-import "@openzeppelin/contracts/utils/math/SafeMath.sol";
+import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {TokenExtension, TransferData, TokenStandard} from "../TokenExtension.sol";
-import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 import {IHoldableToken, ERC20HoldData, HoldStatusCode} from "./IHoldableToken.sol";
 
 contract HoldExtension is TokenExtension, IHoldableToken {
     using SafeMath for uint256;
-    bytes32 constant internal HOLD_DATA_SLOT = keccak256("holdable.holddata");
+    bytes32 constant internal HOLD_DATA_SLOT = keccak256("consensys.contracts.token.ext.storage.holdable.data");
 
     struct HoldExtensionData {
         // mapping of accounts to hold data
@@ -23,9 +22,9 @@ contract HoldExtension is TokenExtension, IHoldableToken {
 
     constructor() {
         _setPackageName("net.consensys.tokenext.HoldExtension");
+        _setInterfaceLabel("HoldExtension");
         _supportsTokenStandard(TokenStandard.ERC20);
         _setVersion(1);
-        _requireRole(TOKEN_CONTROLLER_ROLE);
 
         _registerFunction(this.hold.selector);
         _registerFunction(this.releaseHold.selector);
@@ -37,6 +36,7 @@ contract HoldExtension is TokenExtension, IHoldableToken {
         _registerFunctionName("executeHold(bytes32,bytes32)");
         _registerFunctionName("executeHold(bytes32,bytes32,address)");
 
+        _requireRole(TOKEN_CONTROLLER_ROLE);
     }
 
     function holdData() internal pure returns (HoldExtensionData storage ds) {
@@ -47,7 +47,7 @@ contract HoldExtension is TokenExtension, IHoldableToken {
     }
 
     function initialize() external override {
-        _listenForTokenTransfers(this.onTransferExecuted);
+        _listenForTokenBeforeTransfers(this.onTransferExecuted);
         _listenForTokenApprovals(this.onApproveExecuted);
     }
 
@@ -161,6 +161,8 @@ contract HoldExtension is TokenExtension, IHoldableToken {
             expirationDateTime,
             lockHash
         );
+
+        return true;
     }
 
     function retrieveHoldData(bytes32 holdId) external override view returns (ERC20HoldData memory) {
@@ -250,11 +252,13 @@ contract HoldExtension is TokenExtension, IHoldableToken {
     ) internal isHeld(holdId) {
         HoldExtensionData storage data = holdData();
         require(
-            data.holds[holdId].notary == msg.sender,
+            data.holds[holdId].notary == _msgSender(),
             "executeHold: caller must be the hold notary"
         );
 
-        TransferData memory transferData = _buildTransfer(data.holds[holdId].sender, recipient, data.holds[holdId].amount);
+        data.holds[holdId].status = HoldStatusCode.Executing;
+
+        TransferData memory transferData = _buildTransferWithOperatorData(data.holds[holdId].sender, recipient, data.holds[holdId].amount, abi.encode(holdId));
         _tokenTransfer(transferData);
         //super._transfer(holds[holdId].sender, recipient, holds[holdId].amount);
 
@@ -345,7 +349,15 @@ contract HoldExtension is TokenExtension, IHoldableToken {
     function onTransferExecuted(TransferData memory data) external virtual onlyToken returns (bool) {
         //only check if not a mint
         if (data.from != address(0)) {
-            require(spendableBalanceOf(data.from) >= data.value, "HoldableToken: amount exceeds available balance (transfer)");
+            if (data.operatorData.length > 0 && data.operator == _extensionAddress()) {
+                //Dont trigger normal spendableBalanceOf check
+                //if we triggered this transfer as a result of _executeHold
+                (bytes32 holdId) = abi.decode(data.operatorData, (bytes32));
+                HoldExtensionData storage hd = holdData();
+                require(hd.holds[holdId].status == HoldStatusCode.Executing, "Hold in weird state");
+            } else {
+                require(spendableBalanceOf(data.from) >= data.value, "HoldableToken: amount exceeds available balance (transfer)");
+            }
         }
         return true;
     }

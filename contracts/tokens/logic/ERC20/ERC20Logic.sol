@@ -2,9 +2,7 @@ pragma solidity ^0.8.0;
 
 import {TokenLogic} from "../TokenLogic.sol";
 import {IToken, TokenStandard} from "../../IToken.sol";
-import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
-import {ExtendableHooks} from "../../extension/ExtendableHooks.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
 import {TransferData} from "../../../extensions/IExtension.sol";
 import {TokenRoles} from "../../../utils/roles/TokenRoles.sol";
@@ -43,6 +41,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
 
     bytes private _currentData;
     bytes private _currentOperatorData;
+    address private _currentOperator;
 
     /**
     * @dev The storage slot that will be used to store the ProtectedTokenData struct inside
@@ -90,6 +89,36 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     }
 
     /**
+    * @dev This function is invoked directly before each token transfer. This is overriden here
+    * so we can invoke the transfer event on all registered & enabled extensions. We do this
+    * by building a TransferData object and invoking _triggerBeforeTokenTransfer
+    * @param from The sender of this token transfer
+    * @param to The recipient of this token transfer
+    * @param amount How many tokens were transferred
+    */
+    function _beforeTokenTransfer(address from, address to, uint256 amount) internal override virtual {
+        address operator = _msgSender();
+        if (_currentOperator != address(0)) {
+            operator = _currentOperator;
+        }
+
+        TransferData memory data = TransferData(
+            address(this),
+            _msgData(),
+            0x00000000000000000000000000000000,
+            operator,
+            from,
+            to,
+            amount,
+            0,
+            _currentData,
+            _currentOperatorData
+        );
+
+        _triggerTokenBeforeTransferEvent(data);
+    }
+
+    /**
     * @dev This function is invoked directly after each token transfer. This is overriden here
     * so we can invoke the transfer event on all registered & enabled extensions. We do this
     * by building a TransferData object and invoking _triggerTokenTransfer
@@ -98,11 +127,16 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     * @param amount How many tokens were transferred
     */
     function _afterTokenTransfer(address from, address to, uint256 amount) internal override virtual {
+        address operator = _msgSender();
+        if (_currentOperator != address(0)) {
+            operator = _currentOperator;
+        }
+
         TransferData memory data = TransferData(
             address(this),
             _msgData(),
             0x00000000000000000000000000000000,
-            _msgSender(),
+            operator,
             from,
             to,
             amount,
@@ -113,6 +147,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
         
         _currentData = "";
         _currentOperatorData = "";
+        _currentOperator = address(0);
 
         _triggerTokenTransferEvent(data);
     }
@@ -178,6 +213,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
 
         _currentData = td.data;
         _currentOperatorData = td.operatorData;
+        _currentOperator = td.operator;
         _transfer(td.from, td.to, td.value);
 
         return true;

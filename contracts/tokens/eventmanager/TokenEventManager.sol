@@ -1,9 +1,10 @@
 pragma solidity ^0.8.0;
 
 import {IExtension, TransferData} from "../../extensions/IExtension.sol";
-import {ExtendableBase} from "./ExtendableBase.sol";
 import {TokenEventConstants} from "./TokenEventConstants.sol";
 import {ITokenEventManager} from "./ITokenEventManager.sol";
+import {RegisteredExtensionStorage} from "../storage/RegisteredExtensionStorage.sol";
+import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 
 /**
 * @title Transfer Hooks for Extensions
@@ -11,7 +12,7 @@ import {ITokenEventManager} from "./ITokenEventManager.sol";
 * @dev ExtendableHooks provides the _triggerTokenTransferEvent and _triggerTokenApproveEvent internal
 * function that can be used to notify extensions when a transfer/approval occurs.
 */
-abstract contract ExtendableHooks is ExtendableBase, TokenEventConstants, ITokenEventManager {
+abstract contract TokenEventManager is RegisteredExtensionStorage, ContextUpgradeable, TokenEventConstants, ITokenEventManager {
 
     bytes32 constant internal EVENT_MANAGER_DATA_SLOT = keccak256("token.transferdata.events");
 
@@ -24,6 +25,10 @@ abstract contract ExtendableHooks is ExtendableBase, TokenEventConstants, IToken
         assembly {
             ds.slot := position
         }
+    }
+
+    function _extensionState(address ext) internal view returns (ExtensionState) {
+        return _addressToExtensionData(ext).state;
     }
 
     /**
@@ -59,6 +64,24 @@ abstract contract ExtendableHooks is ExtendableBase, TokenEventConstants, IToken
 
     /**
      * @dev Hook that is called before any transfer of tokens. This includes
+     * minting and burning.
+     *
+     * Calling conditions:
+     *
+     * - when `from` and `to` are both non-zero, `amount` of ``from``'s tokens
+     * will be transferred to `to`.
+     * - when `from` is zero, `amount` tokens will be minted for `to`.
+     * - when `to` is zero, `amount` of ``from``'s tokens will be burned.
+     * - `from` and `to` are never both zero.
+     *
+     * @param data The transfer data to that represents this transfer to send to extensions.
+     */
+    function _triggerTokenBeforeTransferEvent(TransferData memory data) internal virtual {
+        _trigger(TOKEN_BEFORE_TRANSFER_EVENT, data);
+    }
+
+    /**
+     * @dev Hook that is called after any transfer of tokens. This includes
      * minting and burning.
      *
      * Calling conditions:
