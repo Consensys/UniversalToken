@@ -1,10 +1,10 @@
 pragma solidity ^0.8.0;
 
 import {ITokenLogic} from "./ITokenLogic.sol";
-import {TokenRoles} from "../../roles/TokenRoles.sol";
+import {TokenRoles} from "../../utils/roles/TokenRoles.sol";
 import {ExtendableHooks} from "../extension/ExtendableHooks.sol";
-import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
-import {ERC1820Implementer} from "../../erc1820/ERC1820Implementer.sol";
+import {ERC1820Client} from "../../utils/erc1820/ERC1820Client.sol";
+import {ERC1820Implementer} from "../../utils/erc1820/ERC1820Implementer.sol";
 import {TokenERC1820Provider} from "../TokenERC1820Provider.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";

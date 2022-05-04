@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
 import {IToken} from "../tokens/IToken.sol";
-import {IExtension} from "../interface/IExtension.sol";
-import {IExtensionMetadata, TokenStandard} from "../interface/IExtensionMetadata.sol";
+import {IExtension} from "./IExtension.sol";
+import {IExtensionMetadata, TokenStandard} from "./IExtensionMetadata.sol";
 import {ExtensionBase} from "./ExtensionBase.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
@@ -35,7 +35,7 @@ contract ExtensionProxy is IExtensionMetadata, ExtensionBase {
         require(isTokenStandardSupported(standard), "Extension does not support token standard");
         
         //Update EIP1967 Storage Slot
-        bytes32 EIP1967_LOCATION = bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1);
+        bytes32 EIP1967_LOCATION = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
         StorageSlot.getAddressSlot(EIP1967_LOCATION).value = extension;
     }
 
@@ -74,7 +74,7 @@ contract ExtensionProxy is IExtensionMetadata, ExtensionBase {
         ds.extension = extensionImplementation;
 
         //Update EIP1967 Storage Slot
-        bytes32 EIP1967_LOCATION = bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1);
+        bytes32 EIP1967_LOCATION = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
         StorageSlot.getAddressSlot(EIP1967_LOCATION).value = extensionImplementation;
 
         emit ExtensionUpgraded(old, extensionImplementation);

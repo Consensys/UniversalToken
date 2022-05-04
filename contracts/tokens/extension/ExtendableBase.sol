@@ -2,7 +2,7 @@ pragma solidity ^0.8.0;
 
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {TransferData} from "..//IToken.sol";
+import {TransferData} from "../IToken.sol";
 import {ExtensionProxy} from "../../extensions/ExtensionProxy.sol";
 
 /**
@@ -17,7 +17,7 @@ abstract contract ExtendableBase is ContextUpgradeable {
     /**
     * @dev The storage slot that will hold the MappedExtensions struct
     */
-    bytes32 constant MAPPED_EXTENSION_STORAGE_SLOT = keccak256("erc20.core.storage.address");
+    bytes32 constant internal MAPPED_EXTENSION_STORAGE_SLOT = keccak256("erc20.core.storage.address");
 
     /**
     * @dev A state of all possible registered extension states

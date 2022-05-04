@@ -7,17 +7,17 @@ import {CertificateLib, CertificateValidationType} from "./CertificateLib.sol";
 
 contract CertificateValidatorExtension is TokenExtension, ICertificateValidator {
     
-    bytes32 constant CERTIFICATE_SIGNER_ROLE = keccak256("certificates.roles.certificatesigner");
+    bytes32 constant internal CERTIFICATE_SIGNER_ROLE = keccak256("certificates.roles.certificatesigner");
 
     constructor() {
         _registerFunction(CertificateValidatorExtension.addCertificateSigner.selector);
         _registerFunction(CertificateValidatorExtension.removeCertificateSigner.selector);
         _registerFunction(CertificateValidatorExtension.setValidationMode.selector);
 
-        _registerFunctionName('isCertificateSigner(address)');
-        _registerFunctionName('usedCertificateNonce(address)');
-        _registerFunctionName('usedCertificateSalt(bytes32)');
-        _registerFunctionName('getValidationMode()');
+        _registerFunctionName("isCertificateSigner(address)");
+        _registerFunctionName("usedCertificateNonce(address)");
+        _registerFunctionName("usedCertificateSalt(bytes32)");
+        _registerFunctionName("getValidationMode()");
 
         _supportInterface(type(ICertificateValidator).interfaceId);
 

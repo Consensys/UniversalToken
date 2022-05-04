@@ -3,10 +3,9 @@ pragma solidity ^0.8.0;
 import {TokenProxy} from "./TokenProxy.sol";
 import {IExtendableTokenProxy} from "./IExtendableTokenProxy.sol";
 import {ExtendableProxy} from "../extension/ExtendableProxy.sol";
-import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
+import {ERC1820Client} from "../../utils/erc1820/ERC1820Client.sol";
 import {ExtensionProxy} from "../../extensions/ExtensionProxy.sol";
 import {ITokenProxy} from "./ITokenProxy.sol";
-import {IDiamondLoupe} from "../../interface/IDiamondLoupe.sol";
 
 /**
 * @title Extendable Token Proxy base Contract
@@ -22,7 +21,7 @@ import {IDiamondLoupe} from "../../interface/IDiamondLoupe.sol";
 *
 * The domain name must be implemented by the final token proxy.
 */
-abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendableTokenProxy, IDiamondLoupe {
+abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendableTokenProxy {
     string constant internal EXTENDABLE_INTERFACE_NAME = "ExtendableToken";
 
     /**
@@ -190,40 +189,5 @@ abstract contract ExtendableTokenProxy is TokenProxy, ExtendableProxy, IExtendab
         } else {
             super._fallback();
         }
-    }
-
-    /// @notice Gets all facet addresses and their four byte function selectors.
-    /// @return facets_ Facet
-    function facets() external override view returns (Facet[] memory facets_) {
-        address[] storage extensions = _allExtensionsRegistered();
-        facets_ = new Facet[](extensions.length);
-
-        for (uint i = 0; i < facets_.length; i++) {
-            facets_[i] = Facet(
-                extensions[i],
-                facetFunctionSelectors(extensions[i])
-            );
-        }
-    }
-
-    /// @notice Gets all the function selectors supported by a specific facet.
-    /// @param _facet The facet address.
-    /// @return facetFunctionSelectors_
-    function facetFunctionSelectors(address _facet) public override view returns (bytes4[] memory facetFunctionSelectors_) {
-        return _addressToExtensionData(_facet).externalFunctions;
-    }
-
-    /// @notice Get all the facet addresses used by a diamond.
-    /// @return facetAddresses_
-    function facetAddresses() external override view returns (address[] memory facetAddresses_) {
-        return _allExtensionsRegistered();
-    }
-
-    /// @notice Gets the facet that supports the given selector.
-    /// @dev If facet is not found return address(0).
-    /// @param _functionSelector The function selector.
-    /// @return facetAddress_ The facet address.
-    function facetAddress(bytes4 _functionSelector) external override view returns (address facetAddress_) {
-        return _functionToExtensionProxyAddress(_functionSelector);
     }
 }

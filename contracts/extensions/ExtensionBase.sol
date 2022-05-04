@@ -1,6 +1,6 @@
 pragma solidity ^0.8.0;
 
-import {TokenStandard} from "../interface/IExtension.sol";
+import {TokenStandard} from "./IExtension.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 
@@ -24,8 +24,8 @@ import {StorageSlot} from "@openzeppelin/contracts/utils/StorageSlot.sol";
 * invokation
 */
 abstract contract ExtensionBase is ContextUpgradeable {
-    bytes32 constant PROXY_DATA_SLOT = keccak256("ext.proxy.data");
-    bytes32 constant MSG_SENDER_SLOT = keccak256("ext.proxy.data.msgsender");
+    bytes32 constant internal PROXY_DATA_SLOT = keccak256("ext.proxy.data");
+    bytes32 constant internal MSG_SENDER_SLOT = keccak256("ext.proxy.data.msgsender");
 
     /**
     * @dev Considered the storage to be shared between the proxy

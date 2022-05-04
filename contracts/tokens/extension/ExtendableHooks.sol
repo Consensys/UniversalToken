@@ -1,9 +1,9 @@
 pragma solidity ^0.8.0;
 
-import {IExtension, TransferData} from "../../interface/IExtension.sol";
+import {IExtension, TransferData} from "../../extensions/IExtension.sol";
 import {ExtendableBase} from "./ExtendableBase.sol";
 import {TokenEventConstants} from "./TokenEventConstants.sol";
-import {ITokenEventManager} from "../../interface/ITokenEventManager.sol";
+import {ITokenEventManager} from "./ITokenEventManager.sol";
 
 /**
 * @title Transfer Hooks for Extensions
@@ -13,7 +13,7 @@ import {ITokenEventManager} from "../../interface/ITokenEventManager.sol";
 */
 abstract contract ExtendableHooks is ExtendableBase, TokenEventConstants, ITokenEventManager {
 
-    bytes32 constant EVENT_MANAGER_DATA_SLOT = keccak256("token.transferdata.events");
+    bytes32 constant internal EVENT_MANAGER_DATA_SLOT = keccak256("token.transferdata.events");
 
     struct EventManagerData {
         mapping(bytes32 => SavedCallbackFunction[]) listeners;
@@ -41,6 +41,8 @@ abstract contract ExtendableHooks is ExtendableBase, TokenEventConstants, IToken
 
         for (uint i = 0; i < callbacks.length; i++) {
             bytes4 listenerFuncSelector = callbacks[i].func.selector;
+
+            /* solhint-disable-next-line */
             address listenerAddress = callbacks[i].func.address;
 
             if (_extensionState(listenerAddress) == ExtensionState.EXTENSION_DISABLED) {

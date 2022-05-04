@@ -6,10 +6,10 @@ import {Context} from "@openzeppelin/contracts/utils/Context.sol";
 import {ContextUpgradeable} from "@openzeppelin/contracts-upgradeable/utils/ContextUpgradeable.sol";
 import {ExtendableHooks} from "../../extension/ExtendableHooks.sol";
 import {ERC20Upgradeable} from "@openzeppelin/contracts-upgradeable/token/ERC20/ERC20Upgradeable.sol";
-import {TransferData} from "../../../interface/IExtension.sol";
-import {TokenRoles} from "../../../roles/TokenRoles.sol";
-import {ERC1820Client} from "../../../erc1820/ERC1820Client.sol";
-import {ERC1820Implementer} from "../../../erc1820/ERC1820Implementer.sol";
+import {TransferData} from "../../../extensions/IExtension.sol";
+import {TokenRoles} from "../../../utils/roles/TokenRoles.sol";
+import {ERC1820Client} from "../../../utils/erc1820/ERC1820Client.sol";
+import {ERC1820Implementer} from "../../../utils/erc1820/ERC1820Implementer.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 import {ERC20TokenInterface} from "../../registry/ERC20TokenInterface.sol";
 
@@ -48,7 +48,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     * @dev The storage slot that will be used to store the ProtectedTokenData struct inside
     * this TokenProxy
     */
-    bytes32 constant ERC20_PROTECTED_TOKEN_DATA_SLOT = bytes32(uint256(keccak256("erc20.token.meta")) - 1);
+    bytes32 constant internal ERC20_PROTECTED_TOKEN_DATA_SLOT = bytes32(uint256(keccak256("erc20.token.meta")) - 1);
 
     /**
     * @notice Protected ERC20 token metadata stored in the proxy storage in a special storage slot.

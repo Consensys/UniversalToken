@@ -3,11 +3,11 @@ pragma solidity ^0.8.0;
 import "@openzeppelin/contracts/utils/math/SafeMath.sol";
 import {TokenExtension, TransferData, TokenStandard} from "../TokenExtension.sol";
 import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
-import {IHoldableToken, ERC20HoldData, HoldStatusCode} from "../../interface/IHoldableToken.sol";
+import {IHoldableToken, ERC20HoldData, HoldStatusCode} from "./IHoldableToken.sol";
 
 contract HoldExtension is TokenExtension, IHoldableToken {
     using SafeMath for uint256;
-    bytes32 constant HOLD_DATA_SLOT = keccak256("holdable.holddata");
+    bytes32 constant internal HOLD_DATA_SLOT = keccak256("holdable.holddata");
 
     struct HoldExtensionData {
         // mapping of accounts to hold data

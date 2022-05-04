@@ -1,7 +1,7 @@
 pragma solidity ^0.8.0;
 
-import {ERC1820Client} from "../erc1820/ERC1820Client.sol";
-import {ERC1820Implementer} from "../erc1820/ERC1820Implementer.sol";
+import {ERC1820Client} from "../utils/erc1820/ERC1820Client.sol";
+import {ERC1820Implementer} from "../utils/erc1820/ERC1820Implementer.sol";
 
 /**
 * @title ERC1820 Provider for Tokens

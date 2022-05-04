@@ -4,11 +4,13 @@
     "quotes": ["error", "double"],
     "no-empty-blocks": "off",
     "const-name-snakecase": "error",
-    "func-visibility": "error",
+    "func-visibility": ["error", {"ignoreConstructors":true}],
     "state-visibility": "error",
     "reentrancy": "warn",
     "no-inline-assembly": "warn",
     "check-send-result": "warn",
-    "max-line-length": ["error", 180]
+    "max-line-length": ["warn", 180],
+    "imports-on-top": "error",
+    "private-vars-leading-underscore": "warn"
   }
 }

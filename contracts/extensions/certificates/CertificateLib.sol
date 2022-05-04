@@ -1,8 +1,8 @@
 pragma solidity ^0.8.0;
 
 import {SafeMath} from "@openzeppelin/contracts/utils/math/SafeMath.sol";
-import {Roles} from "../../roles/Roles.sol";
-import {DomainAware} from "../../tools/DomainAware.sol";
+import {Roles} from "../../utils/roles/Roles.sol";
+import {DomainAware} from "../../utils/DomainAware.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 
 
@@ -17,8 +17,8 @@ library CertificateLib {
     using BytesLib for bytes;
     using Roles for Roles.Role;
 
-    bytes32 constant CERTIFICATE_DATA_SLOT = keccak256("certificates.data");
-    bytes32 constant CERTIFICATE_SIGNER_ROLE = keccak256("certificates.roles.certificatesigner");
+    bytes32 constant internal CERTIFICATE_DATA_SLOT = keccak256("certificates.data");
+    bytes32 constant internal CERTIFICATE_SIGNER_ROLE = keccak256("certificates.roles.certificatesigner");
 
     struct CertificateData {
         // Mapping from (token, certificateNonce) to "used" status to ensure a certificate can be used only once

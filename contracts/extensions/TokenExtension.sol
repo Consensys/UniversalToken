@@ -1,17 +1,17 @@
 pragma solidity ^0.8.0;
 
 import {ExtensionBase} from "./ExtensionBase.sol";
-import {IExtension, TransferData, TokenStandard} from "../interface/IExtension.sol";
+import {IExtension, TransferData, TokenStandard} from "./IExtension.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
-import {RolesBase} from "../roles/RolesBase.sol";
+import {RolesBase} from "../utils/roles/RolesBase.sol";
 import {IERC20Proxy} from "../tokens/proxy/ERC20/IERC20Proxy.sol";
-import {TokenRolesConstants} from "../roles/TokenRolesConstants.sol";
+import {TokenRolesConstants} from "../utils/roles/TokenRolesConstants.sol";
 import {IToken} from "../tokens/IToken.sol";
-import {ITokenEventManager} from "../interface/ITokenEventManager.sol";
+import {ITokenEventManager} from "../tokens/extension/ITokenEventManager.sol";
 import {TokenEventConstants} from "../tokens/extension/TokenEventConstants.sol";
 
 abstract contract TokenExtension is TokenRolesConstants, TokenEventConstants, IExtension, ExtensionBase, RolesBase {
-    mapping(TokenStandard => bool) supportedTokenStandards;
+    mapping(TokenStandard => bool) private supportedTokenStandards;
     //Should only be modified inside the constructor
     bytes4[] private _exposedFuncSigs;
     mapping(bytes4 => bool) private _interfaceMap;

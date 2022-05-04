@@ -7,8 +7,8 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract BlockExtension is TokenExtension, IBlocklistedRole, IBlocklistedAdminRole {
 
-    bytes32 constant BLOCKLIST_ROLE = keccak256("allowblock.roles.blocklisted");
-    bytes32 constant BLOCKLIST_ADMIN_ROLE = keccak256("allowblock.roles.blocklisted.admin");
+    bytes32 constant internal BLOCKLIST_ROLE = keccak256("allowblock.roles.blocklisted");
+    bytes32 constant internal BLOCKLIST_ADMIN_ROLE = keccak256("allowblock.roles.blocklisted.admin");
 
     modifier onlyBlocklistedAdmin {
         require(this.isBlocklistedAdmin(_msgSender()), "Not on block list admin");
@@ -32,8 +32,8 @@ contract BlockExtension is TokenExtension, IBlocklistedRole, IBlocklistedAdminRo
         _registerFunction(BlockExtension.addBlocklistedAdmin.selector);
         _registerFunction(BlockExtension.removeBlocklistedAdmin.selector);
 
-        _registerFunctionName('isBlocklisted(address)');
-        _registerFunctionName('isBlocklistedAdmin(address)');
+        _registerFunctionName("isBlocklisted(address)");
+        _registerFunctionName("isBlocklistedAdmin(address)");
 
         _supportInterface(type(IBlocklistedRole).interfaceId);
         _supportInterface(type(IBlocklistedAdminRole).interfaceId);

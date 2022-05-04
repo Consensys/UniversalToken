@@ -1,9 +1,9 @@
 pragma solidity ^0.8.0;
 
-import {ERC1820Client} from "../../erc1820/ERC1820Client.sol";
-import {ERC1820Implementer} from "../../erc1820/ERC1820Implementer.sol";
-import {TokenRoles} from "../../roles/TokenRoles.sol";
-import {DomainAware} from "../../tools/DomainAware.sol";
+import {ERC1820Client} from "../../utils/erc1820/ERC1820Client.sol";
+import {ERC1820Implementer} from "../../utils/erc1820/ERC1820Implementer.sol";
+import {TokenRoles} from "../../utils/roles/TokenRoles.sol";
+import {DomainAware} from "../../utils/DomainAware.sol";
 import {ITokenLogic} from "../logic/ITokenLogic.sol";
 import {ITokenProxy} from "./ITokenProxy.sol";
 import {TokenERC1820Provider} from "../TokenERC1820Provider.sol";
@@ -94,7 +94,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
     * event
     */
     function _setLogic(address logic) internal {
-        bytes32 EIP1967_LOCATION = bytes32(uint256(keccak256('eip1967.proxy.implementation')) - 1);
+        bytes32 EIP1967_LOCATION = bytes32(uint256(keccak256("eip1967.proxy.implementation")) - 1);
 
         //Update registry
         ERC1820Client.setInterfaceImplementation(__tokenLogicInterfaceName(), logic);

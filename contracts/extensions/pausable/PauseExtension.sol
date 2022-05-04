@@ -6,7 +6,7 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract PauseExtension is TokenExtension, IPausable {
 
-    bytes32 constant PAUSER_ROLE = keccak256("pausable.roles.pausers");
+    bytes32 constant internal PAUSER_ROLE = keccak256("pausable.roles.pausers");
 
     bool private _isPaused;
     mapping(address => bool) private _pausedFor;
@@ -20,8 +20,8 @@ contract PauseExtension is TokenExtension, IPausable {
         _registerFunction(PauseExtension.pauseFor.selector);
         _registerFunction(PauseExtension.unpauseFor.selector);
         
-        _registerFunctionName('isPaused()');
-        _registerFunctionName('isPausedFor(address)');
+        _registerFunctionName("isPaused()");
+        _registerFunctionName("isPausedFor(address)");
 
         _supportInterface(type(IPausable).interfaceId);
 

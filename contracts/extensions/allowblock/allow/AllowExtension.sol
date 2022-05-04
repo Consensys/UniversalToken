@@ -8,8 +8,8 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract AllowExtension is TokenExtension, IAllowlistedRole, IAllowlistedAdminRole {
 
-    bytes32 constant ALLOWLIST_ROLE = keccak256("allowblock.roles.allowlisted");
-    bytes32 constant ALLOWLIST_ADMIN_ROLE = keccak256("allowblock.roles.allowlisted.admin");
+    bytes32 constant internal ALLOWLIST_ROLE = keccak256("allowblock.roles.allowlisted");
+    bytes32 constant internal ALLOWLIST_ADMIN_ROLE = keccak256("allowblock.roles.allowlisted.admin");
 
     modifier onlyAllowlistedAdmin {
         require(hasRole(_msgSender(), ALLOWLIST_ADMIN_ROLE), "Not an allow list admin");
@@ -34,8 +34,8 @@ contract AllowExtension is TokenExtension, IAllowlistedRole, IAllowlistedAdminRo
         _registerFunction(AllowExtension.removeAllowlistedAdmin.selector);
 
         //Register all view functions
-        _registerFunctionName('isAllowlisted(address)');
-        _registerFunctionName('isAllowlistedAdmin(address)');
+        _registerFunctionName("isAllowlisted(address)");
+        _registerFunctionName("isAllowlistedAdmin(address)");
 
         //Register interfaces
         _supportInterface(type(IAllowlistedRole).interfaceId);
