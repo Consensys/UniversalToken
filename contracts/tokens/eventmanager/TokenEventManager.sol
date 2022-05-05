@@ -16,7 +16,7 @@ import {TokenEventManagerStorage} from "../storage/TokenEventManagerStorage.sol"
 abstract contract TokenEventManager is TokenEventManagerStorage, RegisteredExtensionStorage, ContextUpgradeable, TokenEventConstants, ITokenEventManager {
 
     function _extensionState(address ext) internal view returns (ExtensionState) {
-        return _addressToExtensionData(ext).state;
+        return RegisteredExtensionStorage._addressToExtensionData(ext).state;
     }
 
     /**
@@ -26,11 +26,11 @@ abstract contract TokenEventManager is TokenEventManagerStorage, RegisteredExten
     * the event appended to the end of the calldata. This can usually be accessed using _msgSender()
     */
     function on(bytes32 eventId, function (TransferData memory) external returns (bool) callback) external override onlyActiveExtension {
-        _on(eventId, callback);
+        TokenEventManagerStorage._on(eventId, callback);
     }
 
     function _trigger(bytes32 eventId, TransferData memory data) internal {
-        EventManagerData storage emd = eventManagerData();
+        EventManagerData storage emd = TokenEventManagerStorage.eventManagerData();
 
         SavedCallbackFunction[] storage callbacks = emd.listeners[eventId];
         
@@ -73,7 +73,7 @@ abstract contract TokenEventManager is TokenEventManagerStorage, RegisteredExten
      * @param data The transfer data to that represents this transfer to send to extensions.
      */
     function _triggerTokenBeforeTransferEvent(TransferData memory data) internal virtual {
-        _trigger(TOKEN_BEFORE_TRANSFER_EVENT, data);
+        _trigger(TokenEventConstants.TOKEN_BEFORE_TRANSFER_EVENT, data);
     }
 
     /**
@@ -91,7 +91,7 @@ abstract contract TokenEventManager is TokenEventManagerStorage, RegisteredExten
      * @param data The transfer data to that represents this transfer to send to extensions.
      */
     function _triggerTokenTransferEvent(TransferData memory data) internal virtual {
-        _trigger(TOKEN_TRANSFER_EVENT, data);
+        _trigger(TokenEventConstants.TOKEN_TRANSFER_EVENT, data);
     }
 
     /**
@@ -109,6 +109,6 @@ abstract contract TokenEventManager is TokenEventManagerStorage, RegisteredExten
      * @param data The transfer data to that represents this transfer to send to extensions.
      */
     function _triggerTokenApprovalEvent(TransferData memory data) internal virtual {
-        _trigger(TOKEN_APPROVE_EVENT, data);
+        _trigger(TokenEventConstants.TOKEN_APPROVE_EVENT, data);
     }
 }

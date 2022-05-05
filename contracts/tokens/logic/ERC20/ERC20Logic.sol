@@ -10,6 +10,7 @@ import {ERC1820Client} from "../../../utils/erc1820/ERC1820Client.sol";
 import {ERC1820Implementer} from "../../../utils/erc1820/ERC1820Implementer.sol";
 import {BytesLib} from "solidity-bytes-utils/contracts/BytesLib.sol";
 import {ERC20TokenInterface} from "../../registry/ERC20TokenInterface.sol";
+import {TokenEventManager} from "../../eventmanager/TokenEventManager.sol";
 
 /**
 * @title Extendable ERC20 Logic
@@ -115,7 +116,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
             _currentOperatorData
         );
 
-        _triggerTokenBeforeTransferEvent(data);
+        TokenEventManager._triggerTokenBeforeTransferEvent(data);
     }
 
     /**
@@ -149,7 +150,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
         _currentOperatorData = "";
         _currentOperator = address(0);
 
-        _triggerTokenTransferEvent(data);
+        TokenEventManager._triggerTokenTransferEvent(data);
     }
 
     /**
@@ -243,7 +244,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
      * @param amount The amount of tokens to transfer
      */
     function transfer(address recipient, uint256 amount) public virtual override returns (bool) {
-        bytes memory extraData = _extractExtraCalldata(TRANSFER_CALL_SIZE);
+        bytes memory extraData = TokenLogic._extractExtraCalldata(TRANSFER_CALL_SIZE);
         _currentData = extraData;
         _currentOperatorData = extraData;
         
@@ -271,7 +272,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
         address recipient,
         uint256 amount
     ) public virtual override returns (bool) {
-        bytes memory extraData = _extractExtraCalldata(TRANSFER_FROM_CALL_SIZE);
+        bytes memory extraData = TokenLogic._extractExtraCalldata(TRANSFER_FROM_CALL_SIZE);
         _currentData = extraData;
         _currentOperatorData = extraData;
 
@@ -281,7 +282,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
     function approve(address spender, uint256 amount) public virtual override returns (bool) { 
         super.approve(spender, amount);
 
-        bytes memory extraData = _extractExtraCalldata(TRANSFER_CALL_SIZE);
+        bytes memory extraData = TokenLogic._extractExtraCalldata(TRANSFER_CALL_SIZE);
 
         TransferData memory data = TransferData(
             address(this),
@@ -295,7 +296,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
             extraData,
             extraData
         );
-        _triggerTokenApprovalEvent(data);
+        TokenEventManager._triggerTokenApprovalEvent(data);
 
         return true;
     }
@@ -304,7 +305,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
         super.increaseAllowance(spender, addedValue);
         uint256 amount = super.allowance(_msgSender(), spender) + addedValue;
 
-        bytes memory extraData = _extractExtraCalldata(TRANSFER_CALL_SIZE);
+        bytes memory extraData = TokenLogic._extractExtraCalldata(TRANSFER_CALL_SIZE);
 
         TransferData memory data = TransferData(
             address(this),
@@ -318,7 +319,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
             extraData,
             extraData
         );
-        _triggerTokenApprovalEvent(data);
+        TokenEventManager._triggerTokenApprovalEvent(data);
 
         return true;
     }
@@ -327,7 +328,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
         super.decreaseAllowance(spender, subtractedValue);
         uint256 amount = super.allowance(_msgSender(), spender) - subtractedValue;
 
-        bytes memory extraData = _extractExtraCalldata(TRANSFER_CALL_SIZE);
+        bytes memory extraData = TokenLogic._extractExtraCalldata(TRANSFER_CALL_SIZE);
 
         TransferData memory data = TransferData(
             address(this),
@@ -341,7 +342,7 @@ contract ERC20Logic is ERC20TokenInterface, TokenLogic, ERC20Upgradeable {
             extraData,
             extraData
         );
-        _triggerTokenApprovalEvent(data);
+        TokenEventManager._triggerTokenApprovalEvent(data);
 
         return true;
     }

@@ -1,6 +1,7 @@
 pragma solidity ^0.8.0;
 
 import {ERC20Proxy} from "./tokens/proxy/ERC20/ERC20Proxy.sol";
+import {RolesBase} from "./utils/roles/RolesBase.sol";
 
 contract ERC20 is ERC20Proxy {
     uint256 public initalSupply;
@@ -15,15 +16,15 @@ contract ERC20 is ERC20Proxy {
         if (owner != _msgSender()) {
             //Temporaroly add minter role to msg.sender
             //If the sender is not the final owner
-            _addRole(_msgSender(), TOKEN_MINTER_ROLE); 
+            RolesBase._addRole(_msgSender(), TOKEN_MINTER_ROLE); 
         }
         
-        _mint(owner, initalSupply);
+        ERC20Proxy._mint(owner, initalSupply);
 
         if (owner != _msgSender()) {
             //Remove after mint is complete
             //If the sender is not the final owner
-            _removeRole(_msgSender(), TOKEN_MINTER_ROLE);
+            RolesBase._removeRole(_msgSender(), TOKEN_MINTER_ROLE);
         }
     }
 }

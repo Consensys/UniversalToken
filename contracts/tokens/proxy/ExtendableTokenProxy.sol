@@ -1,5 +1,6 @@
 pragma solidity ^0.8.0;
 
+import {RolesBase} from "../../utils/roles/RolesBase.sol";
 import {TokenProxy} from "./TokenProxy.sol";
 import {IExtendableTokenProxy} from "./IExtendableTokenProxy.sol";
 import {ERC1820Client} from "../../utils/erc1820/ERC1820Client.sol";
@@ -31,7 +32,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     */
     modifier onlyExtensions {
         address extension = _msgSender();
-        require(_isActiveExtension(extension), "Only extensions can call");
+        require(RegisteredExtensionStorage._isActiveExtension(extension), "Only extensions can call");
         _;
     }
 
@@ -100,7 +101,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
         //If we have roles we need to register, then lets register them
         if (requiredRoles.length > 0) {
             for (uint i = 0; i < requiredRoles.length; i++) {
-                _addRole(proxyAddress, requiredRoles[i]);
+                RolesBase._addRole(proxyAddress, requiredRoles[i]);
             }
         }
     }
@@ -152,7 +153,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
         //If we have roles we need to register, then lets register them
         if (requiredRoles.length > 0) {
             for (uint i = 0; i < requiredRoles.length; i++) {
-                _removeRole(proxyAddress, requiredRoles[i]);
+                RolesBase._removeRole(proxyAddress, requiredRoles[i]);
             }
         }
 
@@ -215,7 +216,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     * @param caller The current caller that will be initalizing the extension proxy
     */
     function _registerExtension(address extension, address token, address caller) internal returns (bool) {
-        MappedExtensions storage extLibStorage = _extensionStorage();
+        MappedExtensions storage extLibStorage = RegisteredExtensionStorage._extensionStorage();
         require(extLibStorage.extensions[extension].state == ExtensionState.EXTENSION_NOT_EXISTS, "The extension must not already exist");
 
         //TODO Register with 1820
@@ -249,7 +250,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     * provided function selector, otherwise address(0)
     */
     function _functionToExtensionProxyAddress(bytes4 funcSig) internal view returns (address) {
-        MappedExtensions storage extLibStorage = _extensionStorage();
+        MappedExtensions storage extLibStorage = RegisteredExtensionStorage._extensionStorage();
 
         ExtensionData storage extData = extLibStorage.extensions[extLibStorage.funcToExtension[funcSig]];
 
@@ -270,7 +271,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     * provided function selector
     */
     function _functionToExtensionData(bytes4 funcSig) internal view returns (ExtensionData storage) {
-        MappedExtensions storage extLibStorage = _extensionStorage();
+        MappedExtensions storage extLibStorage = RegisteredExtensionStorage._extensionStorage();
 
         require(extLibStorage.funcToExtension[funcSig] != address(0), "Unknown function");
 
@@ -287,8 +288,8 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     * @param ext Either the global extension address or the deployed extension proxy address to disable
     */
     function _disableExtension(address ext) internal {
-        MappedExtensions storage extLibStorage = _extensionStorage();
-        address extension = __forceGlobalExtensionAddress(ext);
+        MappedExtensions storage extLibStorage = RegisteredExtensionStorage._extensionStorage();
+        address extension = RegisteredExtensionStorage.__forceGlobalExtensionAddress(ext);
 
         ExtensionData storage extData = extLibStorage.extensions[extension];
 
@@ -307,8 +308,8 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     * @param ext Either the global extension address or the deployed extension proxy address to enable
     */
     function _enableExtension(address ext) internal {
-        MappedExtensions storage extLibStorage = _extensionStorage();
-        address extension = __forceGlobalExtensionAddress(ext);
+        MappedExtensions storage extLibStorage = RegisteredExtensionStorage._extensionStorage();
+        address extension = RegisteredExtensionStorage.__forceGlobalExtensionAddress(ext);
 
         ExtensionData storage extData = extLibStorage.extensions[extension];
 
@@ -325,7 +326,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     * @param callsite The address to check
     */
     function _isExtensionProxyAddress(address callsite) internal view returns (bool) {
-        MappedExtensions storage extLibStorage = _extensionStorage();
+        MappedExtensions storage extLibStorage = RegisteredExtensionStorage._extensionStorage();
 
         return extLibStorage.proxyCache[callsite] != address(0);
     }
@@ -335,7 +336,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     * enabled or disabled
     */
     function _allExtensionsRegistered() internal view returns (address[] storage) {
-        MappedExtensions storage extLibStorage = _extensionStorage();
+        MappedExtensions storage extLibStorage = RegisteredExtensionStorage._extensionStorage();
         return extLibStorage.registeredExtensions;
     }
 
@@ -344,7 +345,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     * enabled or disabled
     */
     function _allExtensionProxies() internal view returns (address[] memory) {
-        MappedExtensions storage extLibStorage = _extensionStorage();
+        MappedExtensions storage extLibStorage = RegisteredExtensionStorage._extensionStorage();
         address[] storage globalAddresses = extLibStorage.registeredExtensions;
         address[] memory proxyAddresses = new address[](globalAddresses.length);
 
@@ -362,7 +363,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     * @param extension The global extension address to convert
     */
     function _proxyAddressForExtension(address extension) internal view returns (address) {
-        MappedExtensions storage extLibStorage = _extensionStorage();
+        MappedExtensions storage extLibStorage = RegisteredExtensionStorage._extensionStorage();
         ExtensionData storage extData = extLibStorage.extensions[extension];
 
         require(extData.state != ExtensionState.EXTENSION_NOT_EXISTS, "The extension must exist (either enabled or disabled)");
@@ -371,7 +372,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     }
 
     function _saveExtension(ExtensionProxy extProxy, address extension) internal {
-        MappedExtensions storage extLibStorage = _extensionStorage();
+        MappedExtensions storage extLibStorage = RegisteredExtensionStorage._extensionStorage();
 
         //Next lets figure out what external functions to register in the Extension
         bytes4[] memory externalFunctions = extProxy.externalFunctions();
@@ -410,8 +411,8 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     * @param ext Either the global extension address or the deployed extension proxy address to remove
     */
     function _removeExtension(address ext) internal {
-        MappedExtensions storage extLibStorage = _extensionStorage();
-        address extension = __forceGlobalExtensionAddress(ext);
+        MappedExtensions storage extLibStorage = RegisteredExtensionStorage._extensionStorage();
+        address extension = RegisteredExtensionStorage.__forceGlobalExtensionAddress(ext);
 
         ExtensionData storage extData = extLibStorage.extensions[extension];
 
@@ -459,7 +460,7 @@ abstract contract ExtendableTokenProxy is TokenProxy, RegisteredExtensionStorage
     * @return bool True if all extensions were executed successfully, false if any extension returned false
     */
     function _executeOnAllExtensions(function (address, TransferData memory) internal returns (bool) toInvoke, TransferData memory data) internal returns (bool) {
-        MappedExtensions storage extLibData = _extensionStorage();
+        MappedExtensions storage extLibData = RegisteredExtensionStorage._extensionStorage();
 
         for (uint i = 0; i < extLibData.registeredExtensions.length; i++) {
             address extension = extLibData.registeredExtensions[i];

@@ -40,7 +40,7 @@ contract ExtensionProxy is IExtensionMetadata, ExtensionBase {
     }
 
     function _extension() internal view returns (IExtension) {
-        ProxyData storage ds = _proxyData();
+        ProxyData storage ds = ExtensionBase._proxyData();
         return IExtension(ds.extension);
     }
 
@@ -65,7 +65,7 @@ contract ExtensionProxy is IExtensionMetadata, ExtensionBase {
         //TODO Check interfaces?
 
         //Ensure we support this token standard
-        ProxyData storage ds = _proxyData();
+        ProxyData storage ds = ExtensionBase._proxyData();
         TokenStandard standard = IToken(ds.token).tokenStandard();
 
         require(ext.isTokenStandardSupported(standard), "Token standard is not supported in new extension");
