@@ -1,16 +1,29 @@
 ![Codefi](images/CodefiBanner.png)
 
-Universal Token offers a smart contract framework for writing and deploying extendable assets. 
+The Universal Token is a smart-contract framework for creating customisable tokens. Tokens created following the framework are composed of a Token contract to which one or multiple Extension contracts can be connected. 
+
+The Universal Token is compatible with Ethereum’s most used token standards including ERC20, ERC721, ERC1155 and ERC1400.  
+
+Dapp developers may use the Universal Token framework to:
+- Easily add new features to a token contract
+- Reduce the size of a token contract by not deploying and importing unnecessary code
+- Reduce development effort by leveraging a library of reusable token contracts and extension contracts
+
+Using the Universal Token API, developers can deploy extensions contracts and plug extensions contract to Token contracts, either at token deployment or in real-time on-chain.
 
 # Quickstart
+
+## Building
 
 The easiest way to get started is by first compiling all contracts 
 
 ```shell
-npx truffle compile
+yarn build
 ```
 
-deploying the `ERC20Extendable` smart contract requires an `ERC20Logic` contract to be already deployed on-chain
+## Deploying a Token
+
+deploying the `ERC20` smart contract requires an `ERC20Logic` contract to be already deployed on-chain
 
 ### Truffle
 
@@ -27,7 +40,7 @@ deploying the `ERC20Extendable` smart contract requires an `ERC20Logic` contract
   await logic.deployed();
 ```
 
-Now with an `ERC20Logic` contract address, you can now deploy the `ERC20Extendable` contract
+When you have an `ERC20Logic` contract address, you can now deploy the `ERC20` contract
 
 ### Truffle
 
@@ -60,6 +73,23 @@ Now with an `ERC20Logic` contract address, you can now deploy the `ERC20Extendab
     logic.address      //The address of the ERC20Logic contract
   );
   await erc20.deployed();
+```
+
+## Deploying ready-made Extensions
+
+Extensions are a key part of the UniversalToken, the repo comes with 5 extensions ready to be used with a deployed token.
+
+* AllowExtension
+  - Only allowlisted addresses can transfer/mint/burn tokens
+* BlockExtensions
+  - Blocklisted addresses cannot transfer/mint/burn tokens
+* PauseExtension
+  - Pause all transfer/mint/burns or pause transfer/mint/burns for a specific address
+* HoldExtension
+  - Token holds are an alternative to escrows allowing to lock tokens while keeping them in the wallet of the investor.
+
+```javascript
+
 ```
 
 # Overview of the repo
