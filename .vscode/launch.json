@@ -14,39 +14,6 @@
             "test"
         ]
 
-    },
-    {
-        "type": "node",
-        "request": "launch",
-        "name": "truffle tests DVP",
-        "cwd": "${workspaceFolder}",
-        "program": "${workspaceFolder}/node_modules/truffle/build/cli.bundled.js",
-        "args": [
-            "test", "./test/DVP.test.js"
-        ]
-
-    },
-    {
-        "type": "node",
-        "request": "launch",
-        "name": "truffle test Holdable Token",
-        "cwd": "${workspaceFolder}",
-        "program": "${workspaceFolder}/node_modules/truffle/build/cli.bundled.js",
-        "args": [
-            "test", "./test/HoldableToken.test.js"
-        ]
-
-    },
-    {
-      "type": "node",
-      "request": "launch",
-      "name": "truffle test Swap Holdable Token",
-      "cwd": "${workspaceFolder}",
-      "program": "${workspaceFolder}/node_modules/truffle/build/cli.bundled.js",
-      "args": [
-          "test", "./test/DVPHoldableLockable.test.js"
-      ]
-
-  }
+    }
   ]
 }

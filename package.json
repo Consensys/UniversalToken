@@ -7,30 +7,25 @@
     "tests"
   ],
   "scripts": {
-    "build:ERC1400": "sol-merger \"./contracts/ERC1400.sol\" ./artifacts",
-    "build:ERC1400HoldableCertificateNonceToken": "sol-merger \"./contracts/certificate/ERC1400HoldableCertificateNonceToken.sol\" ./artifacts",
-    "build:ERC1400HoldableCertificateSaltToken": "sol-merger \"./contracts/certificate/ERC1400HoldableCertificateSaltToken.sol\" ./artifacts",
-    "build:ERC1400TokensValidator": "sol-merger \"./contracts/extensions/tokenExtensions/ERC1400TokensValidator.sol\" ./artifacts",
-    "build": "yarn run clean && yarn run build:ERC1400 && yarn run build:ERC1400TokensValidator && yarn run build:ERC1400HoldableCertificateNonceToken && yarn run build:ERC1400HoldableCertificateSaltToken",
-    "clean": "rm -rf artifacts",
+    "build": "yarn run clean && truffle compile && yarn run generate-types",
+    "clean": "del-cli --force ./build && del-cli --force ./types",
     "coverage": "yarn truffle run coverage --network coverage",
-    "env": "node setup.js",
+    "env": "cp ./.env.example ./.env && echo .env file generated, please update to continue",
     "lint": "eslint ./migrations ./test ",
     "lint:fix": "eslint ./test ./migrations --fix",
-    "lint:sol": "solium --no-soliumignore -d .",
-    "lint:sol:fix": "solium --no-soliumignore -d . --fix",
+    "lint:sol": "yarn solhint contracts/**/*.sol",
+    "lint:sol:fix": "yarn solhint contracts/**/*.sol --fix",
     "lint:all": "yarn run lint && yarn run lint:sol",
     "lint:all:fix": "yarn run lint:fix && yarn run lint:sol:fix",
     "console": "truffle console",
-    "remix": "python -mwebbrowser http://localhost:8080 && remix-ide",
-    "start:chain": "ganache-cli -p 7545",
+    "start:chain": "ganache",
     "test": "yarn truffle test",
-    "generate-types": "typechain --target=ethers-v5 'build/contracts/*.json'",
-    "postinstall": "truffle compile && yarn generate-types"
+    "generate-types": "typechain --target=truffle-v5 'build/contracts/*.json'",
+    "postinstall": "yarn run build"
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/ConsenSys/ERC1400"
+    "url": "https://github.com/ConsenSys/UniversalToken"
   },
   "keywords": [
     "boilerplate",
@@ -40,12 +35,20 @@
     "contracts",
     "security",
     "ERC1820",
+    "ERC20",
+    "ERC721",
+    "ERC1155",
+    "extensions",
+    "plugins",
+    "token",
+    "proxy",
     "ERC777",
     "ERC1410",
     "ERC1400"
   ],
-  "author": "Gauthier Petetin <gauthierpetetin@hotmail.com>",
+  "author": "Edward Penta <ecp4224@gmail.com>",
   "contributors": [
+    "Gauthier Petetin <gauthierpetetin@hotmail.com>",
     "Julien Marchand <julien.marchand4@gmail.com>",
     "Julien Tanay <julien.tanay@gmail.com>"
   ],
@@ -63,6 +66,7 @@
     "chai": "^4.2.0",
     "chai-as-promised": "^7.1.1",
     "chai-bignumber": "^3.0.0",
+    "del-cli": "^4.0.1",
     "dotenv": "^8.2.0",
     "eslint": "^7.9.0",
     "eslint-config-standard": "^14.1.1",
@@ -77,28 +81,27 @@
     "fs-extra": "^7.0.1",
     "husky": "^4.3.0",
     "lint-staged": "^10.4.0",
-    "remix-ide": "^0.10.3",
     "sol-merger": "0.1.4",
+    "solhint": "^3.3.7",
     "solidity-coverage": "0.8.0-beta.0",
     "solium": "^1.2.5",
-    "solium-plugin-zeppelin": "^0.0.2",
-    "truffle-plugin-verify": "^0.5.15",
-    "typechain": "^6.0.5",
+    "truffle-contract-size": "^2.0.1",
+    "truffle-plugin-verify": "^0.5.19",
+    "typechain": "8.0.0",
     "web3-utils": "^1.2.8"
   },
   "dependencies": {
     "@openzeppelin/contracts": "^4.2.0",
     "@openzeppelin/contracts-upgradeable": "^4.4.2",
+    "@truffle/hdwallet-provider": "^2.0.8",
     "crypto": "^1.0.1",
     "ethereumjs-wallet": "^0.6.3",
     "ethers": "^5.5.3",
-    "truffle": "5.4.5",
-    "truffle-contract-size": "^2.0.1",
-    "truffle-hdwallet-provider": "1.0.1",
-    "truffle-plugin-verify": "^0.5.19"
+    "solidity-bytes-utils": "^0.8.0",
+    "truffle": "5.4.5"
   },
   "resolutions": {
-    "web3": "1.3.0"
+    "web3": "1.7.3"
   },
   "husky": {
     "hooks": {

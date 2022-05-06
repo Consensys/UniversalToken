@@ -1,5 +1,67 @@
 ![Codefi](images/CodefiBanner.png)
 
+Universal Token offers a smart contract framework for writing and deploying extendable assets. 
+
+# Quickstart
+
+The easiest way to get started is by first compiling all contracts 
+
+```shell
+npx truffle compile
+```
+
+deploying the `ERC20Extendable` smart contract requires an `ERC20Logic` contract to be already deployed on-chain
+
+### Truffle
+
+```javascript
+  const ERC20Logic = artifacts.require("ERC20Logic");
+  const logic = await ERC20Logic.new();
+```
+
+### Hardhat
+
+```javascript
+  const ERC20Logic = await hre.ethers.getContractFactory("ERC20Logic");
+  const logic = await ERC20Logic.deploy();
+  await logic.deployed();
+```
+
+Now with an `ERC20Logic` contract address, you can now deploy the `ERC20Extendable` contract
+
+### Truffle
+
+```javascript
+  const ERC20Extendable = artifacts.require("ERC20Extendable");
+  const token = await ERC20Extendable.new(
+    "ERC20Extendable", //Token Name
+    "DAU",             //Token Symbol
+    true,              //Allow Minting?
+    true,              //Allow Burning?
+    deployer,          //The owner address for this token
+    initialSupply,     //The inital supply for this token (will be given to owner address)
+    maxSupply,         //The absolute max supply for this token
+    logic.address      //The address of the ERC20Logic contract
+  );
+```
+
+### Hardhat
+
+```javascript
+  const ERC20Extendable = await hre.ethers.getContractFactory("ERC20Extendable");
+  const erc20 = await ERC20Extendable.deploy(
+    "ERC20Extendable", //Token Name
+    "DAU",             //Token Symbol
+    true,              //Allow Minting?
+    true,              //Allow Burning?
+    deployer,          //The owner address for this token
+    initialSupply,     //The inital supply for this token (will be given to owner address)
+    maxSupply,         //The absolute max supply for this token
+    logic.address      //The address of the ERC20Logic contract
+  );
+  await erc20.deployed();
+```
+
 # Overview of the repo
  - [Universal Token For Assets and Payments](https://github.com/ConsenSys/ERC1400/blob/master/README.md)
  - [Certificate-based token transfers](contracts/certificate/README.md)

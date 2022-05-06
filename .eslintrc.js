@@ -8,6 +8,7 @@ module.exports = {
   plugins: ["truffle"],
   extends: ["eslint:recommended"],
   rules: {
+    "indent": ["error", 2],
     "no-undef": 0,
     "no-unused-vars": 0,
   },

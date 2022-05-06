@@ -7,8 +7,24 @@ import {IERC165} from "@openzeppelin/contracts/utils/introspection/IERC165.sol";
 
 contract BlockExtension is TokenExtension, IBlocklistedRole, IBlocklistedAdminRole {
 
-    bytes32 constant BLOCKLIST_ROLE = keccak256("allowblock.roles.blocklisted");
-    bytes32 constant BLOCKLIST_ADMIN_ROLE = keccak256("allowblock.roles.blocklisted.admin");
+    bytes32 constant internal BLOCKLIST_ROLE = keccak256("allowblock.roles.blocklisted");
+    bytes32 constant internal BLOCKLIST_ADMIN_ROLE = keccak256("allowblock.roles.blocklisted.admin");
+
+    modifier onlyBlocklistedAdmin {
+        require(this.isBlocklistedAdmin(_msgSender()), "Not on block list admin");
+        _;
+    }
+
+    
+    modifier onlyNotBlocklisted {
+        require(!this.isBlocklisted(_msgSender()), "Already on block list");
+        _;
+    }
+
+    modifier onlyBlocklisted {
+        require(this.isBlocklisted(_msgSender()), "Not on block list");
+        _;
+    }
 
     constructor() {
         _registerFunction(BlockExtension.addBlocklisted.selector);
@@ -16,17 +32,21 @@ contract BlockExtension is TokenExtension, IBlocklistedRole, IBlocklistedAdminRo
         _registerFunction(BlockExtension.addBlocklistedAdmin.selector);
         _registerFunction(BlockExtension.removeBlocklistedAdmin.selector);
 
-        _registerFunctionName('isBlocklisted(address)');
-        _registerFunctionName('isBlocklistedAdmin(address)');
+        _registerFunctionName("isBlocklisted(address)");
+        _registerFunctionName("isBlocklistedAdmin(address)");
 
         _supportInterface(type(IBlocklistedRole).interfaceId);
         _supportInterface(type(IBlocklistedAdminRole).interfaceId);
 
         _supportsAllTokenStandards();
+
+        _setPackageName("net.consensys.tokenext.BlockExtension");
+        _setVersion(1);
     }
 
-    function initalize() external override {
+    function initialize() external override {
         _addRole(_msgSender(), BLOCKLIST_ADMIN_ROLE);
+        _listenForTokenTransfers(this.onTransferExecuted);
     }
 
     function isBlocklisted(address account) external override view returns (bool) {
@@ -53,7 +73,7 @@ contract BlockExtension is TokenExtension, IBlocklistedRole, IBlocklistedAdminRo
         _removeRole(account, BLOCKLIST_ADMIN_ROLE);
     }
 
-    function onTransferExecuted(TransferData memory data) external override returns (bool) {
+    function onTransferExecuted(TransferData memory data) external onlyToken returns (bool) {
         if (data.from != address(0)) {
             require(!hasRole(data.from, BLOCKLIST_ROLE), "from address is blocklisted");
         }

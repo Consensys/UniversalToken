@@ -9,14 +9,4 @@ interface IBlocklistedRole {
     function addBlocklisted(address account) external;
 
     function removeBlocklisted(address account) external;
-
-    modifier onlyNotBlocklisted {
-        require(!this.isBlocklisted(msg.sender), "Already on block list");
-        _;
-    }
-
-    modifier onlyBlocklisted {
-        require(this.isBlocklisted(msg.sender), "Not on block list");
-        _;
-    }
 }

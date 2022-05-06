@@ -19,52 +19,61 @@ async function main() {
   const deployer = accounts[0];
 
   const ERC20LogicMock = await hre.ethers.getContractFactory("ERC20LogicMock");
+  
   const ERC20Logic = await hre.ethers.getContractFactory("ERC20Logic");
-  const ERC20Storage = await hre.ethers.getContractFactory("ERC20Storage");
-  const ERC20Extendable = await hre.ethers.getContractFactory("ERC20Extendable");
-
   const logic = await ERC20Logic.deploy();
   await logic.deployed();
+  
+  const PauseExtension = await hre.ethers.getContractFactory("PauseExtension");
+
+
 
   console.log("Deploy token test");
+
+  const ERC20Extendable = await hre.ethers.getContractFactory("ERC20");
   const erc20 = await ERC20Extendable.deploy(
-    "ERC20Extendable",
-    "DAU",
-    true,
-    true,
-    deployer,
-    1000,
-    5000,
-    logic.address
+    "TokenName",   //token name
+    "DAU",         //token symbol
+    true,          //allow minting
+    true,          //allow burning
+    deployer,      //token owner address
+    1000,          //initial supply to give to owner address
+    5000,          //max supply
+    logic.address  //address of token logic contract
   );
   await erc20.deployed();
 
   console.log("Deployer is " + deployer);
+  console.log("Total supply is " + (await erc20.totalSupply()));
   console.log("Is deployer minter? " + (await erc20.isMinter(deployer)));
 
   console.log("Deployed to " + erc20.address);
-
+  
+  console.log("Doing pre-extension mint");
   await erc20.mint(accounts[1], "1000");
 
   console.log("ERC20Extendable token contract deployed to:", erc20.address);
 
-  console.log("Deploying mock logic");
-  const logic2 = await ERC20LogicMock.deploy();
-  await logic2.deployed();
+  console.log("Deploying PauseableExtension");
+  const pauseExtContract = await PauseExtension.deploy();
+  await pauseExtContract.deployed();
 
-  console.log("Testing directly");
-  console.log(await logic2.isMock());
+  console.log("Registering PauseExtension on token");
+  await erc20.registerExtension(pauseExtContract.address);
 
-  console.log("Performing upgrade on token to use new mock logic");
-  await erc20.upgradeTo(logic2.address);
+  const pauseToken = await PauseExtension.attach(erc20.address);
   
-  console.log("Attaching to new logic ABI at address: " + logic2.address);
-  const test = await ERC20LogicMock.attach(erc20.address);
+  console.log("Doing pause()");
+  await pauseToken.pause();
+  console.log("Checking isPaused()");
+  console.log(await pauseToken.isPaused());
+  console.log("Doing unpause()");
+  await pauseToken.unpause();
+  console.log("Checking isPaused()");
+  console.log(await pauseToken.isPaused());
   
-  console.log("Running isMock()");
-  const tttt = await test.isMock();
-
-  console.log(tttt);
+  console.log("Doing post extension mint");
+  await erc20.mint(accounts[1], "1000");
 }
 
 // We recommend this pattern to be able to use async/await everywhere
