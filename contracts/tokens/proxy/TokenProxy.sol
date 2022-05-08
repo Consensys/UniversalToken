@@ -47,7 +47,7 @@ abstract contract TokenProxy is TokenERC1820Provider, TokenRoles, DomainAware, I
     */
     constructor(address logicAddress, address owner) {
         if (owner != address(0) && owner != _msgSender()) {
-            transferOwnership(owner);
+            TokenRoles.transferOwnership(owner);
             StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = owner;
         } else {
             StorageSlot.getAddressSlot(TOKEN_MANAGER_ADDRESS).value = _msgSender();

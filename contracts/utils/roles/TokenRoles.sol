@@ -95,14 +95,14 @@ abstract contract TokenRoles is TokenRolesConstants, ITokenRoles, RolesBase, Con
     * @notice Returns true if `caller` has the Controller role granted
     */
     function isController(address caller) public override view returns (bool) {
-        return hasRole(caller, TOKEN_CONTROLLER_ROLE);
+        return RolesBase.hasRole(caller, TOKEN_CONTROLLER_ROLE);
     }
 
     /**
     * @notice Returns true if `caller` has the Minter role granted
     */
     function isMinter(address caller) public override view returns (bool) {
-        return hasRole(caller, TOKEN_MINTER_ROLE);
+        return RolesBase.hasRole(caller, TOKEN_MINTER_ROLE);
     }
 
     /**
@@ -111,7 +111,7 @@ abstract contract TokenRoles is TokenRolesConstants, ITokenRoles, RolesBase, Con
     * @param caller The address to grant the Controller role to
     */
     function addController(address caller) public override onlyControllers {
-        _addRole(caller, TOKEN_CONTROLLER_ROLE);
+        RolesBase._addRole(caller, TOKEN_CONTROLLER_ROLE);
     }
 
     /**
@@ -120,7 +120,7 @@ abstract contract TokenRoles is TokenRolesConstants, ITokenRoles, RolesBase, Con
     * @param caller The address to remove the Controller role from
     */
     function removeController(address caller) public override onlyControllers {
-        _removeRole(caller, TOKEN_CONTROLLER_ROLE);
+        RolesBase._removeRole(caller, TOKEN_CONTROLLER_ROLE);
     }
 
     /**
@@ -129,7 +129,7 @@ abstract contract TokenRoles is TokenRolesConstants, ITokenRoles, RolesBase, Con
     * @param caller The address to grant the Minter role to
     */
     function addMinter(address caller) public override onlyMinter {
-        _addRole(caller, TOKEN_MINTER_ROLE);
+        RolesBase._addRole(caller, TOKEN_MINTER_ROLE);
     }
 
     /**
@@ -138,7 +138,7 @@ abstract contract TokenRoles is TokenRolesConstants, ITokenRoles, RolesBase, Con
     * @param caller The address to remove the Minter role from
     */
     function removeMinter(address caller) public override onlyMinter {
-        _removeRole(caller, TOKEN_MINTER_ROLE);
+        RolesBase._removeRole(caller, TOKEN_MINTER_ROLE);
     }
 
     /**
