@@ -150,6 +150,14 @@ contract PauseExtension is TokenExtension {
 }
 ```
 
+## _msgSender() instead of msg.sender
+
+The `TokenExtension` contract will be executed in a proxy context when it's attached to a deployed token. This means that the value of `msg.sender` may be different depending on how the Extension is invoked (meta-transaction, token proxy forwarding, EOA, etc..). 
+
+Therefore, the use of `msg.sender` is considered unsafe as the value may not be correct for the current executing context. 
+
+ℹ️ **You must always use `_msgSender()` to obtain the proper `msg.sender` for the current context. Never use `msg.sender` directly unless you know what you are doing.** ℹ️
+
 ## Extension Constructor
 
 Even though extensions are upgradable, they must contain a constructor. The constructor of an extension smart contract is used to write immutable metadata about the extension that is used by the token during registration. This includes things such as the version, the functions the extension has, what interfaces it supports, and which token interfaces it supports (multiple token interfaces can be supported). Each new version of an extension deployed on-chain must include this constructor, and may choose to change the contents of the constructor between versions. 
@@ -210,7 +218,7 @@ The only thing extensions cannot do inside an event callback is perform an actio
 
 If an extension wishes to listen to an event, it should subscribe to the event inside its `initialize` function. However, an extension can choose to subscirbe whenever they like.
 
-**NOTE: It's very important that event callback functions are marked as either `external` or `public` and MUST include the `onlyToken` modifier. The `onlyToken` modifier ensures that only the token can execute the callback function
+**NOTE:** It's very important that event callback functions are marked as either `external` or `public` and MUST include the `onlyToken` modifier. The `onlyToken` modifier ensures that only the token can execute the callback function
 
 ```solidity
 import {TokenExtension, TransferData} from "@consensys-software/UniversalToken/extensions/TokenExtension.sol";
@@ -238,3 +246,63 @@ contract PauseExtension is TokenExtension {
     }
 }
 ```
+
+## Controlled Transfers
+
+A controlled transfer allows for an Extension to perform a transfer from one address to another without needing prior approval. This can only be done by Extensions granted with the `TOKEN_CONTROLLER_ROLE` token role. 
+
+⚠️ **WARNING** ⚠️ _When an Extension (or any address) is granted the `TOKEN_CONTROLLER_ROLE` token role, the granted address has approval on all balance holders. It's important to ensure only trusted addresses have the `TOKEN_CONTROLLER_ROLE` token role._
+
+An extension can request the `TOKEN_CONTROLLER_ROLE` token role during registration by specifying it as a required role using `_requireRole(TOKEN_CONTROLLER_ROLE)`. 
+
+
+```solidity
+import {TokenExtension, TransferData} from "@consensys-software/UniversalToken/extensions/TokenExtension.sol";
+
+contract HoldExtension is TokenExtension {
+    
+    constructor() {
+        _requireRole(TOKEN_CONTROLLER_ROLE)
+    }
+
+    function initialize() external override {
+       // ...
+    }
+}
+```
+
+Once your extension has the required token role, you can perform a controlled transfer. To do this, you must create a `TransferData` object specify the details of the transfer. This can be done manually by instantiating the `TransferData` struct, or by using the `_buildTransfer` helper function from `TokenExtension`.
+
+Once you have a `TransferData` object, simply invoke the `_tokenTransfer(TransferData)` function inside of `TokenExtension`
+
+
+```solidity
+import {TokenExtension, TransferData} from "@consensys-software/UniversalToken/extensions/TokenExtension.sol";
+
+contract HoldExtension is TokenExtension {
+
+    // ...
+    
+    constructor() {
+        _requireRole(TOKEN_CONTROLLER_ROLE)
+    }
+
+    function initialize() external override {
+       // ...
+    }
+    
+    function _executeHold(bytes32 holdId, bytes32 lockPreimage, address recipient) internal isHeld(holdId) {
+        HoldExtensionData storage data = holdData();
+        require(data.holds[holdId].notary == _msgSender(), "executeHold: caller must be the hold notary");
+
+        TransferData memory transferData = _buildTransfer(data.holds[holdId].sender, recipient, data.holds[holdId].amount);
+        _tokenTransfer(transferData);
+        // equivalent to:
+        // _transfer(holds[holdId].sender, recipient, holds[holdId].amount);
+    }
+}
+```
+
+ℹ️ **A controlled transfer will trigger both a `TOKEN_BEFORE_TRANSFER_EVENT` and a `TOKEN_TRANSFER_EVENT`. This means that controlled transfers can still be restricted by Extensions and controlled transfers cannot occur inside a `TOKEN_BEFORE_TRANSFER_EVENT` or `TOKEN_TRANSFER_EVENT` callback.** ℹ️
+
+
