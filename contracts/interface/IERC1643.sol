@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
 /// @title IERC1643 Document Management (part of the ERC1400 Security Token Standards)
