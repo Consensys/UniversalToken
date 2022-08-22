@@ -1018,7 +1018,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Increase held balance.
    */
-  function _increaseHeldBalance(address token, Hold storage executableHold, bytes32 holdId) private {
+  function _increaseHeldBalance(address token, Hold storage executableHold, bytes32/*holdId*/) private {
     _heldBalance[token][executableHold.sender] = _heldBalance[token][executableHold.sender].add(executableHold.value);
     _totalHeldBalance[token] = _totalHeldBalance[token].add(executableHold.value);
 
