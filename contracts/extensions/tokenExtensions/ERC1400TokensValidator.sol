@@ -878,8 +878,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Execute hold.
    */
-  function executeHold(address token, bytes32 holdId, uint256 value, bytes32 secret) external override returns (bool) {
-    return _executeHold(
+  function executeHold(address token, bytes32 holdId, uint256 value, bytes32 secret) external override {
+    _executeHold(
       token,
       holdId,
       msg.sender,
@@ -892,8 +892,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Execute hold and keep open.
    */
-  function executeHoldAndKeepOpen(address token, bytes32 holdId, uint256 value, bytes32 secret) external returns (bool) {
-    return _executeHold(
+  function executeHoldAndKeepOpen(address token, bytes32 holdId, uint256 value, bytes32 secret) external {
+    _executeHold(
       token,
       holdId,
       msg.sender,
@@ -913,7 +913,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     uint256 value,
     bytes32 secret,
     bool keepOpenIfHoldHasBalance
-  ) internal returns (bool)
+  ) internal
   {
     Hold storage executableHold = _holds[token][holdId];
 

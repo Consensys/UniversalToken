@@ -62,7 +62,6 @@ contract BatchTokenIssuer is ERC1820Implementer {
   )
     external
     onlyTokenMinter(token)
-    returns (uint256[] memory)
   {
     require(partitions.length == tokenHolders.length, "partitions and tokenHolders arrays have different lengths");
     require(partitions.length == values.length, "partitions and values arrays have different lengths");
