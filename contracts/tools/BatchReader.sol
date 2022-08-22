@@ -83,11 +83,11 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
             batchTotalSupplies[j] = IERC20(tokens[j]).totalSupply();
         }
 
-        (uint256[] memory totalPartitionsLengths, bytes32[] memory batchTotalPartitions, uint256[] memory batchPartitionSupplies) = batchTotalPartitions(tokens);
+        (uint256[] memory totalPartitionsLengths, bytes32[] memory batchTotalPartitions_, uint256[] memory batchPartitionSupplies) = batchTotalPartitions(tokens);
 
-        (uint256[] memory defaultPartitionsLengths, bytes32[] memory batchDefaultPartitions) = batchDefaultPartitions(tokens);
+        (uint256[] memory defaultPartitionsLengths, bytes32[] memory batchDefaultPartitions_) = batchDefaultPartitions(tokens);
 
-        return (batchTotalSupplies, totalPartitionsLengths, batchTotalPartitions, batchPartitionSupplies, defaultPartitionsLengths, batchDefaultPartitions);
+        return (batchTotalSupplies, totalPartitionsLengths, batchTotalPartitions_, batchPartitionSupplies, defaultPartitionsLengths, batchDefaultPartitions_);
     }
 
     /**
@@ -95,15 +95,15 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
      * @return Batch of token roles.
      */
     function batchTokenRolesInfos(address[] calldata tokens) external view returns (address[] memory, uint256[] memory, address[] memory, uint256[] memory, address[] memory) {
-        (uint256[] memory batchExtensionControllersLength, address[] memory batchExtensionControllers) = batchExtensionControllers(tokens);
+        (uint256[] memory batchExtensionControllersLength, address[] memory batchExtensionControllers_) = batchExtensionControllers(tokens);
 
-        (uint256[] memory batchControllersLength, address[] memory batchControllers) = batchControllers(tokens);
+        (uint256[] memory batchControllersLength, address[] memory batchControllers_) = batchControllers(tokens);
 
         address[] memory batchOwners = new address[](tokens.length);
         for (uint256 i = 0; i < tokens.length; i++) {
             batchOwners[i] = IERC1400Extended(tokens[i]).owner();
         }
-        return (batchOwners, batchControllersLength, batchControllers, batchExtensionControllersLength, batchExtensionControllers);
+        return (batchOwners, batchControllersLength, batchControllers_, batchExtensionControllersLength, batchExtensionControllers_);
     }
 
     /**
@@ -245,13 +245,13 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
     function batchERC1400Balances(address[] calldata tokens, address[] calldata tokenHolders) external view returns (uint256[] memory, uint256[] memory, uint256[] memory, bytes32[] memory, uint256[] memory, uint256[] memory) {
         (,, uint256[] memory batchSpendableBalancesOfByPartition) = batchSpendableBalanceOfByPartition(tokens, tokenHolders);
 
-        (uint256[] memory totalPartitionsLengths, bytes32[] memory batchTotalPartitions, uint256[] memory batchBalancesOfByPartition) = batchBalanceOfByPartition(tokens, tokenHolders);
+        (uint256[] memory totalPartitionsLengths, bytes32[] memory batchTotalPartitions_, uint256[] memory batchBalancesOfByPartition) = batchBalanceOfByPartition(tokens, tokenHolders);
 
         uint256[] memory batchBalancesOf = batchBalanceOf(tokens, tokenHolders);
 
         uint256[] memory batchEthBalances = batchEthBalance(tokenHolders);
 
-        return (batchEthBalances, batchBalancesOf, totalPartitionsLengths, batchTotalPartitions, batchBalancesOfByPartition, batchSpendableBalancesOfByPartition);
+        return (batchEthBalances, batchBalancesOf, totalPartitionsLengths, batchTotalPartitions_, batchBalancesOfByPartition, batchSpendableBalancesOfByPartition);
     }
 
     /**
@@ -333,21 +333,21 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
      * @return Batch of token partition balances.
      */
     function batchBalanceOfByPartition(address[] memory tokens, address[] memory tokenHolders) public view returns (uint256[] memory, bytes32[] memory, uint256[] memory) {
-        (uint256[] memory totalPartitionsLengths, bytes32[] memory batchTotalPartitions,) = batchTotalPartitions(tokens);
+        (uint256[] memory totalPartitionsLengths, bytes32[] memory batchTotalPartitions_,) = batchTotalPartitions(tokens);
         
-        uint256[] memory batchBalanceOfByPartitionResponse = new uint256[](tokenHolders.length * batchTotalPartitions.length);
+        uint256[] memory batchBalanceOfByPartitionResponse = new uint256[](tokenHolders.length * batchTotalPartitions_.length);
 
         for (uint256 i = 0; i < tokenHolders.length; i++) {
             uint256 counter = 0;
             for (uint256 j = 0; j < tokens.length; j++) {
                 for (uint256 k = 0; k < totalPartitionsLengths[j]; k++) {
-                    batchBalanceOfByPartitionResponse[i*batchTotalPartitions.length + counter] = IERC1400(tokens[j]).balanceOfByPartition(batchTotalPartitions[counter], tokenHolders[i]);
+                    batchBalanceOfByPartitionResponse[i*batchTotalPartitions_.length + counter] = IERC1400(tokens[j]).balanceOfByPartition(batchTotalPartitions_[counter], tokenHolders[i]);
                     counter++;
                 }
             }
         }
 
-        return (totalPartitionsLengths, batchTotalPartitions, batchBalanceOfByPartitionResponse);
+        return (totalPartitionsLengths, batchTotalPartitions_, batchBalanceOfByPartitionResponse);
     }
 
     /**
@@ -355,9 +355,9 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
      * @return Batch of token spendable partition balances.
      */
     function batchSpendableBalanceOfByPartition(address[] memory tokens, address[] memory tokenHolders) public view returns (uint256[] memory, bytes32[] memory, uint256[] memory) {
-        (uint256[] memory totalPartitionsLengths, bytes32[] memory batchTotalPartitions,) = batchTotalPartitions(tokens);
+        (uint256[] memory totalPartitionsLengths, bytes32[] memory batchTotalPartitions_,) = batchTotalPartitions(tokens);
         
-        uint256[] memory batchSpendableBalanceOfByPartitionResponse = new uint256[](tokenHolders.length * batchTotalPartitions.length);
+        uint256[] memory batchSpendableBalanceOfByPartitionResponse = new uint256[](tokenHolders.length * batchTotalPartitions_.length);
 
         for (uint256 i = 0; i < tokenHolders.length; i++) {
             uint256 counter = 0;
@@ -366,16 +366,16 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
 
                 for (uint256 k = 0; k < totalPartitionsLengths[j]; k++) {
                     if (tokenExtension != address(0)) {
-                        batchSpendableBalanceOfByPartitionResponse[i*batchTotalPartitions.length + counter] = IERC1400TokensValidatorExtended(tokenExtension).spendableBalanceOfByPartition(tokens[j], batchTotalPartitions[counter], tokenHolders[i]);
+                        batchSpendableBalanceOfByPartitionResponse[i*batchTotalPartitions_.length + counter] = IERC1400TokensValidatorExtended(tokenExtension).spendableBalanceOfByPartition(tokens[j], batchTotalPartitions_[counter], tokenHolders[i]);
                     } else {
-                        batchSpendableBalanceOfByPartitionResponse[i*batchTotalPartitions.length + counter] = IERC1400(tokens[j]).balanceOfByPartition(batchTotalPartitions[counter], tokenHolders[i]);
+                        batchSpendableBalanceOfByPartitionResponse[i*batchTotalPartitions_.length + counter] = IERC1400(tokens[j]).balanceOfByPartition(batchTotalPartitions_[counter], tokenHolders[i]);
                     }
                     counter++;
                 }
             }
         }
 
-        return (totalPartitionsLengths, batchTotalPartitions, batchSpendableBalanceOfByPartitionResponse);
+        return (totalPartitionsLengths, batchTotalPartitions_, batchSpendableBalanceOfByPartitionResponse);
     }
 
     /**
@@ -443,10 +443,10 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
      * @return Batch of validation status.
      */
     function batchValidations(address[] memory tokens, address[] memory tokenHolders) public view returns (bool[] memory, bool[] memory) {
-        bool[] memory batchAllowlisted = batchAllowlisted(tokens, tokenHolders);
-        bool[] memory batchBlocklisted = batchBlocklisted(tokens, tokenHolders);
+        bool[] memory batchAllowlisted_ = batchAllowlisted(tokens, tokenHolders);
+        bool[] memory batchBlocklisted_ = batchBlocklisted(tokens, tokenHolders);
 
-        return (batchAllowlisted, batchBlocklisted);
+        return (batchAllowlisted_, batchBlocklisted_);
     }
 
     /**

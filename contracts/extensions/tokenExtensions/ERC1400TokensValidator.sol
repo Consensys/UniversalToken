@@ -470,9 +470,9 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     if (_holdsActivated[token] && from != address(0)) {
       if(operator != from) {
         (, bytes32 holdId) = _retrieveHoldHashId(token, partition, operator, from, to, value);
-        Hold storage hold = _holds[token][holdId];
+        Hold storage hold_ = _holds[token][holdId];
         
-        if (_holdCanBeExecutedAsNotary(hold, operator, value) && value <= IERC1400(token).balanceOfByPartition(partition, from)) {
+        if (_holdCanBeExecutedAsNotary(hold_, operator, value) && value <= IERC1400(token).balanceOfByPartition(partition, from)) {
           return true;
         }
       }

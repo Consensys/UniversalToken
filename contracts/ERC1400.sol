@@ -166,27 +166,27 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
 
   /**
    * @dev Initialize ERC1400 + register the contract implementation in ERC1820Registry.
-   * @param name Name of the token.
-   * @param symbol Symbol of the token.
-   * @param granularity Granularity of the token.
-   * @param controllers Array of initial controllers.
+   * @param tokenName Name of the token.
+   * @param tokenSymbol Symbol of the token.
+   * @param tokenGranularity Granularity of the token.
+   * @param initialControllers Array of initial controllers.
    * @param defaultPartitions Partitions chosen by default, when partition is
    * not specified, like the case ERC20 tranfers.
    */
   constructor(
-    string memory name,
-    string memory symbol,
-    uint256 granularity,
-    address[] memory controllers,
+    string memory tokenName,
+    string memory tokenSymbol,
+    uint256 tokenGranularity,
+    address[] memory initialControllers,
     bytes32[] memory defaultPartitions
   ) {
-    _name = name;
-    _symbol = symbol;
+    _name = tokenName;
+    _symbol = tokenSymbol;
     _totalSupply = 0;
-    require(granularity >= 1); // Constructor Blocked - Token granularity can not be lower than 1
-    _granularity = granularity;
+    require(tokenGranularity >= 1); // Constructor Blocked - Token granularity can not be lower than 1
+    _granularity = tokenGranularity;
 
-    _setControllers(controllers);
+    _setControllers(initialControllers);
 
     _defaultPartitions = defaultPartitions;
 
@@ -284,26 +284,26 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
   /************************************* Document Management **************************************/
   /**
    * @dev Access a document associated with the token.
-   * @param name Short name (represented as a bytes32) associated to the document.
+   * @param documentName Short name (represented as a bytes32) associated to the document.
    * @return Requested document + document hash + document timestamp.
    */
-  function getDocument(bytes32 name) external override view returns (string memory, bytes32, uint256) {
-    require(bytes(_documents[name].docURI).length != 0); // Action Blocked - Empty document
+  function getDocument(bytes32 documentName) external override view returns (string memory, bytes32, uint256) {
+    require(bytes(_documents[documentName].docURI).length != 0); // Action Blocked - Empty document
     return (
-      _documents[name].docURI,
-      _documents[name].docHash,
-      _documents[name].timestamp
+      _documents[documentName].docURI,
+      _documents[documentName].docHash,
+      _documents[documentName].timestamp
     );
   }
   /**
    * @dev Associate a document with the token.
-   * @param name Short name (represented as a bytes32) associated to the document.
+   * @param documentName Short name (represented as a bytes32) associated to the document.
    * @param uri Document content.
    * @param documentHash Hash of the document [optional parameter].
    */
-  function setDocument(bytes32 name, string calldata uri, bytes32 documentHash) external override {
+  function setDocument(bytes32 documentName, string calldata uri, bytes32 documentHash) external override {
     require(_isController[msg.sender]);
-    _documents[name] = Doc({
+    _documents[documentName] = Doc({
       docURI: uri,
       docHash: documentHash,
       timestamp: block.timestamp
@@ -314,14 +314,14 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
       _indexOfDocHashes[documentHash] = _docHashes.length;
     }
 
-    emit DocumentUpdated(name, uri, documentHash);
+    emit DocumentUpdated(documentName, uri, documentHash);
   }
 
-  function removeDocument(bytes32 _name) external override {
+  function removeDocument(bytes32 documentName) external override {
     require(_isController[msg.sender], "Unauthorized");
-    require(bytes(_documents[_name].docURI).length != 0, "Document doesnt exist"); // Action Blocked - Empty document
+    require(bytes(_documents[documentName].docURI).length != 0, "Document doesnt exist"); // Action Blocked - Empty document
 
-    Doc memory data = _documents[_name];
+    Doc memory data = _documents[documentName];
 
     uint256 index1 = _indexOfDocHashes[data.docHash];
     require(index1 > 0, "Invalid index"); //Indexing starts at 1, 0 is not allowed
@@ -335,9 +335,9 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     _docHashes.pop();
     _indexOfDocHashes[data.docHash] = 0;
 
-    delete _documents[_name];
+    delete _documents[documentName];
 
-    emit DocumentRemoved(_name, data.docURI, data.docHash);
+    emit DocumentRemoved(documentName, data.docURI, data.docHash);
   }
 
   function getAllDocuments() external override view returns (bytes32[] memory) {
