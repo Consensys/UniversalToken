@@ -179,9 +179,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     uint256 granularity,
     address[] memory controllers,
     bytes32[] memory defaultPartitions
-  )
-    public
-  {
+  ) {
     _name = name;
     _symbol = symbol;
     _totalSupply = 0;

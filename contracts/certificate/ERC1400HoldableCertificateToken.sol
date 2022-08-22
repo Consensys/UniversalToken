@@ -72,7 +72,6 @@ contract ERC1400HoldableCertificateToken is ERC1400, IExtensionTypes {
     address certificateSigner,
     CertificateValidation certificateActivated
   )
-    public
     ERC1400(name, symbol, granularity, controllers, defaultPartitions)
   {
     if(extension != address(0)) {

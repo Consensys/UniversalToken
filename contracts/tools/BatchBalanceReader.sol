@@ -27,7 +27,7 @@ interface IERC1400Extended {
 contract BatchBalanceReader is ERC1820Implementer {
     string internal constant BALANCE_READER = "BatchBalanceReader";
 
-    constructor() public {
+    constructor() {
         ERC1820Implementer._setInterface(BALANCE_READER);
     }
 

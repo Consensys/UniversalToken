@@ -36,7 +36,6 @@ contract FakeERC1400Mock is ERC1400 {
     address extension,
     address mockAddress
   )
-    public
     ERC1400(name, symbol, granularity, controllers, defaultPartitions)
   {
     if(extension != address(0)) {

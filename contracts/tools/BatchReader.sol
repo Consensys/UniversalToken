@@ -69,7 +69,7 @@ contract BatchReader is IExtensionTypes, ERC1820Client, ERC1820Implementer {
     // Mapping from token to token extension address
     mapping(address => address) internal _extension;
 
-    constructor() public {
+    constructor() {
         ERC1820Implementer._setInterface(BALANCE_READER);
     }
 

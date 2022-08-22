@@ -43,7 +43,7 @@ contract BatchTokenIssuer is ERC1820Implementer {
     _;
   }
 
-  constructor() public {
+  constructor() {
     ERC1820Implementer._setInterface(BATCH_ISSUER);
   }
 

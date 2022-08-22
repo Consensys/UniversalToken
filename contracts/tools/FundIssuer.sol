@@ -166,7 +166,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
    * @dev Initialize Fund issuance contract + register
    * the contract implementation in ERC1820Registry.
    */
-  constructor() public {
+  constructor() {
     ERC1820Implementer._setInterface(FUND_ISSUER);
     ERC1820Implementer._setInterface(ERC1400_TOKENS_RECIPIENT);
     setInterfaceImplementation(ERC1400_TOKENS_RECIPIENT, address(this));
