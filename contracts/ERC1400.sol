@@ -1437,7 +1437,7 @@ contract ERC1400 is IERC20, IERC1400, Ownable, ERC1820Client, ERC1820Implementer
     return _name;
   }
 
-  function domainVersion() public override view returns (string memory) {
+  function domainVersion() public override pure returns (string memory) {
     return "1";
   }
   /************************************************************************************************/

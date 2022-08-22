@@ -179,7 +179,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
    * @param operatorData Information attached to the Swaps transfer, by the operator.
    * @return 'true' if the Swaps contract can receive the tokens, 'false' if not.
    */
-  function canReceive(bytes calldata, bytes32, address, address, address, uint, bytes calldata  data, bytes calldata operatorData) external override view returns(bool) {
+  function canReceive(bytes calldata, bytes32, address, address, address, uint, bytes calldata  data, bytes calldata operatorData) external override pure returns(bool) {
     return(_canReceive(data, operatorData));
   }
 

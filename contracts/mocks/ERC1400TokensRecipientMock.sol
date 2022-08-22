@@ -25,7 +25,7 @@ contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implement
   ) // Comments to avoid compilation warnings for unused variables.
     external
     override
-    view
+    pure
     returns(bool)
   {
     return(_canReceive(from, to, value, data));
@@ -43,6 +43,7 @@ contract ERC1400TokensRecipientMock is IERC1400TokensRecipient, ERC1820Implement
   ) // Comments to avoid compilation warnings for unused variables.
     external
     override
+    pure
   {
     require(_canReceive(from, to, value, data), "57"); // 0x57	invalid receiver
   }
