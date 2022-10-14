@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
 import "../ERC1400.sol";
@@ -50,7 +51,6 @@ contract ERC1400HoldableToken is ERC1400, IExtensionTypes {
     address extension,
     address newOwner
   )
-    public
     ERC1400(name, symbol, granularity, controllers, defaultPartitions)
   {
     if(extension != address(0)) {

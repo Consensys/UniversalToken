@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
@@ -469,9 +470,9 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     if (_holdsActivated[token] && from != address(0)) {
       if(operator != from) {
         (, bytes32 holdId) = _retrieveHoldHashId(token, partition, operator, from, to, value);
-        Hold storage hold = _holds[token][holdId];
+        Hold storage hold_ = _holds[token][holdId];
         
-        if (_holdCanBeExecutedAsNotary(hold, operator, value) && value <= IERC1400(token).balanceOfByPartition(partition, from)) {
+        if (_holdCanBeExecutedAsNotary(hold_, operator, value) && value <= IERC1400(token).balanceOfByPartition(partition, from)) {
           return true;
         }
       }
@@ -877,8 +878,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Execute hold.
    */
-  function executeHold(address token, bytes32 holdId, uint256 value, bytes32 secret) external override returns (bool) {
-    return _executeHold(
+  function executeHold(address token, bytes32 holdId, uint256 value, bytes32 secret) external override {
+    _executeHold(
       token,
       holdId,
       msg.sender,
@@ -891,8 +892,8 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Execute hold and keep open.
    */
-  function executeHoldAndKeepOpen(address token, bytes32 holdId, uint256 value, bytes32 secret) external returns (bool) {
-    return _executeHold(
+  function executeHoldAndKeepOpen(address token, bytes32 holdId, uint256 value, bytes32 secret) external {
+    _executeHold(
       token,
       holdId,
       msg.sender,
@@ -912,7 +913,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
     uint256 value,
     bytes32 secret,
     bool keepOpenIfHoldHasBalance
-  ) internal returns (bool)
+  ) internal
   {
     Hold storage executableHold = _holds[token][holdId];
 
@@ -1017,7 +1018,7 @@ contract ERC1400TokensValidator is IERC1400TokensValidator, Pausable, Certificat
   /**
    * @dev Increase held balance.
    */
-  function _increaseHeldBalance(address token, Hold storage executableHold, bytes32 holdId) private {
+  function _increaseHeldBalance(address token, Hold storage executableHold, bytes32/*holdId*/) private {
     _heldBalance[token][executableHold.sender] = _heldBalance[token][executableHold.sender].add(executableHold.value);
     _totalHeldBalance[token] = _totalHeldBalance[token].add(executableHold.value);
 

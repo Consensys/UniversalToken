@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
 import "./HoldStatusCode.sol";
@@ -8,7 +9,7 @@ interface IHoldableERC1400TokenExtension {
         bytes32 holdId,
         uint256 value,
         bytes32 lockPreimage
-    ) external returns (bool);
+    ) external;
 
     function retrieveHoldData(address token, bytes32 holdId) external view returns (
         bytes32 partition,

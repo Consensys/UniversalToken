@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
@@ -42,7 +43,7 @@ contract BatchTokenIssuer is ERC1820Implementer {
     _;
   }
 
-  constructor() public {
+  constructor() {
     ERC1820Implementer._setInterface(BATCH_ISSUER);
   }
 
@@ -61,7 +62,6 @@ contract BatchTokenIssuer is ERC1820Implementer {
   )
     external
     onlyTokenMinter(token)
-    returns (uint256[] memory)
   {
     require(partitions.length == tokenHolders.length, "partitions and tokenHolders arrays have different lengths");
     require(partitions.length == values.length, "partitions and values arrays have different lengths");

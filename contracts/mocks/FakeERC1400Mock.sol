@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 pragma solidity ^0.8.0;
 
 import "../ERC1400.sol";
@@ -35,7 +36,6 @@ contract FakeERC1400Mock is ERC1400 {
     address extension,
     address mockAddress
   )
-    public
     ERC1400(name, symbol, granularity, controllers, defaultPartitions)
   {
     if(extension != address(0)) {

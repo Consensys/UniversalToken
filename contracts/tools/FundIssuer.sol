@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
@@ -165,7 +166,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
    * @dev Initialize Fund issuance contract + register
    * the contract implementation in ERC1820Registry.
    */
-  constructor() public {
+  constructor() {
     ERC1820Implementer._setInterface(FUND_ISSUER);
     ERC1820Implementer._setInterface(ERC1400_TOKENS_RECIPIENT);
     setInterfaceImplementation(ERC1400_TOKENS_RECIPIENT, address(this));
@@ -178,7 +179,7 @@ contract FundIssuer is ERC1820Client, IERC1400TokensRecipient, ERC1820Implemente
    * @param operatorData Information attached to the Swaps transfer, by the operator.
    * @return 'true' if the Swaps contract can receive the tokens, 'false' if not.
    */
-  function canReceive(bytes calldata, bytes32, address, address, address, uint, bytes calldata  data, bytes calldata operatorData) external override view returns(bool) {
+  function canReceive(bytes calldata, bytes32, address, address, address, uint, bytes calldata  data, bytes calldata operatorData) external override pure returns(bool) {
     return(_canReceive(data, operatorData));
   }
 

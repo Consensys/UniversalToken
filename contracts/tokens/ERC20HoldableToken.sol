@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
@@ -77,12 +78,12 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
 
     /**
      @notice Called by the sender to hold some tokens for a recipient that the sender can not release back to themself until after the expiration date.
+     @param holdId a unique identifier for the hold.
      @param recipient optional account the tokens will be transferred to on execution. If a zero address, the recipient must be specified on execution of the hold.
      @param notary account that can execute the hold. Typically the recipient but can be a third party or a smart contact.
      @param amount of tokens to be transferred to the recipient on execution. Must be a non zero amount.
      @param expirationDateTime UNIX epoch seconds the held amount can be released back to the sender by the sender. Past dates are allowed.
      @param lockHash optional keccak256 hash of a lock preimage. An empty hash will not enforce the hash lock when the hold is executed.
-     @return holdId a unique identifier for the hold.
      */
     function hold(
         bytes32 holdId,
@@ -91,7 +92,7 @@ contract ERC20HoldableToken is ERC20Token, IERC20HoldableToken {
         uint256 amount,
         uint256 expirationDateTime,
         bytes32 lockHash
-    ) public override returns (bool) {
+    ) public override {
         require(
             notary != address(0),
             "hold: notary must not be a zero address"

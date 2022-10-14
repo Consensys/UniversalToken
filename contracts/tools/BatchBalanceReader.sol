@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
@@ -26,7 +27,7 @@ interface IERC1400Extended {
 contract BatchBalanceReader is ERC1820Implementer {
     string internal constant BALANCE_READER = "BatchBalanceReader";
 
-    constructor() public {
+    constructor() {
         ERC1820Implementer._setInterface(BALANCE_READER);
     }
 

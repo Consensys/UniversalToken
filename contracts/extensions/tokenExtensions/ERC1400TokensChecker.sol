@@ -1,3 +1,4 @@
+// SPDX-License-Identifier: Apache-2.0
 /*
  * This code has not been reviewed.
  * Do not use or deploy this code before reviewing it personally first.
@@ -33,7 +34,7 @@ contract ERC1400TokensChecker is IERC1400TokensChecker, ERC1820Client, ERC1820Im
   string constant internal ERC1400_TOKENS_SENDER = "ERC1400TokensSender";
   string constant internal ERC1400_TOKENS_RECIPIENT = "ERC1400TokensRecipient";
 
-  constructor() public {
+  constructor() {
     ERC1820Implementer._setInterface(ERC1400_TOKENS_CHECKER);
   }
 
