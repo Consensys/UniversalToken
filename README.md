@@ -92,13 +92,13 @@ The most well-known token standard is called ERC20: it is an interface for fungi
 Its “transfer” and “balanceOf” functions are now pre-requisites to be compatible with wallets and key custody solutions, like Metamask of Ledger hardware wallets.
 
 Its “allowance” and “transferFrom” functions are important for interoperability with other smart contracts.
-Airswap p2p trading plaform uses those functions to execute delivery-vs-payment operations.
+Airswap p2p trading platform uses those functions to execute delivery-vs-payment operations.
 
 #### Possibility to escrow tokens
 Another important aspect for interoperability is the possibility to escrow tokens.
 
 Escrow a token means accepting a smart contract to be the owner of the token (instead of a human person).
-Token escrow mechanisms are used by lots of DeFi smart contract:
+Token escrow mechanisms are used by lots of DeFi smart contracts:
  - Lending contracts like Compound need escrows to store collateralized tokens
  - Decentralized exchanges like Uniswap or derivatives platforms like Synthetix need escrows to create liquidity pools
 
@@ -112,9 +112,9 @@ Second major topic for assets and payments is control mechanisms.
 
 When building financial instruments, controlling who has access to a specific instrument is paramount.
 Every asset distribution, or asset transfer needs to be controlled by the issuer of the asset.
-There are two main solution that we’ve implemented.
+There are two main solutions that we’ve implemented.
  - **Certificates generated off-chain**: a certificate is a signed hash of the transaction parameters. A new certificate needs to be created for every new transfer. This offers very strong control capabilities. But unfortunately, it is not compatible with the ERC20 interface, thus making things more complex when it comes towards interoperability with the Ethereum ecosystem.
- - **List of validated investors stored on-chain**: the token smart contract just consults this list every time it needs to perform a transfer. In the future, we can envision a world where such global allowlists will be curated by consortiums of financial institutions or even regulators themselves, but today, those don’t exist. This method lacks flexibility since an Ethereum transaction is required everytime we need to modify the list. But the good thing is, it allows to use the ERC20 transfer function, thus making it interoperable with the Ethereum ecosystem.
+ - **List of validated investors stored on-chain**: the token smart contract just consults this list every time it needs to perform a transfer. In the future, we can envision a world where such global allowlists will be curated by consortiums of financial institutions or even regulators themselves, but today, those don’t exist. This method lacks flexibility since an Ethereum transaction is required every time we need to modify the list. But the good thing is, it allows to use the ERC20 transfer function, thus making it interoperable with the Ethereum ecosystem.
 
 
  ![Picture15](images/Picture15.png)
@@ -209,7 +209,7 @@ Tokens can switch from a token class to another, with an on-ramp/off-ramp mechan
 Moving tokens from a class to another allows to easily change how they are controlled. 
 
 This means the token allows to operate on both CeFi and DeFi at the same time:
- - **Rigth now**, financial instruments can be issued with a setup adapted to the current regulatory context
+ - **Right now**, financial instruments can be issued with a setup adapted to the current regulatory context
  - **Later**, the setup can be gradually adapted for Decentralized Finance when the regulation becomes clearer
 
 
@@ -265,7 +265,7 @@ ERC1400 introduces new concepts on top of ERC20 token standard:
  - **Document management**: Possibility to bind tokens to hashes of legal documents, thus making the link between a blockchain transaction and the real world.
 
 Optionally, the following features can also be added:
- - **Hooks**: Possibility for token senders/recipients to setup hooks, e.g. automated actions executed everytime they send/receive tokens, thanks to [ERC1820](http://eips.ethereum.org/EIPS/eip-1820).
+ - **Hooks**: Possibility for token senders/recipients to setup hooks, e.g. automated actions executed every time they send/receive tokens, thanks to [ERC1820](http://eips.ethereum.org/EIPS/eip-1820).
  - **Upgradeability**: Use of ERC1820([eips.ethereum.org/EIPS/eip-1820](http://eips.ethereum.org/EIPS/eip-1820)) as central contract registry to follow smart contract migrations.
 
 
